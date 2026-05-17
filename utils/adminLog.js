@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const LOG_PATH = path.join(__dirname, '..', 'data', 'admin-actions.json');
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
+const LOG_PATH = path.join(DATA_DIR, 'admin-actions.json');
 
 function readLog() {
   try {
@@ -13,6 +14,8 @@ function readLog() {
 }
 
 function writeLog(entries) {
+  const dir = path.dirname(LOG_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(LOG_PATH, JSON.stringify(entries, null, 2), 'utf8');
 }
 

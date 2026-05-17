@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const DB_PATH = path.join(__dirname, '..', 'data', 'game.db');
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
+const DB_PATH = path.join(DATA_DIR, 'game.db');
 
 let db = null;
 let _origPrepare = null;

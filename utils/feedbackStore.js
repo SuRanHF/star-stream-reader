@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const FEEDBACK_PATH = path.join(__dirname, '..', 'data', 'feedback.json');
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
+const FEEDBACK_PATH = path.join(DATA_DIR, 'feedback.json');
 
 function read() {
   try {
@@ -13,6 +14,8 @@ function read() {
 }
 
 function write(entries) {
+  const dir = path.dirname(FEEDBACK_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(FEEDBACK_PATH, JSON.stringify(entries, null, 2), 'utf8');
 }
 

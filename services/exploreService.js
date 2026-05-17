@@ -129,7 +129,8 @@ function applyLocationUnlocks(playerId, locationKeys) {
 }
 
 // ── 核心: 探索事件系统 ──
-function startExploration(playerId, locationKey) {
+function startExploration(playerId, locationKey, opts) {
+  opts = opts || {};
   const db = getDb();
   const player = playerService.get(playerId);
   if (!player) return { error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } };
@@ -160,12 +161,17 @@ function startExploration(playerId, locationKey) {
   const heatMultiplier = 1 + (stats.channelHeat || 0) * 0.01;
   const finalCoinMultiplier = effectiveCoinMultiplier * heatMultiplier;
   const staminaReduction = explorationMods.staminaReduction || 0;
-  const staminaCost = Math.max(1, 5 - staminaReduction);
-  if ((stats.stamina || 0) < staminaCost) {
+  let staminaCost = Math.max(1, 5 - staminaReduction);
+  if (opts.firstExplore) {
+    staminaCost = 0;
+  }
+  if (staminaCost > 0 && (stats.stamina || 0) < staminaCost) {
     return { error: { code: 'NO_STAMINA', message: `体力不足，需要${staminaCost}点体力，请等待恢复或使用道具` } };
   }
-  stats.stamina -= staminaCost;
-  playerService.update(playerId, { stats_json: stats });
+  if (staminaCost > 0) {
+    stats.stamina -= staminaCost;
+    playerService.update(playerId, { stats_json: stats });
+  }
 
   // 获取当前阶段
   const currentMain = player.current_main_chapter || 'main_ch01_paid_service';
@@ -476,6 +482,11 @@ function handleOpportunityEvent(db, playerId, locationKey, stageProgress, player
   // 装备奖励特殊处理
   if (rewards.equipment) {
     inventoryService.addItem(playerId, rewards.equipment, 1);
+    // Resolve equipment name for frontend display
+    try {
+      const eqRow = db.prepare('SELECT name FROM equipment WHERE equipment_key = ?').get(rewards.equipment);
+      if (eqRow) rewards.equipment_name = eqRow.name;
+    } catch (e) { /* non-critical */ }
   }
   // 道具奖励
   if (rewards.items) {

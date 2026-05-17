@@ -76,8 +76,8 @@ const API = {
   getLocations(playerId) {
     return this.request('GET', `/api/explore/locations/${playerId}`);
   },
-  startExploration(playerId, locationKey) {
-    return this.request('POST', '/api/explore/start', { playerId, locationKey });
+  startExploration(playerId, locationKey, firstExplore) {
+    return this.request('POST', '/api/explore/start', { playerId, locationKey, firstExplore: !!firstExplore });
   },
 
   // Inventory

@@ -21,7 +21,7 @@ router.get('/locations/:playerId', (req, res) => {
 
 router.post('/start', (req, res) => {
   try {
-    const { playerId, locationKey } = req.body;
+    const { playerId, locationKey, firstExplore } = req.body;
     if (!playerId || !locationKey) return res.status(400).json({ code: 'MISSING_PARAMS', message: '缺少必要参数' });
     recoveryService.applyPassiveRecovery(Number(playerId));
     try {
@@ -32,7 +32,7 @@ router.post('/start', (req, res) => {
       }
       throw e;
     }
-    const result = exploreService.startExploration(Number(playerId), locationKey);
+    const result = exploreService.startExploration(Number(playerId), locationKey, { firstExplore: !!firstExplore });
     if (result.error) return res.status(400).json(result.error);
     res.json(result);
   } catch (e) {

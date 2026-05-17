@@ -339,6 +339,9 @@ const GameClient = {
       case 'titles':
         this.loadTitles();
         break;
+      case 'archive':
+        this.openArchive();
+        break;
       case 'pk':
         this.loadPK();
         break;
@@ -491,8 +494,13 @@ const GameClient = {
         hasContent = false;
         UI.renderStageIndicator(data.player);
       } else if (opts.isInitialLoad) {
-        // On page refresh: only show popup if there are available choices
-        hasContent = hasAvailableChoices;
+        // On page refresh: never show story popup. If there's a pending main story,
+        // it will appear during the next exploration. First exploration will be free.
+        if (hasAvailableChoices) {
+          this._firstExploreFreePending = true;
+          UI.addLog('当前有主线剧情待推进，下次探索将触发（此次探索免费）', 'system');
+        }
+        hasContent = false;
       } else if (consumedDismissed) {
         // Already dismissed for this chapter — skip consumed/locked-choices popup
         hasContent = hasAvailableChoices || hasChapterContent;
@@ -622,7 +630,11 @@ const GameClient = {
   async doExplore(locationKey) {
     this._lastExploredLocation = locationKey;
     try {
-      const result = await API.startExploration(this.playerId, locationKey);
+      const firstExplore = this._firstExploreFreePending || false;
+      const result = await API.startExploration(this.playerId, locationKey, firstExplore);
+      if (!result.code && firstExplore) {
+        this._firstExploreFreePending = false;
+      }
       if (result.code) {
         UI.addLog('探索失败: ' + result.message, 'warning');
         alert(result.message);
@@ -659,7 +671,7 @@ const GameClient = {
         if (rew.coins) rewardParts.push(`硬币 +${rew.coins}`);
         if (rew.story_fragments) rewardParts.push(`碎片 +${rew.story_fragments}`);
         if (rew.exp) rewardParts.push(`EXP +${rew.exp}`);
-        if (rew.equipment) rewardParts.push(`装备: ${rew.equipment}`);
+        if (rew.equipment) rewardParts.push(`装备: ${rew.equipment_name || rew.equipment}`);
         if (rewardParts.length > 0) {
           UI.addLog(`获得: ${rewardParts.join(', ')}`, 'reward', { id: `${logKey}_rewards` });
         }
@@ -1023,6 +1035,19 @@ const GameClient = {
       UI.renderLeftPanel(player);
     } catch (e) {
       UI.addLog('加载称号失败: ' + (e.message || e), 'warning');
+    }
+  },
+
+  async openArchive() {
+    try {
+      const { player } = await API.getPlayer(this.playerId);
+      if (!player.stats && player.stats_json) {
+        player.stats = typeof player.stats_json === 'string' ? JSON.parse(player.stats_json) : player.stats_json;
+      }
+      const contentHTML = UI.renderArchive(player);
+      UI.openDrawer('档案 · 星流秘典', contentHTML);
+    } catch (e) {
+      UI.addLog('加载档案失败: ' + (e.message || e), 'warning');
     }
   },
 

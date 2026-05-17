@@ -451,6 +451,12 @@ const GameClient = {
 
     await this.fetchChapter({ isInitialLoad: true });
     UI.renderSocialActionBar();
+    // Show description panel with constellation lore / background story on load
+    if (constellation) {
+      UI.renderDescriptionPanel(player, 'constellation');
+    } else {
+      UI.renderDescriptionPanel(player, 'stats');
+    }
     this._updateRestUI(this._isResting);
     if (this._isResting) {
       this._startRecoveryLoop();
@@ -1529,17 +1535,29 @@ const GameClient = {
     try {
       const resp = await fetch('/api/changelog');
       const data = await resp.json();
-      if (!data.success || !data.data || data.data.length === 0) return;
+      console.log('[changelog] response:', data);
+      if (!data.success || !data.data || data.data.length === 0) {
+        console.log('[changelog] no data, skipping');
+        return;
+      }
       const latest = data.data[0];
       const seenVersion = localStorage.getItem('changelog_seen');
-      if (seenVersion === latest.version) return;
-      // Show popup
+      console.log('[changelog] latest:', latest.version, 'seen:', seenVersion);
+      if (seenVersion === latest.version) {
+        console.log('[changelog] already seen, skipping');
+        return;
+      }
+      // Wait a tick to ensure DOM is fully settled
+      await new Promise(function(r) { setTimeout(r, 500); });
       document.getElementById('changelogVersion').textContent = 'v' + latest.version + ' — ' + (latest.date || '');
       document.getElementById('changelogList').innerHTML = latest.changes.map(function(c) {
         return '<li>' + c.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</li>';
       }).join('');
       document.getElementById('changelogOverlay').classList.remove('hidden');
-    } catch (e) { /* non-critical */ }
+      console.log('[changelog] popup shown');
+    } catch (e) {
+      console.error('[changelog] error:', e);
+    }
   },
 
   closeChangelog() {

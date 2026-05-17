@@ -1695,6 +1695,10 @@ const UI = {
     var conKey = s.constellation;
     var html = '';
 
+    // World background story
+    html += '<div class="desc-section-title">世界背景</div>';
+    html += '<div class="desc-lore-text">世界早已终结。你是一名"读者"——被星座选中的化身，拥有阅读世界线并改变故事走向的能力。在这个末日后的星流之中，星座靠人类集体意识中的故事为生，而化身则是它们在现实世界的代言人。每一次选择、每一场战斗，都是你在书写自己的传说。</div>';
+
     // Build recommendation based on constellation
     var builds = {
       golden_sun: { primary: '攻击', secondary: '暴击', tip: '金乌眷顾高攻击高暴击的化身。灼热的光芒将贯穿一切防御。优先将点数分配给攻击和暴击。' },

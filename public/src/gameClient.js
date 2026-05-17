@@ -8,7 +8,6 @@ const GameClient = {
     this.state = 'LOADING';
     this.setupNavigation();
     this.setupModals();
-    this.setupFeedback();
     this.checkChangelog();
 
     const token = Storage.getToken();
@@ -304,7 +303,7 @@ const GameClient = {
     if (pkModalOverlay && pkModalOverlay.dataset.bound !== 'true') {
       pkModalOverlay.dataset.bound = 'true';
       pkModalOverlay.addEventListener('click', function(e) {
-        if (e.target === this) this.classList.add('hidden');
+        if (e.target === this) UI.dismissPopup('pkModalOverlay');
       });
     }
   },
@@ -316,7 +315,7 @@ const GameClient = {
     switch (featureName) {
       case 'story':
         UI.closeDrawer();
-        // Close all popups
+        // Close all popups (synchronous — avoid dismissPopup timer race)
         document.getElementById('storyPopupOverlay')?.classList.add('hidden');
         document.getElementById('explorePopupOverlay')?.classList.add('hidden');
         document.getElementById('mapOverlay')?.classList.add('hidden');
@@ -353,6 +352,9 @@ const GameClient = {
         break;
       case 'settings':
         this.showSettings();
+        break;
+      case 'feedback':
+        this.openFeedback();
         break;
     }
   },
@@ -553,6 +555,7 @@ const GameClient = {
       return;
     }
     this.state = 'CHOOSING';
+    this._inHandlerError = false;
 
     try {
       const result = await API.makeChoice(this.playerId, choiceKey);
@@ -564,7 +567,8 @@ const GameClient = {
           UI.showError(result.message || '选择失败');
         }
         this.state = 'SHOWING_CHAPTER';
-        return;
+        this._inHandlerError = true;
+        return result;
       }
 
       // Process new_logs from backend — the primary source of log entries
@@ -606,10 +610,13 @@ const GameClient = {
         document.getElementById('storyPopupOverlay')?.classList.add('hidden');
         this._lastChapterKey = null;
       }
+
+      return result;
     } catch (e) {
       console.error('Choice error:', e);
       UI.showError('操作失败: ' + (e.message || '请重试'));
       this.state = 'SHOWING_CHAPTER';
+      this._inHandlerError = true;
     }
   },
 
@@ -759,6 +766,7 @@ const GameClient = {
   },
 
   updateMainActionBar(player) {
+    if (!player) return;
     UI.renderMainActionBar(player);
     // Flash stamina bar if low
     const stamina = (player.stats && player.stats.stamina) || 0;
@@ -1204,111 +1212,55 @@ const GameClient = {
 
   // ===== Popup Choice Handler =====
   async handleChoiceFromPopup(choiceKey) {
-    if (this.state === 'CHOOSING') return;
-    if (this._isResting) {
-      UI.addLog('你正在休息，无法进行剧情选择。', 'warning');
-      return;
+    // Same logic as handleChoice, but with popup-specific post-processing
+    const popupWasVisible = !document.getElementById('storyPopupOverlay')?.classList.contains('hidden');
+
+    const result = await this.handleChoice(choiceKey);
+
+    if (this._inHandlerError || !result) return;
+
+    // Show stat gains in popup
+    const effects = this._extractChoiceEffects(result);
+    if (Object.keys(effects).length > 0 && popupWasVisible) {
+      UI.showStatGainsInPopup(effects);
     }
-    this.state = 'CHOOSING';
 
-    try {
-      const result = await API.makeChoice(this.playerId, choiceKey);
-
-      if (result.error) {
-        UI.showError(result.message || '选择失败');
-        this.state = 'SHOWING_CHAPTER';
-        return;
+    // Popup refresh logic for non-advancing choices
+    if (!result.chapter_consumed && !result.ending) {
+      UI.refreshStoryPopup(result.chapter, result.choices, result.locked_choices);
+      UI.renderLeftPanel(result.player);
+      UI.renderMainActionBar(result.player);
+      if (!popupWasVisible) {
+        document.getElementById('storyPopupOverlay')?.classList.add('hidden');
       }
-
-      // Process new_logs
-      if (result.new_logs && result.new_logs.length > 0) {
-        result.new_logs.forEach(log => {
-          UI.addLog(log.message, log.type || 'story', { id: log.id });
-        });
-      }
-
-      if (result.stage_completed) {
-        UI.addLog('当前阶段剧情已完成。', 'stage', { id: `stage_done_${Date.now()}` });
-      }
-
-      if (result.needs_stage_advance) {
-        UI.addLog('请满足阶段推进条件后进入下一阶段。', 'stage', { id: `stage_adv_${Date.now()}` });
-      }
-
-      // Show stat gains in popup
-      const effects = this._extractChoiceEffects(result);
-      if (Object.keys(effects).length > 0) {
-        UI.showStatGainsInPopup(effects);
-      }
-
-      if (result.chapter_consumed) {
-        UI.addLog('本章已结束，请通过探索推进剧情。', 'stage', { id: `consumed_${Date.now()}` });
-      }
-
-      if (result.ending) {
-        this.state = 'SHOWING_ENDING';
-        this.dismissStoryPopup();
-        UI.renderLeftPanel(result.player);
-        UI.renderMainActionBar(result.player);
-        setTimeout(() => UI.renderEnding(result.ending), 800);
-      } else if (result.chapter_consumed) {
-        // Refresh popup with consumed state
-        UI.refreshStoryPopup(result.chapter, result.choices, result.locked_choices);
-        UI.renderLeftPanel(result.player);
-        UI.renderMainActionBar(result.player);
-        UI.renderStageIndicator(result.player);
-        this.state = 'SHOWING_CHAPTER';
-      } else {
-        // Still have available choices — refresh popup
-        UI.refreshStoryPopup(result.chapter, result.choices, result.locked_choices);
-        UI.renderLeftPanel(result.player);
-        UI.renderMainActionBar(result.player);
-        this.state = 'SHOWING_CHAPTER';
-      }
-    } catch (e) {
-      console.error('Choice error:', e);
-      UI.showError('操作失败: ' + (e.message || '请重试'));
-      this.state = 'SHOWING_CHAPTER';
     }
   },
 
   _extractChoiceEffects(result) {
     const effects = {};
-    if (!result || !result.new_logs) return effects;
+    if (!result) return effects;
 
-    result.new_logs.forEach(log => {
-      const msg = log.message || '';
-      const coinMatch = msg.match(/硬币\s*\+(\d+)/);
-      if (coinMatch) effects.coins = (effects.coins || 0) + parseInt(coinMatch[1]);
-      const fragMatch = msg.match(/碎片\s*\+(\d+)/);
-      if (fragMatch) effects.story_fragments = (effects.story_fragments || 0) + parseInt(fragMatch[1]);
-      const expMatch = msg.match(/EXP\s*\+(\d+)/);
-      if (expMatch) effects.exp = (effects.exp || 0) + parseInt(expMatch[1]);
-      const statMatch = msg.match(/(攻击|防御|速度|智慧|战斗|领导|羁绊|残酷|洞察)\s*\+(\d+)/);
-      if (statMatch) {
-        effects.stats = effects.stats || {};
-        effects.stats[statMatch[1]] = (effects.stats[statMatch[1]] || 0) + parseInt(statMatch[2]);
-      }
-      const equipMatch = msg.match(/获得装备[：:]\s*(.+)/);
-      if (equipMatch) effects.equipment = equipMatch[1].trim();
-    });
-
+    // Prefer structured rewards data over log regex parsing
     if (result.rewards) {
-      if (result.rewards.coins) effects.coins = (effects.coins || 0) + result.rewards.coins;
-      if (result.rewards.story_fragments) effects.story_fragments = (effects.story_fragments || 0) + result.rewards.story_fragments;
-      if (result.rewards.exp) effects.exp = (effects.exp || 0) + result.rewards.exp;
+      const r = result.rewards;
+      if (r.coins) effects.coins = (effects.coins || 0) + r.coins;
+      if (r.story_fragments) effects.story_fragments = (effects.story_fragments || 0) + r.story_fragments;
+      if (r.exp) effects.exp = (effects.exp || 0) + r.exp;
+      if (r.equipment) effects.equipment = r.equipment;
+      if (r.items && r.items.length > 0) effects.items = r.items;
+      if (r.stats) effects.stats = r.stats;
     }
 
     return effects;
   },
 
   dismissStoryPopup() {
-    document.getElementById('storyPopupOverlay')?.classList.add('hidden');
+    UI.dismissPopup('storyPopupOverlay');
     this._dismissedChapterKey = this._lastChapterKey;
   },
 
   dismissExplorePopup() {
-    document.getElementById('explorePopupOverlay')?.classList.add('hidden');
+    UI.dismissPopup('explorePopupOverlay');
   },
 
   // ===== World Map =====
@@ -1333,12 +1285,12 @@ const GameClient = {
   },
 
   dismissMap() {
-    document.getElementById('mapOverlay')?.classList.add('hidden');
+    UI.dismissPopup('mapOverlay');
   },
 
   async dismissMapAndExplore() {
     const locKey = UI._currentMapLocation;
-    document.getElementById('mapOverlay')?.classList.add('hidden');
+    UI.dismissPopup('mapOverlay');
     if (locKey) {
       await this.doExplore(locKey);
     } else {
@@ -1386,11 +1338,11 @@ const GameClient = {
   },
 
   dismissCombatPopup() {
-    document.getElementById('combatPopupOverlay')?.classList.add('hidden');
+    UI.dismissPopup('combatPopupOverlay');
   },
 
   async finishCombat() {
-    document.getElementById('combatPopupOverlay')?.classList.add('hidden');
+    UI.dismissPopup('combatPopupOverlay');
     // Refresh player after combat
     const { player } = await API.getPlayer(this.playerId);
     UI.renderLeftPanel(player);
@@ -1425,10 +1377,11 @@ const GameClient = {
     try {
       const result = await API.selectConstellation(this.playerId, constellationKey);
       if (result.success) {
-        document.getElementById('constellationPopupOverlay')?.classList.add('hidden');
         const c = result.data.constellation;
-        UI.addLog(`你选择了背后星: ${c.title}（${c.name}）`, 'system');
-        await this.fetchChapter();
+        UI.dismissPopup('constellationPopupOverlay', () => {
+          UI.addLog(`你选择了背后星: ${c.title}（${c.name}）`, 'system');
+          this.fetchChapter();
+        });
       } else {
         alert((result.error && result.error.message) || '选择失败');
       }
@@ -1448,12 +1401,13 @@ const GameClient = {
     try {
       const result = await API.revivePlayer(this.playerId, method);
       if (result.success) {
-        document.getElementById('underworldPopupOverlay')?.classList.add('hidden');
-        UI.addLog(result.data.message || '你从冥界归来了。', 'story');
-        const { player } = await API.getPlayer(this.playerId);
-        UI.renderLeftPanel(player);
-        this.updateMainActionBar(player);
-        await this.fetchChapter();
+        UI.dismissPopup('underworldPopupOverlay', async () => {
+          UI.addLog(result.data.message || '你从冥界归来了。', 'story');
+          const { player } = await API.getPlayer(this.playerId);
+          UI.renderLeftPanel(player);
+          this.updateMainActionBar(player);
+          await this.fetchChapter();
+        });
       } else {
         alert((result.error && result.error.message) || '复活失败');
       }
@@ -1463,7 +1417,7 @@ const GameClient = {
   },
 
   dismissUnderworld() {
-    document.getElementById('underworldPopupOverlay')?.classList.add('hidden');
+    UI.dismissPopup('underworldPopupOverlay');
   },
 
   // ===== Settings =====
@@ -1473,70 +1427,61 @@ const GameClient = {
   },
 
   // ===== Feedback =====
-  setupFeedback() {
-    const btn = document.getElementById('feedbackBtn');
-    const form = document.getElementById('feedbackForm');
-    const cancelBtn = document.getElementById('fbCancel');
-    const submitBtn = document.getElementById('fbSubmit');
-    const resultEl = document.getElementById('fbResult');
+  openFeedback() {
+    var overlay = document.getElementById('feedbackOverlay');
+    if (!overlay) return;
+    overlay.classList.remove('hidden');
+    var nickname = document.getElementById('fbNickname');
+    if (nickname && !nickname.value && this._currentUser?.username) {
+      nickname.value = this._currentUser.username;
+    }
+    var resultEl = document.getElementById('fbResult');
+    if (resultEl) { resultEl.style.display = 'none'; resultEl.textContent = ''; }
+  },
 
-    if (!btn || !form) return;
+  async submitFeedback() {
+    var content = document.getElementById('fbContent').value.trim();
+    var resultEl = document.getElementById('fbResult');
+    if (!content) {
+      if (resultEl) {
+        resultEl.textContent = '请输入反馈内容';
+        resultEl.style.display = 'block';
+      }
+      return;
+    }
 
-    // Toggle form visibility
-    btn.addEventListener('click', () => {
-      form.classList.toggle('hidden');
-      if (!form.classList.contains('hidden')) {
-        // Pre-fill nickname if available
-        const nickname = document.getElementById('fbNickname');
-        if (nickname && !nickname.value && this._currentUser?.username) {
-          nickname.value = this._currentUser.username;
+    var data = {
+      playerId: this.playerId || null,
+      nickname: document.getElementById('fbNickname').value.trim() || (this._currentUser?.username) || null,
+      type: document.getElementById('fbType').value,
+      content: content
+    };
+
+    try {
+      var res = await API.submitFeedback(data);
+      if (res.success) {
+        if (resultEl) {
+          resultEl.textContent = '感谢反馈！';
+          resultEl.style.display = 'block';
+        }
+        document.getElementById('fbNickname').value = '';
+        document.getElementById('fbContent').value = '';
+        document.getElementById('fbType').value = 'bug';
+        setTimeout(function() {
+          UI.dismissPopup('feedbackOverlay');
+        }, 1500);
+      } else {
+        if (resultEl) {
+          resultEl.textContent = (res.error && res.error.message) || '提交失败';
+          resultEl.style.display = 'block';
         }
       }
-    });
-
-    // Cancel: hide and clear
-    cancelBtn.addEventListener('click', () => {
-      form.classList.add('hidden');
-      document.getElementById('fbNickname').value = '';
-      document.getElementById('fbContent').value = '';
-      document.getElementById('fbType').value = 'bug';
-      if (resultEl) { resultEl.style.display = 'none'; resultEl.textContent = ''; }
-    });
-
-    // Submit
-    submitBtn.addEventListener('click', async () => {
-      const content = document.getElementById('fbContent').value.trim();
-      if (!content) {
-        if (resultEl) { resultEl.style.display = 'block'; resultEl.textContent = '请输入反馈内容'; resultEl.style.color = '#c55'; }
-        return;
+    } catch (e) {
+      if (resultEl) {
+        resultEl.textContent = '网络错误，请重试';
+        resultEl.style.display = 'block';
       }
-
-      const data = {
-        playerId: this.playerId || null,
-        nickname: document.getElementById('fbNickname').value.trim() || (this._currentUser?.username) || null,
-        type: document.getElementById('fbType').value,
-        content: content
-      };
-
-      try {
-        const res = await API.submitFeedback(data);
-        if (res.success) {
-          if (resultEl) { resultEl.style.display = 'block'; resultEl.textContent = '感谢反馈！'; resultEl.style.color = '#4db8a8'; }
-          // Clear fields and hide after 1.5s
-          document.getElementById('fbNickname').value = '';
-          document.getElementById('fbContent').value = '';
-          document.getElementById('fbType').value = 'bug';
-          setTimeout(() => {
-            form.classList.add('hidden');
-            if (resultEl) { resultEl.style.display = 'none'; resultEl.textContent = ''; }
-          }, 1500);
-        } else {
-          if (resultEl) { resultEl.style.display = 'block'; resultEl.textContent = (res.error && res.error.message) || '提交失败'; resultEl.style.color = '#c55'; }
-        }
-      } catch (e) {
-        if (resultEl) { resultEl.style.display = 'block'; resultEl.textContent = '网络错误，请重试'; resultEl.style.color = '#c55'; }
-      }
-    });
+    }
   },
 
   async newGame() {
@@ -1551,6 +1496,8 @@ const GameClient = {
   },
 
   // ===== Changelog =====
+  _latestChangelogVersion: null,
+
   async checkChangelog() {
     try {
       const resp = await fetch('/api/changelog');
@@ -1561,6 +1508,7 @@ const GameClient = {
         return;
       }
       const latest = data.data[0];
+      this._latestChangelogVersion = latest.version;
       const seenVersion = localStorage.getItem('changelog_seen');
       console.log('[changelog] latest:', latest.version, 'seen:', seenVersion);
       if (seenVersion === latest.version) {
@@ -1581,13 +1529,11 @@ const GameClient = {
   },
 
   closeChangelog() {
-    document.getElementById('changelogOverlay').classList.add('hidden');
-    try {
-      fetch('/api/changelog').then(function(r) { return r.json(); }).then(function(data) {
-        if (data.success && data.data && data.data.length > 0) {
-          localStorage.setItem('changelog_seen', data.data[0].version);
-        }
-      });
-    } catch (e) {}
+    UI.dismissPopup('changelogOverlay');
+    if (this._latestChangelogVersion) {
+      setTimeout(() => {
+        localStorage.setItem('changelog_seen', this._latestChangelogVersion);
+      }, 300);
+    }
   }
 };

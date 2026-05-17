@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
 const playerService = require('../services/playerService');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-do-not-use-in-production';
+// JWT_SECRET must be set — server.js generates a default on startup if not in env
+const JWT_SECRET = process.env.JWT_SECRET;
 
 function authRequired(req, res, next) {
   const authHeader = req.headers.authorization;

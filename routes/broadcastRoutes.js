@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const broadcastService = require('../services/broadcastService');
 const playerService = require('../services/playerService');
-const { authRequired } = require('../middleware/authMiddleware');
+const { authRequired, requireOwnPlayer } = require('../middleware/authMiddleware');
 
 // 获取当前活跃放送
 router.get('/active', (req, res) => {
@@ -33,7 +33,7 @@ router.get('/history', (req, res) => {
 });
 
 // 玩家参加放送 (需登录)
-router.post('/:eventId/join', authRequired, (req, res) => {
+router.post('/:eventId/join', authRequired, requireOwnPlayer, (req, res) => {
   try {
     const eventId = parseInt(req.params.eventId);
     const { playerId } = req.body;
@@ -85,7 +85,7 @@ router.get('/:eventId/my-contribution/:playerId', authRequired, (req, res) => {
 });
 
 // 领取奖励 (需登录)
-router.post('/:eventId/claim', authRequired, (req, res) => {
+router.post('/:eventId/claim', authRequired, requireOwnPlayer, (req, res) => {
   try {
     const eventId = parseInt(req.params.eventId);
     const { playerId } = req.body;
@@ -123,7 +123,7 @@ router.get('/:eventId/ranking', (req, res) => {
 });
 
 // 提交资源 (需登录)
-router.post('/:eventId/submit-resource', authRequired, (req, res) => {
+router.post('/:eventId/submit-resource', authRequired, requireOwnPlayer, (req, res) => {
   try {
     const eventId = parseInt(req.params.eventId);
     const { playerId, resourceType, amount } = req.body;

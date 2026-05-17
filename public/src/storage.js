@@ -16,6 +16,7 @@ const Storage = {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('session_token');
     localStorage.removeItem('session_user');
+    localStorage.removeItem('player_id');
   },
   setSession(token, username) {
     localStorage.setItem('auth_token', token);

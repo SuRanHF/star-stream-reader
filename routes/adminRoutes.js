@@ -124,7 +124,7 @@ router.post('/players/:id/update', (req, res) => {
     const player = playerService.getRaw(playerId);
     if (!player) return res.status(404).json({ success: false, error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } });
 
-    const stats = JSON.parse(player.stats_json);
+    const stats = JSON.parse(player.stats_json || '{}');
     const fields = {};
     const allowedStats = ['hp', 'maxHp', 'stamina', 'maxStamina', 'attack', 'defense', 'speed',
       'critRate', 'critDamage', 'level', 'exp', 'freePoints', 'luck', 'channelHeat', 'worldLineShift',
@@ -175,7 +175,7 @@ router.post('/players/:id/force-revive', (req, res) => {
     const player = playerService.getRaw(playerId);
     if (!player) return res.status(404).json({ success: false, error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } });
 
-    const stats = JSON.parse(player.stats_json);
+    const stats = JSON.parse(player.stats_json || '{}');
     stats.isDead = false;
     stats.hp = stats.maxHp || 100;
     playerService.update(playerId, { stats_json: stats });

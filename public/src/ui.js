@@ -94,7 +94,7 @@ const UI = {
 
     const now = new Date();
     const time = now.toTimeString().slice(0, 8);
-    entry.innerHTML = `<span class="log-time">${time}</span><span class="log-msg">${message}</span>`;
+    entry.innerHTML = `<span class="log-time">${time}</span><span class="log-msg">${UI.escapeHtml(message)}</span>`;
     stream.appendChild(entry);
 
     // Trim old entries
@@ -109,7 +109,7 @@ const UI = {
     if (!chapter) return;
     const text = chapter.summary || chapter.content || '';
     if (!text.trim()) return;
-    UI.addLog(text.replace(/\n/g, '<br>'), 'story', { id: 'chapter:' + (chapter.chapter_key || '') });
+    UI.addLog(UI.escapeHtml(text).replace(/\n/g, '<br>'), 'story', { id: 'chapter:' + (chapter.chapter_key || '') });
   },
 
   // ===== Current Event Panel (日志流下方，事件卡区域) =====
@@ -337,27 +337,36 @@ const UI = {
     if (!drawer) return;
     UI.setText('drawerTitle', title);
     const body = document.getElementById('drawerBody');
-    if (body) body.innerHTML = contentHTML;
-    drawer.classList.remove('hidden');
-    // Shift description panel left when drawer opens
-    var descPanel = document.getElementById('descriptionPanel');
-    if (descPanel && !descPanel.classList.contains('hidden')) {
-      descPanel.style.right = 'calc(var(--right-nav-width) + var(--drawer-width))';
+    const wasOpen = drawer.classList.contains('open');
+    if (body) {
+      body.innerHTML = contentHTML;
+      body.classList.remove('entering');
+      if (wasOpen) {
+        void body.offsetHeight;
+        body.classList.add('entering');
+      }
     }
-    // Trigger animation
-    requestAnimationFrame(() => {
-      drawer.classList.add('open');
-    });
+    drawer.classList.remove('hidden');
+    // Force reflow so browser registers initial translateX(100%) state before adding 'open'
+    void drawer.offsetWidth;
+    // Shift description panel left when drawer opens (composited, no layout)
+    var descPanel = document.getElementById('descriptionPanel');
+    if (descPanel && descPanel.classList.contains('visible')) {
+      descPanel.classList.add('shifted');
+    }
+    drawer.classList.add('open');
   },
 
   closeDrawer() {
     const drawer = document.getElementById('rightDrawer');
     if (!drawer) return;
     drawer.classList.remove('open');
-    // Restore description panel position
+    const body = document.getElementById('drawerBody');
+    if (body) body.classList.remove('entering');
+    // Restore description panel position (composited, no layout)
     var descPanel = document.getElementById('descriptionPanel');
     if (descPanel) {
-      descPanel.style.right = '';
+      descPanel.classList.remove('shifted');
     }
     // Hide after transition
     setTimeout(() => {
@@ -554,7 +563,7 @@ const UI = {
         <p>回合数: ${result.battle_log?.total_rounds || 0}</p>
       </div>
       <div class="modal-actions">
-        <button class="btn-action" onclick="document.getElementById('pkModalOverlay').classList.add('hidden');GameClient.loadPK();">确定</button>
+        <button class="btn-action" onclick="UI.dismissPopup('pkModalOverlay');GameClient.loadPK();">确定</button>
       </div>
     `;
     modal.classList.remove('hidden');
@@ -781,11 +790,10 @@ const UI = {
     overlay.classList.remove('hidden');
     document.getElementById('warningMessage').textContent = message;
     document.getElementById('warningConfirm').onclick = () => {
-      overlay.classList.add('hidden');
-      if (onConfirm) onConfirm();
+      UI.dismissPopup('warningOverlay', onConfirm);
     };
     document.getElementById('warningCancel').onclick = () => {
-      overlay.classList.add('hidden');
+      UI.dismissPopup('warningOverlay');
     };
   },
 
@@ -816,8 +824,19 @@ const UI = {
     document.getElementById(id)?.classList.add('hidden');
   },
 
+  dismissPopup(overlayId, onDone) {
+    const overlay = document.getElementById(overlayId);
+    if (!overlay || overlay.classList.contains('closing')) return;
+    overlay.classList.add('closing');
+    setTimeout(() => {
+      overlay.classList.add('hidden');
+      overlay.classList.remove('closing');
+      if (typeof onDone === 'function') onDone();
+    }, 280);
+  },
+
   hideModal() {
-    UI.hide('modalOverlay');
+    UI.dismissPopup('modalOverlay');
   },
 
   // ===== Story Popup =====
@@ -926,6 +945,9 @@ const UI = {
   showStatGainsInPopup(gains) {
     const container = document.getElementById('popupStatGains');
     if (!container || !gains) return;
+    container.classList.remove('blur-in');
+    void container.offsetHeight;
+    container.classList.add('blur-in');
     container.innerHTML = '';
     container.classList.remove('hidden');
 
@@ -959,6 +981,12 @@ const UI = {
     if (!chapter) return;
     UI.setText('popupChapterTitle', chapter.title || chapter.chapter_name || '剧情');
     const narrative = document.getElementById('popupNarrative');
+    const body = document.getElementById('storyPopupBody');
+    if (body) {
+      body.classList.remove('blur-in');
+      void body.offsetHeight;
+      body.classList.add('blur-in');
+    }
     if (narrative) {
       const text = chapter.summary || chapter.content || '';
       narrative.innerHTML = text ? text.replace(/\n/g, '<br>') : '<em style="color:var(--text-dim);">...</em>';
@@ -1112,6 +1140,10 @@ const UI = {
   showCombatResult(data) {
     const body = document.getElementById('combatPopupBody');
     if (!body) return;
+
+    body.classList.remove('blur-in');
+    void body.offsetHeight;
+    body.classList.add('blur-in');
 
     const badge = data.success
       ? '<span class="choice-tag tag-action">成功</span>'
@@ -1357,6 +1389,11 @@ const UI = {
 
     if (currentTotal <= maxPoints) {
       input.value = newVal;
+      const scrollCls = delta > 0 ? 'scroll-up' : 'scroll-down';
+      input.classList.remove('scroll-up', 'scroll-down');
+      void input.offsetHeight;
+      input.classList.add(scrollCls);
+      setTimeout(() => input.classList.remove(scrollCls), 260);
     }
   },
 
@@ -1513,7 +1550,6 @@ const UI = {
     html += '<select class="settings-select" id="settingFontFamily" onchange="UI._onSettingChange(\'fontFamily\', this.value)" style="width:100%;">';
     var fonts = [
       { value: 'default', label: '思源宋体（默认）' },
-      { value: 'song', label: '宋体' },
       { value: 'kai', label: '楷体' },
       { value: 'yahei', label: '微软雅黑' }
     ];
@@ -1623,11 +1659,8 @@ const UI = {
   },
 
   _applyTextBrightness(value) {
-    var pct = Math.max(50, Math.min(150, value)) / 100;
-    var stream = document.getElementById('logStream');
-    if (stream) stream.style.filter = 'brightness(' + pct + ')';
-    var els = document.querySelectorAll('.popup-narrative, .popup-body');
-    els.forEach(function(el) { el.style.filter = 'brightness(' + pct + ')'; });
+    var pct = Math.max(50, Math.min(150, value));
+    document.documentElement.style.setProperty('--brightness-pct', pct + '%');
   },
 
   _applyFontWeight(weight) {
@@ -1640,7 +1673,19 @@ const UI = {
   },
 
   _applyFontFamily(value) {
-    // 全局字体已统一为思源宋体，此设置保留供未来扩展
+    var family;
+    switch (value) {
+      case 'kai':
+        family = "'KaiTi','STKaiti','AR PL UKai CN',serif";
+        break;
+      case 'yahei':
+        family = "'Microsoft YaHei','微软雅黑','PingFang SC','Noto Sans SC',sans-serif";
+        break;
+      default:
+        family = "'Source Han Serif SC VF','Noto Serif SC','Source Han Serif SC','Songti SC','SimSun',serif";
+    }
+    document.documentElement.style.setProperty('--font-ui', family);
+    document.documentElement.style.setProperty('--font-body', family);
   },
 
   _applyDayMode(enabled) {
@@ -1665,21 +1710,27 @@ const UI = {
         constellation: '星座宝典'
       };
       if (title) title.textContent = titles[context] || '观察笔记';
+      var wasVisible = panel.classList.contains('visible');
       body.innerHTML = contentHTML;
-      // Adjust position based on drawer state
+      if (wasVisible) {
+        body.classList.remove('entering');
+        void body.offsetHeight;
+        body.classList.add('entering');
+      }
       var drawer = document.getElementById('rightDrawer');
-      if (drawer && drawer.classList.contains('open')) {
-        panel.style.right = 'calc(var(--right-nav-width) + var(--drawer-width))';
+      if (drawer && !drawer.classList.contains('hidden')) {
+        panel.classList.add('shifted');
       } else {
-        panel.style.right = '';
+        panel.classList.remove('shifted');
       }
       panel.classList.remove('hidden');
+      panel.classList.add('visible');
     }
   },
 
   clearDescriptionPanel() {
     var panel = document.getElementById('descriptionPanel');
-    if (panel) panel.classList.add('hidden');
+    if (panel) panel.classList.remove('visible');
     this._currentPanelContext = null;
   },
 
@@ -1689,10 +1740,10 @@ const UI = {
     if (!panel) return;
     if (panel.classList.contains('collapsed')) {
       panel.classList.remove('collapsed');
-      if (btn) btn.textContent = '◀';
+      if (btn) btn.textContent = '▶';
     } else {
       panel.classList.add('collapsed');
-      if (btn) btn.textContent = '▶';
+      if (btn) btn.textContent = '◀';
     }
   },
 

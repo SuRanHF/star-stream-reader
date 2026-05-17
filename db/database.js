@@ -6,6 +6,8 @@ const DB_PATH = path.join(DATA_DIR, 'game.db');
 
 let db = null;
 let _origPrepare = null;
+let _saveTimer = null;
+let _savePending = false;
 
 function createPrepared(sql) {
   return {
@@ -18,7 +20,7 @@ function createPrepared(sql) {
       let lastId = 0;
       if (idStmt.step()) lastId = idStmt.get()[0];
       idStmt.free();
-      saveDb();
+      scheduleSave();
       return { lastInsertRowid: lastId, changes: db.getRowsModified() };
     },
     get(...params) {
@@ -51,6 +53,16 @@ function createPrepared(sql) {
   };
 }
 
+function scheduleSave() {
+  if (_savePending) return;
+  _savePending = true;
+  if (_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => {
+    _saveDb();
+    _savePending = false;
+  }, 50);
+}
+
 async function initDb() {
   if (db) return db;
 
@@ -76,10 +88,10 @@ async function initDb() {
   const sqlText = fs.readFileSync(path.join(__dirname, 'init.sql'), 'utf-8');
   db.run(sqlText);
 
-  // Round 3 migrations: add columns if not exist
+  // Run migrations
   runMigrations(db);
 
-  saveDb();
+  _saveDb();
 
   console.log('Database initialized at', DB_PATH);
   return db;
@@ -90,17 +102,26 @@ function getDb() {
   return db;
 }
 
+function _saveDb() {
+  if (!db) return;
+  const data = db.export();
+  const buf = Buffer.from(data);
+  const dir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const tmpPath = DB_PATH + '.tmp';
+  fs.writeFileSync(tmpPath, buf);
+  fs.renameSync(tmpPath, DB_PATH);
+}
+
 function saveDb() {
   if (db) {
-    const data = db.export();
-    const buf = Buffer.from(data);
-    const dir = path.dirname(DB_PATH);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(DB_PATH, buf);
+    if (_saveTimer) clearTimeout(_saveTimer);
+    _savePending = false;
+    _saveDb();
   }
 }
 
-function closeDb() {
+async function closeDb() {
   if (db) {
     saveDb();
     db.close();
@@ -109,8 +130,20 @@ function closeDb() {
   }
 }
 
+function beginTransaction() {
+  getDb().run('BEGIN');
+}
+
+function commitTransaction() {
+  getDb().run('COMMIT');
+  saveDb();
+}
+
+function rollbackTransaction() {
+  getDb().run('ROLLBACK');
+}
+
 function runMigrations(database) {
-  // Helper: check if column exists
   function columnExists(table, column) {
     try {
       const rows = database.prepare(`PRAGMA table_info(${table})`).all();
@@ -120,12 +153,10 @@ function runMigrations(database) {
     }
   }
 
-  // Round 3: chapters.main_chapter_key
   if (!columnExists('chapters', 'main_chapter_key')) {
     database.run('ALTER TABLE chapters ADD COLUMN main_chapter_key TEXT NOT NULL DEFAULT \'\'');
   }
 
-  // Round 3: players extended fields
   if (!columnExists('players', 'unlocked_chapters_json')) {
     database.run('ALTER TABLE players ADD COLUMN unlocked_chapters_json TEXT NOT NULL DEFAULT \'[]\'');
   }
@@ -142,7 +173,6 @@ function runMigrations(database) {
     database.run('ALTER TABLE players ADD COLUMN boss_kills_json TEXT NOT NULL DEFAULT \'[]\'');
   }
 
-  // Round 4: choice type system
   if (!columnExists('choices', 'choice_type')) {
     database.run('ALTER TABLE choices ADD COLUMN choice_type TEXT NOT NULL DEFAULT \'progress\'');
   }
@@ -156,12 +186,10 @@ function runMigrations(database) {
     database.run('ALTER TABLE choices ADD COLUMN completes_stage INTEGER NOT NULL DEFAULT 0');
   }
 
-  // Round 4: stage objectives
   if (!columnExists('main_chapters', 'stage_objectives_json')) {
     database.run('ALTER TABLE main_chapters ADD COLUMN stage_objectives_json TEXT NOT NULL DEFAULT \'{}\'');
   }
 
-  // Round 4: player decision & visited tracking
   if (!columnExists('players', 'decision_history_json')) {
     database.run('ALTER TABLE players ADD COLUMN decision_history_json TEXT NOT NULL DEFAULT \'[]\'');
   }
@@ -169,7 +197,6 @@ function runMigrations(database) {
     database.run('ALTER TABLE players ADD COLUMN visited_nodes_json TEXT NOT NULL DEFAULT \'[]\'');
   }
 
-  // Round 5: exploration event system
   if (!columnExists('locations', 'event_probabilities_json')) {
     database.run('ALTER TABLE locations ADD COLUMN event_probabilities_json TEXT NOT NULL DEFAULT \'{}\'');
   }
@@ -177,15 +204,10 @@ function runMigrations(database) {
     database.run('ALTER TABLE players ADD COLUMN stage_progress_json TEXT NOT NULL DEFAULT \'{}\'');
   }
 
-  // Round 7: current_location for seamless exploration
   if (!columnExists('players', 'current_location')) {
     database.run("ALTER TABLE players ADD COLUMN current_location TEXT NOT NULL DEFAULT ''");
   }
 
-  // Round 6: broadcast tables (create if not exist via init.sql IF NOT EXISTS)
-  // Already covered by initDb running the full init.sql.  No ALTER needed for new tables.
-
-  // Round 8: one-shot action + activity history
   if (!columnExists('players', 'activity_history_json')) {
     database.run("ALTER TABLE players ADD COLUMN activity_history_json TEXT NOT NULL DEFAULT '[]'");
   }
@@ -193,7 +215,6 @@ function runMigrations(database) {
     database.run('ALTER TABLE choices ADD COLUMN hide_after_use INTEGER NOT NULL DEFAULT 0');
   }
 
-  // Round 9: per-chapter mutual exclusivity + exploration-gated advancement
   if (!columnExists('players', 'consumed_chapters_json')) {
     database.run("ALTER TABLE players ADD COLUMN consumed_chapters_json TEXT NOT NULL DEFAULT '[]'");
   }
@@ -201,12 +222,10 @@ function runMigrations(database) {
     database.run('ALTER TABLE players ADD COLUMN pending_next_chapter TEXT DEFAULT NULL');
   }
 
-  // Round 10: per-chapter action tracking (action/repeatable don't consume chapter)
   if (!columnExists('players', 'chapter_actions_json')) {
     database.run("ALTER TABLE players ADD COLUMN chapter_actions_json TEXT NOT NULL DEFAULT '{}'");
   }
 
-  // Round 11: user authentication system
   database.run(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -221,6 +240,12 @@ function runMigrations(database) {
   if (!columnExists('players', 'user_id')) {
     database.run('ALTER TABLE players ADD COLUMN user_id INTEGER REFERENCES users(id)');
   }
+
+  // Additional indexes
+  database.run('CREATE INDEX IF NOT EXISTS idx_players_user_id ON players(user_id)');
+  database.run('CREATE INDEX IF NOT EXISTS idx_choices_chapter_type ON choices(chapter_key, choice_type)');
+  database.run('CREATE INDEX IF NOT EXISTS idx_exploration_events_stage_type ON exploration_events(stage_key, event_type)');
+  database.run('CREATE INDEX IF NOT EXISTS idx_chapters_main_order ON chapters(main_chapter_key, order_index)');
 }
 
-module.exports = { initDb, getDb, saveDb, closeDb };
+module.exports = { initDb, getDb, saveDb, closeDb, beginTransaction, commitTransaction, rollbackTransaction };

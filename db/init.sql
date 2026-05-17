@@ -25,7 +25,8 @@ CREATE TABLE IF NOT EXISTS choices (
     choice_type TEXT NOT NULL DEFAULT 'progress',
     decision_group TEXT DEFAULT NULL,
     is_repeatable INTEGER NOT NULL DEFAULT 0,
-    completes_stage INTEGER NOT NULL DEFAULT 0
+    completes_stage INTEGER NOT NULL DEFAULT 0,
+    hide_after_use INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS titles (
@@ -53,8 +54,8 @@ CREATE TABLE IF NOT EXISTS players (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     player_name TEXT NOT NULL DEFAULT '未命名读者',
     current_chapter TEXT NOT NULL DEFAULT 'ch1_01_last_train',
-    coins INTEGER NOT NULL DEFAULT 0,
-    story_fragments INTEGER NOT NULL DEFAULT 0,
+    coins INTEGER NOT NULL DEFAULT 0 CHECK(coins >= 0),
+    story_fragments INTEGER NOT NULL DEFAULT 0 CHECK(story_fragments >= 0),
     stats_json TEXT NOT NULL DEFAULT '{}',
     relationships_json TEXT NOT NULL DEFAULT '{}',
     route_history_json TEXT NOT NULL DEFAULT '[]',
@@ -64,13 +65,27 @@ CREATE TABLE IF NOT EXISTS players (
     title_progress_json TEXT NOT NULL DEFAULT '{}',
     sponsors_json TEXT NOT NULL DEFAULT '[]',
     logs_json TEXT NOT NULL DEFAULT '[]',
+    user_id INTEGER DEFAULT NULL,
+    consumed_chapters_json TEXT NOT NULL DEFAULT '[]',
+    pending_next_chapter TEXT DEFAULT NULL,
+    chapter_actions_json TEXT NOT NULL DEFAULT '{}',
+    activity_history_json TEXT NOT NULL DEFAULT '[]',
+    unlocked_chapters_json TEXT NOT NULL DEFAULT '[]',
+    completed_chapters_json TEXT NOT NULL DEFAULT '[]',
+    current_main_chapter TEXT NOT NULL DEFAULT 'main_ch01_paid_service',
+    breakthrough_resources_json TEXT NOT NULL DEFAULT '{}',
+    boss_kills_json TEXT NOT NULL DEFAULT '[]',
+    decision_history_json TEXT NOT NULL DEFAULT '[]',
+    visited_nodes_json TEXT NOT NULL DEFAULT '[]',
+    stage_progress_json TEXT NOT NULL DEFAULT '{}',
+    current_location TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
 );
 
 CREATE TABLE IF NOT EXISTS saves (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    player_id INTEGER NOT NULL REFERENCES players(id),
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
     save_name TEXT NOT NULL,
     save_data_json TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
@@ -142,9 +157,9 @@ CREATE TABLE IF NOT EXISTS equipment (
 
 CREATE TABLE IF NOT EXISTS player_inventory (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    player_id INTEGER NOT NULL REFERENCES players(id),
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
     item_key TEXT NOT NULL,
-    quantity INTEGER NOT NULL DEFAULT 0,
+    quantity INTEGER NOT NULL DEFAULT 0 CHECK(quantity >= 0),
     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
     UNIQUE(player_id, item_key)
@@ -152,7 +167,7 @@ CREATE TABLE IF NOT EXISTS player_inventory (
 
 CREATE TABLE IF NOT EXISTS player_equipment (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    player_id INTEGER NOT NULL REFERENCES players(id),
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
     slot TEXT NOT NULL,
     equipment_key TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
@@ -175,7 +190,7 @@ CREATE TABLE IF NOT EXISTS skills (
 
 CREATE TABLE IF NOT EXISTS player_skills (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    player_id INTEGER NOT NULL REFERENCES players(id),
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
     skill_key TEXT NOT NULL,
     level INTEGER NOT NULL DEFAULT 1,
     unlocked_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
@@ -184,7 +199,7 @@ CREATE TABLE IF NOT EXISTS player_skills (
 
 CREATE TABLE IF NOT EXISTS exploration_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    player_id INTEGER NOT NULL REFERENCES players(id),
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
     location_key TEXT NOT NULL,
     result_type TEXT NOT NULL,
     result_json TEXT NOT NULL DEFAULT '{}',
@@ -193,7 +208,7 @@ CREATE TABLE IF NOT EXISTS exploration_logs (
 
 CREATE TABLE IF NOT EXISTS battle_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    player_id INTEGER NOT NULL REFERENCES players(id),
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
     battle_type TEXT NOT NULL,
     enemy_key TEXT NOT NULL,
     result TEXT NOT NULL,
@@ -204,10 +219,10 @@ CREATE TABLE IF NOT EXISTS battle_logs (
 
 CREATE TABLE IF NOT EXISTS pk_records (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    attacker_id INTEGER NOT NULL REFERENCES players(id),
-    defender_id INTEGER NOT NULL REFERENCES players(id),
-    winner_id INTEGER REFERENCES players(id),
-    loser_id INTEGER REFERENCES players(id),
+    attacker_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    defender_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    winner_id INTEGER REFERENCES players(id) ON DELETE SET NULL,
+    loser_id INTEGER REFERENCES players(id) ON DELETE SET NULL,
     battle_data_json TEXT NOT NULL DEFAULT '{}',
     rating_change_json TEXT NOT NULL DEFAULT '{}',
     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
@@ -215,7 +230,7 @@ CREATE TABLE IF NOT EXISTS pk_records (
 
 CREATE TABLE IF NOT EXISTS rankings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    player_id INTEGER NOT NULL UNIQUE REFERENCES players(id),
+    player_id INTEGER NOT NULL UNIQUE REFERENCES players(id) ON DELETE CASCADE,
     rating INTEGER NOT NULL DEFAULT 1000,
     wins INTEGER NOT NULL DEFAULT 0,
     losses INTEGER NOT NULL DEFAULT 0,
@@ -331,8 +346,8 @@ CREATE TABLE IF NOT EXISTS broadcast_events (
 
 CREATE TABLE IF NOT EXISTS broadcast_participation (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    event_id INTEGER NOT NULL REFERENCES broadcast_events(id),
-    player_id INTEGER NOT NULL REFERENCES players(id),
+    event_id INTEGER NOT NULL REFERENCES broadcast_events(id) ON DELETE CASCADE,
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
     joined_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
     status TEXT NOT NULL DEFAULT 'joined',
     contribution_score REAL NOT NULL DEFAULT 0,
@@ -344,8 +359,8 @@ CREATE TABLE IF NOT EXISTS broadcast_participation (
 
 CREATE TABLE IF NOT EXISTS broadcast_contributions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    event_id INTEGER NOT NULL REFERENCES broadcast_events(id),
-    player_id INTEGER NOT NULL REFERENCES players(id),
+    event_id INTEGER NOT NULL REFERENCES broadcast_events(id) ON DELETE CASCADE,
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
     contribution_type TEXT NOT NULL,
     amount REAL NOT NULL DEFAULT 1,
     metadata_json TEXT NOT NULL DEFAULT '{}',

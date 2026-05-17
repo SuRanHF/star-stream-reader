@@ -25,6 +25,7 @@ if (!process.env.ADMIN_KEY || process.env.ADMIN_KEY.length < 8) {
 }
 
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const fs = require('fs');
 const path = require('path');
 const { initDb, getDb } = require('./db/database');
@@ -46,6 +47,15 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Rate limiting for auth routes
+const loginLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  message: { success: false, error: { code: 'RATE_LIMITED', message: '登录尝试过于频繁，请60秒后重试' } },
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 // Start server
 async function start() {
@@ -96,6 +106,7 @@ async function start() {
   }
 
   // === Auth Routes (public) ===
+  app.use('/api/auth/login', loginLimiter);
   app.use('/api/auth', require('./routes/authRoutes'));
 
   // === Protected Routes ===
@@ -152,10 +163,29 @@ async function start() {
     }
   });
 
+  // Global error handler — must be registered after all routes
+  app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err);
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: '服务器内部错误' } });
+  });
+
   app.listen(PORT, () => {
     console.log(`全知读者视角 游戏服务器已启动 (Round 11): http://localhost:${PORT}`);
   });
 }
+
+// Process-level crash handlers
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION:', err);
+  // Attempt graceful shutdown
+  const { closeDb } = require('./db/database');
+  closeDb().catch(() => {});
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('UNHANDLED REJECTION:', reason);
+});
 
 start().catch(e => {
   console.error('Failed to start server:', e);

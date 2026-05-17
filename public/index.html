@@ -4,31 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>全知读者视角 — 星流观测</title>
-  <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link href="https://cdn.jsdelivr.net/npm/cn-fontsource-source-han-serif-sc-vf/font.css" rel="stylesheet">
+  <link href="/fonts/font.css" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css?v=1.0.8">
-  <script>
-  // Preload ALL font subsets eagerly so drawers never trigger font-load flicker
-  (function preloadAllSubsets() {
-    if (!fetch) return;
-    var base = 'https://cdn.jsdelivr.net/npm/cn-fontsource-source-han-serif-sc-vf/';
-    fetch(base + 'font.css')
-      .then(function(r) { return r.text(); })
-      .then(function(css) {
-        var re = /url\('([^']+\.woff2)'\)/g, m;
-        while ((m = re.exec(css)) !== null) {
-          var link = document.createElement('link');
-          link.rel = 'preload';
-          link.as = 'font';
-          link.type = 'font/woff2';
-          link.href = base + m[1];
-          link.crossOrigin = 'anonymous';
-          document.head.appendChild(link);
-        }
-      })
-      .catch(function() {});
-  })();
-  </script>
 </head>
 <body class="game-page">
 
@@ -280,15 +257,19 @@
         <button class="nav-item nav-item-secondary" data-feature="story" title="主线聚焦">
           <span class="nav-icon">▸</span><span class="nav-text">主线</span>
         </button>
+        <div class="nav-divider"></div>
+        <button class="nav-item nav-item-secondary" data-feature="feedback" title="反馈">
+          <span class="nav-icon">✉</span><span class="nav-text">反馈</span>
+        </button>
       </nav>
+    </div>
 
-      <div class="right-drawer hidden" id="rightDrawer">
-        <div class="drawer-header">
-          <span class="drawer-title" id="drawerTitle">面板</span>
-          <button class="drawer-close" onclick="UI.closeDrawer()">✕</button>
-        </div>
-        <div class="drawer-body" id="drawerBody"></div>
+    <div class="right-drawer hidden" id="rightDrawer">
+      <div class="drawer-header">
+        <span class="drawer-title" id="drawerTitle">面板</span>
+        <button class="drawer-close" onclick="UI.closeDrawer()">✕</button>
       </div>
+      <div class="drawer-body" id="drawerBody"></div>
     </div>
 
     <!-- Description Panel (context-sensitive right sidebar) -->
@@ -419,28 +400,32 @@
   <script src="/src/main.js?v=1.0.3"></script>
 
   <!-- ================================================================
-       Feedback — 反馈按钮和表单
+       Feedback — feedback popup overlay
        ================================================================ -->
-  <button id="feedbackBtn" style="position:fixed;bottom:20px;right:20px;z-index:9999;background:#2a2a3a;color:#8a8a9a;border:1px solid #3a3a4a;border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;">反馈</button>
-
-  <div id="feedbackForm" class="hidden" style="position:fixed;bottom:70px;right:20px;z-index:9999;background:#14141c;border:1px solid #3a3a4a;border-radius:10px;padding:16px;width:300px;box-shadow:0 4px 20px rgba(0,0,0,0.5);">
-    <div style="font-size:14px;color:#c9a860;margin-bottom:10px;">提交反馈</div>
-    <input id="fbNickname" placeholder="昵称（选填）" maxlength="20" style="width:100%;margin-bottom:8px;background:#0a0a0f;border:1px solid #3a3a4a;color:#c9c9c9;padding:6px 10px;border-radius:4px;font-size:12px;box-sizing:border-box;">
-    <select id="fbType" style="width:100%;margin-bottom:8px;background:#0a0a0f;border:1px solid #3a3a4a;color:#c9c9c9;padding:6px 10px;border-radius:4px;font-size:12px;box-sizing:border-box;">
-      <option value="bug">Bug 报告</option>
-      <option value="suggestion">改进建议</option>
-      <option value="experience">体验反馈</option>
-      <option value="other">其他</option>
-    </select>
-    <textarea id="fbContent" placeholder="请描述你的反馈..." maxlength="500" rows="3" style="width:100%;margin-bottom:8px;background:#0a0a0f;border:1px solid #3a3a4a;color:#c9c9c9;padding:6px 10px;border-radius:4px;font-size:12px;resize:vertical;box-sizing:border-box;"></textarea>
-    <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button id="fbCancel" style="background:#2a2a3a;color:#8a8a9a;border:1px solid #3a3a4a;padding:6px 14px;border-radius:4px;font-size:12px;cursor:pointer;">取消</button>
-      <button id="fbSubmit" style="background:#4db8a8;color:#fff;border:none;padding:6px 14px;border-radius:4px;font-size:12px;cursor:pointer;">提交</button>
+  <div class="popup-overlay hidden" id="feedbackOverlay">
+    <div class="popup-dialog" style="width:min(360px,calc(100vw - 32px));">
+      <div class="popup-header">
+        <span class="popup-chapter-title">提交反馈</span>
+        <button class="popup-close" onclick="UI.dismissPopup('feedbackOverlay')">✕</button>
+      </div>
+      <div class="popup-body">
+        <input id="fbNickname" class="fb-input" placeholder="昵称（选填）" maxlength="20">
+        <select id="fbType" class="fb-select">
+          <option value="bug">Bug 报告</option>
+          <option value="suggestion">改进建议</option>
+          <option value="experience">体验反馈</option>
+          <option value="other">其他</option>
+        </select>
+        <textarea id="fbContent" class="fb-textarea" placeholder="请描述你的反馈..." maxlength="500" rows="4"></textarea>
+        <div class="fb-submit-bar">
+          <button class="btn-action" onclick="GameClient.submitFeedback()">提交</button>
+        </div>
+        <div id="fbResult" class="fb-result" style="display:none;"></div>
+      </div>
     </div>
-    <div id="fbResult" style="font-size:11px;color:#4db8a8;margin-top:8px;display:none;"></div>
   </div>
 
-<!-- ================================================================
+  <!-- ================================================================
        Changelog — 版本更新弹窗
        ================================================================ -->
 <div id="changelogOverlay" class="modal-overlay hidden">

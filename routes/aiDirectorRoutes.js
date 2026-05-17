@@ -1,9 +1,19 @@
 // AI 导演路由 (Round 6)
 const express = require('express');
 const router = express.Router();
+const { authRequired } = require('../middleware/authMiddleware');
 const aiDirectorService = require('../services/aiDirectorService');
 const broadcastService = require('../services/broadcastService');
 const worldStateService = require('../services/worldStateService');
+
+// All ai-director routes require admin auth
+router.use(authRequired);
+router.use((req, res, next) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: '需要管理员权限' } });
+  }
+  next();
+});
 
 // 获取所有放送事件（后台用）
 router.get('/', (req, res) => {

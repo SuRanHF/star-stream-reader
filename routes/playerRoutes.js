@@ -12,10 +12,10 @@ router.post('/create', (req, res) => {
     const { playerName } = req.body;
     const userId = req.user ? req.user.id : null;
     const player = playerService.create(playerName, userId);
-    res.json({ player });
+    res.json({ success: true, data: { player } });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
@@ -49,20 +49,20 @@ router.get('/:id', (req, res) => {
   try {
     recoveryService.applyPassiveRecovery(Number(req.params.id));
     const player = playerService.get(Number(req.params.id));
-    if (!player) return res.status(404).json({ code: 'PLAYER_NOT_FOUND', message: '玩家不存在' });
-    res.json({ player });
+    if (!player) return res.status(404).json({ success: false, error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } });
+    res.json({ success: true, data: { player } });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
 router.post('/reset/:id', (req, res) => {
   try {
     const player = playerService.reset(Number(req.params.id));
-    if (!player) return res.status(404).json({ code: 'PLAYER_NOT_FOUND', message: '玩家不存在' });
+    if (!player) return res.status(404).json({ success: false, error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } });
     playerService.addLog(player.id, '进度已重置 (永久标记保留)');
-    res.json({ player });
+    res.json({ success: true, data: { player } });
   } catch (e) {
     console.error(e);
     res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
@@ -72,9 +72,9 @@ router.post('/reset/:id', (req, res) => {
 router.post('/rest/start', (req, res) => {
   try {
     const { playerId } = req.body;
-    if (!playerId) return res.status(400).json({ code: 'MISSING_PARAMS', message: '缺少必要参数' });
+    if (!playerId) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAMS', message: '缺少必要参数' } });
     const result = recoveryService.startRest(Number(playerId));
-    if (result.error) return res.status(400).json(result.error);
+    if (result.error) return res.status(400).json({ success: false, error: result.error });
     res.json(result);
   } catch (e) {
     console.error(e);
@@ -85,9 +85,9 @@ router.post('/rest/start', (req, res) => {
 router.post('/rest/stop', (req, res) => {
   try {
     const { playerId } = req.body;
-    if (!playerId) return res.status(400).json({ code: 'MISSING_PARAMS', message: '缺少必要参数' });
+    if (!playerId) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAMS', message: '缺少必要参数' } });
     const result = recoveryService.stopRest(Number(playerId));
-    if (result.error) return res.status(400).json(result.error);
+    if (result.error) return res.status(400).json({ success: false, error: result.error });
     res.json(result);
   } catch (e) {
     console.error(e);

@@ -13,3 +13,4 @@ build/
 authorized_content/*
 !authorized_content/README.md
 !authorized_content/.gitkeep
+public/fonts/*.woff2

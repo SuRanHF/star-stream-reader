@@ -45,10 +45,10 @@ const API = {
 
   // Player
   createPlayer(playerName) {
-    return this.request('POST', '/api/player/create', { playerName });
+    return this.request('POST', '/api/player/create', { playerName }).then(r => r.data);
   },
   getPlayer(playerId) {
-    return this.request('GET', `/api/player/${playerId}`);
+    return this.request('GET', `/api/player/${playerId}`).then(r => r.data);
   },
   resetPlayer(playerId) {
     return this.request('POST', `/api/player/reset/${playerId}`);

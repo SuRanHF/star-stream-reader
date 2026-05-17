@@ -2,6 +2,8 @@
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+if (!process.env.JWT_SECRET) process.env.JWT_SECRET = 'test-jwt-secret-for-smoke-tests';
+if (!process.env.ADMIN_KEY || process.env.ADMIN_KEY.length < 8) process.env.ADMIN_KEY = 'test-admin-key-for-smoke-tests-123';
 
 const DB_PATH = path.join(__dirname, '..', 'data', 'game.db');
 
@@ -18,10 +20,13 @@ function header(text) {
 }
 
 async function run() {
-  header('数据库初始化');
-  const { initDb, getDb, closeDb } = require('../db/database');
+  const { initDb, getDb, closeDb, beginTransaction, commitTransaction, rollbackTransaction } = require('../db/database');
   await initDb();
   const db = getDb();
+
+  try {
+
+  header('数据库初始化');
 
   ok('数据库文件存在', fs.existsSync(DB_PATH));
   ok('getDb 返回非空', !!db);
@@ -719,8 +724,7 @@ async function run() {
   ok('前端 API wrapper startRest 存在', true);
   ok('前端 API wrapper stopRest 存在', true);
 
-  db.prepare("DELETE FROM players WHERE player_name IN ('TestLogger','RecoveryTester')").run();
-  db.prepare("DELETE FROM rankings WHERE player_id NOT IN (SELECT id FROM players)").run();
+  // Cleanup moved to finally block
 
   // ============ Round 11: Auth System Tests ============
 
@@ -1018,6 +1022,38 @@ async function run() {
 
   // Restore ADMIN_KEY
   if (oldAdminKey) process.env.ADMIN_KEY = oldAdminKey;
+
+  } finally {
+    // Unified cleanup: remove all test players and orphaned records
+    const testPlayerPrefixes = ['TestLogger', 'RecoveryTester', 'QuickActionTest', 'ResourceTest', 'StatsValidate', 'MutualExTest', '探索者1', '探索者2', 'testauth_'];
+    for (const prefix of testPlayerPrefixes) {
+      const players = db.prepare("SELECT id FROM players WHERE player_name LIKE ?").all(prefix + '%');
+      for (const p of players) {
+        db.prepare('DELETE FROM exploration_logs WHERE player_id = ?').run(p.id);
+        db.prepare('DELETE FROM battle_logs WHERE player_id = ?').run(p.id);
+        db.prepare('DELETE FROM player_inventory WHERE player_id = ?').run(p.id);
+        db.prepare('DELETE FROM player_equipment WHERE player_id = ?').run(p.id);
+        db.prepare('DELETE FROM player_skills WHERE player_id = ?').run(p.id);
+        db.prepare('DELETE FROM pk_records WHERE attacker_id = ? OR defender_id = ?').run(p.id, p.id);
+        db.prepare('DELETE FROM rankings WHERE player_id = ?').run(p.id);
+        db.prepare('DELETE FROM broadcast_participation WHERE player_id = ?').run(p.id);
+        db.prepare('DELETE FROM broadcast_contributions WHERE player_id = ?').run(p.id);
+      }
+    }
+    db.prepare("DELETE FROM players WHERE player_name LIKE 'TestLogger%'").run();
+    db.prepare("DELETE FROM players WHERE player_name LIKE 'RecoveryTester%'").run();
+    db.prepare("DELETE FROM players WHERE player_name LIKE 'QuickActionTest%'").run();
+    db.prepare("DELETE FROM players WHERE player_name LIKE 'ResourceTest%'").run();
+    db.prepare("DELETE FROM players WHERE player_name LIKE 'StatsValidate%'").run();
+    db.prepare("DELETE FROM players WHERE player_name LIKE 'MutualExTest%'").run();
+    db.prepare("DELETE FROM players WHERE player_name = '探索者1'").run();
+    db.prepare("DELETE FROM players WHERE player_name = '探索者2'").run();
+    db.prepare("DELETE FROM players WHERE player_name LIKE 'testauth_%'").run();
+    db.prepare("DELETE FROM users WHERE username LIKE 'testauth_%'").run();
+    db.prepare("DELETE FROM choices WHERE choice_key IN ('test_oneshot_action', 'test_sf_check')").run();
+    // Clean orphaned rankings
+    db.prepare('DELETE FROM rankings WHERE player_id NOT IN (SELECT id FROM players)').run();
+  }
 
   header('战绩总结');
   console.log(`  通过: ${passed}`);

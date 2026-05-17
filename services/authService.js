@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { getDb } = require('../db/database');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-do-not-use-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 function signToken(user) {
   return jwt.sign(
@@ -20,6 +20,10 @@ function register(username, email, password) {
   }
   if (password.length < 6) {
     return { error: { code: 'WEAK_PASSWORD', message: '密码长度不能少于6位' } };
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return { error: { code: 'INVALID_EMAIL', message: '邮箱格式不正确' } };
   }
 
   // Check uniqueness

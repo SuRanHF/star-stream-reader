@@ -25,6 +25,7 @@ if (!process.env.ADMIN_KEY || process.env.ADMIN_KEY.length < 8) {
 }
 
 const express = require('express');
+const fs = require('fs');
 const path = require('path');
 const { initDb, getDb } = require('./db/database');
 const { seedStory } = require('./data/seedStory');
@@ -139,11 +140,14 @@ async function start() {
   app.use('/api/feedback', require('./routes/feedbackRoutes'));
 
   // Changelog (public)
+  const changelogPath = path.join(__dirname, 'data', 'changelog.json');
   app.get('/api/changelog', (req, res) => {
     try {
-      const changelog = require('./data/changelog.json');
+      const raw = fs.readFileSync(changelogPath, 'utf8');
+      const changelog = JSON.parse(raw);
       res.json({ success: true, data: changelog });
     } catch (e) {
+      console.error('Failed to read changelog:', e.message);
       res.json({ success: true, data: [] });
     }
   });

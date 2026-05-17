@@ -430,6 +430,8 @@ const GameClient = {
     UI.highlightNav(null);
     UI.closeDrawer();
 
+    UI.applyAllDisplaySettings();
+
     // Check if player needs to select a constellation
     const constellation = player.stats?.constellation;
     if (!constellation) {
@@ -477,8 +479,12 @@ const GameClient = {
       const hasAvailableChoices = data.choices && data.choices.length > 0;
       const hasChoices = hasAvailableChoices || (data.locked_choices && data.locked_choices.length > 0);
       const consumedDismissed = data.chapter_consumed && this._dismissedChapterKey === data.chapter?.chapter_key;
+      const skipStoryPopup = localStorage.getItem('game_skipStoryPopup') !== 'false';
       let hasContent;
-      if (opts.isInitialLoad) {
+      if (opts.fromExplore && data.chapter_consumed && !hasAvailableChoices && skipStoryPopup) {
+        hasContent = false;
+        UI.renderStageIndicator(data.player);
+      } else if (opts.isInitialLoad) {
         // On page refresh: only show popup if there are available choices
         hasContent = hasAvailableChoices;
       } else if (consumedDismissed) {
@@ -587,6 +593,7 @@ const GameClient = {
         this.state = 'PLAYING';
         UI.renderLeftPanel(result.player);
         UI.renderMainActionBar(result.player);
+        UI.renderStageIndicator(result.player);
         document.getElementById('storyPopupOverlay')?.classList.add('hidden');
         this._lastChapterKey = null;
       }
@@ -664,7 +671,8 @@ const GameClient = {
       }
 
       // Always refresh story after exploration
-      await this.fetchChapter();
+      await this.fetchChapter({ fromExplore: true });
+      UI.renderStageIndicator(result.player);
     } catch (e) {
       UI.addLog('探索出错: ' + (e.message || e), 'battle');
     }
@@ -1218,6 +1226,7 @@ const GameClient = {
         UI.refreshStoryPopup(result.chapter, result.choices, result.locked_choices);
         UI.renderLeftPanel(result.player);
         UI.renderMainActionBar(result.player);
+        UI.renderStageIndicator(result.player);
         this.state = 'SHOWING_CHAPTER';
       } else {
         // Still have available choices — refresh popup
@@ -1428,16 +1437,7 @@ const GameClient = {
 
   // ===== Settings =====
   showSettings() {
-    const username = this._currentUser ? this._currentUser.username : '未知';
-    const contentHTML = `
-      <div class="drawer-section-label">账号设置</div>
-      <div style="padding:12px;">
-        <div style="margin-bottom:12px;font-size:14px;">
-          当前账号：<strong>${UI.escapeHtml(username)}</strong>
-        </div>
-        <button class="btn-action" onclick="GameClient.doLogout()" style="background:#a33;">退出登录</button>
-      </div>
-    `;
+    const contentHTML = UI.renderSettings();
     UI.openDrawer('设置', contentHTML);
   },
 

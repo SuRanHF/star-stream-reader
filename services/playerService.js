@@ -144,6 +144,25 @@ function parsePlayerRow(row) {
     current_location_name = loc ? loc.name : '';
   }
 
+  // Resolve stage name and progress
+  let stage_name = '';
+  let stage_order = 1;
+  let stage_total_nodes = 0;
+  let stage_visited_nodes = 0;
+  if (row.current_main_chapter) {
+    const mc = db.prepare(
+      'SELECT chapter_name, order_index, story_chapter_keys_json FROM main_chapters WHERE chapter_key = ?'
+    ).get(row.current_main_chapter);
+    if (mc) {
+      stage_name = mc.chapter_name;
+      stage_order = mc.order_index || 1;
+      const storyKeys = JSON.parse(mc.story_chapter_keys_json || '[]');
+      stage_total_nodes = storyKeys.length;
+      const visited = JSON.parse(row.visited_nodes_json || '[]');
+      stage_visited_nodes = visited.filter(n => storyKeys.includes(n)).length;
+    }
+  }
+
   // Resolve title details
   const titleKeys = JSON.parse(row.titles_json);
   const title_details = titleKeys.map(key => {
@@ -170,6 +189,10 @@ function parsePlayerRow(row) {
     unlocked_chapters: JSON.parse(row.unlocked_chapters_json || '[]'),
     completed_chapters: JSON.parse(row.completed_chapters_json || '[]'),
     current_main_chapter: row.current_main_chapter || 'main_ch01_paid_service',
+    stage_name,
+    stage_order,
+    stage_total_nodes,
+    stage_visited_nodes,
     breakthrough_resources: JSON.parse(row.breakthrough_resources_json || '{}'),
     boss_kills: JSON.parse(row.boss_kills_json || '[]'),
     decision_history: JSON.parse(row.decision_history_json || '[]'),

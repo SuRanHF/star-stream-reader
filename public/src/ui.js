@@ -1421,5 +1421,171 @@ const UI = {
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+  },
+
+  // ===== Settings Panel =====
+  renderSettings() {
+    var currentSettings = UI._loadAllSettings();
+    var html = '';
+
+    html += '<div class="drawer-section-label">显示设置</div>';
+
+    // Text brightness
+    html += '<div class="settings-group">';
+    html += '<span class="settings-label">文字亮度</span>';
+    html += '<span class="settings-desc">调整剧情文字的显示亮度（50%-150%）</span>';
+    html += '<div style="display:flex;align-items:center;gap:8px;">';
+    html += '<input type="range" class="settings-range" id="settingBrightness" min="50" max="150" value="' + currentSettings.textBrightness + '" oninput="UI._onSettingChange(\'textBrightness\', this.value)" style="flex:1;">';
+    html += '<span class="settings-range-value" id="settingBrightnessVal">' + currentSettings.textBrightness + '%</span>';
+    html += '</div></div>';
+
+    // Font weight
+    html += '<div class="settings-group">';
+    html += '<span class="settings-label">字体粗细</span>';
+    html += '<div class="settings-row">';
+    html += '<span class="settings-desc" style="margin:0;">使用粗体显示剧情文字</span>';
+    html += '<label class="settings-toggle">';
+    html += '<input type="checkbox" id="settingFontBold" ' + (currentSettings.fontWeight === 'bold' ? 'checked' : '') + ' onchange="UI._onSettingChange(\'fontWeight\', this.checked ? \'bold\' : \'normal\')">';
+    html += '<span class="settings-toggle-slider"></span>';
+    html += '</label>';
+    html += '</div></div>';
+
+    // Font family
+    html += '<div class="settings-group">';
+    html += '<span class="settings-label">字体选择</span>';
+    html += '<span class="settings-desc">仅影响剧情文字显示</span>';
+    html += '<select class="settings-select" id="settingFontFamily" onchange="UI._onSettingChange(\'fontFamily\', this.value)" style="width:100%;">';
+    var fonts = [
+      { value: 'default', label: '默认系统' },
+      { value: 'song', label: '宋体' },
+      { value: 'kai', label: '楷体' },
+      { value: 'yahei', label: '微软雅黑' }
+    ];
+    fonts.forEach(function(f) {
+      html += '<option value="' + f.value + '"' + (currentSettings.fontFamily === f.value ? ' selected' : '') + '>' + f.label + '</option>';
+    });
+    html += '</select></div>';
+
+    // Day/Night mode
+    html += '<div class="settings-group">';
+    html += '<span class="settings-label">日间模式</span>';
+    html += '<div class="settings-row">';
+    html += '<span class="settings-desc" style="margin:0;">切换明亮/暗黑主题</span>';
+    html += '<label class="settings-toggle">';
+    html += '<input type="checkbox" id="settingDayMode" ' + (currentSettings.dayMode ? 'checked' : '') + ' onchange="UI._onSettingChange(\'dayMode\', this.checked)">';
+    html += '<span class="settings-toggle-slider"></span>';
+    html += '</label>';
+    html += '</div></div>';
+
+    // Gameplay
+    html += '<div class="drawer-section-label">游戏设置</div>';
+
+    // Skip story popup
+    html += '<div class="settings-group">';
+    html += '<span class="settings-label">探索后跳过剧情弹窗</span>';
+    html += '<span class="settings-desc">探索后如无可用选项，不弹出剧情窗口，改用阶段指示器显示进度</span>';
+    html += '<div class="settings-row">';
+    html += '<span class="settings-desc" style="margin:0;">默认开启</span>';
+    html += '<label class="settings-toggle">';
+    html += '<input type="checkbox" id="settingSkipStoryPopup" ' + (currentSettings.skipStoryPopup !== false ? 'checked' : '') + ' onchange="UI._onSettingChange(\'skipStoryPopup\', this.checked)">';
+    html += '<span class="settings-toggle-slider"></span>';
+    html += '</label>';
+    html += '</div></div>';
+
+    // Account
+    html += '<div class="drawer-section-label">账号设置</div>';
+    html += '<div style="padding:0;">';
+    html += '<div style="margin-bottom:12px;font-size:14px;">当前账号：<strong>' + UI.escapeHtml(GameClient._currentUser ? GameClient._currentUser.username : '未知') + '</strong></div>';
+    html += '<button class="btn-action" onclick="GameClient.doLogout()" style="background:#a33;">退出登录</button>';
+    html += '</div>';
+
+    return html;
+  },
+
+  // ===== Stage Indicator =====
+  renderStageIndicator(player) {
+    var el = document.getElementById('stageIndicator');
+    var textEl = document.getElementById('stageIndicatorText');
+    if (!el || !textEl) return;
+    if (!player || !player.stage_name) {
+      el.classList.add('hidden');
+      return;
+    }
+    var order = player.stage_order || 1;
+    var name = player.stage_name;
+    var visited = player.stage_visited_nodes || 0;
+    var total = player.stage_total_nodes || 0;
+    textEl.textContent = '第' + order + '章 · ' + name + ' | 已体验 ' + visited + '/' + total + ' 剧情节点 | 探索推进中...';
+    el.classList.remove('hidden');
+  },
+
+  // ── Settings persistence ──
+  _loadAllSettings() {
+    return {
+      textBrightness: parseInt(localStorage.getItem('game_textBrightness') || '100'),
+      fontWeight: localStorage.getItem('game_fontWeight') || 'normal',
+      fontFamily: localStorage.getItem('game_fontFamily') || 'default',
+      dayMode: localStorage.getItem('game_dayMode') === 'true',
+      skipStoryPopup: localStorage.getItem('game_skipStoryPopup') !== 'false'
+    };
+  },
+
+  _onSettingChange(key, value) {
+    localStorage.setItem('game_' + key, String(value));
+    switch (key) {
+      case 'textBrightness':
+        UI._applyTextBrightness(parseInt(value));
+        var valEl = document.getElementById('settingBrightnessVal');
+        if (valEl) valEl.textContent = value + '%';
+        break;
+      case 'fontWeight':
+        UI._applyFontWeight(value);
+        break;
+      case 'fontFamily':
+        UI._applyFontFamily(value);
+        break;
+      case 'dayMode':
+        UI._applyDayMode(value === true || value === 'true');
+        break;
+    }
+  },
+
+  applyAllDisplaySettings() {
+    var s = UI._loadAllSettings();
+    UI._applyTextBrightness(s.textBrightness);
+    UI._applyFontWeight(s.fontWeight);
+    UI._applyFontFamily(s.fontFamily);
+    UI._applyDayMode(s.dayMode);
+  },
+
+  _applyTextBrightness(value) {
+    var pct = Math.max(50, Math.min(150, value)) / 100;
+    var stream = document.getElementById('logStream');
+    if (stream) stream.style.filter = 'brightness(' + pct + ')';
+    var els = document.querySelectorAll('.popup-narrative, .popup-body');
+    els.forEach(function(el) { el.style.filter = 'brightness(' + pct + ')'; });
+  },
+
+  _applyFontWeight(weight) {
+    if (weight === 'bold') {
+      document.body.classList.add('font-bold');
+    } else {
+      document.body.classList.remove('font-bold');
+    }
+  },
+
+  _applyFontFamily(value) {
+    document.body.classList.remove('font-family-song', 'font-family-kai', 'font-family-yahei');
+    if (value && value !== 'default') {
+      document.body.classList.add('font-family-' + value);
+    }
+  },
+
+  _applyDayMode(enabled) {
+    if (enabled) {
+      document.body.classList.add('light-theme');
+    } else {
+      document.body.classList.remove('light-theme');
+    }
   }
 };

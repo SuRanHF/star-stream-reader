@@ -454,12 +454,7 @@ const GameClient = {
 
     await this.fetchChapter({ isInitialLoad: true });
     UI.renderSocialActionBar();
-    // Show description panel with constellation lore / background story on load
-    if (constellation) {
-      UI.renderDescriptionPanel(player, 'constellation');
-    } else {
-      UI.renderDescriptionPanel(player, 'stats');
-    }
+    // Description panel is shown on-demand when user opens features
     this._updateRestUI(this._isResting);
     if (this._isResting) {
       this._startRecoveryLoop();

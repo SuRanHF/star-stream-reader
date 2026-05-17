@@ -217,6 +217,8 @@ const UI = {
     // Daily explore count
     const dailyCount = player.daily_explore_count || 0;
     UI.setText('masExploreCount', `今日探索 ${dailyCount} 次`);
+
+
   },
 
   // ===== Social Action Bar (static placeholder) =====
@@ -337,6 +339,11 @@ const UI = {
     const body = document.getElementById('drawerBody');
     if (body) body.innerHTML = contentHTML;
     drawer.classList.remove('hidden');
+    // Shift description panel left when drawer opens
+    var descPanel = document.getElementById('descriptionPanel');
+    if (descPanel && !descPanel.classList.contains('hidden')) {
+      descPanel.style.right = 'calc(var(--right-nav-width) + var(--drawer-width))';
+    }
     // Trigger animation
     requestAnimationFrame(() => {
       drawer.classList.add('open');
@@ -347,6 +354,11 @@ const UI = {
     const drawer = document.getElementById('rightDrawer');
     if (!drawer) return;
     drawer.classList.remove('open');
+    // Restore description panel position
+    var descPanel = document.getElementById('descriptionPanel');
+    if (descPanel) {
+      descPanel.style.right = '';
+    }
     // Hide after transition
     setTimeout(() => {
       drawer.classList.add('hidden');
@@ -1485,15 +1497,13 @@ const UI = {
     html += '<span class="settings-range-value" id="settingBrightnessVal">' + currentSettings.textBrightness + '%</span>';
     html += '</div></div>';
 
-    // Font weight
+    // Font weight — 多级选择
     html += '<div class="settings-group">';
     html += '<span class="settings-label">字体粗细</span>';
-    html += '<div class="settings-row">';
-    html += '<span class="settings-desc" style="margin:0;">使用粗体显示剧情文字</span>';
-    html += '<label class="settings-toggle">';
-    html += '<input type="checkbox" id="settingFontBold" ' + (currentSettings.fontWeight === 'bold' ? 'checked' : '') + ' onchange="UI._onSettingChange(\'fontWeight\', this.checked ? \'bold\' : \'normal\')">';
-    html += '<span class="settings-toggle-slider"></span>';
-    html += '</label>';
+    html += '<span class="settings-desc">调整全局文字粗细（300-700）</span>';
+    html += '<div style="display:flex;align-items:center;gap:8px;">';
+    html += '<input type="range" class="settings-range" id="settingFontWeight" min="300" max="700" step="100" value="' + (parseInt(currentSettings.fontWeight) || 400) + '" oninput="UI._onSettingChange(\'fontWeight\', this.value)" style="flex:1;">';
+    html += '<span class="settings-range-value" id="settingFontWeightVal">' + (parseInt(currentSettings.fontWeight) || 400) + '</span>';
     html += '</div></div>';
 
     // Font family
@@ -1502,7 +1512,7 @@ const UI = {
     html += '<span class="settings-desc">仅影响剧情文字显示</span>';
     html += '<select class="settings-select" id="settingFontFamily" onchange="UI._onSettingChange(\'fontFamily\', this.value)" style="width:100%;">';
     var fonts = [
-      { value: 'default', label: '默认系统' },
+      { value: 'default', label: '思源宋体（默认）' },
       { value: 'song', label: '宋体' },
       { value: 'kai', label: '楷体' },
       { value: 'yahei', label: '微软雅黑' }
@@ -1514,9 +1524,9 @@ const UI = {
 
     // Day/Night mode
     html += '<div class="settings-group">';
-    html += '<span class="settings-label">日间模式</span>';
+    html += '<span class="settings-label">昼夜切换</span>';
     html += '<div class="settings-row">';
-    html += '<span class="settings-desc" style="margin:0;">切换明亮/暗黑主题</span>';
+    html += '<span class="settings-desc" style="margin:0;">切换白天/夜晚模式</span>';
     html += '<label class="settings-toggle">';
     html += '<input type="checkbox" id="settingDayMode" ' + (currentSettings.dayMode ? 'checked' : '') + ' onchange="UI._onSettingChange(\'dayMode\', this.checked)">';
     html += '<span class="settings-toggle-slider"></span>';
@@ -1567,11 +1577,14 @@ const UI = {
 
   // ── Settings persistence ──
   _loadAllSettings() {
+    // 初始化主题
+    var theme = localStorage.getItem('game_theme') || 'night';
+    document.documentElement.setAttribute('data-theme', theme);
     return {
       textBrightness: parseInt(localStorage.getItem('game_textBrightness') || '100'),
-      fontWeight: localStorage.getItem('game_fontWeight') || 'normal',
+      fontWeight: localStorage.getItem('game_fontWeight') || '400',
       fontFamily: localStorage.getItem('game_fontFamily') || 'default',
-      dayMode: localStorage.getItem('game_dayMode') === 'true',
+      dayMode: theme === 'day',
       skipStoryPopup: localStorage.getItem('game_skipStoryPopup') !== 'false'
     };
   },
@@ -1586,12 +1599,17 @@ const UI = {
         break;
       case 'fontWeight':
         UI._applyFontWeight(value);
+        var valEl = document.getElementById('settingFontWeightVal');
+        if (valEl) valEl.textContent = value;
         break;
       case 'fontFamily':
         UI._applyFontFamily(value);
         break;
       case 'dayMode':
-        UI._applyDayMode(value === true || value === 'true');
+        var enabled = value === true || value === 'true';
+        UI._applyDayMode(enabled);
+        var theme = enabled ? 'day' : 'night';
+        localStorage.setItem('game_theme', theme);
         break;
     }
   },
@@ -1613,26 +1631,20 @@ const UI = {
   },
 
   _applyFontWeight(weight) {
-    if (weight === 'bold') {
-      document.body.classList.add('font-bold');
-    } else {
-      document.body.classList.remove('font-bold');
-    }
+    var w = parseInt(weight) || 400;
+    w = Math.max(300, Math.min(900, w));
+    document.documentElement.style.setProperty('--fw-normal', String(w));
+    document.documentElement.style.setProperty('--fw-medium', String(Math.min(w + 100, 700)));
+    document.documentElement.style.setProperty('--fw-bold', String(Math.min(w + 200, 900)));
+    document.documentElement.style.setProperty('--fw-headline', String(Math.min(w + 100, 700)));
   },
 
   _applyFontFamily(value) {
-    document.body.classList.remove('font-family-song', 'font-family-kai', 'font-family-yahei');
-    if (value && value !== 'default') {
-      document.body.classList.add('font-family-' + value);
-    }
+    // 全局字体已统一为思源宋体，此设置保留供未来扩展
   },
 
   _applyDayMode(enabled) {
-    if (enabled) {
-      document.body.classList.add('light-theme');
-    } else {
-      document.body.classList.remove('light-theme');
-    }
+    document.documentElement.setAttribute('data-theme', enabled ? 'day' : 'night');
   },
 
   // ===== Description Panel =====
@@ -1654,6 +1666,13 @@ const UI = {
       };
       if (title) title.textContent = titles[context] || '观察笔记';
       body.innerHTML = contentHTML;
+      // Adjust position based on drawer state
+      var drawer = document.getElementById('rightDrawer');
+      if (drawer && drawer.classList.contains('open')) {
+        panel.style.right = 'calc(var(--right-nav-width) + var(--drawer-width))';
+      } else {
+        panel.style.right = '';
+      }
       panel.classList.remove('hidden');
     }
   },

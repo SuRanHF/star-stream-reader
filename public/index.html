@@ -4,8 +4,31 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>全知读者视角 — 星流观测</title>
-  <!-- Google Fonts removed: blocked in China. Using system font stack in CSS instead. -->
-  <link rel="stylesheet" href="/styles.css?v=1.0.3">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link href="https://cdn.jsdelivr.net/npm/cn-fontsource-source-han-serif-sc-vf/font.css" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css?v=1.0.8">
+  <script>
+  // Preload ALL font subsets eagerly so drawers never trigger font-load flicker
+  (function preloadAllSubsets() {
+    if (!fetch) return;
+    var base = 'https://cdn.jsdelivr.net/npm/cn-fontsource-source-han-serif-sc-vf/';
+    fetch(base + 'font.css')
+      .then(function(r) { return r.text(); })
+      .then(function(css) {
+        var re = /url\('([^']+\.woff2)'\)/g, m;
+        while ((m = re.exec(css)) !== null) {
+          var link = document.createElement('link');
+          link.rel = 'preload';
+          link.as = 'font';
+          link.type = 'font/woff2';
+          link.href = base + m[1];
+          link.crossOrigin = 'anonymous';
+          document.head.appendChild(link);
+        }
+      })
+      .catch(function() {});
+  })();
+  </script>
 </head>
 <body class="game-page">
 

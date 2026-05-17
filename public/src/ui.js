@@ -431,7 +431,7 @@ const UI = {
     } else {
       html += available.map(eq => {
         const stats = eq.stats || {};
-        const statsStr = Object.entries(stats).map(([k, v]) => `${k}: ${v > 0 ? '+' : ''}${v}`).join(' | ');
+        const statsStr = Object.entries(stats).map(([k, v]) => `${UI._labelStat(k)}: ${v > 0 ? '+' : ''}${v}`).join(' | ');
         return `<div class="drawer-card">
           <div class="drawer-card-title rarity-${eq.rarity || 'common'}">${eq.name}</div>
           <div class="drawer-card-desc">${eq.description}</div>

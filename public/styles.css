@@ -27,9 +27,9 @@
   --purple: #8a5ac0;
   --blue: #5088c0;
   --orange: #e8a55a;
-  --font-body: 'Cormorant Garamond', 'EB Garamond', 'Noto Serif SC', 'Source Han Serif SC', 'SimSun', serif;
-  --font-ui: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Microsoft YaHei', sans-serif;
-  --font-mono: 'JetBrains Mono', 'Courier New', 'Noto Sans SC', monospace;
+  --font-body: Georgia, 'Times New Roman', 'STSong', 'SimSun', 'Noto Serif SC', serif;
+  --font-ui: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  --font-mono: 'Consolas', 'Courier New', 'Source Code Pro', 'Noto Sans Mono', monospace;
   --glow-gold: 0 0 8px #c9a86044;
   --glow-teal: 0 0 8px #4db8a844;
   --transition-fast: 0.15s ease;

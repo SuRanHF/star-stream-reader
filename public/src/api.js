@@ -92,8 +92,8 @@ const API = {
   getEquipment(playerId) {
     return this.request('GET', `/api/equipment/${playerId}`);
   },
-  equipItem(playerId, equipmentKey) {
-    return this.request('POST', '/api/equipment/equip', { playerId, equipmentKey });
+  equipItem(playerId, equipmentKey, slot) {
+    return this.request('POST', '/api/equipment/equip', { playerId, equipmentKey, slot });
   },
   unequipItem(playerId, slot) {
     return this.request('POST', '/api/equipment/unequip', { playerId, slot });

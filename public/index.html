@@ -264,6 +264,17 @@
       </div>
     </div>
 
+    <!-- Description Panel (context-sensitive right sidebar) -->
+    <div class="description-panel hidden" id="descriptionPanel">
+      <div class="desc-panel-header">
+        <span class="desc-panel-title" id="descPanelTitle">观察笔记</span>
+        <button class="desc-panel-collapse" onclick="UI.toggleDescriptionPanel()">◀</button>
+      </div>
+      <div class="desc-panel-body" id="descPanelBody">
+        <p class="desc-placeholder">选择功能以查看上下文信息。</p>
+      </div>
+    </div>
+
     <!-- Social bar -->
     <div class="social-action-bar" id="socialActionBar">
       <button class="sa-btn" onclick="UI.showSocialPlaceholder('好友')">好友</button>

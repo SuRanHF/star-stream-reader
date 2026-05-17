@@ -447,13 +447,15 @@ function applyChoice(playerId, choiceKey) {
   if (effects.coins) rewardParts.push(`硬币 +${Math.round(effects.coins * coinMult)}`);
   if (effects.story_fragments) rewardParts.push(`故事碎片 +${effects.story_fragments}`);
   if (effects.stats) {
+    const { statLabel: sl } = require('../utils/labels');
     for (const [k, v] of Object.entries(effects.stats)) {
-      if (v > 0) rewardParts.push(`${k} +${v}`);
+      if (v > 0) rewardParts.push(`${sl(k)} +${v}`);
     }
   }
   if (effects.flags) {
+    const { resolveChapterName: rcn } = require('../utils/labels');
     for (const k of Object.keys(effects.flags)) {
-      rewardParts.push(`标记: ${k}`);
+      rewardParts.push(`标记: ${rcn(k)}`);
     }
   }
   if (rewardParts.length > 0) {
@@ -568,14 +570,8 @@ function deriveNextChapterFromSequence(player, choice) {
 }
 
 function getChoiceTypeLabel(choiceType) {
-  const labels = {
-    action: '行动',
-    repeatable: '可重复',
-    progress: '剧情',
-    decision: '决策',
-    stage_final: '阶段最终'
-  };
-  return labels[choiceType] || choiceType;
+  const { choiceTypeLabel } = require('../utils/labels');
+  return choiceTypeLabel(choiceType);
 }
 
 function formatChoice(ch) {

@@ -1,4 +1,17 @@
 // UI module - DOM rendering (dark immersive RPG layout)
+
+const LABELS = {
+  stat: { attack:'攻击', defense:'防御', speed:'速度', hp:'生命', maxHp:'最大生命', critRate:'暴击率', critDamage:'暴击伤害', intelligence:'智慧', combat:'战斗能力', leadership:'领导力', bond:'羁绊', cruelty:'残酷', insight:'洞察', stamina:'体力', maxStamina:'最大体力', explorationPower:'探索力', luck:'幸运', dropRate:'掉落率', rating:'评分', pkWins:'PK胜', pkLosses:'PK负', pkStreak:'连胜', worldLineShift:'世界线偏移', channelHeat:'频道热度', freePoints:'自由点数', allocatedAtk:'已分配攻击', allocatedDef:'已分配防御', allocatedSpd:'已分配速度', allocatedCrit:'已分配暴击', level:'等级', exp:'经验值', atk:'攻击', def:'防御', spd:'速度' },
+  rarity: { common:'普通', uncommon:'稀有', rare:'精良', epic:'史诗', legendary:'传说' },
+  slot: { weapon:'武器', armor:'防具', accessory:'饰品', relic:'遗物' },
+  eventType: { story:'主线剧情', side_story:'支线剧情', battle:'战斗', elite_battle:'精英战', boss_clue:'Boss线索', opportunity:'机遇', resource:'资源', hidden:'隐藏事件', nothing:'无事件' },
+  broadcastStatus: { draft:'草稿', active:'进行中', completed:'已完成', failed:'失败', expired:'已过期', rewarded:'已发奖', cancelled:'已取消' },
+  broadcastEventType: { world_boss:'世界Boss', exploration_drive:'探索驱动', story_hunt:'剧情狩猎', pk_tournament:'PK锦标赛', faction_conflict:'阵营冲突', disaster:'灾厄', opportunity_rain:'机遇放送', stage_support:'阶段支援' },
+  skillType: { attack:'攻击', passive:'被动', defense:'防御', exploration:'探索', pk:'PK', story:'剧情' },
+  itemType: { consumable:'消耗品', material:'材料', story_item:'剧情道具', equipment:'装备', key_item:'关键道具' },
+  choiceType: { action:'行动', repeatable:'可重复', progress:'剧情', decision:'决策', stage_final:'阶段最终', locked:'锁定', special:'特殊' }
+};
+
 const UI = {
   // ===== Left Panel (精简版) =====
   renderLeftPanel(player) {
@@ -288,7 +301,7 @@ const UI = {
       if (rewards.exp) html += `<span style="font-size:12px;color:var(--green);">EXP +${rewards.exp}</span>`;
       if (rewards.stats) {
         for (const [k, v] of Object.entries(rewards.stats)) {
-          if (v > 0) html += `<span style="font-size:12px;color:var(--green);">${k} +${v}</span>`;
+          if (v > 0) html += `<span style="font-size:12px;color:var(--green);">${UI._labelStat(k)} +${v}</span>`;
         }
       }
       html += '</div>';
@@ -338,6 +351,7 @@ const UI = {
     setTimeout(() => {
       drawer.classList.add('hidden');
     }, 300);
+    this.clearDescriptionPanel();
   },
 
   // ===== Drawer: Locations (Explore) =====
@@ -375,8 +389,8 @@ const UI = {
         </div>
         <div class="drawer-card-desc">${item.description}</div>
         <div class="drawer-card-stats">
-          <span>类型: ${item.type === 'consumable' ? '消耗品' : item.type === 'material' ? '材料' : item.type === 'story_item' ? '剧情道具' : item.type}</span>
-          <span>稀有度: ${item.rarity}</span>
+          <span>类型: ${UI._labelItemType(item.type)}</span>
+          <span>稀有度: ${UI._labelRarity(item.rarity)}</span>
         </div>
         <div class="drawer-card-actions">
           <span style="font-size:12px;color:var(--text-secondary)">售价: ${item.sell_price || 0}</span>
@@ -422,7 +436,7 @@ const UI = {
           <div class="drawer-card-title rarity-${eq.rarity || 'common'}">${eq.name}</div>
           <div class="drawer-card-desc">${eq.description}</div>
           <div class="drawer-card-stats">
-            <span>${eq.slot} | Lv.${eq.required_level}+</span>
+            <span>${UI._labelSlot(eq.slot)} | Lv.${eq.required_level}+</span>
             <span>${statsStr}</span>
           </div>
           <div class="drawer-card-actions">
@@ -466,7 +480,7 @@ const UI = {
     return titles.map(t => {
       const effects = t.effects || {};
       let effStr = '';
-      if (effects.stat_modifier) effStr += Object.entries(effects.stat_modifier).map(([k, v]) => `${k}${v > 0 ? '+' : ''}${v}`).join(' ') + ' ';
+      if (effects.stat_modifier) effStr += Object.entries(effects.stat_modifier).map(([k, v]) => `${UI._labelStat(k)}${v > 0 ? '+' : ''}${v}`).join(' ') + ' ';
       if (effects.combat_bonus) effStr += '[战斗加成] ';
       if (effects.exploration_bonus) effStr += '[探索加成] ';
       if (effects.pk_bonus) effStr += '[PK加成] ';
@@ -475,7 +489,7 @@ const UI = {
         <div class="drawer-card-title rarity-${t.rarity || 'common'}">${t.name}</div>
         <div class="drawer-card-desc">${t.description}</div>
         <div class="drawer-card-stats">${effStr || '无额外效果'}</div>
-        <div class="drawer-card-actions"><span style="font-size:12px;">${t.rarity}</span></div>
+        <div class="drawer-card-actions"><span style="font-size:12px;">${UI._labelRarity(t.rarity)}</span></div>
       </div>`;
     }).join('');
   },
@@ -646,11 +660,10 @@ const UI = {
       const event = activeEvents[0];
       const objectives = event.progress ? event.progress.objectives : [];
       const timeLeft = event.end_time ? Math.max(0, Math.floor((new Date(event.end_time) - Date.now()) / 60000)) : 0;
-      const typeLabels = { world_boss: '世界Boss', exploration_drive: '探索驱动', story_hunt: '剧情狩猎', pk_tournament: 'PK锦标赛', faction_conflict: '阵营冲突', disaster: '灾厄', opportunity_rain: '机遇放送', stage_support: '阶段支援' };
 
       html += `<div class="drawer-card broadcast-active">
         <div class="broadcast-header">
-          <span class="broadcast-type-tag broadcast-type-${event.event_type}">${typeLabels[event.event_type] || event.event_type}</span>
+          <span class="broadcast-type-tag broadcast-type-${event.event_type}">${UI._labelBroadcastEventType(event.event_type)}</span>
           <span class="broadcast-title">${event.title}</span>
           <span style="font-size:12px;color:var(--text-secondary);">剩余 ${timeLeft} 分钟</span>
         </div>
@@ -917,7 +930,7 @@ const UI = {
 
     if (gains.stats) {
       for (const [k, v] of Object.entries(gains.stats)) {
-        if (v > 0) addItem(`${k} +${v}`, 'attr-gain');
+        if (v > 0) addItem(`${UI._labelStat(k)} +${v}`, 'attr-gain');
       }
     }
     if (gains.equipment) addItem(`装备: ${gains.equipment}`, 'attr-gain');
@@ -992,7 +1005,7 @@ const UI = {
       if (rewards.items) html += `<span class="stat-gain-item attr-gain">道具: ${rewards.items.join(', ')}</span>`;
       if (rewards.stats) {
         for (const [k, v] of Object.entries(rewards.stats)) {
-          if (v > 0) html += `<span class="stat-gain-item attr-gain">${k} +${v}</span>`;
+          if (v > 0) html += `<span class="stat-gain-item attr-gain">${UI._labelStat(k)} +${v}</span>`;
         }
       }
       html += '</div>';
@@ -1011,7 +1024,7 @@ const UI = {
       html += '<p style="text-align:center;color:var(--gold);margin-top:8px;">阶段最终剧情已触发！</p>';
     }
     if (result.chapter_advanced && result.new_chapter_key) {
-      html += `<p style="text-align:center;color:var(--gold);margin-top:8px;">剧情推进至: ${result.new_chapter_key}</p>`;
+      html += `<p style="text-align:center;color:var(--gold);margin-top:8px;">剧情推进至: ${result.new_chapter_name || result.new_chapter_key}</p>`;
     }
 
     html += `<p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:8px;">剩余体力: ${result.remaining_stamina}</p>`;
@@ -1207,7 +1220,7 @@ const UI = {
         <div class="alloc-row">
           <span class="alloc-label">${label}</span>
           <button class="alloc-btn" onclick="UI._adjustAlloc('${id}', -1)">-</button>
-          <input class="alloc-input" id="${id}" type="number" value="0" min="0" max="${freePoints}" readonly>
+          <input class="alloc-input alloc-editable" id="${id}" type="number" value="0" min="0" max="${freePoints}" oninput="UI._validateAlloc(this)">
           <button class="alloc-btn" onclick="UI._adjustAlloc('${id}', 1)">+</button>
         </div>`;
       html += allocRow('攻击', 'allocAtk', 'atk');
@@ -1297,6 +1310,17 @@ const UI = {
     return document.getElementById(id)?.value || '';
   },
 
+  // ===== Label Helpers =====
+  _labelStat(k) { return LABELS.stat[k] || k; },
+  _labelRarity(k) { return LABELS.rarity[k] || k; },
+  _labelSlot(k) { return LABELS.slot[k] || k; },
+  _labelEventType(k) { return LABELS.eventType[k] || k; },
+  _labelBroadcastStatus(k) { return LABELS.broadcastStatus[k] || k; },
+  _labelBroadcastEventType(k) { return LABELS.broadcastEventType[k] || k; },
+  _labelSkillType(k) { return LABELS.skillType[k] || k; },
+  _labelItemType(k) { return LABELS.itemType[k] || k; },
+  _labelChoiceType(k) { return LABELS.choiceType[k] || k; },
+
   _adjustAlloc(inputId, delta) {
     const input = document.getElementById(inputId);
     if (!input) return;
@@ -1321,6 +1345,28 @@ const UI = {
 
     if (currentTotal <= maxPoints) {
       input.value = newVal;
+    }
+  },
+
+  _validateAlloc(input) {
+    const val = parseInt(input.value) || 0;
+    if (val < 0) { input.value = 0; return; }
+
+    const ids = ['allocAtk', 'allocDef', 'allocSpd', 'allocCrit'];
+    let total = 0;
+    ids.forEach(id => {
+      total += parseInt(document.getElementById(id)?.value) || 0;
+    });
+
+    const label = document.querySelector('.ds-section-label span');
+    const match = label ? label.textContent.match(/剩余:\s*(\d+)/) : null;
+    const maxPoints = match ? parseInt(match[1]) : 0;
+
+    const allInputs = ids.map(id => document.getElementById(id)).filter(Boolean);
+    if (total > maxPoints) {
+      allInputs.forEach(el => { el.style.borderColor = 'var(--red)'; el.style.boxShadow = '0 0 6px var(--red-dim)'; });
+    } else {
+      allInputs.forEach(el => { el.style.borderColor = ''; el.style.boxShadow = ''; });
     }
   },
 
@@ -1587,5 +1633,159 @@ const UI = {
     } else {
       document.body.classList.remove('light-theme');
     }
+  },
+
+  // ===== Description Panel =====
+  _descriptionPanelVisible: true,
+  _currentPanelContext: null,
+
+  updateDescriptionPanel(context, contentHTML) {
+    this._currentPanelContext = context;
+    var panel = document.getElementById('descriptionPanel');
+    var body = document.getElementById('descPanelBody');
+    var title = document.getElementById('descPanelTitle');
+    if (!panel || !body) return;
+
+    if (contentHTML) {
+      var titles = {
+        stats: '属性指南', equipment: '装备说明',
+        combat: '敌人图鉴', explore: '区域情报',
+        constellation: '星座宝典'
+      };
+      if (title) title.textContent = titles[context] || '观察笔记';
+      body.innerHTML = contentHTML;
+      panel.classList.remove('hidden');
+    }
+  },
+
+  clearDescriptionPanel() {
+    var panel = document.getElementById('descriptionPanel');
+    if (panel) panel.classList.add('hidden');
+    this._currentPanelContext = null;
+  },
+
+  toggleDescriptionPanel() {
+    var panel = document.getElementById('descriptionPanel');
+    var btn = document.querySelector('.desc-panel-collapse');
+    if (!panel) return;
+    if (panel.classList.contains('collapsed')) {
+      panel.classList.remove('collapsed');
+      if (btn) btn.textContent = '◀';
+    } else {
+      panel.classList.add('collapsed');
+      if (btn) btn.textContent = '▶';
+    }
+  },
+
+  renderDescriptionPanel(player, context) {
+    if (!player || !player.stats) return;
+    if (context === 'stats') {
+      this.updateDescriptionPanel('stats', this._renderStatsDesc(player));
+    } else if (context === 'equipment') {
+      this.updateDescriptionPanel('equipment', this._renderEquipmentDesc(player));
+    } else if (context === 'combat') {
+      this.updateDescriptionPanel('combat', this._renderCombatDesc(player));
+    } else if (context === 'constellation') {
+      this.updateDescriptionPanel('constellation', this._renderConstellationLore(player));
+    }
+  },
+
+  _renderStatsDesc(player) {
+    var s = player.stats || {};
+    var conKey = s.constellation;
+    var html = '';
+
+    // Build recommendation based on constellation
+    var builds = {
+      golden_sun: { primary: '攻击', secondary: '暴击', tip: '金乌眷顾高攻击高暴击的化身。灼热的光芒将贯穿一切防御。优先将点数分配给攻击和暴击。' },
+      black_flame_dragon: { primary: '攻击', secondary: '速度', tip: '黑炎龙崇尚纯粹的攻击力。毁灭即是你的本质——防御自然偏低，以速度抢占先机。' },
+      abyss_eye: { primary: '暴击', secondary: '攻击', tip: '深渊之眼赋予你看穿万物弱点的能力。暴击率是你的核心属性，精准命中要害。' },
+      wheel_of_fate: { primary: '速度', secondary: '攻击', tip: '命运之轮眷顾灵活的化身。高速度确保先手，幸运提升掉落。在命运转动之前出击。' },
+      queen_of_underworld: { primary: '防御', secondary: '攻击', tip: '冥界女王保护自己的信徒。高防御让你在持久战中屹立不倒，死亡也不再是终点。' },
+      star_stream_watcher: { primary: '均衡', secondary: '攻击', tip: '星流观测者给予均衡的庇佑。各项属性均衡分配，侧重攻击即可。硬币获得量亦有提升。' }
+    };
+
+    var b = builds[conKey];
+    if (b) {
+      html += '<div class="desc-section-title">背后星指引</div>';
+      html += '<div class="desc-tip">' + b.tip + '</div>';
+      html += '<div class="desc-stat-row"><span class="desc-stat-key">推荐优先</span><span class="desc-stat-val">' + b.primary + '</span></div>';
+      html += '<div class="desc-stat-row"><span class="desc-stat-key">次要属性</span><span class="desc-stat-val">' + b.secondary + '</span></div>';
+    }
+
+    html += '<div class="desc-section-title">属性说明</div>';
+    html += '<div class="desc-stat-row"><span class="desc-stat-key">攻击</span><span class="desc-stat-val">决定伤害输出</span></div>';
+    html += '<div class="desc-stat-row"><span class="desc-stat-key">防御</span><span class="desc-stat-val">减少受到的伤害</span></div>';
+    html += '<div class="desc-stat-row"><span class="desc-stat-key">速度</span><span class="desc-stat-val">决定出手顺序</span></div>';
+    html += '<div class="desc-stat-row"><span class="desc-stat-key">暴击(2%/点)</span><span class="desc-stat-val">增加暴击率</span></div>';
+
+    // Low stat warning
+    var lv = s.level || 1;
+    var threshold = lv * 2;
+    var totalAtk = (s.attack || 10) + (s.allocatedAtk || 0);
+    var totalDef = (s.defense || 5) + (s.allocatedDef || 0);
+    var totalSpd = (s.speed || 10) + (s.allocatedSpd || 0);
+    var warnings = [];
+    if (totalAtk < threshold) warnings.push('攻击');
+    if (totalDef < threshold) warnings.push('防御');
+    if (totalSpd < threshold) warnings.push('速度');
+    if (warnings.length > 0) {
+      html += '<div class="desc-section-title">⚠ 属性警告</div>';
+      html += '<div class="desc-warning">以下属性低于推荐值（等级×2=' + threshold + '）：' + warnings.join('、') + '。当前阶段的敌人可能对你造成严重威胁。</div>';
+    }
+
+    return html;
+  },
+
+  _renderEquipmentDesc(player) {
+    var html = '';
+    html += '<div class="desc-section-title">装备栏位说明</div>';
+    html += '<div class="desc-lore-text">装备是你在末日中生存的关键。每个栏位提供不同类型的属性加成。</div>';
+    html += '<div class="desc-stat-row"><span class="desc-stat-key">武器</span><span class="desc-stat-val">主要伤害来源</span></div>';
+    html += '<div class="desc-stat-row"><span class="desc-stat-key">防具</span><span class="desc-stat-val">提供防御与生命</span></div>';
+    html += '<div class="desc-stat-row"><span class="desc-stat-key">饰品</span><span class="desc-stat-val">均衡属性加成</span></div>';
+    html += '<div class="desc-stat-row"><span class="desc-stat-key">遗物</span><span class="desc-stat-val">稀有独特效果</span></div>';
+    html += '<div class="desc-section-title">获取方式</div>';
+    html += '<div class="desc-tip">通过探索、击败Boss、完成星流放送活动获取装备。高稀有度装备在后期探索中有更高几率掉落。</div>';
+    return html;
+  },
+
+  _renderCombatDesc(player) {
+    var html = '';
+    html += '<div class="desc-section-title">战斗指南</div>';
+    html += '<div class="desc-tip">战斗为回合制自动进行。攻击力决定输出，防御力减少伤害，速度决定先手。暴击造成1.5倍伤害。</div>';
+    html += '<div class="desc-stat-row"><span class="desc-stat-key">先手判定</span><span class="desc-stat-val">速度高者优先</span></div>';
+    html += '<div class="desc-stat-row"><span class="desc-stat-key">暴击机制</span><span class="desc-stat-val">暴击率×1.5倍伤害</span></div>';
+    return html;
+  },
+
+  _renderConstellationLore(player) {
+    var s = player.stats || {};
+    var conKey = s.constellation;
+    var lore = {
+      golden_sun: { name: '烈日之金乌', story: '古老太阳的化身。在远古的星座战争中，金乌曾以一头三足乌鸦的形态降临，焚烧了整个入侵的异界。如今它已沉默数千年，只在极少数值得"燃烧"的读者面前展露光芒。它不关心正义或邪恶——它只关心你的名字能燃烧得多明亮。' },
+      black_flame_dragon: { name: '深渊黑炎龙', story: '栖息于世界最深渊处的黑色巨龙。它的龙息能焚尽万物，它的鳞片比任何金属都坚硬。在无数世界线中，黑炎龙只眷顾那些敢于孤身面对毁灭的化身。毁灭即是新生——这是它唯一的信条。' },
+      abyss_eye: { name: '全知深渊眼', story: '悬挂在世界线缝隙中的巨大眼睛。它注视一切，洞察一切。传说深渊之眼是一位陨落的古神遗留的最后感官，它寻找着能够"看穿故事真相"的读者。被它眷顾的人，能够看到敌人最脆弱的瞬间。' },
+      wheel_of_fate: { name: '因果命运轮', story: '转动于因果之间的巨轮，刻满了无数世界线的走向。命运之轮没有意志，只有规律。它眷顾那些理解"概率"的人——在正确的时间出现在正确的地点，这就是最强的能力。' },
+      queen_of_underworld: { name: '冥界之女王', story: '掌管冥界的高贵女王，万千亡魂的主宰。她并非冷酷无情——恰恰相反，她深知生命的价值。在她的眷顾下，死亡的边界变得模糊。冥界女王庇佑那些愿意为他人牺牲的灵魂。' },
+      star_stream_watcher: { name: '星流观测者', story: '默默守护星流的古老存在，无人知晓它的真名。它不追求战争的胜利，不渴望荣耀的传播——它只是静静观看星流的流动，偶尔对那些有趣的读者投去一抹微光。均衡是它的哲学，持久是它的力量。' }
+    };
+
+    var l = lore[conKey];
+    var html = '';
+    if (l) {
+      html += '<div class="desc-section-title">' + l.name + '</div>';
+      html += '<div class="desc-lore-text">' + l.story + '</div>';
+    }
+
+    html += '<div class="desc-section-title">星座体系</div>';
+    html += '<div class="desc-lore-text">在星流之中，星座由人类集体意识中的故事孕育而生。故事越知名，星座越强大。星座赞助化身（人类），化身传播星座的大名——这是一场横跨无数世界线的"故事交易"。</div>';
+    html += '<div class="desc-stat-row"><span class="desc-stat-key">传奇星座</span><span class="desc-stat-val">神话传说之主</span></div>';
+    html += '<div class="desc-stat-row"><span class="desc-stat-key">叙事级</span><span class="desc-stat-val">有一定知名度</span></div>';
+    html += '<div class="desc-stat-row"><span class="desc-stat-key">普通星座</span><span class="desc-stat-val">小型传说</span></div>';
+    html += '<div class="desc-section-title">星云</div>';
+    html += '<div class="desc-tip">同一阵营的星座组成星云：奥林匹斯（希腊）、阿斯加德（北欧）、伊甸园（圣经）、吠陀（印度）等。星座之间的战争不仅取决于力量，更取决于"故事的相性"。</div>';
+
+    return html;
   }
 };

@@ -4,6 +4,7 @@ const playerService = require('./playerService');
 const titleService = require('./titleService');
 const inventoryService = require('./inventoryService');
 const chapterService = require('./chapterService');
+const equipmentService = require('./equipmentService');
 
 // 计算玩家总战力（含装备、称号加成）
 // 返回 { atk, def, spd, hp, maxHp, critRate, critDamage, level, equipmentBonusHp }
@@ -32,19 +33,11 @@ function calculateCombatPower(player) {
   if (effectiveStats.bond) def += effectiveStats.bond;
 
   // 装备加成 (从 player_equipment 表读取)
-  const db = getDb();
-  let equipmentHp = 0;
-  const equips = db.prepare('SELECT equipment_key FROM player_equipment WHERE player_id = ?').all(player.id);
-  for (const eq of equips) {
-    const eqDef = db.prepare('SELECT * FROM equipment WHERE equipment_key = ?').get(eq.equipment_key);
-    if (eqDef) {
-      const eqStats = JSON.parse(eqDef.stats_json);
-      if (eqStats.attack) atk += eqStats.attack;
-      if (eqStats.defense) def += eqStats.defense;
-      if (eqStats.speed) spd += eqStats.speed;
-      if (eqStats.hp) equipmentHp += eqStats.hp;
-    }
-  }
+  const equipmentStats = equipmentService.computeEquipmentStats(player.id);
+  if (equipmentStats.attack) atk += equipmentStats.attack;
+  if (equipmentStats.defense) def += equipmentStats.defense;
+  if (equipmentStats.speed) spd += equipmentStats.speed;
+  let equipmentHp = equipmentStats.hp || 0;
 
   // 背后星加成
   const constBonus = playerService.getConstellationBonus(stats);

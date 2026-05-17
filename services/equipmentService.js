@@ -115,4 +115,27 @@ function computeEquipmentStats(playerId) {
   return stats;
 }
 
-module.exports = { getEquipment, getAvailableEquipment, equipItem, unequipItem, computeEquipmentStats };
+function getEquippedMap(playerId) {
+  const db = getDb();
+  const rows = db.prepare(`
+    SELECT pe.slot, pe.equipment_key, e.name, e.rarity,
+           e.stats_json, e.effects_json
+    FROM player_equipment pe
+    JOIN equipment e ON pe.equipment_key = e.equipment_key
+    WHERE pe.player_id = ?
+  `).all(playerId);
+
+  const map = {};
+  for (const r of rows) {
+    map[r.slot] = {
+      name: r.name,
+      equipment_key: r.equipment_key,
+      stats: JSON.parse(r.stats_json),
+      effects: JSON.parse(r.effects_json),
+      rarity: r.rarity
+    };
+  }
+  return map;
+}
+
+module.exports = { getEquipment, getAvailableEquipment, equipItem, unequipItem, computeEquipmentStats, getEquippedMap };

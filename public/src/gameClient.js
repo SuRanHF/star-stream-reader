@@ -664,9 +664,9 @@ const GameClient = {
       }
 
       if (result.result?.chapter_advanced) {
-        const newChapterKey = result.result?.new_chapter_key;
-        if (newChapterKey) {
-          UI.addLog(`剧情推进至新章节: ${newChapterKey}`, 'stage', { id: `${logKey}_advance` });
+        const newChapterName = result.result?.new_chapter_name || result.result?.new_chapter_key;
+        if (newChapterName) {
+          UI.addLog(`剧情推进至新章节: ${newChapterName}`, 'stage', { id: `${logKey}_advance` });
         }
       }
 
@@ -944,6 +944,7 @@ const GameClient = {
       UI.openDrawer('装备', contentHTML);
       const { player } = await API.getPlayer(this.playerId);
       UI.renderLeftPanel(player);
+      UI.renderDescriptionPanel(player, 'equipment');
     } catch (e) {
       UI.addLog('加载装备失败: ' + (e.message || e), 'warning');
     }
@@ -951,12 +952,13 @@ const GameClient = {
 
   async equipItem(equipmentKey) {
     try {
-      const result = await API.equipItem(this.playerId, equipmentKey);
+      const result = await API.equipItem(this.playerId, equipmentKey, null);
       if (result.error) {
         alert(result.error.message || '装备失败');
         return;
       }
-      UI.addLog(`装备了: ${equipmentKey}`, 'reward');
+      const eqName = (result.equipped && result.equipped.name) || equipmentKey;
+      UI.addLog(`装备了: ${eqName}`, 'reward');
       this.loadEquipment();
     } catch (e) {
       UI.addLog('装备失败: ' + (e.message || e), 'warning');
@@ -970,7 +972,7 @@ const GameClient = {
         alert(result.error.message || '卸下失败');
         return;
       }
-      UI.addLog(`卸下了 ${slot} 栏位的装备`, 'system');
+      UI.addLog(`卸下了 ${UI._labelSlot(slot)} 栏位的装备`, 'system');
       this.loadEquipment();
     } catch (e) {
       UI.addLog('卸下装备失败: ' + (e.message || e), 'warning');
@@ -997,7 +999,8 @@ const GameClient = {
         alert(result.error.message || '解锁失败');
         return;
       }
-      UI.addLog(`解锁技能: ${skillKey}`, 'reward');
+      const skName = result.skill?.name || skillKey;
+      UI.addLog(`解锁技能: ${skName}`, 'reward');
       this.loadSkills();
     } catch (e) {
       UI.addLog('解锁技能失败: ' + (e.message || e), 'warning');
@@ -1089,8 +1092,9 @@ const GameClient = {
       const result = response.data;
       UI.addLog(`进入下一阶段: ${result.chapter.chapter_name}`, 'stage');
       UI.renderLeftPanel(result.player);
-      if (result.unlocked_skills && result.unlocked_skills.length > 0) {
-        UI.addLog(`解锁技能: ${result.unlocked_skills.join(', ')}`, 'reward');
+      const skillNames = result.unlocked_skill_names || result.unlocked_skills || [];
+      if (skillNames.length > 0) {
+        UI.addLog(`解锁技能: ${skillNames.join(', ')}`, 'reward');
       }
       UI.closeDrawer();
       await this.fetchChapter();
@@ -1323,6 +1327,7 @@ const GameClient = {
       const contentHTML = UI.renderDetailedStats(player);
       UI.openDrawer('详细属性', contentHTML);
       UI.renderLeftPanel(player);
+      UI.renderDescriptionPanel(player, 'stats');
     } catch (e) {
       UI.addLog('加载角色详情失败: ' + (e.message || e), 'warning');
     }

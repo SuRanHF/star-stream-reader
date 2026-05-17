@@ -170,6 +170,10 @@ function parsePlayerRow(row) {
     return t ? { title_key: key, name: t.name, rarity: t.rarity, description: t.description } : { title_key: key, name: key, rarity: 'common', description: '' };
   });
 
+  // Resolve equipment
+  const { getEquippedMap } = require('./equipmentService');
+  const equipment = getEquippedMap(row.id);
+
   return {
     id: row.id,
     player_name: row.player_name,
@@ -201,6 +205,7 @@ function parsePlayerRow(row) {
     current_location: row.current_location || '',
     current_location_name,
     activity_history: JSON.parse(row.activity_history_json || '[]'),
+    equipment,
     user_id: row.user_id || null,
     created_at: row.created_at,
     updated_at: row.updated_at

@@ -391,7 +391,8 @@ function handleStoryEvent(db, player, playerId, locationKey, stageProgress, curr
       stage_progress_update: progressEffects,
       story_pity_reset: true,
       chapter_advanced: chapterAdvance.advanced,
-      new_chapter_key: chapterAdvance.new_chapter_key || null
+      new_chapter_key: chapterAdvance.new_chapter_key || null,
+      new_chapter_name: chapterAdvance.chapter_title || null
     }
   };
 }
@@ -437,7 +438,8 @@ function handleSideStoryEvent(db, playerId, locationKey, stageProgress) {
       rewards,
       risks: Object.keys(risks).length > 0 ? risks : null,
       chapter_advanced: chapterAdvance.advanced,
-      new_chapter_key: chapterAdvance.new_chapter_key || null
+      new_chapter_key: chapterAdvance.new_chapter_key || null,
+      new_chapter_name: chapterAdvance.chapter_title || null
     }
   };
 }

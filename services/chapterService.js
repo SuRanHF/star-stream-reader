@@ -394,6 +394,7 @@ function advanceStage(playerId, chapterKey) {
 
   // 解锁技能
   let unlockedSkills = [];
+  let unlockedSkillNames = [];
   if (rewards.unlock_skills) {
     for (const sk of rewards.unlock_skills) {
       try {
@@ -401,6 +402,8 @@ function advanceStage(playerId, chapterKey) {
         if (!existing) {
           db.prepare('INSERT INTO player_skills (player_id, skill_key) VALUES (?, ?)').run(playerId, sk);
           unlockedSkills.push(sk);
+          const skDef = db.prepare('SELECT name FROM skills WHERE skill_key = ?').get(sk);
+          unlockedSkillNames.push(skDef ? skDef.name : sk);
         }
       } catch (e) { /* skill may not exist */ }
     }
@@ -413,6 +416,7 @@ function advanceStage(playerId, chapterKey) {
       resources_after: resources,
       rewards,
       unlocked_skills: unlockedSkills,
+      unlocked_skill_names: unlockedSkillNames,
       player: playerService.get(playerId)
     }
   };

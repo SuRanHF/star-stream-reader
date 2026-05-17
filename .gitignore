@@ -1,0 +1,15 @@
+node_modules/
+data/*.db
+data/*.sqlite
+data/feedback.json
+data/admin-actions.json
+*.log
+.env
+.env.*
+.claude/settings.local.json
+dist/
+build/
+.DS_Store
+authorized_content/*
+!authorized_content/README.md
+!authorized_content/.gitkeep

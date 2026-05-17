@@ -1,0 +1,1591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>后台管理 — 全知读者视角</title>
+  <style>
+    :root {
+      --bg-deep: #0a0a0f;
+      --bg-panel: #111118;
+      --bg-card: #1a1a24;
+      --bg-input: #181820;
+      --border-subtle: #2a2a3a;
+      --border-light: #1e1e2c;
+      --text-primary: #c8c8d0;
+      --text-muted: #6a6a78;
+      --text-dim: #9a9aaa;
+      --gold: #c9a860;
+      --green: #5a9a4a;
+      --green-border: #4a6a2a;
+      --green-bg: #2a3a1a;
+      --red: #c04040;
+      --red-bg: #3a1a1a;
+      --red-border: #602020;
+      --teal: #4db8a8;
+      --sidebar-w: 160px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      font-family: 'Noto Serif SC', 'SimSun', 'Microsoft YaHei', serif;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ===== Warning Banner ===== */
+    .warn-banner {
+      background: #1a1210;
+      border-bottom: 1px solid #402010;
+      color: #c08050;
+      font-size: 12px;
+      text-align: center;
+      padding: 6px 16px;
+      letter-spacing: 1px;
+    }
+
+    /* ===== Layout ===== */
+    .admin-layout {
+      display: flex;
+      height: calc(100vh - 31px);
+    }
+
+    /* ===== Sidebar ===== */
+    .sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: #0d0d16;
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .sidebar-title {
+      padding: 14px 12px 10px;
+      font-size: 13px;
+      color: var(--gold);
+      text-align: center;
+      letter-spacing: 2px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .sidebar-user {
+      padding: 6px 12px 10px;
+      font-size: 10px;
+      color: var(--text-muted);
+      text-align: center;
+      border-bottom: 1px solid var(--border-light);
+      word-break: break-all;
+    }
+    .sidebar-menu { flex: 1; padding: 4px 0; }
+    .sidebar-btn {
+      display: block;
+      width: 100%;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 10px 16px;
+      text-align: left;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: inherit;
+      transition: all 0.15s;
+      border-left: 3px solid transparent;
+    }
+    .sidebar-btn:hover { background: #1a1a28; color: var(--text-primary); }
+    .sidebar-btn.active {
+      background: #1a1a28;
+      color: var(--gold);
+      border-left-color: var(--gold);
+    }
+    .sidebar-bottom { padding: 8px; border-top: 1px solid var(--border-light); }
+    .sidebar-bottom .admin-btn { width: 100%; font-size: 12px; }
+
+    /* ===== Main Content ===== */
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      background: var(--bg-deep);
+    }
+    .panel {
+      padding: 16px 20px;
+    }
+    .panel:not(.active) { display: none; }
+    .panel.active { display: block; }
+    .panel h2 {
+      font-size: 17px;
+      color: var(--gold);
+      margin-bottom: 14px;
+      letter-spacing: 1px;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 8px;
+    }
+    .panel-toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* ===== Forms ===== */
+    .admin-input {
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-family: inherit;
+    }
+    .admin-input:focus { border-color: var(--gold); outline: none; }
+    select.admin-input { cursor: pointer; }
+    .form-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .form-label {
+      width: 90px;
+      font-size: 12px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+    .form-input {
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: inherit;
+      width: 140px;
+    }
+    .form-input:focus { border-color: var(--gold); outline: none; }
+
+    /* ===== Buttons ===== */
+    .admin-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      padding: 6px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-family: inherit;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .admin-btn:hover { background: #20202c; border-color: var(--gold); }
+    .admin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .admin-btn.danger { background: var(--red-bg); border-color: var(--red-border); color: var(--red); }
+    .admin-btn.danger:hover { background: #502020; }
+    .admin-btn.primary { background: var(--green-bg); border-color: var(--green-border); color: var(--green); }
+    .admin-btn.primary:hover { background: #305020; }
+    .admin-btn.small { padding: 3px 10px; font-size: 11px; }
+    .admin-btn.tiny { padding: 2px 6px; font-size: 10px; }
+
+    /* ===== Login ===== */
+    .login-wrap {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh;
+    }
+    .login-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 32px;
+      width: 380px;
+      max-width: 95vw;
+    }
+    .login-card h2 { color: var(--gold); text-align: center; margin-bottom: 24px; font-size: 20px; letter-spacing: 2px; }
+    .login-field { margin-bottom: 14px; }
+    .login-label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+    .login-input {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    .login-input:focus { border-color: var(--gold); outline: none; }
+    .login-error { color: var(--red); font-size: 12px; margin-top: 4px; display: none; }
+    .login-divider {
+      display: flex; align-items: center;
+      margin: 18px 0;
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+    .login-divider::before, .login-divider::after {
+      content: ''; flex: 1; height: 1px;
+      background: var(--border-subtle);
+    }
+    .login-divider span { padding: 0 12px; }
+    .login-btn {
+      width: 100%;
+      background: var(--green-bg);
+      border: 1px solid var(--green-border);
+      color: var(--green);
+      padding: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 15px;
+      font-family: inherit;
+      margin-top: 8px;
+      transition: all 0.2s;
+    }
+    .login-btn:hover { background: #305020; }
+    .login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .login-hint { text-align: center; font-size: 11px; color: var(--text-muted); margin-top: 16px; }
+
+    /* ===== Player Table ===== */
+    .player-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .player-table th {
+      background: var(--bg-panel);
+      padding: 8px 6px;
+      text-align: left;
+      color: var(--text-muted);
+      font-weight: normal;
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky; top: 0; z-index: 1;
+    }
+    .player-table td {
+      padding: 6px;
+      border-bottom: 1px solid var(--bg-card);
+      white-space: nowrap;
+    }
+    .player-table tr:hover td { background: #1a1a26; }
+    .stat-val { color: #e8e8f0; font-weight: 600; }
+    .stat-low { color: var(--red); }
+    .dead-badge { background: #401010; color: var(--red); padding: 1px 6px; border-radius: 3px; font-size: 10px; }
+    .rest-badge { color: var(--teal); font-size: 10px; }
+
+    /* ===== Cards & Grid ===== */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 10px;
+    }
+    .info-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 10px;
+    }
+    .field-set {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .field-set h3 {
+      font-size: 14px;
+      color: var(--teal);
+      margin-bottom: 10px;
+    }
+
+    /* ===== Edit Overlay ===== */
+    .edit-popup {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: #000000aa; display: flex; align-items: center; justify-content: center;
+      z-index: 200;
+    }
+    .edit-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 20px;
+      width: 500px;
+      max-width: 95vw;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+    .edit-card h3 { color: var(--gold); margin-bottom: 16px; font-size: 16px; }
+    .edit-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .edit-label { width: 80px; font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
+    .edit-input {
+      flex: 1;
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-family: inherit;
+      min-width: 80px;
+    }
+    select.edit-input { width: auto; }
+
+    /* ===== Feedback / Log tables ===== */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .data-table th {
+      background: var(--bg-panel);
+      padding: 7px 8px;
+      text-align: left;
+      color: var(--text-muted);
+      font-weight: normal;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .data-table td { padding: 6px 8px; border-bottom: 1px solid var(--bg-card); vertical-align: top; }
+    .data-table tr:hover td { background: #1a1a26; }
+    .status-tag {
+      display: inline-block;
+      padding: 1px 8px;
+      border-radius: 3px;
+      font-size: 10px;
+    }
+    .status-new { background: #1a2a30; color: #4da8c8; }
+    .status-reviewing { background: #2a2a10; color: #c8a840; }
+    .status-resolved { background: #1a301a; color: #5a9a4a; }
+    .status-ignored { background: #2a1a1a; color: #8a4a4a; }
+
+    /* ===== Messages ===== */
+    .msg-info {
+      text-align: center;
+      padding: 24px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    .msg-error {
+      text-align: center;
+      padding: 24px;
+      color: var(--red);
+      font-size: 13px;
+    }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 768px) {
+      .admin-layout { flex-direction: column; }
+      .sidebar {
+        width: 100%;
+        min-width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+        overflow-x: auto;
+        max-height: 60px;
+        border-right: none;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+      .sidebar-title, .sidebar-user, .sidebar-bottom { display: none; }
+      .sidebar-menu { display: flex; flex: none; }
+      .sidebar-btn {
+        flex-shrink: 0;
+        padding: 8px 12px;
+        font-size: 11px;
+        border-left: none;
+        border-bottom: 2px solid transparent;
+      }
+      .sidebar-btn.active { border-left: none; border-bottom-color: var(--gold); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ==================== Login ==================== -->
+<div id="loginWrap" class="login-wrap" style="display:none;">
+  <div class="login-card">
+    <h2>全知读者视角<br>后台管理</h2>
+
+    <!-- JWT Login -->
+    <div class="login-field">
+      <label class="login-label">用户名</label>
+      <input class="login-input" id="loginUser" type="text" placeholder="请输入用户名">
+    </div>
+    <div class="login-field">
+      <label class="login-label">密码</label>
+      <input class="login-input" id="loginPass" type="password" placeholder="请输入密码">
+    </div>
+    <button class="login-btn" id="jwtLoginBtn" onclick="Admin.doLogin()">账号登录</button>
+
+    <div class="login-divider"><span>或输入管理密钥</span></div>
+
+    <!-- Admin Key Login -->
+    <div class="login-field">
+      <label class="login-label">管理密钥</label>
+      <input class="login-input" id="adminKeyInput" type="password" placeholder="请输入管理密钥">
+    </div>
+    <button class="login-btn" id="keyLoginBtn" style="background:#2a2010;border-color:#5a4020;color:#c9a860;" onclick="Admin.doLoginWithKey()">密钥登录</button>
+
+    <div class="login-error" id="loginError"></div>
+    <div class="login-hint">需要管理员账号或管理密钥才能访问后台</div>
+  </div>
+</div>
+
+<!-- ==================== Admin Panel ==================== -->
+<div id="adminWrap" style="display:none;">
+  <div class="warn-banner">【测试服后台】仅供开发者管理测试数据，请勿公开后台入口。</div>
+
+  <div class="admin-layout">
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-title">后台管理</div>
+      <div class="sidebar-user" id="sidebarUser"></div>
+      <div class="sidebar-menu" id="sidebarMenu">
+        <button class="sidebar-btn active" data-panel="players">玩家管理</button>
+        <button class="sidebar-btn" data-panel="stats">属性/资源</button>
+        <button class="sidebar-btn" data-panel="quick">快捷操作</button>
+        <button class="sidebar-btn" data-panel="grant">发放道具</button>
+        <button class="sidebar-btn" data-panel="progress">进度调整</button>
+        <button class="sidebar-btn" data-panel="titles">称号管理</button>
+        <button class="sidebar-btn" data-panel="feedback">反馈管理</button>
+        <button class="sidebar-btn" data-panel="actions">操作日志</button>
+        <button class="sidebar-btn" data-panel="broadcast">星流放送</button>
+      </div>
+      <div class="sidebar-bottom">
+        <button class="admin-btn danger" onclick="Admin.doLogout()">退出登录</button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+
+      <!-- ===== 1. 玩家管理 ===== -->
+      <div class="panel active" id="panel_players">
+        <h2>玩家管理</h2>
+        <div class="panel-toolbar">
+          <input class="admin-input" id="searchInput" placeholder="搜索玩家名或ID..." style="width:200px;" onkeydown="if(event.key==='Enter')Admin.search()">
+          <button class="admin-btn" onclick="Admin.search()">搜索</button>
+          <button class="admin-btn" onclick="Admin.loadAll()">刷新全部</button>
+          <span style="flex:1;"></span>
+          <span style="font-size:12px;color:var(--text-muted);" id="playerCount"></span>
+        </div>
+        <div style="max-height:calc(100vh - 200px);overflow-y:auto;">
+          <table class="player-table">
+            <thead>
+              <tr>
+                <th>ID</th><th>玩家名</th><th>Lv</th><th>HP</th><th>体</th><th>攻</th><th>防</th><th>速</th><th>暴击%</th>
+                <th>&#9670;</th><th>&#9671;</th><th>EXP</th><th>自由点</th><th>星座</th><th>状态</th><th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="playerBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== 2. 属性/资源 ===== -->
+      <div class="panel" id="panel_stats">
+        <h2>属性/资源调整</h2>
+        <div class="panel-toolbar">
+          <span style="font-size:12px;color:var(--text-muted);">选择玩家：</span>
+          <select class="admin-input" id="statsPlayerSelect" style="width:220px;">
+            <option value="">-- 未选择 --</option>
+          </select>
+          <button class="admin-btn" onclick="Admin.populatePlayerSelect('statsPlayerSelect')">刷新列表</button>
+        </div>
+        <div class="field-set" id="statsFields" style="display:none;">
+          <h3>战斗属性</h3>
+          <div class="form-row">
+            <span class="form-label">HP</span><input class="form-input" id="s_hp" type="number" step="1">
+            <span class="form-label">最大HP</span><input class="form-input" id="s_maxHp" type="number" step="1">
+            <span class="form-label">体力</span><input class="form-input" id="s_stamina" type="number" step="1">
+            <span class="form-label">最大体力</span><input class="form-input" id="s_maxStamina" type="number" step="1">
+          </div>
+          <div class="form-row">
+            <span class="form-label">攻击力</span><input class="form-input" id="s_attack" type="number" step="1">
+            <span class="form-label">防御力</span><input class="form-input" id="s_defense" type="number" step="1">
+            <span class="form-label">速度</span><input class="form-input" id="s_speed" type="number" step="1">
+            <span class="form-label">暴击率%</span><input class="form-input" id="s_critRate" type="number" step="1">
+          </div>
+          <h3 style="margin-top:12px;">资源</h3>
+          <div class="form-row">
+            <span class="form-label">等级</span><input class="form-input" id="s_level" type="number" step="1">
+            <span class="form-label">经验</span><input class="form-input" id="s_exp" type="number" step="1">
+            <span class="form-label">金币</span><input class="form-input" id="s_coins" type="number" step="1">
+            <span class="form-label">碎片</span><input class="form-input" id="s_fragments" type="number" step="1">
+          </div>
+          <div style="margin-top:12px;">
+            <button class="admin-btn primary" onclick="Admin.saveStatsAndResources()">保存修改</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 3. 快捷操作 ===== -->
+      <div class="panel" id="panel_quick">
+        <h2>快捷操作</h2>
+        <div class="panel-toolbar">
+          <span style="font-size:12px;color:var(--text-muted);">选择玩家：</span>
+          <select class="admin-input" id="quickPlayerSelect" style="width:220px;">
+            <option value="">-- 未选择 --</option>
+          </select>
+          <button class="admin-btn" onclick="Admin.populatePlayerSelect('quickPlayerSelect')">刷新列表</button>
+        </div>
+        <div class="field-set" id="quickActionsWrap" style="display:none;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="admin-btn primary" onclick="Admin.quickAction('fill_stamina')">体力拉满</button>
+            <button class="admin-btn primary" onclick="Admin.quickAction('fill_hp')">生命拉满</button>
+            <button class="admin-btn primary" onclick="Admin.quickAction('fill_all')">体力生命拉满</button>
+            <button class="admin-btn danger" onclick="Admin.quickAction('zero_stamina')">体力清零</button>
+            <button class="admin-btn" onclick="Admin.quickAction('start_rest')">进入休息</button>
+            <button class="admin-btn" onclick="Admin.quickAction('stop_rest')">停止休息</button>
+            <button class="admin-btn danger" onclick="Admin.quickAction('clear_death')">清除死亡</button>
+          </div>
+          <div id="quickActionResult" style="margin-top:10px;font-size:12px;"></div>
+        </div>
+      </div>
+
+      <!-- ===== 4. 发放道具 ===== -->
+      <div class="panel" id="panel_grant">
+        <h2>发放道具</h2>
+        <div class="panel-toolbar">
+          <span style="font-size:12px;color:var(--text-muted);">选择玩家：</span>
+          <select class="admin-input" id="grantPlayerSelect" style="width:220px;">
+            <option value="">-- 未选择 --</option>
+          </select>
+          <button class="admin-btn" onclick="Admin.populatePlayerSelect('grantPlayerSelect')">刷新列表</button>
+        </div>
+        <div class="field-set" id="grantFields" style="display:none;">
+          <div class="form-row">
+            <span class="form-label">类型</span>
+            <select class="admin-input" id="grantType" style="width:140px;">
+              <option value="item">道具 (item)</option>
+              <option value="equipment">装备 (equipment)</option>
+              <option value="skill">技能 (skill)</option>
+              <option value="title">称号 (title)</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <span class="form-label">标识 Key</span>
+            <input class="admin-input" id="grantKey" type="text" placeholder="例如: healing_potion" style="width:250px;">
+          </div>
+          <div class="form-row" id="grantQtyRow">
+            <span class="form-label">数量</span>
+            <input class="admin-input" id="grantQty" type="number" value="1" min="1" step="1" style="width:100px;">
+          </div>
+          <div style="margin-top:10px;">
+            <button class="admin-btn primary" onclick="Admin.doGrant()">发放</button>
+            <span id="grantResult" style="margin-left:12px;font-size:12px;"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 5. 进度调整 ===== -->
+      <div class="panel" id="panel_progress">
+        <h2>进度调整</h2>
+        <div class="panel-toolbar">
+          <span style="font-size:12px;color:var(--text-muted);">选择玩家：</span>
+          <select class="admin-input" id="progressPlayerSelect" style="width:220px;">
+            <option value="">-- 未选择 --</option>
+          </select>
+          <button class="admin-btn" onclick="Admin.populatePlayerSelect('progressPlayerSelect')">刷新列表</button>
+        </div>
+        <div class="field-set" id="progressFields" style="display:none;">
+          <div class="form-row">
+            <span class="form-label">当前章节</span>
+            <input class="admin-input" id="progChapter" type="text" style="width:250px;" placeholder="章节ID">
+          </div>
+          <div class="form-row">
+            <span class="form-label">主线章节</span>
+            <input class="admin-input" id="progMainChapter" type="text" style="width:250px;" placeholder="主线章节ID">
+          </div>
+          <div class="form-row">
+            <span class="form-label">当前位置</span>
+            <input class="admin-input" id="progLocation" type="text" style="width:250px;" placeholder="位置名称">
+          </div>
+          <div style="margin-top:10px;">
+            <button class="admin-btn primary" onclick="Admin.saveProgress()">保存进度</button>
+            <span id="progressResult" style="margin-left:12px;font-size:12px;"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 6. 称号管理 ===== -->
+      <div class="panel" id="panel_titles">
+        <h2>称号管理</h2>
+        <div class="panel-toolbar">
+          <span style="font-size:12px;color:var(--text-muted);">选择玩家：</span>
+          <select class="admin-input" id="titlePlayerSelect" onchange="Admin.onTitlePlayerChange()" style="width:220px;">
+            <option value="">-- 未选择 --</option>
+          </select>
+          <button class="admin-btn" onclick="Admin.populatePlayerSelect('titlePlayerSelect')">刷新列表</button>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">
+          称号总数: <span id="titlesTotal" style="color:var(--gold);">0</span>
+        </div>
+        <div id="titlesGrid" class="card-grid"></div>
+      </div>
+
+      <!-- ===== 7. 反馈管理 ===== -->
+      <div class="panel" id="panel_feedback">
+        <h2>反馈管理</h2>
+        <div class="panel-toolbar">
+          <span style="font-size:12px;color:var(--text-muted);">状态筛选：</span>
+          <select class="admin-input" id="feedbackFilter" onchange="Admin.loadFeedback()" style="width:120px;">
+            <option value="all">全部</option>
+            <option value="new">新提交</option>
+            <option value="reviewing">审核中</option>
+            <option value="resolved">已处理</option>
+            <option value="ignored">已忽略</option>
+          </select>
+          <button class="admin-btn" onclick="Admin.loadFeedback()">刷新</button>
+        </div>
+        <div id="feedbackBody"></div>
+      </div>
+
+      <!-- ===== 8. 操作日志 ===== -->
+      <div class="panel" id="panel_actions">
+        <h2>操作日志</h2>
+        <div class="panel-toolbar">
+          <button class="admin-btn" onclick="Admin.loadActions()">刷新日志</button>
+        </div>
+        <div style="max-height:calc(100vh - 200px);overflow-y:auto;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>时间</th><th>操作人</th><th>操作</th><th>目标玩家</th><th>摘要</th>
+              </tr>
+            </thead>
+            <tbody id="actionsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== 9. 星流放送 ===== -->
+      <div class="panel" id="panel_broadcast">
+        <h2>星流放送</h2>
+        <div class="panel-toolbar">
+          <button class="admin-btn primary" onclick="Admin.generateBroadcast()">生成草稿</button>
+          <button class="admin-btn" onclick="Admin.loadBroadcasts()">刷新</button>
+        </div>
+        <div id="broadcastBody"></div>
+      </div>
+
+    </div><!-- /main-content -->
+  </div><!-- /admin-layout -->
+</div><!-- /adminWrap -->
+
+<!-- ==================== Edit Overlay ==================== -->
+<div id="editOverlay" class="edit-popup" style="display:none;" onclick="if(event.target===this)Admin.closeEdit()">
+  <div class="edit-card" id="editCard"></div>
+</div>
+
+<script>
+const CONST_NAMES = {
+  golden_sun: '金乌', black_flame_dragon: '黑炎龙', abyss_eye: '深渊之眼',
+  wheel_of_fate: '命运之轮', queen_of_underworld: '冥界女王', star_stream_watcher: '星之流观测者'
+};
+
+var Admin = {
+  token: localStorage.getItem('auth_token'),
+  _currentEditPlayer: null,
+  _allTitles: [],
+  _playerTitles: [],
+
+  // ===== Init =====
+  init: function() {
+    var self = this;
+    // Check admin key first
+    if (sessionStorage.getItem('adminKey')) {
+      self.showPanel('管理密钥');
+      self.loadAll();
+      return;
+    }
+    // Then check JWT
+    if (!self.token) {
+      self.showLogin();
+      return;
+    }
+    self.api('GET', '/api/auth/me').then(function(data) {
+      if (data.success && data.data && data.data.user && data.data.user.role === 'admin') {
+        self.showPanel(data.data.user.username);
+        self.loadAll();
+      } else {
+        self.showLogin();
+      }
+    }).catch(function() {
+      self.showLogin();
+    });
+  },
+
+  // ===== Unified API Helper =====
+  api: function(method, path, body) {
+    var headers = {};
+    if (body) headers['Content-Type'] = 'application/json';
+    var adminKey = sessionStorage.getItem('adminKey');
+    if (adminKey) {
+      headers['X-Admin-Key'] = adminKey;
+    } else if (this.token) {
+      headers['Authorization'] = 'Bearer ' + this.token;
+    }
+    var opts = { method: method, headers: headers };
+    if (body) opts.body = JSON.stringify(body);
+    return fetch(path, opts).then(function(r) { return r.json(); });
+  },
+
+  // ===== Login =====
+  showLogin: function() {
+    document.getElementById('loginWrap').style.display = 'flex';
+    document.getElementById('adminWrap').style.display = 'none';
+    document.getElementById('loginError').style.display = 'none';
+  },
+
+  showPanel: function(username) {
+    document.getElementById('loginWrap').style.display = 'none';
+    document.getElementById('adminWrap').style.display = 'block';
+    document.getElementById('sidebarUser').textContent = username;
+    // Display as "管理员: xxx" or "密钥: xxx"
+    var displayName = (username === '管理密钥') ? '管理密钥' : '管理员: ' + username;
+    var adminUserEl = document.getElementById('sidebarUser');
+    if (adminUserEl) adminUserEl.textContent = displayName;
+  },
+
+  doLogin: function() {
+    var self = this;
+    var username = document.getElementById('loginUser').value.trim();
+    var password = document.getElementById('loginPass').value;
+    var errEl = document.getElementById('loginError');
+    var btn = document.getElementById('jwtLoginBtn');
+
+    if (!username || !password) {
+      errEl.textContent = '请输入用户名和密码';
+      errEl.style.display = 'block';
+      return;
+    }
+    btn.disabled = true; btn.textContent = '登录中...';
+    fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usernameOrEmail: username, password: password })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      if (data.success) {
+        localStorage.setItem('auth_token', data.data.token);
+        self.token = data.data.token;
+        return self.api('GET', '/api/auth/me');
+      } else {
+        errEl.textContent = (data.error && data.error.message) || '登录失败';
+        errEl.style.display = 'block';
+        btn.disabled = false; btn.textContent = '账号登录';
+        return Promise.reject();
+      }
+    }).then(function(meData) {
+      if (meData.success && meData.data && meData.data.user && meData.data.user.role === 'admin') {
+        self.showPanel(meData.data.user.username);
+        self.loadAll();
+      } else {
+        localStorage.removeItem('auth_token');
+        self.token = null;
+        errEl.textContent = '此账号不是管理员，无法访问后台。';
+        errEl.style.display = 'block';
+      }
+    }).catch(function(e) {
+      if (errEl.style.display !== 'block') {
+        errEl.textContent = '网络错误，请确认服务器已启动。';
+        errEl.style.display = 'block';
+      }
+    }).finally(function() {
+      btn.disabled = false; btn.textContent = '账号登录';
+    });
+  },
+
+  doLoginWithKey: function() {
+    var self = this;
+    var adminKey = document.getElementById('adminKeyInput').value.trim();
+    var errEl = document.getElementById('loginError');
+    var btn = document.getElementById('keyLoginBtn');
+
+    if (!adminKey) {
+      errEl.textContent = '请输入管理密钥';
+      errEl.style.display = 'block';
+      return;
+    }
+    btn.disabled = true; btn.textContent = '验证中...';
+
+    sessionStorage.setItem('adminKey', adminKey);
+    // Verify by trying to fetch players
+    self.api('GET', '/api/admin/players?limit=1').then(function(data) {
+      if (data.success) {
+        self.token = null;
+        self.showPanel('管理密钥');
+        self.loadAll();
+      } else {
+        sessionStorage.removeItem('adminKey');
+        errEl.textContent = (data.error && data.error.message) || '密钥验证失败';
+        errEl.style.display = 'block';
+      }
+    }).catch(function() {
+      sessionStorage.removeItem('adminKey');
+      errEl.textContent = '网络错误，请确认服务器已启动。';
+      errEl.style.display = 'block';
+    }).finally(function() {
+      btn.disabled = false; btn.textContent = '密钥登录';
+    });
+  },
+
+  doLogout: function() {
+    var self = this;
+    localStorage.removeItem('auth_token');
+    sessionStorage.removeItem('adminKey');
+    self.token = null;
+    self.showLogin();
+  },
+
+  // ===== Sidebar Panel Switching =====
+  switchPanel: function(name) {
+    // Update sidebar buttons
+    var btns = document.querySelectorAll('#sidebarMenu .sidebar-btn');
+    btns.forEach(function(b) {
+      b.classList.remove('active');
+      if (b.getAttribute('data-panel') === name) b.classList.add('active');
+    });
+    // Show/hide panels
+    var panels = document.querySelectorAll('#mainContent .panel');
+    panels.forEach(function(p) { p.classList.remove('active'); });
+    var panel = document.getElementById('panel_' + name);
+    if (panel) {
+      panel.classList.add('active');
+      // Auto-load data for certain panels
+      if (name === 'titles') Admin.onToggleTitles();
+      else if (name === 'feedback') Admin.loadFeedback();
+      else if (name === 'actions') Admin.loadActions();
+      else if (name === 'broadcast') Admin.loadBroadcasts();
+    }
+    // Auto-populate player selects for panels that need them
+    if (['stats', 'quick', 'grant', 'progress'].indexOf(name) >= 0) {
+      var selectId = name + 'PlayerSelect';
+      if (name === 'quick') selectId = 'quickPlayerSelect';
+      Admin.populatePlayerSelect(selectId);
+    }
+  },
+
+  // ===== Player Select Populator (general) =====
+  populatePlayerSelect: function(selectId) {
+    var self = this;
+    self.api('GET', '/api/admin/players?limit=500').then(function(data) {
+      if (data.success) {
+        var sel = document.getElementById(selectId);
+        if (!sel) return;
+        var currentVal = sel.value;
+        sel.innerHTML = '<option value="">-- 未选择 --</option>' +
+          data.data.players.map(function(p) {
+            return '<option value="' + p.id + '">' + self.esc(p.player_name) + ' (ID:' + p.id + ')</option>';
+          }).join('');
+        if (currentVal) sel.value = currentVal;
+      }
+    }).catch(function() {});
+  },
+
+  // ===== Existing: loadPlayersForSelect (for title panel) =====
+  loadPlayersForSelect: function() {
+    this.populatePlayerSelect('titlePlayerSelect');
+  },
+
+  // ===== Player Table =====
+  loadAll: function() {
+    var self = this;
+    var search = document.getElementById('searchInput').value.trim();
+    var url = '/api/admin/players?limit=100';
+    if (search) url += '&search=' + encodeURIComponent(search);
+    self.api('GET', url).then(function(data) {
+      if (data.success) {
+        self.renderTable(data.data.players);
+        document.getElementById('playerCount').textContent = '共 ' + data.data.total + ' 名玩家';
+      }
+    }).catch(function() {
+      document.getElementById('playerBody').innerHTML = '<tr><td colspan="17" style="text-align:center;padding:32px;color:var(--red);">加载失败，请刷新页面</td></tr>';
+    });
+  },
+
+  search: function() { this.loadAll(); },
+
+  renderTable: function(players) {
+    var self = this;
+    var tbody = document.getElementById('playerBody');
+    if (!players || players.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="17" style="text-align:center;padding:32px;color:var(--text-muted);">暂无玩家数据</td></tr>';
+      return;
+    }
+    tbody.innerHTML = players.map(function(p) {
+      var status = '';
+      if (p.isDead) status += '<span class="dead-badge">已死</span> ';
+      if (p.isResting) status += '<span class="rest-badge">休息中</span>';
+      var constName = CONST_NAMES[p.constellation] || p.constellation || '-';
+      var hpCls = p.hp < p.maxHp * 0.3 ? 'stat-low' : '';
+      return '<tr>' +
+        '<td>' + p.id + '</td>' +
+        '<td>' + self.esc(p.player_name) + '</td>' +
+        '<td class="stat-val">' + p.level + '</td>' +
+        '<td class="stat-val ' + hpCls + '">' + p.hp + '/' + p.maxHp + '</td>' +
+        '<td>' + p.stamina + '/' + p.maxStamina + '</td>' +
+        '<td>' + p.attack + '</td><td>' + p.defense + '</td><td>' + p.speed + '</td>' +
+        '<td>' + Math.round(p.critRate * 100) + '</td>' +
+        '<td>' + p.coins + '</td><td>' + p.story_fragments + '</td><td>' + p.exp + '</td>' +
+        '<td style="color:var(--gold);">' + p.freePoints + '</td>' +
+        '<td style="font-size:11px;">' + constName + '</td>' +
+        '<td>' + (status || '正常') + '</td>' +
+        '<td>' +
+          '<button class="admin-btn tiny" onclick="Admin.openEdit(' + p.id + ')">编辑</button> ' +
+          (p.isDead ? '<button class="admin-btn danger tiny" onclick="Admin.forceRevive(' + p.id + ')">复活</button>' : '') +
+        '</td>' +
+      '</tr>';
+    }).join('');
+  },
+
+  // ===== Edit Overlay =====
+  openEdit: function(playerId) {
+    var self = this;
+    self.api('GET', '/api/admin/players/' + playerId).then(function(data) {
+      if (!data.success) { alert('获取玩家数据失败'); return; }
+      var p = data.data.player;
+      var s = p.stats || {};
+      self._currentEditPlayer = p;
+
+      var fields = [
+        { key: 'hp', label: 'HP', val: s.hp },
+        { key: 'maxHp', label: '最大HP', val: s.maxHp },
+        { key: 'stamina', label: '体力', val: s.stamina },
+        { key: 'maxStamina', label: '最大体力', val: s.maxStamina },
+        { key: 'attack', label: '攻击', val: s.attack },
+        { key: 'defense', label: '防御', val: s.defense },
+        { key: 'speed', label: '速度', val: s.speed },
+        { key: 'critRate', label: '暴击率%', val: Math.round((s.critRate||0.05)*100) },
+        { key: 'critDamage', label: '暴击伤害', val: s.critDamage || 1.5 },
+        { key: 'level', label: '等级', val: s.level || 1 },
+        { key: 'exp', label: 'EXP', val: s.exp || 0 },
+        { key: 'freePoints', label: '自由属性点', val: s.freePoints || 0 },
+        { key: 'luck', label: '幸运', val: s.luck || 0 },
+        { key: 'channelHeat', label: '频道热度', val: s.channelHeat || 0 },
+        { key: 'worldLineShift', label: '世界线偏移', val: s.worldLineShift || 0 },
+      ];
+
+      document.getElementById('editCard').innerHTML =
+        '<h3>编辑 ' + self.esc(p.player_name) + ' (ID: ' + p.id + ')</h3>' +
+        fields.map(function(f) {
+          return '<div class="edit-row">' +
+            '<span class="edit-label">' + f.label + '</span>' +
+            '<input class="edit-input" id="edit_' + f.key + '" type="number" value="' + f.val + '" step="' + (f.key==='critRate'?'1':f.key==='critDamage'?'0.1':'1') + '">' +
+          '</div>';
+        }).join('') +
+        '<div class="edit-row">' +
+          '<span class="edit-label">金币</span>' +
+          '<input class="edit-input" id="edit_coins" type="number" value="' + (p.coins||0) + '">' +
+        '</div>' +
+        '<div class="edit-row">' +
+          '<span class="edit-label">碎片</span>' +
+          '<input class="edit-input" id="edit_fragments" type="number" value="' + (p.story_fragments||0) + '">' +
+        '</div>' +
+        '<div class="edit-row">' +
+          '<span class="edit-label">星座</span>' +
+          '<select class="edit-input" id="edit_constellation">' +
+            '<option value="">无</option>' +
+            '<option value="golden_sun"' + (s.constellation==='golden_sun'?' selected':'') + '>金乌</option>' +
+            '<option value="black_flame_dragon"' + (s.constellation==='black_flame_dragon'?' selected':'') + '>黑炎龙</option>' +
+            '<option value="abyss_eye"' + (s.constellation==='abyss_eye'?' selected':'') + '>深渊之眼</option>' +
+            '<option value="wheel_of_fate"' + (s.constellation==='wheel_of_fate'?' selected':'') + '>命运之轮</option>' +
+            '<option value="queen_of_underworld"' + (s.constellation==='queen_of_underworld'?' selected':'') + '>冥界女王</option>' +
+            '<option value="star_stream_watcher"' + (s.constellation==='star_stream_watcher'?' selected':'') + '>星之流观测者</option>' +
+          '</select>' +
+        '</div>' +
+        '<div class="edit-row">' +
+          '<span class="edit-label">持有称号</span>' +
+          '<span id="editTitles" style="font-size:11px;color:var(--gold);">加载中...</span>' +
+        '</div>' +
+        '<div class="edit-row">' +
+          '<span class="edit-label"></span>' +
+          '<label style="font-size:12px;color:var(--text-muted);margin-right:16px;">' +
+            '<input type="checkbox" id="edit_isDead"' + (s.isDead?' checked':'') + '> 死亡状态' +
+          '</label>' +
+          '<label style="font-size:12px;color:var(--text-muted);">' +
+            '<input type="checkbox" id="edit_isResting"' + (s.isResting?' checked':'') + '> 休息中' +
+          '</label>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end;">' +
+          '<button class="admin-btn" onclick="Admin.closeEdit()">取消</button>' +
+          '<button class="admin-btn primary" onclick="Admin.saveEdit(' + p.id + ')">保存修改</button>' +
+        '</div>';
+      document.getElementById('editOverlay').style.display = 'flex';
+      self.loadEditTitles(playerId);
+    }).catch(function() { alert('获取玩家数据失败'); });
+  },
+
+  closeEdit: function() {
+    document.getElementById('editOverlay').style.display = 'none';
+    this._currentEditPlayer = null;
+  },
+
+  saveEdit: function(playerId) {
+    var self = this;
+    var body = {};
+    var fields = ['hp','maxHp','stamina','maxStamina','attack','defense','speed','level','exp','freePoints','luck','channelHeat','worldLineShift'];
+    for (var i = 0; i < fields.length; i++) {
+      var el = document.getElementById('edit_' + fields[i]);
+      if (el) body[fields[i]] = parseFloat(el.value) || 0;
+    }
+    var critEl = document.getElementById('edit_critRate');
+    if (critEl) body.critRate = (parseFloat(critEl.value) || 5) / 100;
+    var cdEl = document.getElementById('edit_critDamage');
+    if (cdEl) body.critDamage = parseFloat(cdEl.value) || 1.5;
+
+    body.coins = parseInt(document.getElementById('edit_coins') ? document.getElementById('edit_coins').value : 0) || 0;
+    body.story_fragments = parseInt(document.getElementById('edit_fragments') ? document.getElementById('edit_fragments').value : 0) || 0;
+    body.constellation = document.getElementById('edit_constellation') ? document.getElementById('edit_constellation').value : null;
+    body.isDead = document.getElementById('edit_isDead') ? document.getElementById('edit_isDead').checked : false;
+    body.isResting = document.getElementById('edit_isResting') ? document.getElementById('edit_isResting').checked : false;
+
+    self.api('POST', '/api/admin/players/' + playerId + '/update', body).then(function(data) {
+      if (data.success) {
+        self.closeEdit();
+        self.loadAll();
+      } else {
+        alert('保存失败: ' + (data.error ? data.error.message : '未知错误'));
+      }
+    }).catch(function() { alert('网络错误'); });
+  },
+
+  forceRevive: function(playerId) {
+    var self = this;
+    if (!confirm('确定强制复活此玩家？')) return;
+    self.api('POST', '/api/admin/players/' + playerId + '/force-revive').then(function(data) {
+      if (data.success) { self.loadAll(); }
+      else { alert('操作失败'); }
+    }).catch(function() { alert('网络错误'); });
+  },
+
+  esc: function(str) {
+    if (!str) return '';
+    var div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  },
+
+  // ===== 2. 属性/资源 Panel =====
+  _onStatsPlayerChange: function() {
+    var self = this;
+    var playerId = document.getElementById('statsPlayerSelect').value;
+    var wrap = document.getElementById('statsFields');
+    if (!playerId) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+    self.api('GET', '/api/admin/players/' + playerId).then(function(data) {
+      if (data.success) {
+        var p = data.data.player;
+        var fields = {
+          s_hp: p.hp, s_maxHp: p.maxHp, s_stamina: p.stamina, s_maxStamina: p.maxStamina,
+          s_attack: p.attack, s_defense: p.defense, s_speed: p.speed,
+          s_critRate: Math.round(p.critRate * 100),
+          s_level: p.level, s_exp: p.exp, s_coins: p.coins, s_fragments: p.story_fragments
+        };
+        Object.keys(fields).forEach(function(k) {
+          var el = document.getElementById(k);
+          if (el) el.value = fields[k];
+        });
+      }
+    }).catch(function() {});
+  },
+
+  saveStatsAndResources: function() {
+    var self = this;
+    var playerId = document.getElementById('statsPlayerSelect').value;
+    if (!playerId) { alert('请先选择玩家'); return; }
+    var statsBody = {};
+    var resBody = {};
+    var statFields = ['hp','maxHp','stamina','maxStamina','attack','defense','speed'];
+    statFields.forEach(function(k) {
+      var el = document.getElementById('s_' + k);
+      if (el) statsBody[k] = parseInt(el.value) || 0;
+    });
+    var crEl = document.getElementById('s_critRate');
+    if (crEl) statsBody.critRate = (parseInt(crEl.value) || 5) / 100;
+    var resFields = { s_level: 'level', s_exp: 'exp', s_coins: 'coins', s_fragments: 'story_fragments' };
+    Object.keys(resFields).forEach(function(k) {
+      var el = document.getElementById(k);
+      if (el) resBody[resFields[k]] = parseInt(el.value) || 0;
+    });
+
+    var promises = [];
+    if (Object.keys(statsBody).length > 0) {
+      promises.push(self.api('PATCH', '/api/admin/players/' + playerId + '/stats', statsBody));
+    }
+    if (Object.keys(resBody).length > 0) {
+      promises.push(self.api('PATCH', '/api/admin/players/' + playerId + '/resources', resBody));
+    }
+    Promise.all(promises).then(function(results) {
+      var allOk = results.every(function(r) { return r.success; });
+      if (allOk) {
+        alert('保存成功');
+        self._onStatsPlayerChange();
+      } else {
+        var err = results.find(function(r) { return !r.success; });
+        alert('保存失败: ' + (err && err.error ? err.error.message : '未知错误'));
+      }
+    }).catch(function() { alert('网络错误'); });
+  },
+
+  // ===== 3. 快捷操作 Panel =====
+  _onQuickPlayerChange: function() {
+    var playerId = document.getElementById('quickPlayerSelect').value;
+    var wrap = document.getElementById('quickActionsWrap');
+    wrap.style.display = playerId ? 'block' : 'none';
+  },
+
+  quickAction: function(action) {
+    var self = this;
+    var playerId = document.getElementById('quickPlayerSelect').value;
+    if (!playerId) { alert('请先选择玩家'); return; }
+    var actionLabels = {
+      fill_stamina: '体力拉满', fill_hp: '生命拉满', fill_all: '体力生命拉满',
+      zero_stamina: '体力清零', start_rest: '进入休息', stop_rest: '停止休息', clear_death: '清除死亡'
+    };
+    if (!confirm('确定对玩家 #' + playerId + ' 执行 "' + (actionLabels[action] || action) + '"？')) return;
+    self.api('POST', '/api/admin/players/' + playerId + '/quick-action', { action: action }).then(function(data) {
+      var el = document.getElementById('quickActionResult');
+      if (data.success) {
+        el.innerHTML = '<span style="color:var(--green);">操作成功</span>';
+      } else {
+        el.innerHTML = '<span style="color:var(--red);">操作失败: ' + (data.error ? data.error.message : '未知错误') + '</span>';
+      }
+    }).catch(function() {
+      document.getElementById('quickActionResult').innerHTML = '<span style="color:var(--red);">网络错误</span>';
+    });
+  },
+
+  // ===== 4. 发放道具 Panel =====
+  _onGrantPlayerChange: function() {
+    var playerId = document.getElementById('grantPlayerSelect').value;
+    document.getElementById('grantFields').style.display = playerId ? 'block' : 'none';
+  },
+
+  doGrant: function() {
+    var self = this;
+    var playerId = document.getElementById('grantPlayerSelect').value;
+    if (!playerId) { alert('请先选择玩家'); return; }
+    var type = document.getElementById('grantType').value;
+    var key = document.getElementById('grantKey').value.trim();
+    if (!key) { alert('请输入标识 Key'); return; }
+    var qty = parseInt(document.getElementById('grantQty').value) || 1;
+
+    var body = { type: type, key: key };
+    if (type === 'item') body.quantity = qty;
+
+    self.api('POST', '/api/admin/players/' + playerId + '/grant', body).then(function(data) {
+      var el = document.getElementById('grantResult');
+      if (data.success) {
+        el.innerHTML = '<span style="color:var(--green);">发放成功</span>';
+      } else {
+        el.innerHTML = '<span style="color:var(--red);">发放失败: ' + (data.error ? data.error.message : '未知错误') + '</span>';
+      }
+    }).catch(function() {
+      document.getElementById('grantResult').innerHTML = '<span style="color:var(--red);">网络错误</span>';
+    });
+  },
+
+  // ===== 5. 进度调整 Panel =====
+  _onProgressPlayerChange: function() {
+    var self = this;
+    var playerId = document.getElementById('progressPlayerSelect').value;
+    var wrap = document.getElementById('progressFields');
+    if (!playerId) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+    self.api('GET', '/api/admin/players/' + playerId).then(function(data) {
+      if (data.success) {
+        var p = data.data.player;
+        var prog = p.progress || {};
+        document.getElementById('progChapter').value = prog.current_chapter || p.current_chapter || '';
+        document.getElementById('progMainChapter').value = prog.current_main_chapter || p.current_main_chapter || '';
+        document.getElementById('progLocation').value = prog.current_location || p.current_location || '';
+      }
+    }).catch(function() {});
+  },
+
+  saveProgress: function() {
+    var self = this;
+    var playerId = document.getElementById('progressPlayerSelect').value;
+    if (!playerId) { alert('请先选择玩家'); return; }
+    var body = {
+      current_chapter: document.getElementById('progChapter').value.trim(),
+      current_main_chapter: document.getElementById('progMainChapter').value.trim(),
+      current_location: document.getElementById('progLocation').value.trim()
+    };
+    self.api('PATCH', '/api/admin/players/' + playerId + '/progress', body).then(function(data) {
+      var el = document.getElementById('progressResult');
+      if (data.success) {
+        el.innerHTML = '<span style="color:var(--green);">保存成功</span>';
+      } else {
+        el.innerHTML = '<span style="color:var(--red);">保存失败: ' + (data.error ? data.error.message : '未知错误') + '</span>';
+      }
+    }).catch(function() {
+      document.getElementById('progressResult').innerHTML = '<span style="color:var(--red);">网络错误</span>';
+    });
+  },
+
+  // ===== 6. 称号管理 (existing, integrated) =====
+  toggleTitles: function() {
+    this.switchPanel('titles');
+  },
+
+  onToggleTitles: function() {
+    var self = this;
+    self.loadPlayersForSelect();
+    self.loadTitles();
+  },
+
+  loadTitles: function() {
+    var self = this;
+    self.api('GET', '/api/admin/titles').then(function(data) {
+      if (data.success) {
+        self._allTitles = data.data.titles;
+        document.getElementById('titlesTotal').textContent = self._allTitles.length;
+        self.renderTitles();
+      }
+    }).catch(function() {});
+  },
+
+  renderTitles: function() {
+    var self = this;
+    var grid = document.getElementById('titlesGrid');
+    var titles = self._allTitles;
+    var playerTitles = self._playerTitles;
+    var playerId = document.getElementById('titlePlayerSelect').value;
+
+    if (!titles || titles.length === 0) {
+      grid.innerHTML = '<div class="msg-info">暂无称号数据</div>';
+      return;
+    }
+
+    var rarityColors = { common: '#8a8a9a', uncommon: '#4db8a8', rare: '#5b8fcf', epic: '#b45bcf', legendary: '#c9a860' };
+
+    grid.innerHTML = titles.map(function(t) {
+      var rc = rarityColors[t.rarity] || '#8a8a9a';
+      var hasTitle = playerTitles.indexOf(t.title_key) >= 0;
+      var borderColor = !playerId ? 'var(--border-subtle)' : (hasTitle ? '#4db8a8' : '#3a3a4a');
+      var bg = hasTitle ? '#0f1a17' : '#14141c';
+
+      var effParts = [];
+      if (t.effects) {
+        if (t.effects.stat_modifier) Object.keys(t.effects.stat_modifier).forEach(function(k) { effParts.push(k + '+' + t.effects.stat_modifier[k]); });
+        if (t.effects.combat_bonus) Object.keys(t.effects.combat_bonus).forEach(function(k) { effParts.push(k + '+' + Math.round(t.effects.combat_bonus[k]*100) + '%'); });
+        if (t.effects.narrative_tags) effParts.push(t.effects.narrative_tags.join(','));
+      }
+
+      var actionBtn = '';
+      if (playerId) {
+        if (hasTitle) {
+          actionBtn = '<button class="admin-btn danger tiny" onclick="Admin.revokeTitle(\'' + t.title_key + '\')">移除</button>';
+        } else {
+          actionBtn = '<button class="admin-btn primary tiny" onclick="Admin.grantTitle(\'' + t.title_key + '\')" style="background:#4db8a8;border-color:#3a8a7a;">授予</button>';
+        }
+      }
+
+      return '<div style="background:' + bg + ';border:2px solid ' + borderColor + ';border-radius:6px;padding:10px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+          '<span style="font-weight:bold;color:' + rc + ';">' + self.esc(t.name) + '</span>' +
+          '<span style="font-size:10px;color:var(--text-muted);">' + t.rarity + '</span>' +
+        '</div>' +
+        '<div style="font-size:10px;color:var(--text-muted);">' + t.title_key + '</div>' +
+        '<div style="font-size:11px;color:var(--text-dim);margin:2px 0;">' + self.esc(t.description || '').substring(0, 60) + '</div>' +
+        '<div style="font-size:10px;color:#5a6a7a;">' + self.esc(effParts.join(' | ') || '无效果') + '</div>' +
+        (hasTitle ? '<div style="font-size:10px;color:var(--teal);margin-top:2px;">已拥有</div>' : '') +
+        actionBtn +
+      '</div>';
+    }).join('');
+  },
+
+  onTitlePlayerChange: function() {
+    var self = this;
+    var playerId = document.getElementById('titlePlayerSelect').value;
+    if (!playerId) {
+      self._playerTitles = [];
+      self.renderTitles();
+      return;
+    }
+    self.api('GET', '/api/admin/players/' + playerId + '/titles').then(function(data) {
+      if (data.success) {
+        self._playerTitles = data.data.titles.map(function(t) { return t.title_key; });
+        self.renderTitles();
+      }
+    }).catch(function() {});
+  },
+
+  grantTitle: function(titleKey) {
+    var self = this;
+    var playerId = document.getElementById('titlePlayerSelect').value;
+    if (!playerId) { alert('请先选择玩家'); return; }
+    self.api('POST', '/api/admin/players/' + playerId + '/titles', {
+      action: 'grant', title_key: titleKey
+    }).then(function(data) {
+      if (data.success) {
+        self._playerTitles.push(titleKey);
+        self.renderTitles();
+      } else {
+        alert((data.error && data.error.message) || '授予失败');
+      }
+    }).catch(function() { alert('网络错误'); });
+  },
+
+  revokeTitle: function(titleKey) {
+    var self = this;
+    var playerId = document.getElementById('titlePlayerSelect').value;
+    if (!playerId) return;
+    self.api('POST', '/api/admin/players/' + playerId + '/titles', {
+      action: 'revoke', title_key: titleKey
+    }).then(function(data) {
+      if (data.success) {
+        var idx = self._playerTitles.indexOf(titleKey);
+        if (idx >= 0) self._playerTitles.splice(idx, 1);
+        self.renderTitles();
+      } else {
+        alert((data.error && data.error.message) || '移除失败');
+      }
+    }).catch(function() { alert('网络错误'); });
+  },
+
+  loadEditTitles: function(playerId) {
+    var self = this;
+    self.api('GET', '/api/admin/players/' + playerId + '/titles').then(function(data) {
+      if (data.success) {
+        var el = document.getElementById('editTitles');
+        if (el) {
+          var titles = data.data.titles;
+          if (titles.length === 0) {
+            el.textContent = '(无)';
+          } else {
+            el.innerHTML = titles.map(function(t) {
+              return '<span style="display:inline-block;background:#2a2a3a;border-radius:3px;padding:0 4px;margin:1px;">' + self.esc(t.name) + '</span>';
+            }).join('');
+          }
+        }
+      }
+    }).catch(function() {});
+  },
+
+  // ===== 7. 反馈管理 =====
+  loadFeedback: function() {
+    var self = this;
+    var filter = document.getElementById('feedbackFilter').value;
+    var url = '/api/admin/feedback';
+    if (filter && filter !== 'all') url += '?status=' + filter;
+    var container = document.getElementById('feedbackBody');
+    container.innerHTML = '<div class="msg-info">加载中...</div>';
+
+    self.api('GET', url).then(function(data) {
+      if (data.success && data.data) {
+        var items = data.data.feedback || data.data.items || data.data || [];
+        if (items.length === 0) {
+          container.innerHTML = '<div class="msg-info">暂无反馈数据</div>';
+          return;
+        }
+        self.renderFeedback(items);
+      } else {
+        container.innerHTML = '<div class="msg-error">加载失败</div>';
+      }
+    }).catch(function() {
+      container.innerHTML = '<div class="msg-error">网络错误</div>';
+    });
+  },
+
+  renderFeedback: function(items) {
+    var self = this;
+    var container = document.getElementById('feedbackBody');
+    var statusLabels = { 'new': '新提交', 'reviewing': '审核中', 'resolved': '已处理', 'ignored': '已忽略' };
+
+    var html = '<table class="data-table"><thead><tr>' +
+      '<th>时间</th><th>昵称</th><th>玩家ID</th><th>类型</th><th>内容</th><th>状态</th><th>备注</th><th>操作</th>' +
+      '</tr></thead><tbody>';
+
+    items.forEach(function(item, idx) {
+      var status = item.status || 'new';
+      var statusCls = 'status-' + status;
+      var time = item.created_at || item.createdAt || item.time || '';
+      var nickname = self.esc(item.nickname || item.player_name || item.playerName || '');
+      var playerId = item.player_id || item.playerId || '';
+      var type = self.esc(item.type || item.feedback_type || '');
+      var content = self.esc((item.content || '').substring(0, 80));
+      var note = self.esc(item.note || item.admin_note || '');
+
+      html += '<tr>' +
+        '<td style="font-size:11px;">' + time + '</td>' +
+        '<td>' + nickname + '</td>' +
+        '<td>' + playerId + '</td>' +
+        '<td>' + type + '</td>' +
+        '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;">' + content + '</td>' +
+        '<td><span class="status-tag ' + statusCls + '">' + (statusLabels[status] || status) + '</span></td>' +
+        '<td><input class="form-input" id="fb_note_' + idx + '" value="' + self.escAttr(note) + '" style="width:120px;"></td>' +
+        '<td>' +
+          '<select class="admin-input" id="fb_status_' + idx + '" style="width:80px;font-size:11px;">' +
+            '<option value="new"' + (status==='new'?' selected':'') + '>新提交</option>' +
+            '<option value="reviewing"' + (status==='reviewing'?' selected':'') + '>审核中</option>' +
+            '<option value="resolved"' + (status==='resolved'?' selected':'') + '>已处理</option>' +
+            '<option value="ignored"' + (status==='ignored'?' selected':'') + '>已忽略</option>' +
+          '</select> ' +
+          '<button class="admin-btn primary tiny" onclick="Admin.saveFeedback(' + item.id + ',' + idx + ')">保存</button>' +
+        '</td>' +
+      '</tr>';
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  },
+
+  saveFeedback: function(feedbackId, idx) {
+    var self = this;
+    var statusEl = document.getElementById('fb_status_' + idx);
+    var noteEl = document.getElementById('fb_note_' + idx);
+    var body = {};
+    if (statusEl) body.status = statusEl.value;
+    if (noteEl) body.note = noteEl.value;
+
+    self.api('PATCH', '/api/admin/feedback/' + feedbackId, body).then(function(data) {
+      if (data.success) {
+        self.loadFeedback();
+      } else {
+        alert('保存失败: ' + (data.error ? data.error.message : '未知错误'));
+      }
+    }).catch(function() { alert('网络错误'); });
+  },
+
+  escAttr: function(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&#39;');
+  },
+
+  // ===== 8. 操作日志 =====
+  loadActions: function() {
+    var self = this;
+    var tbody = document.getElementById('actionsBody');
+    tbody.innerHTML = '<tr><td colspan="5" class="msg-info">加载中...</td></tr>';
+
+    self.api('GET', '/api/admin/actions').then(function(data) {
+      if (data.success && data.data) {
+        var items = data.data.actions || data.data.items || data.data || [];
+        if (items.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="msg-info">暂无操作日志</td></tr>';
+          return;
+        }
+        tbody.innerHTML = items.map(function(a) {
+          var time = a.created_at || a.createdAt || a.time || '';
+          var admin = self.esc(a.admin_user || a.adminUser || a.admin || '');
+          var action = self.esc(a.action || '');
+          var target = a.target_player_id || a.targetPlayerId || a.player_id || '';
+          var payload = '';
+          try {
+            if (a.payload) payload = JSON.stringify(a.payload).substring(0, 80);
+          } catch(e) { payload = String(a.payload || '').substring(0, 80); }
+          return '<tr>' +
+            '<td style="font-size:11px;">' + time + '</td>' +
+            '<td>' + admin + '</td>' +
+            '<td>' + action + '</td>' +
+            '<td>' + target + '</td>' +
+            '<td style="font-size:11px;color:var(--text-muted);max-width:300px;overflow:hidden;text-overflow:ellipsis;">' + self.esc(payload) + '</td>' +
+          '</tr>';
+        }).join('');
+      } else {
+        tbody.innerHTML = '<tr><td colspan="5" class="msg-info">暂无操作日志</td></tr>';
+      }
+    }).catch(function() {
+      tbody.innerHTML = '<tr><td colspan="5" class="msg-error">网络错误</td></tr>';
+    });
+  },
+
+  // ===== 9. 星流放送 =====
+  loadBroadcasts: function() {
+    var self = this;
+    var container = document.getElementById('broadcastBody');
+    container.innerHTML = '<div class="msg-info">加载中...</div>';
+
+    self.api('GET', '/api/ai-director').then(function(data) {
+      if (data.success && data.data) {
+        var items = data.data.events || data.data.broadcasts || data.data || [];
+        if (!Array.isArray(items) || items.length === 0) {
+          container.innerHTML = '<div class="msg-info">暂无活跃的星流放送事件</div>';
+          return;
+        }
+        container.innerHTML = items.map(function(ev) {
+          var id = ev.id || ev.event_id || '';
+          var title = self.esc(ev.title || ev.name || '未命名事件');
+          var status = self.esc(ev.status || 'unknown');
+          var desc = self.esc((ev.description || ev.desc || '').substring(0, 80));
+          var statusColors = { draft: '#6a6a78', active: '#5a9a4a', settled: '#4db8a8', cancelled: '#c04040' };
+          var sc = statusColors[status] || '#6a6a78';
+
+          var btns = '';
+          if (status === 'draft') {
+            btns = '<button class="admin-btn primary tiny" onclick="Admin.broadcastAction(\'' + id + '\',\'activate\')">激活</button> ';
+            btns += '<button class="admin-btn danger tiny" onclick="Admin.broadcastAction(\'' + id + '\',\'cancel\')">取消</button>';
+          } else if (status === 'active') {
+            btns = '<button class="admin-btn primary tiny" onclick="Admin.broadcastAction(\'' + id + '\',\'settle\')">结算</button> ';
+            btns += '<button class="admin-btn danger tiny" onclick="Admin.broadcastAction(\'' + id + '\',\'cancel\')">取消</button>';
+          }
+
+          return '<div class="info-card">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+              '<span style="font-weight:bold;">' + title + '</span>' +
+              '<span style="font-size:11px;color:' + sc + ';">' + status + '</span>' +
+            '</div>' +
+            '<div style="font-size:10px;color:var(--text-muted);margin:4px 0;">ID: ' + id + '</div>' +
+            '<div style="font-size:11px;color:var(--text-dim);">' + desc + '</div>' +
+            (ev.participants ? '<div style="font-size:10px;color:var(--text-muted);margin-top:2px;">参与者: ' + ev.participants + '</div>' : '') +
+            (btns ? '<div style="margin-top:8px;">' + btns + '</div>' : '') +
+          '</div>';
+        }).join('');
+      } else {
+        container.innerHTML = '<div class="msg-info">暂无活跃的星流放送事件</div>';
+      }
+    }).catch(function() {
+      container.innerHTML = '<div class="msg-error">网络错误</div>';
+    });
+  },
+
+  generateBroadcast: function() {
+    var self = this;
+    if (!confirm('确定生成新的星流放送草稿？')) return;
+    self.api('POST', '/api/ai-director/generate-broadcast').then(function(data) {
+      if (data.success) {
+        alert('草稿生成成功');
+        self.loadBroadcasts();
+      } else {
+        alert('生成失败: ' + (data.error ? data.error.message : '未知错误'));
+      }
+    }).catch(function() { alert('网络错误'); });
+  },
+
+  broadcastAction: function(eventId, action) {
+    var self = this;
+    var labels = { activate: '激活', settle: '结算', cancel: '取消' };
+    if (!confirm('确定' + (labels[action] || action) + '此事件？')) return;
+    self.api('POST', '/api/ai-director/' + eventId + '/' + action).then(function(data) {
+      if (data.success) {
+        self.loadBroadcasts();
+      } else {
+        alert('操作失败: ' + (data.error ? data.error.message : '未知错误'));
+      }
+    }).catch(function() { alert('网络错误'); });
+  }
+};
+
+// ===== Sidebar Click Handlers =====
+(function() {
+  var btns = document.querySelectorAll('#sidebarMenu .sidebar-btn');
+  btns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var panelName = this.getAttribute('data-panel');
+      Admin.switchPanel(panelName);
+    });
+  });
+})();
+
+// ===== Player Select Change Handlers for new panels =====
+document.getElementById('statsPlayerSelect').addEventListener('change', function() { Admin._onStatsPlayerChange(); });
+document.getElementById('quickPlayerSelect').addEventListener('change', function() { Admin._onQuickPlayerChange(); });
+document.getElementById('grantPlayerSelect').addEventListener('change', function() { Admin._onGrantPlayerChange(); });
+document.getElementById('progressPlayerSelect').addEventListener('change', function() { Admin._onProgressPlayerChange(); });
+
+// ===== Grant type change: show/hide quantity =====
+document.getElementById('grantType').addEventListener('change', function() {
+  var qtyRow = document.getElementById('grantQtyRow');
+  qtyRow.style.display = this.value === 'item' ? '' : 'none';
+});
+
+// Start
+Admin.init();
+</script>
+</body>
+</html>

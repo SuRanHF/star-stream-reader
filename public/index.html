@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>全知读者视角 — 星流观测</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="game-page">
+
+  <!-- ================================================================
+       Beta Banner — 测试服提示
+       ================================================================ -->
+  <div id="betaBanner" style="background:#2a1a0a;color:#c9a860;text-align:center;padding:6px 12px;font-size:12px;border-bottom:1px solid #3a2a1a;">
+    【测试服】当前版本用于群友试玩和反馈，数据可能在更新时重置。
+  </div>
+
+  <!-- ================================================================
+       Auth Page — 独立全屏登录/注册
+       ================================================================ -->
+  <div class="auth-page hidden" id="authPage">
+    <!-- 背景星点 -->
+    <div class="auth-stars" id="authStars"></div>
+
+    <!-- 中央卡片 -->
+    <div class="auth-card">
+      <!-- 顶部装饰线 -->
+      <div class="auth-card-top-ornament"></div>
+
+      <!-- 标题区 -->
+      <div class="auth-brand">
+        <h1 class="auth-title">全知读者视角</h1>
+        <p class="auth-subtitle">Omniscient Reader's Viewpoint</p>
+      </div>
+
+      <!-- 装饰分割线 -->
+      <div class="auth-divider">
+        <span class="auth-divider-line"></span>
+        <span class="auth-divider-icon">◆</span>
+        <span class="auth-divider-line"></span>
+      </div>
+
+      <!-- 登录表单 -->
+      <form class="auth-form" id="loginForm" onsubmit="return false;">
+        <div class="auth-field">
+          <label class="auth-label">用户名或邮箱</label>
+          <input class="auth-input" id="loginUsername" type="text" placeholder="请输入用户名或邮箱" autocomplete="username">
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">密码</label>
+          <input class="auth-input" id="loginPassword" type="password" placeholder="请输入密码" autocomplete="current-password">
+        </div>
+        <div class="auth-error-msg hidden" id="loginError"></div>
+        <button type="submit" class="auth-submit-btn" id="loginSubmitBtn">
+          <span>登 录</span>
+        </button>
+      </form>
+
+      <!-- 注册表单 -->
+      <form class="auth-form hidden" id="registerForm" onsubmit="return false;">
+        <div class="auth-field">
+          <label class="auth-label">用户名</label>
+          <input class="auth-input" id="regUsername" type="text" placeholder="请输入用户名" autocomplete="username">
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">邮箱</label>
+          <input class="auth-input" id="regEmail" type="email" placeholder="请输入邮箱" autocomplete="email">
+        </div>
+        <div class="auth-field">
+          <label class="auth-label">密码</label>
+          <input class="auth-input" id="regPassword" type="password" placeholder="至少6位密码" autocomplete="new-password">
+        </div>
+        <div class="auth-error-msg hidden" id="registerError"></div>
+        <button type="submit" class="auth-submit-btn" id="registerSubmitBtn">
+          <span>注 册</span>
+        </button>
+      </form>
+
+      <!-- 创建角色表单（登录/注册后） -->
+      <div class="auth-form hidden" id="createPlayerBlock">
+        <p class="auth-create-info" id="createPlayerGreeting">欢迎归来。</p>
+        <div class="auth-field">
+          <label class="auth-label">角色名称</label>
+          <input class="auth-input" id="createNameInput" type="text" placeholder="输入你的名字（留空则为"未命名读者"）" maxlength="20">
+        </div>
+        <div class="auth-error-msg hidden" id="createPlayerError"></div>
+        <button type="button" class="auth-submit-btn" id="createPlayerBtn">
+          <span>进入游戏</span>
+        </button>
+      </div>
+
+      <!-- 底部切换 -->
+      <div class="auth-switch-row" id="authSwitchRow">
+        <span id="authSwitchText">还没有账号？</span>
+        <button class="auth-switch-link" id="authSwitchBtn">立即注册</button>
+      </div>
+      <div class="auth-switch-row hidden" id="authLogoutRow">
+        <button class="auth-switch-link" id="logoutFromAuthBtn">← 退出登录</button>
+      </div>
+
+      <!-- 底部装饰线 -->
+      <div class="auth-card-bottom-ornament"></div>
+    </div>
+
+    <!-- 底部版权 -->
+    <p class="auth-footer-text">星流观测站 · 所有故事皆为虚构</p>
+  </div>
+
+  <!-- ================================================================
+       Game Wrapper — 登录后显示
+       ================================================================ -->
+  <div class="game-wrapper hidden" id="gameWrapper">
+
+    <!-- ====== Top Header ====== -->
+    <header class="top-bar">
+      <span class="top-title">全知读者视角</span>
+      <span class="top-subtitle">Omniscient Reader</span>
+      <span class="top-status" id="topStatus">● 观测中</span>
+    </header>
+
+    <!-- ====== Main Game Layout ====== -->
+    <div class="game-layout">
+
+      <!-- ====== Left Panel ====== -->
+      <aside class="left-panel" id="leftPanel">
+        <div class="char-header">
+          <div class="char-name" id="charName">未命名读者</div>
+          <div class="char-stage" id="charStage">初入星流</div>
+        </div>
+
+        <div class="char-section">
+          <div class="stat-bar-row">
+            <span class="stat-bar-label">HP</span>
+            <div class="stat-bar-track"><div class="stat-bar-fill hp-fill" id="statHpBar" style="width:100%"></div></div>
+            <span class="stat-bar-val" id="statHpVal">100/100</span>
+          </div>
+          <div class="stat-bar-row">
+            <span class="stat-bar-label">体力</span>
+            <div class="stat-bar-track"><div class="stat-bar-fill sta-fill" id="statStaBar" style="width:100%"></div></div>
+            <span class="stat-bar-val" id="statStaVal">50/50</span>
+          </div>
+        </div>
+
+        <div class="char-section">
+          <div class="core-stats-row">
+            <span class="core-stat"><span class="core-stat-key">Lv.</span><span class="core-stat-val" id="statLevel">1</span></span>
+            <span class="core-stat"><span class="core-stat-key">◎</span><span class="core-stat-val" id="statCoins">0</span></span>
+            <span class="core-stat"><span class="core-stat-key">◆</span><span class="core-stat-val" id="statFragments">0</span></span>
+          </div>
+        </div>
+
+        <div class="char-section">
+          <div class="section-label">当前位置</div>
+          <div class="current-location-display" id="currentLocationDisplay">星之流观测站</div>
+        </div>
+
+        <div class="char-section">
+          <div class="section-label">称号</div>
+          <div class="title-badge-list" id="titleList"></div>
+          <span class="title-count" id="titleCount">称号 0</span>
+        </div>
+
+        <div class="char-section char-section-actions">
+          <button class="btn-detailed-stats" onclick="GameClient.loadDetailedStats()">详细属性 →</button>
+        </div>
+      </aside>
+
+      <!-- ====== Center ====== -->
+      <main class="center-area" id="centerArea">
+        <div class="log-header">
+          <span class="scene-name" id="sceneName">星之流观测站</span>
+          <span class="scene-location" id="sceneLocation"></span>
+        </div>
+
+        <div class="log-stream" id="logStream">
+          <div class="log-entry log-system">
+            <span class="log-time">--:--</span>
+            <span class="log-msg">系统初始化完成。等待读者就绪...</span>
+          </div>
+        </div>
+
+        <div class="current-event-panel" id="currentEventPanel">
+          <div class="event-placeholder">等待事件触发...</div>
+        </div>
+
+        <div class="main-action-bar" id="mainActionBar">
+          <div class="main-action-buttons">
+            <button class="ma-btn ma-btn-primary" id="btnContinueExplore" onclick="GameClient.continueExplore()">继续探索</button>
+            <button class="ma-btn ma-btn-explore" id="btnQuickExplore" onclick="GameClient.quickExplore()">快速探索 x3</button>
+            <button class="ma-btn ma-btn-alt" id="btnChangeLocation" onclick="GameClient.changeLocation()">切换地点</button>
+            <button class="ma-btn ma-btn-camp" id="btnCamp" onclick="GameClient.doCamp()">休息</button>
+            <button class="ma-btn ma-btn-alt" id="btnReturnCamp" onclick="GameClient.returnCamp()">返回营地</button>
+          </div>
+          <div class="main-action-status">
+            <span class="mas-loc" id="bottomLocation">废墟车站</span>
+            <span class="mas-sep">|</span>
+            <span class="mas-stamina" id="bottomStamina">体力 50/50</span>
+            <span class="mas-sep">|</span>
+            <span class="mas-coins" id="bottomCoins">◎ 0</span>
+            <span class="mas-sep">|</span>
+            <span class="mas-pity" id="masPity">故事沉淀 0</span>
+            <span class="mas-sep">|</span>
+            <span class="mas-count" id="masExploreCount">今日探索 0 次</span>
+          </div>
+        </div>
+
+        <div class="ending-inline hidden" id="endingInline">
+          <div class="ending-card">
+            <h2 class="ending-name" id="endingName"></h2>
+            <div class="ending-desc" id="endingDesc"></div>
+            <button class="btn-action" onclick="GameClient.newGame()">轮回再启</button>
+          </div>
+        </div>
+      </main>
+
+      <!-- ====== Right Nav ====== -->
+      <nav class="right-nav" id="rightNav">
+        <button class="nav-item" data-feature="profile" title="角色">
+          <span class="nav-icon">▣</span><span class="nav-text">角色</span>
+        </button>
+        <button class="nav-item" data-feature="inventory" title="背包">
+          <span class="nav-icon">▤</span><span class="nav-text">背包</span>
+        </button>
+        <button class="nav-item" data-feature="equipment" title="装备">
+          <span class="nav-icon">◆</span><span class="nav-text">装备</span>
+        </button>
+        <button class="nav-item" data-feature="skills" title="技能">
+          <span class="nav-icon">✦</span><span class="nav-text">技能</span>
+        </button>
+        <button class="nav-item" data-feature="titles" title="称号">
+          <span class="nav-icon">♛</span><span class="nav-text">称号</span>
+        </button>
+        <button class="nav-item" data-feature="pk" title="世界PK">
+          <span class="nav-icon">⚔</span><span class="nav-text">PK</span>
+        </button>
+        <button class="nav-item" data-feature="rankings" title="排行榜">
+          <span class="nav-icon">☰</span><span class="nav-text">排行</span>
+        </button>
+        <button class="nav-item" data-feature="broadcast" title="星流放送">
+          <span class="nav-icon">★</span><span class="nav-text">放送</span>
+        </button>
+        <div class="nav-divider"></div>
+        <button class="nav-item" data-feature="settings" title="设置">
+          <span class="nav-icon">⚙</span><span class="nav-text">设置</span>
+        </button>
+        <div class="nav-divider"></div>
+        <button class="nav-item nav-item-secondary" data-feature="story" title="主线聚焦">
+          <span class="nav-icon">▸</span><span class="nav-text">主线</span>
+        </button>
+      </nav>
+
+      <div class="right-drawer hidden" id="rightDrawer">
+        <div class="drawer-header">
+          <span class="drawer-title" id="drawerTitle">面板</span>
+          <button class="drawer-close" onclick="UI.closeDrawer()">✕</button>
+        </div>
+        <div class="drawer-body" id="drawerBody"></div>
+      </div>
+    </div>
+
+    <!-- Social bar -->
+    <div class="social-action-bar" id="socialActionBar">
+      <button class="sa-btn" onclick="UI.showSocialPlaceholder('好友')">好友</button>
+      <button class="sa-btn" onclick="UI.showSocialPlaceholder('申请')">申请</button>
+      <button class="sa-btn" onclick="UI.showSocialPlaceholder('私聊')">私聊</button>
+      <button class="sa-btn" onclick="UI.showSocialPlaceholder('赠礼')">赠礼</button>
+      <button class="sa-btn" onclick="GameClient.openFeature('pk')">切磋</button>
+      <button class="sa-btn sa-btn-disabled" disabled title="开发中">组队</button>
+      <button class="sa-btn" onclick="UI.showSocialPlaceholder('最近互动')">最近互动</button>
+    </div>
+
+    <!-- ====== Overlays ====== -->
+    <div class="modal-overlay hidden" id="modalOverlay">
+      <div class="modal-content" id="modalContent"></div>
+    </div>
+    <div class="modal-overlay hidden" id="pkModalOverlay">
+      <div class="modal-content" id="pkModalContent"></div>
+    </div>
+    <div class="modal-overlay hidden" id="warningOverlay">
+      <div class="modal-content warning-content">
+        <p class="warning-icon">⚠</p>
+        <p class="warning-message" id="warningMessage"></p>
+        <div class="warning-actions">
+          <button class="btn-warning-confirm" id="warningConfirm">确认</button>
+          <button class="btn-warning-cancel" id="warningCancel">取消</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Story Popup -->
+    <div class="popup-overlay hidden" id="storyPopupOverlay">
+      <div class="popup-dialog story-popup" id="storyPopupDialog">
+        <div class="popup-header">
+          <span class="popup-chapter-title" id="popupChapterTitle">章节标题</span>
+          <button class="popup-close" onclick="GameClient.dismissStoryPopup()">✕</button>
+        </div>
+        <div class="popup-body" id="storyPopupBody">
+          <div class="popup-narrative" id="popupNarrative"></div>
+          <div class="popup-choices" id="popupChoices"></div>
+          <div class="popup-stat-gains hidden" id="popupStatGains"></div>
+        </div>
+        <div class="popup-footer">
+          <button class="popup-continue-btn hidden" id="popupContinueBtn" onclick="GameClient.dismissStoryPopup()">继续</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Explore Result Popup -->
+    <div class="popup-overlay hidden" id="explorePopupOverlay">
+      <div class="popup-dialog explore-popup" id="explorePopupDialog">
+        <div class="popup-header">
+          <span class="popup-event-type" id="exploreEventType">探索</span>
+          <button class="popup-close" onclick="GameClient.dismissExplorePopup()">✕</button>
+        </div>
+        <div class="popup-body" id="explorePopupBody"></div>
+        <div class="popup-footer">
+          <button class="popup-continue-btn" onclick="GameClient.dismissExplorePopup()">继续</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Combat Encounter Popup -->
+    <div class="popup-overlay hidden" id="combatPopupOverlay">
+      <div class="popup-dialog combat-popup" id="combatPopupDialog">
+        <div class="popup-header">
+          <span class="popup-event-type" id="combatEventType">战斗遭遇</span>
+          <button class="popup-close" onclick="GameClient.dismissCombatPopup()">✕</button>
+        </div>
+        <div class="popup-body" id="combatPopupBody"></div>
+      </div>
+    </div>
+
+    <!-- Constellation Picker Popup -->
+    <div class="popup-overlay hidden" id="constellationPopupOverlay">
+      <div class="popup-dialog constellation-popup" id="constellationPopupDialog">
+        <div class="popup-header">
+          <span class="popup-chapter-title">选择你的背后星</span>
+        </div>
+        <div class="popup-body" id="constellationPopupBody"></div>
+      </div>
+    </div>
+
+    <!-- Underworld Revival Popup -->
+    <div class="popup-overlay hidden" id="underworldPopupOverlay">
+      <div class="popup-dialog underworld-popup" id="underworldPopupDialog">
+        <div class="popup-header">
+          <span class="popup-chapter-title" style="color:var(--purple);">冥界</span>
+          <button class="popup-close" onclick="GameClient.dismissUnderworld()">✕</button>
+        </div>
+        <div class="popup-body" id="underworldPopupBody"></div>
+      </div>
+    </div>
+
+    <!-- World Map Overlay -->
+    <div class="popup-overlay hidden" id="mapOverlay">
+      <div class="popup-dialog map-dialog" id="mapDialog">
+        <div class="popup-header">
+          <span class="popup-map-title">世界地图</span>
+          <button class="popup-close" onclick="GameClient.dismissMap()">✕</button>
+        </div>
+        <div class="map-body" id="mapBody"></div>
+        <div class="map-footer">
+          <span class="map-current-loc" id="mapCurrentLoc"></span>
+          <button class="btn-action" id="mapExploreBtn" onclick="GameClient.dismissMapAndExplore()">从此地探索</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /gameWrapper -->
+
+  <script src="/src/storage.js"></script>
+  <script src="/src/api.js"></script>
+  <script src="/src/ui.js"></script>
+  <script src="/src/gameClient.js"></script>
+  <script src="/src/main.js"></script>
+
+  <!-- ================================================================
+       Feedback — 反馈按钮和表单
+       ================================================================ -->
+  <button id="feedbackBtn" style="position:fixed;bottom:20px;right:20px;z-index:9999;background:#2a2a3a;color:#8a8a9a;border:1px solid #3a3a4a;border-radius:8px;padding:8px 14px;font-size:12px;cursor:pointer;">反馈</button>
+
+  <div id="feedbackForm" class="hidden" style="position:fixed;bottom:70px;right:20px;z-index:9999;background:#14141c;border:1px solid #3a3a4a;border-radius:10px;padding:16px;width:300px;box-shadow:0 4px 20px rgba(0,0,0,0.5);">
+    <div style="font-size:14px;color:#c9a860;margin-bottom:10px;">提交反馈</div>
+    <input id="fbNickname" placeholder="昵称（选填）" maxlength="20" style="width:100%;margin-bottom:8px;background:#0a0a0f;border:1px solid #3a3a4a;color:#c9c9c9;padding:6px 10px;border-radius:4px;font-size:12px;box-sizing:border-box;">
+    <select id="fbType" style="width:100%;margin-bottom:8px;background:#0a0a0f;border:1px solid #3a3a4a;color:#c9c9c9;padding:6px 10px;border-radius:4px;font-size:12px;box-sizing:border-box;">
+      <option value="bug">Bug 报告</option>
+      <option value="suggestion">改进建议</option>
+      <option value="experience">体验反馈</option>
+      <option value="other">其他</option>
+    </select>
+    <textarea id="fbContent" placeholder="请描述你的反馈..." maxlength="500" rows="3" style="width:100%;margin-bottom:8px;background:#0a0a0f;border:1px solid #3a3a4a;color:#c9c9c9;padding:6px 10px;border-radius:4px;font-size:12px;resize:vertical;box-sizing:border-box;"></textarea>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button id="fbCancel" style="background:#2a2a3a;color:#8a8a9a;border:1px solid #3a3a4a;padding:6px 14px;border-radius:4px;font-size:12px;cursor:pointer;">取消</button>
+      <button id="fbSubmit" style="background:#4db8a8;color:#fff;border:none;padding:6px 14px;border-radius:4px;font-size:12px;cursor:pointer;">提交</button>
+    </div>
+    <div id="fbResult" style="font-size:11px;color:#4db8a8;margin-top:8px;display:none;"></div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,24 @@
+{
+  "name": "doomsday-script-game",
+  "version": "1.0.0",
+  "description": "《末日剧本》- 全知读者视角风格的文字冒险游戏",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "reset-db": "node scripts/resetDb.js",
+    "test": "node tests/smoke.test.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^17.4.2",
+    "express": "^4.21.0",
+    "jsonwebtoken": "^9.0.3",
+    "sql.js": "^1.11.0"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "playwright": "^1.60.0"
+  }
+}

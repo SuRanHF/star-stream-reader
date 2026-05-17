@@ -16,20 +16,20 @@
   --text: #c8c8d0;
   --text-dim: #6a6a78;
   --text-bright: #e8e8f0;
-  --gold: #c9a860;
-  --gold-dim: #8a7040;
-  --teal: #4db8a8;
-  --teal-dim: #2a6a5e;
-  --red: #c04040;
-  --red-dim: #702828;
-  --green: #5a9a4a;
-  --green-dim: #305828;
+  --gold: #cc785c;
+  --gold-dim: #a9583e;
+  --teal: #5db8a6;
+  --teal-dim: #3a8a7a;
+  --red: #c64545;
+  --red-dim: #a03030;
+  --green: #5db872;
+  --green-dim: #3a7a4a;
   --purple: #8a5ac0;
   --blue: #5088c0;
-  --orange: #d08040;
-  --font-body: 'Noto Serif SC', 'Source Han Serif SC', 'SimSun', serif;
-  --font-ui: system-ui, 'Microsoft YaHei', sans-serif;
-  --font-mono: 'Courier New', 'Noto Sans SC', monospace;
+  --orange: #e8a55a;
+  --font-body: 'Cormorant Garamond', 'EB Garamond', 'Noto Serif SC', 'Source Han Serif SC', 'SimSun', serif;
+  --font-ui: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', 'Noto Sans SC', monospace;
   --glow-gold: 0 0 8px #c9a86044;
   --glow-teal: 0 0 8px #4db8a844;
   --transition-fast: 0.15s ease;
@@ -1769,31 +1769,31 @@ a { color: var(--teal); text-decoration: none; }
 
 /* ── Light Theme ── */
 body.light-theme {
-  --bg-deep: #f4f3f0;
-  --bg-panel: #ebe8e3;
-  --bg-panel2: #e2dfd9;
-  --bg-card: #ddd9d2;
-  --bg-hover: #d0ccc4;
-  --bg-input: #e8e5df;
-  --border: #ccc8c0;
-  --border-light: #b8b4aa;
-  --border-gold: #c9a86066;
-  --text: #3a3832;
-  --text-dim: #7a7670;
-  --text-bright: #1a1812;
-  --gold: #8a7030;
-  --gold-dim: #b89840;
-  --teal: #2a7a6e;
-  --teal-dim: #3a9a8e;
-  --red: #a03030;
-  --red-dim: #c05050;
-  --green: #3a7a3a;
-  --green-dim: #4a9a4a;
-  --purple: #6a3aa0;
-  --blue: #3068a0;
-  --orange: #b06030;
-  --glow-gold: 0 0 8px #c9a86022;
-  --glow-teal: 0 0 8px #4db8a822;
+  --bg-deep: #faf9f5;
+  --bg-panel: #f5f0e8;
+  --bg-panel2: #efe9de;
+  --bg-card: #efe9de;
+  --bg-hover: #e8e0d2;
+  --bg-input: #f5f0e8;
+  --border: #e6dfd8;
+  --border-light: #d8d2c8;
+  --border-gold: #cc785c44;
+  --text: #3d3d3a;
+  --text-dim: #6c6a64;
+  --text-bright: #141413;
+  --gold: #cc785c;
+  --gold-dim: #a9583e;
+  --teal: #5db8a6;
+  --teal-dim: #3a8a7a;
+  --red: #c64545;
+  --red-dim: #a03030;
+  --green: #5db872;
+  --green-dim: #3a7a4a;
+  --purple: #8a5ac0;
+  --blue: #5088c0;
+  --orange: #b87830;
+  --glow-gold: 0 0 8px #cc785c22;
+  --glow-teal: 0 0 8px #5db8a622;
 }
 body.light-theme .auth-page {
   background: radial-gradient(ellipse at 50% 35%, #e8e4d8 0%, #ddd9cf 50%, #d0ccc0 100%);
@@ -2077,3 +2077,10 @@ body.font-family-yahei .log-msg { font-family: 'Microsoft YaHei', '微软雅黑'
 @media (max-width: 1100px) {
   .description-panel { display: none; }
 }
+
+/* ── Claude.com Typography: negative tracking for serif headlines ── */
+.stage-indicator-text,
+.popup-chapter-title,
+.top-title,
+.drawer-title,
+.desc-panel-title { letter-spacing: -0.3px; }

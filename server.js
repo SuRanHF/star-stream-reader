@@ -1,17 +1,27 @@
+const crypto = require('crypto');
 require('dotenv').config();
 
 if (!process.env.JWT_SECRET) {
+  const generated = crypto.randomBytes(32).toString('hex');
+  process.env.JWT_SECRET = generated;
   if (process.env.NODE_ENV === 'production') {
-    console.error('FATAL: JWT_SECRET is required in production');
-    process.exit(1);
+    console.warn('============================================================');
+    console.warn('WARNING: JWT_SECRET auto-generated. Set it in Railway Variables');
+    console.warn('  JWT_SECRET=' + generated);
+    console.warn('  All tokens will be invalidated on next restart if not set.');
+    console.warn('============================================================');
+  } else {
+    console.warn('WARNING: JWT_SECRET not set. Using generated default for development.');
   }
-  console.warn('WARNING: JWT_SECRET not set. Using insecure default for development.');
-  process.env.JWT_SECRET = 'dev-secret-do-not-use-in-production';
 }
 
-if (process.env.NODE_ENV === 'production' && (!process.env.ADMIN_KEY || process.env.ADMIN_KEY.length < 8)) {
-  console.warn('WARNING: ADMIN_KEY not set or too short in production. X-Admin-Key auth channel will be unavailable.');
-  console.warn('  Admin access via JWT admin role still works. Set a strong ADMIN_KEY in .env to enable key-based admin access.');
+if (!process.env.ADMIN_KEY || process.env.ADMIN_KEY.length < 8) {
+  const generated = crypto.randomBytes(12).toString('hex');
+  process.env.ADMIN_KEY = generated;
+  console.warn('============================================================');
+  console.warn('ADMIN_KEY auto-generated. Set it in Railway Variables:');
+  console.warn('  ADMIN_KEY=' + generated);
+  console.warn('============================================================');
 }
 
 const express = require('express');

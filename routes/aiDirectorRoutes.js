@@ -5,6 +5,19 @@ const aiDirectorService = require('../services/aiDirectorService');
 const broadcastService = require('../services/broadcastService');
 const worldStateService = require('../services/worldStateService');
 
+// 获取所有放送事件（后台用）
+router.get('/', (req, res) => {
+  try {
+    const { getDb } = require('../db/database');
+    const db = getDb();
+    const events = db.prepare("SELECT * FROM broadcast_events ORDER BY created_at DESC LIMIT 50").all();
+    res.json({ success: true, data: { events } });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+  }
+});
+
 // 生成星流放送草案
 router.post('/generate-broadcast', async (req, res) => {
   try {

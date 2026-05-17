@@ -716,7 +716,7 @@ a { color: var(--teal); text-decoration: none; }
 .modal-overlay {
   position: fixed; inset: 0;
   background: #000000aa;
-  z-index: 200;
+  z-index: 300;
   display: flex; align-items: center; justify-content: center;
 }
 .modal-overlay.hidden { display: none; }

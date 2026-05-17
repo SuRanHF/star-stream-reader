@@ -166,14 +166,6 @@ const API = {
   getBroadcastHistory() {
     return this.request('GET', '/api/broadcast/history');
   },
-  // Dev only
-  generateBroadcast() {
-    return this.request('POST', '/api/ai-director/generate-broadcast');
-  },
-  activateBroadcast(eventId) {
-    return this.request('POST', `/api/ai-director/${eventId}/activate`);
-  },
-
   // Combat
   resolveCombat(playerId, monsterKey, action) {
     return this.request('POST', '/api/combat/resolve', { playerId, monsterKey, action });

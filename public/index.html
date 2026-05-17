@@ -396,5 +396,17 @@
     <div id="fbResult" style="font-size:11px;color:#4db8a8;margin-top:8px;display:none;"></div>
   </div>
 
+<!-- ================================================================
+       Changelog — 版本更新弹窗
+       ================================================================ -->
+<div id="changelogOverlay" class="modal-overlay hidden">
+  <div class="modal-content" style="max-width:480px;text-align:center;">
+    <div style="font-size:20px;color:#c9a860;margin-bottom:6px;">更新日志</div>
+    <div id="changelogVersion" style="font-size:13px;color:#8a8a9a;margin-bottom:16px;"></div>
+    <ul id="changelogList" style="text-align:left;font-size:13px;color:#c8c8d0;line-height:1.8;padding-left:20px;margin-bottom:20px;"></ul>
+    <button class="btn-warning-confirm" onclick="GameClient.closeChangelog()" style="padding:8px 32px;">知道了</button>
+  </div>
+</div>
+
 </body>
 </html>

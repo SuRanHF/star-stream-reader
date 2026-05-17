@@ -9,6 +9,7 @@ const GameClient = {
     this.setupNavigation();
     this.setupModals();
     this.setupFeedback();
+    this.checkChangelog();
 
     const token = Storage.getToken();
 
@@ -1112,17 +1113,6 @@ const GameClient = {
         if (this.playerId) this.loadMyContribution(event.id, this.playerId);
       }
 
-      // Dev controls
-      const devDiv = document.createElement('div');
-      devDiv.id = 'devBroadcastActions';
-      devDiv.style.cssText = 'padding:8px;margin-top:8px;';
-      devDiv.innerHTML = `
-        <button class="btn-action btn-sm" onclick="GameClient.doGenerateBroadcast()" style="margin-right:8px;">生成放送(Dev)</button>
-      `;
-      const drawerBody = document.getElementById('drawerBody');
-      if (drawerBody && !document.getElementById('devBroadcastActions')) {
-        drawerBody.appendChild(devDiv);
-      }
     } catch (e) {
       // Broadcast is non-critical
     }
@@ -1155,26 +1145,6 @@ const GameClient = {
       UI.renderLeftPanel(player);
     } catch (e) {
       UI.addLog('领奖失败: ' + (e.message || e), 'warning');
-    }
-  },
-
-  async doGenerateBroadcast() {
-    try {
-      const result = await API.generateBroadcast();
-      if (result.code || result.error) {
-        alert(result.message || (result.error && result.error.message) || '生成失败');
-        return;
-      }
-      UI.addLog('生成了新的星流放送草案: ' + (result.data && result.data.title), 'broadcast');
-      if (result.data && result.data.id) {
-        const activateResult = await API.activateBroadcast(result.data.id);
-        if (activateResult.success) {
-          UI.addLog('星流放送已激活', 'broadcast');
-        }
-      }
-      this.loadBroadcast();
-    } catch (e) {
-      UI.addLog('生成失败: ' + (e.message || e), 'warning');
     }
   },
 
@@ -1547,5 +1517,34 @@ const GameClient = {
     } else {
       await this.showAuthScreen();
     }
+  },
+
+  // ===== Changelog =====
+  async checkChangelog() {
+    try {
+      const resp = await fetch('/api/changelog');
+      const data = await resp.json();
+      if (!data.success || !data.data || data.data.length === 0) return;
+      const latest = data.data[0];
+      const seenVersion = localStorage.getItem('changelog_seen');
+      if (seenVersion === latest.version) return;
+      // Show popup
+      document.getElementById('changelogVersion').textContent = 'v' + latest.version + ' — ' + (latest.date || '');
+      document.getElementById('changelogList').innerHTML = latest.changes.map(function(c) {
+        return '<li>' + c.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</li>';
+      }).join('');
+      document.getElementById('changelogOverlay').classList.remove('hidden');
+    } catch (e) { /* non-critical */ }
+  },
+
+  closeChangelog() {
+    document.getElementById('changelogOverlay').classList.add('hidden');
+    try {
+      fetch('/api/changelog').then(function(r) { return r.json(); }).then(function(data) {
+        if (data.success && data.data && data.data.length > 0) {
+          localStorage.setItem('changelog_seen', data.data[0].version);
+        }
+      });
+    } catch (e) {}
   }
 };

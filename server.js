@@ -138,6 +138,16 @@ async function start() {
   // Feedback (public)
   app.use('/api/feedback', require('./routes/feedbackRoutes'));
 
+  // Changelog (public)
+  app.get('/api/changelog', (req, res) => {
+    try {
+      const changelog = require('./data/changelog.json');
+      res.json({ success: true, data: changelog });
+    } catch (e) {
+      res.json({ success: true, data: [] });
+    }
+  });
+
   app.listen(PORT, () => {
     console.log(`全知读者视角 游戏服务器已启动 (Round 11): http://localhost:${PORT}`);
   });

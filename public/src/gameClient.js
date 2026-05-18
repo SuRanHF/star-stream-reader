@@ -711,6 +711,10 @@ const GameClient = {
       UI.addLog('你正在休息，无法探索。请先停止休息。', 'warning');
       return;
     }
+    if (!this.playerId) {
+      UI.addLog('玩家数据未加载，请刷新页面。', 'warning');
+      return;
+    }
     // 3 consecutive explorations with stamina check
     try {
       const { locations } = await API.getLocations(this.playerId);
@@ -720,7 +724,12 @@ const GameClient = {
       }
       const locKey = this._getExploreTarget(locations);
       for (let i = 0; i < 3; i++) {
-        const { player } = await API.getPlayer(this.playerId);
+        const playerData = await API.getPlayer(this.playerId);
+        const player = playerData && playerData.player;
+        if (!player) {
+          UI.addLog('获取玩家数据失败，快速探索已停止。', 'warning');
+          break;
+        }
         const stamina = (player.stats && player.stats.stamina) || 0;
         if (stamina < 5) {
           UI.addLog(`体力不足 (${stamina})，快速探索已停止。已完成 ${i}/3 次。`, 'warning');
@@ -730,13 +739,17 @@ const GameClient = {
         await this.doExplore(locKey);
       }
     } catch (e) {
-      UI.addLog('快速探索失败。', 'warning');
+      UI.addLog('快速探索失败: ' + (e.message || e), 'warning');
     }
   },
 
   async continueExplore() {
     if (this._isResting) {
       UI.addLog('你正在休息，无法探索。请先停止休息。', 'warning');
+      return;
+    }
+    if (!this.playerId) {
+      UI.addLog('玩家数据未加载，请刷新页面。', 'warning');
       return;
     }
     // Use player.current_location, default to first unlocked map
@@ -746,7 +759,12 @@ const GameClient = {
         UI.addLog('暂无可探索的地图，请先推进剧情解锁。', 'warning');
         return;
       }
-      const { player } = await API.getPlayer(this.playerId);
+      const playerData = await API.getPlayer(this.playerId);
+      const player = playerData && playerData.player;
+      if (!player) {
+        UI.addLog('获取玩家数据失败，请刷新页面后重试。', 'warning');
+        return;
+      }
       const locKey = this._getExploreTarget(locations, player);
       const stamina = (player.stats && player.stats.stamina) || 0;
       if (stamina < 5) {

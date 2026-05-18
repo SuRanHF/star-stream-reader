@@ -16,7 +16,12 @@ const API = {
     }
     if (body) opts.body = JSON.stringify(body);
     const res = await fetch(url, opts);
-    const data = await res.json();
+    let data;
+    try {
+      data = await res.json();
+    } catch (e) {
+      throw { status: res.status, error: { code: 'INVALID_JSON', message: '服务器返回了无效数据，请刷新页面后重试' } };
+    }
     if (!res.ok) {
       if (res.status === 401) {
         GameClient.handleAuthExpired();

@@ -1164,8 +1164,9 @@ const GameClient = {
   // ===== Avatar Rank =====
   async openAvatarRank() {
     try {
-      var data = await API.getAvatarRank(this.playerId);
-      var contentHTML = UI.renderAvatarRankPanel(data, this.playerId);
+      var resp = await API.getAvatarRank(this.playerId);
+      var rankData = resp && resp.data ? resp.data : resp;
+      var contentHTML = UI.renderAvatarRankPanel(rankData, this.playerId);
       UI.openDrawer('化身位阶', contentHTML);
     } catch (e) {
       UI.addLog('加载位阶失败: ' + (e.message || e), 'warning');
@@ -1174,15 +1175,17 @@ const GameClient = {
   async doRankUp(playerId) {
     try {
       var result = await API.rankUp(playerId);
-      if (result && result.rankedUp) {
-        UI.addLog(result.log, 'system');
+      var rankResult = result && result.data ? result.data : result;
+      if (rankResult && rankResult.rankedUp) {
+        UI.addLog(rankResult.log, 'system');
         var resp = await API.getPlayer(playerId);
-        if (resp && resp.player) {
-          UI.renderLeftPanel(resp.player);
-          this._currentPlayer = resp.player;
+        if (resp && resp.data && resp.data.player) {
+          UI.renderLeftPanel(resp.data.player);
+          this._currentPlayer = resp.data.player;
         }
-        var data = await API.getAvatarRank(playerId);
-        var contentHTML = UI.renderAvatarRankPanel(data, playerId);
+        var rankResp = await API.getAvatarRank(playerId);
+        var rankData = rankResp && rankResp.data ? rankResp.data : rankResp;
+        var contentHTML = UI.renderAvatarRankPanel(rankData, playerId);
         UI.openDrawer('化身位阶', contentHTML);
       }
     } catch (e) {

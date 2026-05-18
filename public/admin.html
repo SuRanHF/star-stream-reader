@@ -1071,6 +1071,10 @@ var Admin = {
     body.constellation = document.getElementById('edit_constellation') ? document.getElementById('edit_constellation').value : null;
     body.isDead = document.getElementById('edit_isDead') ? document.getElementById('edit_isDead').checked : false;
     body.isResting = document.getElementById('edit_isResting') ? document.getElementById('edit_isResting').checked : false;
+    var arEl = document.getElementById('edit_avatarRank');
+    if (arEl) body.avatarRank = arEl.value;
+    var sgEl = document.getElementById('edit_storyGrade');
+    if (sgEl) body.storyGrade = sgEl.value;
 
     self.api('POST', '/api/admin/players/' + playerId + '/update', body).then(function(data) {
       if (data.success) {

@@ -153,6 +153,17 @@ router.post('/players/:id/update', (req, res) => {
       stats.isResting = !!req.body.isResting;
       statsChanged = true;
     }
+    // String stats (avatar rank, story grade)
+    if (req.body.avatarRank !== undefined) {
+      stats.avatarRank = req.body.avatarRank;
+      var rankNames = { F: '临时化身', E: '剧本幸存者', D: '频道记录者', C: '剧本执行者', B: '星流候选者', A: '故事承载者' };
+      stats.avatarRankName = rankNames[req.body.avatarRank] || '临时化身';
+      statsChanged = true;
+    }
+    if (req.body.storyGrade !== undefined) {
+      stats.storyGrade = req.body.storyGrade;
+      statsChanged = true;
+    }
     if (statsChanged) fields.stats_json = stats;
 
     if (req.body.coins !== undefined) fields.coins = parseInt(req.body.coins) || 0;

@@ -112,12 +112,20 @@ const API = {
     return this.request('POST', '/api/skills/unlock', { playerId, skillKey });
   },
 
+  // Heartbeat
+  heartbeat(playerId) {
+    return this.request('POST', '/api/heartbeat', { playerId });
+  },
+
   // PK
   getPKOpponents(playerId) {
     return this.request('GET', `/api/pk/opponents/${playerId}`);
   },
   challengePlayer(attackerId, defenderId) {
     return this.request('POST', '/api/pk/challenge', { attackerId, defenderId });
+  },
+  resolveChallenge(challengeId, playerId, accept) {
+    return this.request('POST', '/api/pk/challenge/resolve', { challengeId, playerId, accept });
   },
   getPKRankings() {
     return this.request('GET', '/api/pk/rankings');
@@ -196,6 +204,12 @@ const API = {
   // Revival
   revivePlayer(playerId, method) {
     return this.request('POST', '/api/player/revive', { playerId, method });
+  },
+  peerRevive(reviverId, targetId, method) {
+    return this.request('POST', '/api/player/peer-revive', { reviverId, targetId, method });
+  },
+  getDeadPlayers() {
+    return this.request('GET', '/api/player/dead-list');
   },
 
   // Rest / Recovery

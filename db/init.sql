@@ -79,8 +79,18 @@ CREATE TABLE IF NOT EXISTS players (
     visited_nodes_json TEXT NOT NULL DEFAULT '[]',
     stage_progress_json TEXT NOT NULL DEFAULT '{}',
     current_location TEXT NOT NULL DEFAULT '',
+    last_heartbeat TEXT NOT NULL DEFAULT (datetime('now','localtime')),
     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+
+CREATE TABLE IF NOT EXISTS pk_challenges (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    attacker_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    defender_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','accepted','rejected','expired')),
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    resolved_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS saves (

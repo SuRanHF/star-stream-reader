@@ -88,6 +88,7 @@ const UI = {
 
     // Mobile top bar
     UI.setText('mtbName', player.player_name);
+    UI.setText('mtbRank', (s.avatarRank || 'F') + '级');
     UI.setText('mtbLevel', `Lv.${s.level || 1}`);
     UI.setText('mtbHp', `♥ ${hp}/${maxHp}`);
     UI.setText('mtbStamina', `⚡ ${stamina}`);
@@ -1665,6 +1666,83 @@ const UI = {
 
   dismissUnderworld() {
     document.getElementById('underworldPopupOverlay')?.classList.add('hidden');
+  },
+
+  // PK Challenge notification popup
+  showChallengePopup(challenges, playerId) {
+    var overlay = document.getElementById('challengePopupOverlay');
+    if (!overlay) return;
+    var body = document.getElementById('challengePopupBody');
+    if (!body) return;
+    var html = '<div style="padding:8px;">';
+    for (var i = 0; i < challenges.length; i++) {
+      var c = challenges[i];
+      html += '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;">';
+      html += '<div style="font-weight:bold;margin-bottom:4px;">' + this.escapeHtml(c.attacker_name) + ' 向你发起PK挑战！</div>';
+      html += '<div style="display:flex;gap:8px;margin-top:8px;">';
+      html += '<button class="ma-btn primary" onclick="GameClient.doPKResolve(' + c.id + ', true)" style="flex:1;">接受</button>';
+      html += '<button class="ma-btn" onclick="GameClient.doPKResolve(' + c.id + ', false)" style="flex:1;">拒绝</button>';
+      html += '</div></div>';
+    }
+    html += '</div>';
+    body.innerHTML = html;
+    overlay.classList.remove('hidden');
+  },
+
+  dismissChallengePopup() {
+    var overlay = document.getElementById('challengePopupOverlay');
+    if (overlay) overlay.classList.add('hidden');
+    var body = document.getElementById('challengePopupBody');
+    if (body) body.innerHTML = '';
+  },
+
+  // Underworld panel — dead players list
+  renderUnderworldPanel(deadList, currentPlayerId) {
+    if (!deadList || deadList.length === 0) {
+      return '<p style="text-align:center;color:var(--text-secondary);padding:32px;">冥界空无一人。当前没有玩家在冥界徘徊。</p>';
+    }
+    var html = '<div style="color:var(--text-secondary);margin-bottom:12px;font-size:0.85em;">以下玩家在冥界中等待复活，你可以献祭付出代价将他们拉回人间：</div>';
+    for (var i = 0; i < deadList.length; i++) {
+      var d = deadList[i];
+      var isSelf = d.id === currentPlayerId;
+      var level = d.level || 1;
+      var coinCost = Math.round(100 * level * (d.constellation === 'queen_of_underworld' ? 0.5 : 1));
+      html += '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">';
+      html += '<div><div style="font-weight:bold;">' + this.escapeHtml(d.player_name) + '</div>';
+      html += '<div style="font-size:0.8em;color:var(--text-secondary);">Lv.' + level + (d.constellation ? ' · ' + d.constellation : '') + '</div></div>';
+      if (isSelf) {
+        html += '<span style="color:var(--gold);">等待复活中...</span>';
+      } else {
+        html += '<div style="text-align:right;">';
+        html += '<button class="ma-btn primary" style="font-size:0.8em;margin-bottom:4px;" onclick="GameClient.peerRevive(' + d.id + ',\'coins\')">💰 支付' + coinCost + '金币复活</button><br>';
+        html += '<button class="ma-btn" style="font-size:0.8em;" onclick="GameClient.peerRevive(' + d.id + ',\'title\')">🏆 献祭称号复活</button>';
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+    return html;
+  },
+
+  // Changelog panel
+  renderChangelog(changelog) {
+    if (!changelog || changelog.length === 0) {
+      return '<p style="text-align:center;color:var(--text-secondary);padding:32px;">暂无更新记录。</p>';
+    }
+    var html = '';
+    for (var i = 0; i < changelog.length; i++) {
+      var item = changelog[i];
+      html += '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;">';
+      html += '<div style="display:flex;justify-content:space-between;margin-bottom:6px;">';
+      html += '<span style="font-weight:bold;color:var(--gold);">v' + this.escapeHtml(item.version) + '</span>';
+      html += '<span style="font-size:0.8em;color:var(--text-secondary);">' + this.escapeHtml(item.date || '') + '</span>';
+      html += '</div>';
+      html += '<ul style="margin:0;padding-left:18px;color:var(--text-primary);font-size:0.9em;">';
+      for (var j = 0; j < item.changes.length; j++) {
+        html += '<li style="margin:3px 0;">' + this.escapeHtml(item.changes[j]) + '</li>';
+      }
+      html += '</ul></div>';
+    }
+    return html;
   },
 
   escapeHtml(str) {

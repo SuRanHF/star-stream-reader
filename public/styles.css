@@ -2253,3 +2253,56 @@ a { color: var(--teal); text-decoration: none; }
   color: var(--text);
   border-bottom: 1px solid var(--border-dim);
 }
+
+/* ── Challenge Popup ── */
+#challengePopupOverlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  z-index: 600; display: flex; align-items: center; justify-content: center;
+}
+#challengePopupOverlay.hidden { display: none; }
+
+/* ── Underworld Popup (no dismiss) ── */
+#underworldPopupOverlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+  z-index: 700; display: flex; align-items: center; justify-content: center;
+}
+#underworldPopupOverlay.hidden { display: none; }
+
+/* ── Mobile More Menu improvements ── */
+@media (max-width: 900px) {
+  .mobile-more-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 12px;
+  }
+  .mobile-more-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 14px 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 12px;
+    width: 100%;
+  }
+  .mobile-more-item:active {
+    background: var(--bg-hover);
+    border-color: var(--gold);
+  }
+  .mm-icon { font-size: 22px; }
+
+  /* Mobile top bar rank info */
+  .mtb-rank {
+    font-size: 10px;
+    color: var(--gold);
+    background: rgba(255,215,0,0.1);
+    padding: 1px 6px;
+    border-radius: 8px;
+  }
+}

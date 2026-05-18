@@ -378,6 +378,39 @@ function getConstellationBonus(stats) {
   return CONSTELLATIONS[key].effects;
 }
 
+function updateHeartbeat(playerId) {
+  const db = getDb();
+  db.prepare("UPDATE players SET last_heartbeat = datetime('now','localtime') WHERE id = ?").run(playerId);
+}
+
+function isPlayerOnline(playerId) {
+  var db = getDb();
+  var row = db.prepare("SELECT last_heartbeat FROM players WHERE id = ?").get(playerId);
+  if (!row || !row.last_heartbeat) return false;
+  var lastBeat = new Date(row.last_heartbeat.replace(' ', 'T')).getTime();
+  var now = Date.now();
+  return (now - lastBeat) < 90000;
+}
+
+function getOnlinePlayers() {
+  var db = getDb();
+  var cutoff = new Date(Date.now() - 90000).toISOString().replace('T', ' ').slice(0, 19);
+  return db.prepare("SELECT id FROM players WHERE last_heartbeat >= ?").all(cutoff).map(function(r) { return r.id; });
+}
+
+function getDeadPlayers() {
+  var db = getDb();
+  return db.prepare("SELECT id, player_name, stats_json FROM players").all()
+    .filter(function(r) {
+      var stats = typeof r.stats_json === 'string' ? JSON.parse(r.stats_json) : (r.stats_json || {});
+      return stats.isDead;
+    })
+    .map(function(r) {
+      var stats = typeof r.stats_json === 'string' ? JSON.parse(r.stats_json) : (r.stats_json || {});
+      return { id: r.id, player_name: r.player_name, level: stats.level || 1, constellation: stats.constellation || null };
+    });
+}
+
 module.exports = { create, get, getRaw, update, reset, addLog, isResting, assertNotResting,
   defaultStats, migratePlayerStats, getConstellations, selectConstellation, getConstellationBonus,
-  revivePlayer, CONSTELLATIONS };
+  revivePlayer, updateHeartbeat, isPlayerOnline, getOnlinePlayers, getDeadPlayers, CONSTELLATIONS };

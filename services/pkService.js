@@ -7,19 +7,21 @@ const chapterService = require('./chapterService');
 
 // 获取可挑战的对手列表
 function getOpponents(playerId) {
-  const db = getDb();
-  const players = db.prepare(`
-    SELECT p.id, p.player_name, p.stats_json, p.titles_json,
-      COALESCE(r.rating, 1000) as rating, COALESCE(r.wins, 0) as wins, COALESCE(r.losses, 0) as losses
-    FROM players p
-    LEFT JOIN rankings r ON p.id = r.player_id
-    WHERE p.id != ?
-    ORDER BY r.rating DESC
-    LIMIT 20
-  `).all(playerId);
+  var db = getDb();
+  var onlineIds = playerService.getOnlinePlayers();
+  if (onlineIds.length === 0) return [];
+  var placeholders = onlineIds.map(function() { return '?'; }).join(',');
+  var query = 'SELECT p.id, p.player_name, p.stats_json, p.titles_json, ' +
+    'COALESCE(r.rating, 1000) as rating, COALESCE(r.wins, 0) as wins, COALESCE(r.losses, 0) as losses ' +
+    'FROM players p LEFT JOIN rankings r ON p.id = r.player_id ' +
+    'WHERE p.id != ? AND p.id IN (' + placeholders + ') ' +
+    'ORDER BY r.rating DESC LIMIT 20';
+  var params = [playerId].concat(onlineIds);
+  var stmt = db.prepare(query);
+  var players = stmt.all.apply(stmt, params);
 
-  return players.map(p => {
-    const stats = JSON.parse(p.stats_json);
+  return players.map(function(p) {
+    var stats = JSON.parse(p.stats_json);
     return {
       id: p.id,
       player_name: p.player_name,
@@ -30,6 +32,52 @@ function getOpponents(playerId) {
       combat_power: estimateCombatPower(p)
     };
   });
+}
+
+// Create a pending PK challenge (attacker clicks "挑战", defender sees popup)
+function createChallenge(attackerId, defenderId) {
+  if (attackerId === defenderId) return { error: { code: 'SELF_CHALLENGE', message: '不能挑战自己' } };
+  var db = getDb();
+  var existing = db.prepare(
+    "SELECT id FROM pk_challenges WHERE attacker_id=? AND defender_id=? AND status='pending'"
+  ).get(attackerId, defenderId);
+  if (existing) return { error: { code: 'DUPLICATE_CHALLENGE', message: '已有待处理的挑战' } };
+  db.prepare(
+    "INSERT INTO pk_challenges (attacker_id, defender_id, status) VALUES (?, ?, 'pending')"
+  ).run(attackerId, defenderId);
+  return { success: true, data: { message: '挑战已发出，等待对方回应' } };
+}
+
+function getPendingChallenges(playerId) {
+  var db = getDb();
+  var rows = db.prepare(
+    "SELECT c.id, c.attacker_id, c.defender_id, c.created_at, p.player_name " +
+    "FROM pk_challenges c JOIN players p ON c.attacker_id = p.id " +
+    "WHERE c.defender_id = ? AND c.status = 'pending' ORDER BY c.created_at DESC"
+  ).all(playerId);
+  return rows.map(function(r) {
+    return { id: r.id, attacker_id: r.attacker_id, attacker_name: r.player_name, created_at: r.created_at };
+  });
+}
+
+function resolveChallenge(challengeId, accept, playerId) {
+  var db = getDb();
+  var ch = db.prepare("SELECT * FROM pk_challenges WHERE id = ? AND status = 'pending'").get(challengeId);
+  if (!ch) return { error: { code: 'CHALLENGE_NOT_FOUND', message: '挑战不存在或已过期' } };
+  if (ch.defender_id !== playerId) return { error: { code: 'NOT_YOUR_CHALLENGE', message: '这不是发给你的挑战' } };
+  if (!accept) {
+    db.prepare("UPDATE pk_challenges SET status='rejected', resolved_at=datetime('now','localtime') WHERE id=?").run(challengeId);
+    return { success: true, data: { accepted: false, message: '已拒绝挑战' } };
+  }
+  db.prepare("UPDATE pk_challenges SET status='accepted', resolved_at=datetime('now','localtime') WHERE id=?").run(challengeId);
+  var result = challenge(ch.attacker_id, ch.defender_id);
+  return { success: true, data: { accepted: true, battle: result } };
+}
+
+// Expire old challenges (>5 min)
+function expireOldChallenges() {
+  var db = getDb();
+  db.prepare("UPDATE pk_challenges SET status='expired', resolved_at=datetime('now','localtime') WHERE status='pending' AND datetime(created_at, '+5 minutes') < datetime('now','localtime')").run();
 }
 
 function estimateCombatPower(playerRow) {
@@ -296,4 +344,4 @@ function getPKRecords(playerId) {
   }));
 }
 
-module.exports = { getOpponents, challenge, getRankings, getPKRecords };
+module.exports = { getOpponents, challenge, createChallenge, getPendingChallenges, resolveChallenge, expireOldChallenges, getRankings, getPKRecords };

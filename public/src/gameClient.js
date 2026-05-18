@@ -361,6 +361,12 @@ const GameClient = {
       case 'feedback':
         this.openFeedback();
         break;
+      case 'underworld':
+        this.openUnderworld();
+        break;
+      case 'changelog':
+        this.showChangelog();
+        break;
     }
   },
 
@@ -435,8 +441,9 @@ const GameClient = {
     document.getElementById('authPage')?.classList.add('hidden');
     document.getElementById('gameWrapper')?.classList.remove('hidden');
 
-    // Start polling for new versions
+    // Start polling for new versions + heartbeat
     this.startVersionPolling();
+    this.startHeartbeat();
 
     this._isResting = !!(player.stats && player.stats.isResting);
     UI.renderLeftPanel(player);
@@ -1106,19 +1113,44 @@ const GameClient = {
 
   async doPK(defenderId) {
     try {
-      const result = await API.challengePlayer(this.playerId, defenderId);
+      var result = await API.challengePlayer(this.playerId, defenderId);
       if (result.error) {
         alert(result.error.message || '挑战失败');
         return;
       }
-      UI.renderPKResult(result);
-      const opponentName = result.attacker_wins ? result.loser_name : result.winner_name;
-      const ratingChg = result.rating_change?.attacker || 0;
-      UI.addLog(`PK ${result.attacker_wins ? '胜利' : '失败'} vs ${opponentName} (评分 ${ratingChg > 0 ? '+' : ''}${ratingChg})`, 'pk');
-      const { player } = await API.getPlayer(this.playerId);
-      UI.renderLeftPanel(player);
+      if (result.success && result.data && result.data.message) {
+        UI.addLog(result.data.message, 'system');
+        UI.closeDrawer();
+      }
     } catch (e) {
       UI.addLog('PK出错: ' + (e.message || e), 'pk');
+    }
+  },
+
+  async doPKResolve(challengeId, accept) {
+    try {
+      var result = await API.resolveChallenge(challengeId, this.playerId, accept);
+      if (result.error) {
+        alert(result.error.message || '操作失败');
+        return;
+      }
+      if (accept && result.data && result.data.battle) {
+        UI.renderPKResult(result.data.battle);
+        var battle = result.data.battle;
+        var opponentName = battle.attacker_wins ? battle.loser_name : battle.winner_name;
+        var ratingChg = (battle.rating_change && battle.rating_change.attacker) || 0;
+        UI.addLog('PK ' + (battle.attacker_wins ? '胜利' : '失败') + ' vs ' + opponentName + ' (评分 ' + (ratingChg > 0 ? '+' : '') + ratingChg + ')', 'pk');
+        var resp = await API.getPlayer(this.playerId);
+        if (resp && resp.data && resp.data.player) {
+          UI.renderLeftPanel(resp.data.player);
+          this._currentPlayer = resp.data.player;
+        }
+      } else if (!accept) {
+        UI.addLog('你拒绝了PK挑战', 'system');
+      }
+      UI.dismissChallengePopup();
+    } catch (e) {
+      UI.addLog('PK回应失败: ' + (e.message || e), 'pk');
     }
   },
 
@@ -1537,6 +1569,49 @@ const GameClient = {
     UI.dismissPopup('underworldPopupOverlay');
   },
 
+  async openUnderworld() {
+    try {
+      var data = await API.getDeadPlayers();
+      var deadList = (data && data.data) ? data.data : [];
+      var contentHTML = UI.renderUnderworldPanel(deadList, this.playerId);
+      UI.openDrawer('冥界', contentHTML);
+    } catch (e) {
+      UI.addLog('加载冥界失败: ' + (e.message || e), 'warning');
+    }
+  },
+
+  async peerRevive(targetId, method) {
+    var self = this;
+    try {
+      var result = await API.peerRevive(this.playerId, targetId, method);
+      if (result.success) {
+        UI.addLog(result.data.message || '你从冥界拉回了一位玩家。', 'story');
+        UI.closeDrawer();
+        var resp = await API.getPlayer(this.playerId);
+        if (resp && resp.data && resp.data.player) {
+          UI.renderLeftPanel(resp.data.player);
+          this._currentPlayer = resp.data.player;
+        }
+      } else {
+        alert((result.error && result.error.message) || '复活失败');
+      }
+    } catch (e) {
+      alert('复活失败: ' + (e.message || ''));
+    }
+  },
+
+  async showChangelog() {
+    try {
+      var resp = await fetch('/api/changelog');
+      var data = await resp.json();
+      var changelog = (data && data.data) ? data.data : [];
+      var contentHTML = UI.renderChangelog(changelog);
+      UI.openDrawer('更新历史', contentHTML);
+    } catch (e) {
+      UI.addLog('加载更新历史失败: ' + (e.message || e), 'warning');
+    }
+  },
+
   // ===== Settings =====
   showSettings() {
     const contentHTML = UI.renderSettings();
@@ -1672,6 +1747,28 @@ const GameClient = {
         }
       } catch (e) { /* silent */ }
     }, 60000);
+  },
+
+  // Heartbeat every 30s to mark online + poll for PK challenges
+  startHeartbeat() {
+    var self = this;
+    if (this._heartbeatInterval) return;
+    this._heartbeatInterval = setInterval(async function() {
+      try {
+        if (!self.playerId) return;
+        var resp = await API.heartbeat(self.playerId);
+        if (resp && resp.pendingChallenges && resp.pendingChallenges.length > 0) {
+          UI.showChallengePopup(resp.pendingChallenges, self.playerId);
+        }
+      } catch (e) { /* silent */ }
+    }, 30000);
+    // Immediate first beat
+    setTimeout(async function() {
+      try {
+        if (!self.playerId) return;
+        await API.heartbeat(self.playerId);
+      } catch (e) { /* silent */ }
+    }, 2000);
   },
 
   async checkChangelog() {

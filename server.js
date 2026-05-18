@@ -178,6 +178,66 @@ async function start() {
     }
   });
 
+  // Heartbeat — client pings every 30s to mark player online
+  app.post('/api/heartbeat', authRequired, (req, res) => {
+    try {
+      const playerService = require('./services/playerService');
+      playerService.updateHeartbeat(req.body.playerId);
+      // Return pending PK challenges for this player
+      const pendingChallenges = require('./services/pkService').getPendingChallenges(req.body.playerId);
+      res.json({ success: true, pendingChallenges: pendingChallenges || [] });
+    } catch (e) {
+      res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    }
+  });
+
+  // Peer revive — revive another player (same cost as self-revive)
+  app.post('/api/player/peer-revive', authRequired, (req, res) => {
+    try {
+      const playerService = require('./services/playerService');
+      const reviverId = req.body.reviverId;
+      const targetId = req.body.targetId;
+      const method = req.body.method;
+      const result = playerService.revivePlayer(targetId, method);
+      if (result.error) return res.status(400).json(result);
+      const reviver = playerService.get(reviverId);
+      if (method === 'coins') {
+        const coinCost = result.coinCost;
+        if ((reviver.coins || 0) < coinCost) {
+          return res.status(400).json({ error: { code: 'NOT_ENOUGH_COINS', message: '金币不足' } });
+        }
+        playerService.update(reviverId, { coins: reviver.coins - coinCost });
+        playerService.addLog(reviverId, '支付' + coinCost + '金币复活了' + (playerService.get(targetId)?.player_name || '一位玩家'));
+        playerService.addLog(targetId, reviver.player_name + '支付了' + coinCost + '金币将你从冥界拉回。');
+        return res.json({ success: true, data: result });
+      } else if (method === 'title') {
+        var reviverTitles = reviver.titles || [];
+        if (reviverTitles.length === 0) {
+          return res.status(400).json({ error: { code: 'NO_TITLES', message: '没有任何称号可以献祭' } });
+        }
+        var sacrificed = reviverTitles.pop();
+        playerService.update(reviverId, { titles_json: reviverTitles });
+        playerService.addLog(reviverId, '献祭称号「' + sacrificed + '」复活了' + (playerService.get(targetId)?.player_name || '一位玩家'));
+        playerService.addLog(targetId, reviver.player_name + '献祭了称号「' + sacrificed + '」将你从冥界拉回。');
+        return res.json({ success: true, data: result });
+      }
+      res.status(400).json({ error: { code: 'INVALID_METHOD', message: '无效的复活方式' } });
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    }
+  });
+
+  // Dead players list — for underworld panel
+  app.get('/api/player/dead-list', authRequired, (req, res) => {
+    try {
+      const playerService = require('./services/playerService');
+      res.json({ success: true, data: playerService.getDeadPlayers() });
+    } catch (e) {
+      res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    }
+  });
+
   // Global error handler — must be registered after all routes
   app.use((err, req, res, next) => {
     console.error('Unhandled error:', err);

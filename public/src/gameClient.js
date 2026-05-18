@@ -983,6 +983,12 @@ const GameClient = {
     }
   },
 
+  // ===== Mobile =====
+  async openMapFromMobile() {
+    UI._highlightMobileNav('explore');
+    await this.showMap();
+  },
+
   // ===== Equipment =====
   async loadEquipment() {
     try {

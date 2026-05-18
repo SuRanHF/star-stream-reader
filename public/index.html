@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>全知读者视角 — 星流观测</title>
   <link href="/fonts/font.css" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css?v=1.0.5">
+  <link rel="stylesheet" href="/styles.css?v=1.0.6">
 </head>
 <body class="game-page">
 
@@ -118,6 +118,64 @@
       <span class="top-subtitle">Omniscient Reader</span>
       <span class="top-status" id="topStatus">● 观测中</span>
     </header>
+
+    <!-- ====== Mobile Top Bar ====== -->
+    <div class="mobile-top-bar" id="mobileTopBar">
+      <div class="mtb-left">
+        <span class="mtb-name" id="mtbName">未命名读者</span>
+        <span class="mtb-lv" id="mtbLevel">Lv.1</span>
+      </div>
+      <div class="mtb-right">
+        <span class="mtb-stat" id="mtbHp">♥ 100/100</span>
+        <span class="mtb-stat" id="mtbStamina">⚡ 50</span>
+        <span class="mtb-stat" id="mtbCoins">◎ 0</span>
+      </div>
+    </div>
+
+    <!-- ====== Mobile Bottom Nav ====== -->
+    <nav class="mobile-bottom-nav" id="mobileBottomNav">
+      <button class="mbn-item mbn-active" data-mobile-feature="story" onclick="GameClient.openFeature('story')">
+        <span class="mbn-icon">▸</span>
+        <span class="mbn-label">主线</span>
+      </button>
+      <button class="mbn-item" data-mobile-feature="explore" onclick="GameClient.openMapFromMobile()">
+        <span class="mbn-icon">◎</span>
+        <span class="mbn-label">探索</span>
+      </button>
+      <button class="mbn-item" data-mobile-feature="inventory" onclick="GameClient.openFeature('inventory')">
+        <span class="mbn-icon">▤</span>
+        <span class="mbn-label">背包</span>
+      </button>
+      <button class="mbn-item" data-mobile-feature="equipment" onclick="GameClient.openFeature('equipment')">
+        <span class="mbn-icon">◆</span>
+        <span class="mbn-label">装备</span>
+      </button>
+      <button class="mbn-item" data-mobile-feature="more" onclick="UI.toggleMobileMoreMenu()">
+        <span class="mbn-icon">⋯</span>
+        <span class="mbn-label">更多</span>
+      </button>
+    </nav>
+
+    <!-- ====== Mobile More Menu ====== -->
+    <div class="mobile-more-overlay hidden" id="mobileMoreOverlay" onclick="UI.closeMobileMoreMenu()">
+      <div class="mobile-more-panel" id="mobileMorePanel" onclick="event.stopPropagation()">
+        <div class="mobile-more-header">
+          <span>更多功能</span>
+          <button class="mobile-more-close" onclick="UI.closeMobileMoreMenu()">✕</button>
+        </div>
+        <div class="mobile-more-grid">
+          <button class="mobile-more-item" onclick="GameClient.openFeature('skills');UI.closeMobileMoreMenu()"><span class="mm-icon">✦</span>技能</button>
+          <button class="mobile-more-item" onclick="GameClient.openFeature('titles');UI.closeMobileMoreMenu()"><span class="mm-icon">♛</span>称号</button>
+          <button class="mobile-more-item" onclick="GameClient.openFeature('profile');UI.closeMobileMoreMenu()"><span class="mm-icon">▣</span>属性</button>
+          <button class="mobile-more-item" onclick="GameClient.openFeature('pk');UI.closeMobileMoreMenu()"><span class="mm-icon">⚔</span>PK</button>
+          <button class="mobile-more-item" onclick="GameClient.openFeature('rankings');UI.closeMobileMoreMenu()"><span class="mm-icon">☰</span>排行</button>
+          <button class="mobile-more-item" onclick="GameClient.openFeature('broadcast');UI.closeMobileMoreMenu()"><span class="mm-icon">★</span>放送</button>
+          <button class="mobile-more-item" onclick="GameClient.openFeature('archive');UI.closeMobileMoreMenu()"><span class="mm-icon">◈</span>档案</button>
+          <button class="mobile-more-item" onclick="GameClient.openFeature('settings');UI.closeMobileMoreMenu()"><span class="mm-icon">⚙</span>设置</button>
+          <button class="mobile-more-item" onclick="GameClient.openFeature('feedback');UI.closeMobileMoreMenu()"><span class="mm-icon">✉</span>反馈</button>
+        </div>
+      </div>
+    </div>
 
     <!-- ====== Main Game Layout ====== -->
     <div class="game-layout">
@@ -393,11 +451,11 @@
 
   </div><!-- /gameWrapper -->
 
-  <script src="/src/storage.js?v=1.0.5"></script>
-  <script src="/src/api.js?v=1.0.5"></script>
-  <script src="/src/ui.js?v=1.0.5"></script>
-  <script src="/src/gameClient.js?v=1.0.5"></script>
-  <script src="/src/main.js?v=1.0.5"></script>
+  <script src="/src/storage.js?v=1.0.6"></script>
+  <script src="/src/api.js?v=1.0.6"></script>
+  <script src="/src/ui.js?v=1.0.6"></script>
+  <script src="/src/gameClient.js?v=1.0.6"></script>
+  <script src="/src/main.js?v=1.0.6"></script>
 
   <!-- ================================================================
        Feedback — feedback popup overlay

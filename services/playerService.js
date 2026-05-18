@@ -249,43 +249,57 @@ const CONSTELLATIONS = {
   golden_sun: {
     key: 'golden_sun',
     name: '金乌',
-    title: '烈日之金乌',
-    description: '古老太阳的化身，赐予信徒灼热的力量。攻击力与暴击伤害大幅提升。',
+    title: '最古之金乌',
+    description: '自天地初开便存在的三足金乌，是这个世界最古老的神话。赐予信徒灼热的火之祝福，攻击力与暴击伤害大幅提升。',
     effects: { atk: 5, critDamage: 0.2 }
   },
   black_flame_dragon: {
     key: 'black_flame_dragon',
-    name: '黑炎龙',
-    title: '深渊黑炎龙',
-    description: '栖息于深渊的黑龙，毁灭即为它的本质。极致的攻击力，但防御略显薄弱。',
+    name: '深渊的黑炎龙',
+    title: '深渊的黑炎龙',
+    description: '栖息于星之深渊的黑焰巨龙，毁灭即为它的本质。15岁的黑焰皇帝。极致攻击力，防御略显薄弱。',
     effects: { atk: 8, def: -2 }
+  },
+  demon_judge_of_fire: {
+    key: 'demon_judge_of_fire',
+    name: '恶魔般的火之审判者',
+    title: '恶魔般的火之审判者',
+    description: '燃烧地狱烈焰的大天使，对邪恶绝不手软。她爱着世间一切故事与美好。攻击力与正义感同样炽热。',
+    effects: { atk: 4, critRate: 0.08, spd: 2 }
   },
   abyss_eye: {
     key: 'abyss_eye',
     name: '深渊之眼',
-    title: '全知深渊眼',
-    description: '洞察一切的深渊之眼，赋予信徒看穿万物弱点的能力。暴击率与洞察力大幅提升。',
+    title: '深渊的凝视者',
+    description: '隐藏在星流深渊中的远古观测者，洞察万物本质。暴击率与洞察力大幅提升。',
     effects: { critRate: 0.1, insight: 3 }
   },
   wheel_of_fate: {
     key: 'wheel_of_fate',
     name: '命运之轮',
-    title: '因果命运轮',
-    description: '转动于因果之间的巨轮，幸运之神眷顾其信徒。运气与掉落率提升。',
+    title: '因果的编织者',
+    description: '编织因果之线的神秘存在，在星流之轮上刻下命运的轨迹。幸运与掉落率提升。',
     effects: { luck: 3, dropRate: 0.1 }
   },
   queen_of_underworld: {
     key: 'queen_of_underworld',
-    name: '冥界女王',
-    title: '冥界之女王',
-    description: '掌管冥界的高贵女王，她的眷顾让死亡不再是终点。复活代价减半，羁绊增强。',
+    name: '冥界的女王',
+    title: '冥界的女王',
+    description: '掌管冥界暗之权力的女王，她的眷顾让死亡不再是终点。复活代价减半，羁绊增强。',
     effects: { reviveDiscount: 0.5, bond: 3 }
+  },
+  maritime_war_god: {
+    key: 'maritime_war_god',
+    name: '海上不败战神',
+    title: '海上不败战神',
+    description: '大海上从未败过的战争之神。忠诚、正义，永远守护自己所信之物。防御与速度大幅提升。',
+    effects: { def: 5, spd: 3, atk: 1 }
   },
   star_stream_watcher: {
     key: 'star_stream_watcher',
-    name: '星之流观测者',
-    title: '星流观测者',
-    description: '默默守护星流的古老存在，给予均衡的庇佑。全战斗属性小幅提升，硬币获得增加。',
+    name: '星流观测者',
+    title: '星流的守望者',
+    description: '默默守望星之流不知多少纪元的古老存在，给予均衡的庇佑。全战斗属性小幅提升，硬币获得增加。',
     effects: { atk: 2, def: 2, spd: 2, coinMultiplier: 0.1 }
   }
 };

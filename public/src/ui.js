@@ -67,6 +67,13 @@ const UI = {
       topStatus.innerHTML = `${dateStr} | ${stageName} | 偏移 ${wls} | ${heatLabel}`;
     }
 
+    // Mobile top bar
+    UI.setText('mtbName', player.player_name);
+    UI.setText('mtbLevel', `Lv.${s.level || 1}`);
+    UI.setText('mtbHp', `♥ ${hp}/${maxHp}`);
+    UI.setText('mtbStamina', `⚡ ${stamina}`);
+    UI.setText('mtbCoins', `◎ ${player.coins || 0}`);
+
     Storage.cacheState(player);
   },
 
@@ -426,7 +433,8 @@ const UI = {
     const slotNames = { weapon: '武器', armor: '防具', accessory: '饰品', relic: '遗物' };
     const slotOrder = ['weapon', 'armor', 'accessory', 'relic'];
     const equippedMap = {};
-    (equipped || []).forEach(e => { equippedMap[e.slot] = e; });
+    const equippedKeys = new Set();
+    (equipped || []).forEach(e => { equippedMap[e.slot] = e; equippedKeys.add(e.equipment_key); });
 
     let html = '<div class="drawer-section-label">已装备</div><div class="equip-slots-row">';
     slotOrder.forEach(slot => {
@@ -453,6 +461,7 @@ const UI = {
       html += available.map(eq => {
         const stats = eq.stats || {};
         const statsStr = Object.entries(stats).map(([k, v]) => `${UI._labelStat(k)}: ${v > 0 ? '+' : ''}${v}`).join(' | ');
+        const isEquipped = equippedKeys.has(eq.equipment_key);
         return `<div class="drawer-card">
           <div class="drawer-card-title rarity-${eq.rarity || 'common'}">${eq.name}</div>
           <div class="drawer-card-desc">${eq.description}</div>
@@ -461,8 +470,8 @@ const UI = {
             <span>${statsStr}</span>
           </div>
           <div class="drawer-card-actions">
-            <span style="font-size:12px;color:${eq.can_equip ? 'var(--green)' : 'var(--red)'}">${eq.can_equip ? '可装备' : '等级不足'}</span>
-            ${eq.owned && eq.can_equip ? `<button class="btn-action btn-sm" onclick="GameClient.equipItem('${eq.equipment_key}')">装备</button>` : ''}
+            ${isEquipped ? '<span style="font-size:12px;color:var(--green)">已装备</span>' : `<span style="font-size:12px;color:${eq.can_equip ? 'var(--green)' : 'var(--red)'}">${eq.can_equip ? '可装备' : '等级不足'}</span>`}
+            ${eq.owned && eq.can_equip && !isEquipped ? `<button class="btn-action btn-sm" onclick="GameClient.equipItem('${eq.equipment_key}')">装备</button>` : ''}
           </div>
         </div>`;
       }).join('');
@@ -782,6 +791,7 @@ const UI = {
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     const item = document.querySelector(`.nav-item[data-feature="${featureName}"]`);
     if (item) item.classList.add('active');
+    this._highlightMobileNav(featureName);
   },
 
   // ===== Warning Modal =====
@@ -1906,18 +1916,20 @@ const UI = {
     html += '<div class="archive-lore">你是一名"读者"——被星座选中的化身。作为读者，你拥有阅读世界线、预知未来的能力。但更重要的是，你拥有"选择"的权利。每一个决定，都在书写属于你自己的传说。星座通过你传播自己的大名，而你通过星座获得超乎常人的力量。这是一场横跨无数世界线的共生——星座与化身之间的"故事交易"。</div>';
     html += '</div>';
 
-    // ── Section 2: 六大背后星 ──
+    // ── Section 2: 八大背后星 ──
     html += '<div class="archive-section">';
-    html += '<div class="archive-section-title">六大背后星</div>';
-    html += '<div class="archive-lore">在星流的上层，矗立着六颗最为强大的星座。它们各据一方，寻找着值得"赞助"的读者。你的背后星将决定你的命运走向。</div>';
+    html += '<div class="archive-section-title">八大背后星</div>';
+    html += '<div class="archive-lore">在星流的上层，矗立着八颗最为强大的星座。它们各据一方，寻找着值得"赞助"的读者。你的背后星将决定你的命运走向。</div>';
 
     var constellations = [
-      { key: 'golden_sun', name: '烈日之金乌', icon: '☀', story: '古老太阳的化身。在远古的星座战争中，金乌以一袭三足乌鸦之姿降临，焚尽了入侵星流的异界军团。如今它已沉默数千年，只在极少数值得"燃烧"的读者面前显露光芒。金乌不关心正义或邪恶——它只关心你的名字能燃烧得多明亮。', trait: '擅攻 · 暴击取向 · 灼热贯穿' },
-      { key: 'black_flame_dragon', name: '深渊黑炎龙', icon: '🐉', story: '栖息于世界最深渊处的黑色巨龙。它的龙息能焚尽万物，它的鳞片比任何金属都要坚硬。在无数世界线中，黑炎龙只眷顾那些敢于孤身面对毁灭的化身。毁灭即是新生——这是它唯一的信条。', trait: '纯攻取向 · 速度抢先 · 防御偏低' },
-      { key: 'abyss_eye', name: '全知深渊眼', icon: '👁', story: '悬挂在世界线缝隙中的巨大眼睛。它注视一切，洞察一切。传说深渊之眼是一位陨落的古神遗留的最后感官，它寻找着能够"看穿故事真相"的读者。被它眷顾的人，能够看到敌人最脆弱的瞬间。', trait: '暴击取向 · 弱点洞察 · 精确命中' },
-      { key: 'wheel_of_fate', name: '因果命运轮', icon: '⚙', story: '转动于因果之间的巨轮，刻满了无数世界线的走向。命运之轮没有意志，只有规律。它眷顾那些理解"概率"的人——在正确的时间出现在正确的地点，这就是最强的能力。', trait: '速度取向 · 幸运提升 · 先手优势' },
-      { key: 'queen_of_underworld', name: '冥界之女王', icon: '♛', story: '掌管冥界的高贵女王，万千亡魂的主宰。她并非冷酷无情——恰恰相反，她深知生命的价值。在她的眷顾下，死亡的边界变得模糊。冥界女王庇佑那些愿意为他人牺牲的灵魂。', trait: '防御取向 · 持久战 · 死亡抗性' },
-      { key: 'star_stream_watcher', name: '星流观测者', icon: '✦', story: '默默守护星流的古老存在，无人知晓它的真名。它不追求战争的胜利，不渴望荣耀的传播——它只是静静观看星流的流动，偶尔对那些有趣的读者投去一抹微光。均衡是它的哲学，持久是它的力量。', trait: '均衡取向 · 硬币加成 · 全面稳定' }
+      { key: 'golden_sun', name: '最古之金乌', icon: '☀', story: '自天地初开便以三足乌鸦之姿存在的古老神话。在远古的星座战争中，金乌焚尽了入侵星流的异界军团。如今它已沉默数千年，只在极少数值得"燃烧"的读者面前显露光芒。金乌不关心正义或邪恶——它只关心你的名字能燃烧得多明亮。', trait: '擅攻 · 暴击取向 · 灼热贯穿' },
+      { key: 'black_flame_dragon', name: '深渊的黑炎龙', icon: '🐉', story: '栖息于星之深渊最底层的黑焰巨龙。15岁的黑焰皇帝。它的龙息能焚尽万物，它的鳞片比任何金属都要坚硬。在无数世界线中，黑炎龙只眷顾那些敢于孤身面对毁灭的化身。毁灭即是新生——这是它唯一的信条。', trait: '纯攻取向 · 速度抢先 · 防御偏低' },
+      { key: 'demon_judge_of_fire', name: '恶魔般的火之审判者', icon: '🔥', story: '燃烧地狱烈焰的大天使，星流中最炽热的正义化身。她爱着世间一切故事与美好，对所有化身都怀有赤诚的关心。但面对邪恶时，她从不手软。被她的火焰燃烧的不仅是敌人，还有你自己——你是否配得上这份炽热的信任？', trait: '攻速均衡 · 暴击加成 · 正义之焰' },
+      { key: 'abyss_eye', name: '深渊的凝视者', icon: '👁', story: '悬挂在世界线缝隙中的远古意识。它注视一切，洞察一切。传说深渊之眼是一位陨落的古神遗留的最后感官，它寻找着能够"看穿故事真相"的读者。被它眷顾的人，能够看到敌人最脆弱的瞬间。', trait: '暴击取向 · 弱点洞察 · 精确命中' },
+      { key: 'wheel_of_fate', name: '因果的编织者', icon: '⚙', story: '在因果之线中编织命运的远古存在。命运之轮没有意志，只有规律。它眷顾那些理解"概率"的人——在正确的时间出现在正确的地点，这就是最强的能力。', trait: '速度取向 · 幸运提升 · 先手优势' },
+      { key: 'queen_of_underworld', name: '冥界的女王', icon: '♛', story: '掌管冥界暗之权力的女王，万千亡魂的主宰。她并非冷酷无情——恰恰相反，她深知生命的价值。在她的眷顾下，死亡的边界变得模糊。冥界女王庇佑那些愿意为他人牺牲的灵魂。', trait: '防御取向 · 持久战 · 死亡抗性' },
+      { key: 'maritime_war_god', name: '海上不败战神', icon: '⚔', story: '大海上从未败过的战争之神。忠诚、正义，永远守护自己所信之物。他的旗帜在每一个战场上飘扬，他的名号让敌人闻风丧胆。被这位战神眷顾者，当于星流中竖起不败的旗帜。', trait: '防御取向 · 速度加成 · 坚不可摧' },
+      { key: 'star_stream_watcher', name: '星流的守望者', icon: '✦', story: '默默守望星之流不知多少纪元的古老存在，无人知晓它的真名。它不追求战争的胜利，不渴望荣耀的传播——它只是静静观看星流的流动，偶尔对那些有趣的读者投去一抹微光。均衡是它的哲学，持久是它的力量。', trait: '均衡取向 · 硬币加成 · 全面稳定' }
     ];
 
     for (var i = 0; i < constellations.length; i++) {
@@ -1946,9 +1958,11 @@ const UI = {
       var builds = {
         golden_sun: { primary: '攻击', secondary: '暴击', tip: '优先将自由点数分配给攻击和暴击。高攻击配合暴击能在最短时间内摧毁敌人。' },
         black_flame_dragon: { primary: '攻击', secondary: '速度', tip: '纯粹的攻击力是你的核心。以速度抢占先手，一击制敌。防御偏低，以攻代守。' },
+        demon_judge_of_fire: { primary: '攻击', secondary: '速度', tip: '攻击与速度均衡分配。审判之火需要攻速兼备，才能及时对邪恶降下制裁。' },
         abyss_eye: { primary: '暴击', secondary: '攻击', tip: '暴击率是你的核心属性。高暴击意味着每次攻击都有几率造成致命伤害。' },
         wheel_of_fate: { primary: '速度', secondary: '攻击', tip: '速度决定先手权。在命运转动之前出击，让敌人来不及反应。' },
         queen_of_underworld: { primary: '防御', secondary: '攻击', tip: '高防御让你在持久战中屹立不倒。你不需要最快，只需要比敌人更持久。' },
+        maritime_war_god: { primary: '防御', secondary: '速度', tip: '防御为先，速度为辅。不败战神之名来自于永不倒下的意志和及时的战机把握。' },
         star_stream_watcher: { primary: '均衡', secondary: '攻击', tip: '各项属性均衡分配，不偏科。你的优势在于稳定和持久。' }
       };
       var b = builds[conKey];
@@ -1963,5 +1977,35 @@ const UI = {
     }
 
     return html;
+  },
+
+  // ===== Mobile Navigation =====
+  toggleMobileMoreMenu() {
+    const overlay = document.getElementById('mobileMoreOverlay');
+    if (!overlay) return;
+    if (overlay.classList.contains('hidden')) {
+      overlay.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    } else {
+      this.closeMobileMoreMenu();
+    }
+  },
+
+  closeMobileMoreMenu() {
+    const overlay = document.getElementById('mobileMoreOverlay');
+    if (overlay) overlay.classList.add('hidden');
+    document.body.style.overflow = '';
+  },
+
+  _highlightMobileNav(feature) {
+    document.querySelectorAll('.mbn-item').forEach(item => {
+      const feat = item.dataset.mobileFeature;
+      if (!feat) return;
+      if (feat === feature || (feature === 'explore' && feat === 'explore') || (feature === 'story' && feat === 'story')) {
+        item.classList.add('mbn-active');
+      } else {
+        item.classList.remove('mbn-active');
+      }
+    });
   }
 };

@@ -227,7 +227,8 @@ function runMigrations(database) {
   }
 
   if (!columnExists('players', 'last_heartbeat')) {
-    database.run("ALTER TABLE players ADD COLUMN last_heartbeat TEXT NOT NULL DEFAULT (datetime('now','localtime'))");
+    database.run("ALTER TABLE players ADD COLUMN last_heartbeat TEXT NOT NULL DEFAULT ''");
+    database.run("UPDATE players SET last_heartbeat = datetime('now','localtime') WHERE last_heartbeat = ''");
   }
 
   database.run(`

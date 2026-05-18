@@ -70,7 +70,24 @@ function create(playerName, userId) {
     JSON.stringify([]),
     userId || null
   );
-  return get(result.lastInsertRowid);
+
+  const playerId = result.lastInsertRowid;
+
+  // Grant starter equipment
+  const starterEquipment = ['rusty_dagger', 'station_guard_coat', 'old_reader_badge'];
+  const insertInv = db.prepare('INSERT INTO player_inventory (player_id, item_key, quantity) VALUES (?, ?, 1)');
+  const insertEquip = db.prepare('INSERT OR IGNORE INTO player_equipment (player_id, equipment_key, slot) VALUES (?, ?, ?)');
+
+  for (const equipmentKey of starterEquipment) {
+    insertInv.run(playerId, equipmentKey);
+    const eqDef = db.prepare('SELECT slot FROM equipment WHERE equipment_key = ?').get(equipmentKey);
+    if (eqDef) {
+      insertEquip.run(playerId, equipmentKey, eqDef.slot);
+    }
+  }
+
+  addLog(playerId, '获得初始装备: 生锈短刀、车站守卫外套、旧读者徽章');
+  return get(playerId);
 }
 
 function get(id) {

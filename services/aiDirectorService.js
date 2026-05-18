@@ -325,7 +325,11 @@ async function callOpenAI(apiKey, model, systemPrompt) {
 }
 
 async function callCustomLLM(apiKey, model, systemPrompt, baseUrl) {
-  const url = baseUrl || process.env.LLM_BASE_URL || 'https://api.openai.com/v1/chat/completions';
+  let url = baseUrl || process.env.LLM_BASE_URL || 'https://api.openai.com/v1/chat/completions';
+  // Auto-append /v1/chat/completions if only a base domain is provided (e.g. https://api.deepseek.com)
+  if (!url.includes('/chat/completions')) {
+    url = url.replace(/\/$/, '') + '/v1/chat/completions';
+  }
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },

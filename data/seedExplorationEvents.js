@@ -226,7 +226,7 @@ function seedExplorationEvents(db) {
     ['opp_equipment_find', 'opportunity', null, 'broken_market',
       '装备机遇：遗落的护甲', '商场的保安室里挂着一件轻型防弹背心——上面覆盖着一层薄灰，但依然完好。也许是某个保安在世时最后的遗物。它可能救不了世界，但至少能救你一次。',
       1.0, 0, '{}',
-      '{"coins":10,"equipment":"kevlar_vest_basic","items":["small_hp_potion"]}',
+      '{"coins":10,"equipment":"station_guard_coat","items":["small_hp_potion"]}',
       '{}',
       '{}'],
     ['opp_hidden_story_clue', 'opportunity', null, 'black_channel_zone',

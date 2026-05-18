@@ -479,26 +479,6 @@ function handleOpportunityEvent(db, playerId, locationKey, stageProgress, player
   applyEventRewards(playerId, rewards);
   applyEventRisks(playerId, risks);
 
-  // 装备奖励特殊处理
-  if (rewards.equipment) {
-    inventoryService.addItem(playerId, rewards.equipment, 1);
-    // Resolve equipment name for frontend display
-    try {
-      const eqRow = db.prepare('SELECT name FROM equipment WHERE equipment_key = ?').get(rewards.equipment);
-      if (eqRow) rewards.equipment_name = eqRow.name;
-    } catch (e) { /* non-critical */ }
-  }
-  // 道具奖励
-  if (rewards.items) {
-    for (const itemKey of rewards.items) {
-      inventoryService.addItem(playerId, itemKey, 1);
-    }
-  }
-  // 称号进度
-  if (rewards.title_progress) {
-    titleService.incrementTitleProgress(playerId, rewards.title_progress);
-  }
-
   if (!stageProgress.opportunityEventsTriggered.includes(event.event_key)) {
     stageProgress.opportunityEventsTriggered.push(event.event_key);
   }
@@ -678,6 +658,26 @@ function applyEventRewards(playerId, rewards, player) {
     for (const s of rewards.sponsors_add) {
       if (!sponsors.includes(s)) sponsors.push(s);
     }
+  }
+
+  // Equipment reward — add to inventory
+  if (rewards.equipment) {
+    const db = getDb();
+    inventoryService.addItem(playerId, rewards.equipment, 1);
+    try {
+      const eqRow = db.prepare('SELECT name FROM equipment WHERE equipment_key = ?').get(rewards.equipment);
+      if (eqRow) rewards.equipment_name = eqRow.name;
+    } catch (e) { /* non-critical */ }
+  }
+  // Item rewards
+  if (rewards.items) {
+    for (const itemKey of rewards.items) {
+      inventoryService.addItem(playerId, itemKey, 1);
+    }
+  }
+  // Title progress
+  if (rewards.title_progress) {
+    titleService.incrementTitleProgress(playerId, rewards.title_progress);
   }
 
   // 阶段资源

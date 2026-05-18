@@ -975,8 +975,8 @@ async function run() {
   ok('发放技能后 player_skills 有记录', !!skillCheck);
 
   // Grant equipment
-  db.prepare('INSERT OR IGNORE INTO player_equipment (player_id, equipment_key, slot) VALUES (?, ?, ?)').run(testQuickPlayer.id, 'eq_old_dagger', 'weapon');
-  const equipCheck = db.prepare('SELECT * FROM player_equipment WHERE player_id = ? AND equipment_key = ?').get(testQuickPlayer.id, 'eq_old_dagger');
+  db.prepare('INSERT OR IGNORE INTO player_equipment (player_id, equipment_key, slot) VALUES (?, ?, ?)').run(testQuickPlayer.id, 'rusty_dagger', 'weapon');
+  const equipCheck = db.prepare('SELECT * FROM player_equipment WHERE player_id = ? AND equipment_key = ?').get(testQuickPlayer.id, 'rusty_dagger');
   ok('发放装备后 player_equipment 有记录', !!equipCheck);
 
   header('测试服后台: 进度调整校验');

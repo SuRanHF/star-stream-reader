@@ -226,6 +226,21 @@ function runMigrations(database) {
     database.run("ALTER TABLE players ADD COLUMN chapter_actions_json TEXT NOT NULL DEFAULT '{}'");
   }
 
+  if (!columnExists('players', 'last_heartbeat')) {
+    database.run("ALTER TABLE players ADD COLUMN last_heartbeat TEXT NOT NULL DEFAULT (datetime('now','localtime'))");
+  }
+
+  database.run(`
+    CREATE TABLE IF NOT EXISTS pk_challenges (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      attacker_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+      defender_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','accepted','rejected','expired')),
+      created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+      resolved_at TEXT
+    )
+  `);
+
   database.run(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

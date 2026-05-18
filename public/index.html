@@ -123,6 +123,7 @@
     <div class="mobile-top-bar" id="mobileTopBar">
       <div class="mtb-left">
         <span class="mtb-name" id="mtbName">未命名读者</span>
+        <span class="mtb-rank" id="mtbRank">F级</span>
         <span class="mtb-lv" id="mtbLevel">Lv.1</span>
       </div>
       <div class="mtb-right">
@@ -171,6 +172,8 @@
           <button class="mobile-more-item" onclick="GameClient.openFeature('rankings');UI.closeMobileMoreMenu()"><span class="mm-icon">☰</span>排行</button>
           <button class="mobile-more-item" onclick="GameClient.openFeature('broadcast');UI.closeMobileMoreMenu()"><span class="mm-icon">★</span>放送</button>
           <button class="mobile-more-item" onclick="GameClient.openFeature('archive');UI.closeMobileMoreMenu()"><span class="mm-icon">◈</span>档案</button>
+          <button class="mobile-more-item" onclick="GameClient.openFeature('underworld');UI.closeMobileMoreMenu()"><span class="mm-icon">💀</span>冥界</button>
+          <button class="mobile-more-item" onclick="GameClient.openFeature('changelog');UI.closeMobileMoreMenu()"><span class="mm-icon">📋</span>更新</button>
           <button class="mobile-more-item" onclick="GameClient.openFeature('settings');UI.closeMobileMoreMenu()"><span class="mm-icon">⚙</span>设置</button>
           <button class="mobile-more-item" onclick="GameClient.openFeature('feedback');UI.closeMobileMoreMenu()"><span class="mm-icon">✉</span>反馈</button>
         </div>
@@ -323,6 +326,13 @@
           <span class="nav-icon">⚙</span><span class="nav-text">设置</span>
         </button>
         <div class="nav-divider"></div>
+        <button class="nav-item nav-item-secondary" data-feature="underworld" title="冥界">
+          <span class="nav-icon">💀</span><span class="nav-text">冥界</span>
+        </button>
+        <button class="nav-item nav-item-secondary" data-feature="changelog" title="更新历史">
+          <span class="nav-icon">📋</span><span class="nav-text">更新</span>
+        </button>
+        <div class="nav-divider"></div>
         <button class="nav-item nav-item-secondary" data-feature="story" title="主线聚焦">
           <span class="nav-icon">▸</span><span class="nav-text">主线</span>
         </button>
@@ -434,14 +444,24 @@
       </div>
     </div>
 
-    <!-- Underworld Revival Popup -->
+    <!-- Underworld Revival Popup (cannot dismiss — must wait for revive) -->
     <div class="popup-overlay hidden" id="underworldPopupOverlay">
       <div class="popup-dialog underworld-popup" id="underworldPopupDialog">
         <div class="popup-header">
           <span class="popup-chapter-title" style="color:var(--purple);">冥界</span>
-          <button class="popup-close" onclick="GameClient.dismissUnderworld()">✕</button>
         </div>
         <div class="popup-body" id="underworldPopupBody"></div>
+      </div>
+    </div>
+
+    <!-- PK Challenge Notification Popup -->
+    <div class="popup-overlay hidden" id="challengePopupOverlay">
+      <div class="popup-dialog" style="max-width:380px;">
+        <div class="popup-header">
+          <span class="popup-chapter-title">⚔ PK挑战</span>
+          <button class="popup-close" onclick="UI.dismissChallengePopup()">✕</button>
+        </div>
+        <div class="popup-body" id="challengePopupBody"></div>
       </div>
     </div>
 

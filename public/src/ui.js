@@ -1397,7 +1397,7 @@ const UI = {
     }
 
     // Free attribute points allocation
-    html += `<div class="ds-section-label" style="margin-top:12px;">自由属性 <span style="color:var(--gold);" id="freePointsLabel">剩余: ${freePoints}</span></div>`;
+    html += `<div class="ds-section-label" style="margin-top:12px;">自由属性 <span style="color:var(--gold);" id="freePointsLabel" data-total="${freePoints}">剩余: ${freePoints}</span></div>`;
     if (freePoints > 0) {
       html += '<div class="alloc-grid">';
       const allocRow = (label, id, key) => `
@@ -1512,38 +1512,68 @@ const UI = {
     if (!input) return;
     let val = parseInt(input.value) || 0;
     const newVal = val + delta;
-    if (newVal < 0) return;
+    if (newVal < 0) {
+      UI._triggerBlockedFeedback(input);
+      return;
+    }
 
     const ids = ['allocAtk', 'allocDef', 'allocSpd', 'allocCrit'];
-    let currentTotal = 0;
+    let otherTotal = 0;
     ids.forEach(id => {
       if (id === inputId) return;
-      currentTotal += parseInt(document.getElementById(id)?.value) || 0;
+      otherTotal += parseInt(document.getElementById(id)?.value) || 0;
     });
-    currentTotal += newVal;
-
     const maxPoints = UI._getStoredFreePoints();
-    if (currentTotal <= maxPoints) {
-      input.value = newVal;
-      UI._updateFreePointsLabel(maxPoints, currentTotal);
-      UI._validateAllInputs();
+
+    // Block increment if it would exceed max points
+    if (delta > 0 && otherTotal + newVal > maxPoints) {
+      UI._triggerBlockedFeedback(input);
+      return;
     }
+
+    input.value = newVal;
+
+    // Scroll animation
+    input.classList.remove('scroll-up', 'scroll-down');
+    void input.offsetWidth;
+    input.classList.add(delta > 0 ? 'scroll-up' : 'scroll-down');
+
+    UI._updateFreePointsLabel(maxPoints, otherTotal + newVal);
+    UI._validateAllInputs();
+  },
+
+  _triggerBlockedFeedback(input) {
+    input.style.borderColor = '';
+    input.style.boxShadow = '';
+    input.classList.remove('blocked');
+    void input.offsetWidth;
+    input.classList.add('blocked');
+    setTimeout(() => input.classList.remove('blocked'), 1600);
   },
 
   _onAllocChange(input) {
     const val = parseInt(input.value) || 0;
     if (val < 0) { input.value = 0; }
     const ids = ['allocAtk', 'allocDef', 'allocSpd', 'allocCrit'];
+    let otherTotal = 0;
+    ids.forEach(id => {
+      if (id === input.id) return;
+      otherTotal += parseInt(document.getElementById(id)?.value) || 0;
+    });
+    const maxPoints = UI._getStoredFreePoints();
+    const clamped = Math.min(val, maxPoints - otherTotal);
+    if (clamped !== val) {
+      input.value = Math.max(0, clamped);
+    }
     let total = 0;
     ids.forEach(id => { total += parseInt(document.getElementById(id)?.value) || 0; });
-    const maxPoints = UI._getStoredFreePoints();
     UI._updateFreePointsLabel(maxPoints, total);
     UI._validateAllInputs();
   },
 
   _getStoredFreePoints() {
     const label = document.getElementById('freePointsLabel');
-    if (label) { const m = label.textContent.match(/剩余:\s*(\d+)/); if (m) return parseInt(m[1]); }
+    if (label && label.dataset.total) return parseInt(label.dataset.total);
     return 0;
   },
 

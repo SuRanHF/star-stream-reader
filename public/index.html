@@ -13,7 +13,7 @@
        Beta Banner — 测试服提示
        ================================================================ -->
   <div id="betaBanner" style="background:#2a1a0a;color:#c9a860;text-align:center;padding:6px 12px;font-size:12px;border-bottom:1px solid #3a2a1a;">
-    【测试服】当前版本用于群友试玩和反馈，数据可能在更新时重置。
+    【测试服 v1.0.7】当前版本用于群友试玩和反馈，数据可能在更新时重置。
   </div>
 
   <!-- ================================================================
@@ -180,6 +180,245 @@
       </div>
     </div>
 
+
+    <!-- ================================================================
+         Mobile UI: Design A — 星流仪表盘 (Dashboard)
+         ================================================================ -->
+    <!-- Floating Status Pill -->
+    <div class="mobile-db-status-pill" id="mobileDbStatusPill">
+      <span class="db-pill-name" id="dbPillName">未命名读者</span>
+      <span class="db-pill-sep">·</span>
+      <span class="db-pill-rank" id="dbPillRank">F级</span>
+      <span class="db-pill-sep">·</span>
+      <span class="db-pill-lv" id="dbPillLv">Lv.1</span>
+      <span class="db-pill-sep">·</span>
+      <span class="db-pill-hp" id="dbPillHp">♥ 100</span>
+      <span class="db-pill-sep">·</span>
+      <span class="db-pill-sta" id="dbPillSta">⚡ 50</span>
+    </div>
+
+    <!-- FAB + Fan Menu -->
+    <button class="mobile-db-fab" id="mobileDbFab" onclick="UI.toggleFabMenu()">✦</button>
+    <div class="mobile-db-fab-menu hidden" id="mobileDbFabMenu" onclick="UI.closeFabMenu()">
+      <div class="db-fab-items" onclick="event.stopPropagation()">
+        <button class="db-fab-item" onclick="GameClient.openFeature('inventory');UI.closeFabMenu()"><span class="db-fab-icon">▤</span><span>背包</span></button>
+        <button class="db-fab-item" onclick="GameClient.openFeature('equipment');UI.closeFabMenu()"><span class="db-fab-icon">◆</span><span>装备</span></button>
+        <button class="db-fab-item" onclick="GameClient.openFeature('skills');UI.closeFabMenu()"><span class="db-fab-icon">✦</span><span>技能</span></button>
+        <button class="db-fab-item" onclick="GameClient.openFeature('titles');UI.closeFabMenu()"><span class="db-fab-icon">♛</span><span>称号</span></button>
+        <button class="db-fab-item" onclick="GameClient.openFeature('pk');UI.closeFabMenu()"><span class="db-fab-icon">⚔</span><span>PK</span></button>
+        <button class="db-fab-item" onclick="GameClient.openFeature('rankings');UI.closeFabMenu()"><span class="db-fab-icon">☰</span><span>排行</span></button>
+        <button class="db-fab-item" onclick="GameClient.openFeature('broadcast');UI.closeFabMenu()"><span class="db-fab-icon">★</span><span>放送</span></button>
+        <button class="db-fab-item" onclick="GameClient.openFeature('archive');UI.closeFabMenu()"><span class="db-fab-icon">◈</span><span>档案</span></button>
+        <button class="db-fab-item" onclick="GameClient.openFeature('underworld');UI.closeFabMenu()"><span class="db-fab-icon">💀</span><span>冥界</span></button>
+        <button class="db-fab-item" onclick="GameClient.openFeature('changelog');UI.closeFabMenu()"><span class="db-fab-icon">📋</span><span>更新</span></button>
+        <button class="db-fab-item" onclick="GameClient.openFeature('settings');UI.closeFabMenu()"><span class="db-fab-icon">⚙</span><span>设置</span></button>
+        <button class="db-fab-item" onclick="GameClient.openFeature('feedback');UI.closeFabMenu()"><span class="db-fab-icon">✉</span><span>反馈</span></button>
+      </div>
+    </div>
+
+    <!-- Dashboard Bottom Nav (3-tab) -->
+    <nav class="mobile-db-bottom-nav" id="mobileDbBottomNav">
+      <button class="db-nav-item db-nav-active" onclick="GameClient.openFeature('story')"><span>▸</span> 主线</button>
+      <button class="db-nav-item" onclick="GameClient.openMapFromMobile()"><span>◎</span> 探索</button>
+      <button class="db-nav-item" onclick="GameClient.doRest()"><span>🛌</span> 休息</button>
+    </nav>
+
+    <!-- Dashboard Right Menu (swipe-in) -->
+    <div class="mobile-db-right-menu hidden" id="mobileDbRightMenu" onclick="UI.closeDbRightMenu()">
+      <div class="db-right-panel" onclick="event.stopPropagation()">
+        <div class="db-right-header">
+          <span>功能导航</span>
+          <button onclick="UI.closeDbRightMenu()">✕</button>
+        </div>
+        <div class="db-right-grid">
+          <button class="db-right-item" onclick="GameClient.openFeature('inventory');UI.closeDbRightMenu()"><span class="db-right-icon">▤</span><span class="db-right-label">背包</span><span class="db-right-badge">--</span></button>
+          <button class="db-right-item" onclick="GameClient.openFeature('equipment');UI.closeDbRightMenu()"><span class="db-right-icon">◆</span><span class="db-right-label">装备</span><span class="db-right-badge">--</span></button>
+          <button class="db-right-item" onclick="GameClient.openFeature('skills');UI.closeDbRightMenu()"><span class="db-right-icon">✦</span><span class="db-right-label">技能</span><span class="db-right-badge">--</span></button>
+          <button class="db-right-item" onclick="GameClient.openFeature('titles');UI.closeDbRightMenu()"><span class="db-right-icon">♛</span><span class="db-right-label">称号</span><span class="db-right-badge">--</span></button>
+          <button class="db-right-item" onclick="GameClient.openFeature('pk');UI.closeDbRightMenu()"><span class="db-right-icon">⚔</span><span class="db-right-label">PK</span><span class="db-right-badge">--</span></button>
+          <button class="db-right-item" onclick="GameClient.openFeature('rankings');UI.closeDbRightMenu()"><span class="db-right-icon">☰</span><span class="db-right-label">排行</span><span class="db-right-badge">--</span></button>
+          <button class="db-right-item" onclick="GameClient.openFeature('broadcast');UI.closeDbRightMenu()"><span class="db-right-icon">★</span><span class="db-right-label">放送</span><span class="db-right-badge">--</span></button>
+          <button class="db-right-item" onclick="GameClient.openFeature('archive');UI.closeDbRightMenu()"><span class="db-right-icon">◈</span><span class="db-right-label">档案</span><span class="db-right-badge">--</span></button>
+          <button class="db-right-item" onclick="GameClient.openFeature('underworld');UI.closeDbRightMenu()"><span class="db-right-icon">💀</span><span class="db-right-label">冥界</span><span class="db-right-badge">--</span></button>
+          <button class="db-right-item" onclick="GameClient.openFeature('changelog');UI.closeDbRightMenu()"><span class="db-right-icon">📋</span><span class="db-right-label">更新</span><span class="db-right-badge">--</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================
+         Mobile UI: Design B — 沉浸式阅读器 (Immersive Reader)
+         ================================================================ -->
+    <!-- Minimal top bar (28px) -->
+    <div class="mobile-ir-top-bar" id="mobileIrTopBar">
+      <span class="ir-top-rank" id="irTopRank">F级 Lv.1</span>
+      <span class="ir-top-hp" id="irTopHp">♥ 100</span>
+      <span class="ir-top-sta" id="irTopSta">⚡ 50</span>
+      <span class="ir-top-coins" id="irTopCoins">◎ 0</span>
+    </div>
+
+    <!-- Immersive Reader Bottom Nav (4-tab) -->
+    <nav class="mobile-ir-bottom-nav" id="mobileIrBottomNav">
+      <button class="ir-nav-item ir-nav-active" onclick="GameClient.openFeature('story')"><span>▸</span> 主线</button>
+      <button class="ir-nav-item" onclick="GameClient.openMapFromMobile()"><span>◎</span> 探索</button>
+      <button class="ir-nav-item" onclick="GameClient.openFeature('inventory')"><span>▤</span> 背包</button>
+      <button class="ir-nav-item" onclick="UI.toggleIrMoreMenu()"><span>☰</span> 更多</button>
+    </nav>
+
+    <!-- Immersive Reader More Menu (half-screen) -->
+    <div class="mobile-ir-more-overlay hidden" id="mobileIrMoreOverlay" onclick="UI.closeIrMoreMenu()">
+      <div class="ir-more-panel" id="irMorePanel" onclick="event.stopPropagation()">
+        <div class="ir-more-handle"></div>
+        <div class="ir-more-player-bar" id="irMorePlayerBar" onclick="GameClient.loadDetailedStats();UI.closeIrMoreMenu()">
+          <span class="ir-more-name" id="irMoreName">未命名读者</span>
+          <span class="ir-more-rank" id="irMoreRank">F级</span>
+          <span class="ir-more-lv" id="irMoreLv">Lv.1</span>
+        </div>
+        <div class="ir-more-grid">
+          <button class="ir-more-item" onclick="GameClient.openFeature('equipment');UI.closeIrMoreMenu()"><span>◆</span>装备</button>
+          <button class="ir-more-item" onclick="GameClient.openFeature('skills');UI.closeIrMoreMenu()"><span>✦</span>技能</button>
+          <button class="ir-more-item" onclick="GameClient.openFeature('titles');UI.closeIrMoreMenu()"><span>♛</span>称号</button>
+          <button class="ir-more-item" onclick="GameClient.openFeature('pk');UI.closeIrMoreMenu()"><span>⚔</span>PK</button>
+          <button class="ir-more-item" onclick="GameClient.openFeature('rankings');UI.closeIrMoreMenu()"><span>☰</span>排行</button>
+          <button class="ir-more-item" onclick="GameClient.openFeature('broadcast');UI.closeIrMoreMenu()"><span>★</span>放送</button>
+          <button class="ir-more-item" onclick="GameClient.openFeature('archive');UI.closeIrMoreMenu()"><span>◈</span>档案</button>
+          <button class="ir-more-item" onclick="GameClient.openFeature('underworld');UI.closeIrMoreMenu()"><span>💀</span>冥界</button>
+          <button class="ir-more-item" onclick="GameClient.openFeature('changelog');UI.closeIrMoreMenu()"><span>📋</span>更新</button>
+          <button class="ir-more-item" onclick="GameClient.openFeature('settings');UI.closeIrMoreMenu()"><span>⚙</span>设置</button>
+          <button class="ir-more-item" onclick="GameClient.openFeature('feedback');UI.closeIrMoreMenu()"><span>✉</span>反馈</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================
+         Mobile UI: Design C — 故事轮盘 (Story Wheel)
+         ================================================================ -->
+    <!-- Top icon bar (with player data) -->
+    <div class="mobile-sw-top-bar" id="mobileSwTopBar">
+      <button class="sw-top-btn" onclick="UI.toggleSwHamburger()">☰</button>
+      <span class="sw-top-player">
+        <span class="sw-top-name" id="swTopName">未命名</span>
+        <span class="sw-top-rank" id="swTopRank">F级</span>
+        <span class="sw-top-hp" id="swTopHp">♥ 100</span>
+        <span class="sw-top-coins" id="swTopCoins">◎ 0</span>
+      </span>
+      <span class="sw-top-icons">
+        <button class="sw-top-btn" onclick="GameClient.openFeature('feedback')">💬</button>
+        <button class="sw-top-btn" onclick="GameClient.openFeature('changelog')">🔔</button>
+      </span>
+    </div>
+
+    <!-- Hamburger slide menu -->
+    <div class="mobile-sw-hamburger-overlay hidden" id="mobileSwHamburgerOverlay" onclick="UI.closeSwHamburger()">
+      <div class="sw-hamburger-panel" onclick="event.stopPropagation()">
+        <div class="sw-hamburger-header">
+          <span>星流观测站</span>
+          <button onclick="UI.closeSwHamburger()">✕</button>
+        </div>
+        <div class="sw-hamburger-player" onclick="GameClient.loadDetailedStats();UI.closeSwHamburger()">
+          <span class="sw-ham-name" id="swHamName">未命名读者</span>
+          <span class="sw-ham-rank" id="swHamRank">F级·临时化身</span>
+          <span class="sw-ham-lv" id="swHamLv">Lv.1</span>
+        </div>
+        <div class="sw-hamburger-links">
+          <button onclick="GameClient.openFeature('story');UI.closeSwHamburger()"><span>▸</span> 主线</button>
+          <button onclick="GameClient.openMapFromMobile();UI.closeSwHamburger()"><span>◎</span> 探索</button>
+          <button onclick="GameClient.openFeature('settings');UI.closeSwHamburger()"><span>⚙</span> 设置</button>
+          <button onclick="GameClient.doLogout()"><span>🚪</span> 退出登录</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Collapsible status bubble -->
+    <div class="mobile-sw-status-bubble collapsed" id="mobileSwStatusBubble" onclick="UI.toggleSwStatusBubble()">
+      <div class="sw-bubble-collapsed">
+        <span class="sw-bub-name" id="swBubName">未命名读者</span>
+        <span class="sw-bub-rank" id="swBubRank">F级</span>
+        <span class="sw-bub-lv" id="swBubLv">Lv.1</span>
+        <span class="sw-bub-hp" id="swBubHp">♥ 100</span>
+        <span class="sw-bub-coins" id="swBubCoins">◎ 0</span>
+      </div>
+      <div class="sw-bubble-expanded">
+        <div class="sw-bub-exp-row">
+          <span class="sw-bub-exp-label">HP</span>
+          <div class="sw-bub-exp-bar"><div class="sw-bub-exp-fill hp-fill" id="swBubHpBar"></div></div>
+          <span class="sw-bub-exp-val" id="swBubHpVal">100/100</span>
+        </div>
+        <div class="sw-bub-exp-row">
+          <span class="sw-bub-exp-label">体力</span>
+          <div class="sw-bub-exp-bar"><div class="sw-bub-exp-fill sta-fill" id="swBubStaBar"></div></div>
+          <span class="sw-bub-exp-val" id="swBubStaVal">50/50</span>
+        </div>
+        <div class="sw-bub-exp-actions">
+          <button onclick="GameClient.loadDetailedStats()">详细属性</button>
+          <button onclick="GameClient.openAvatarRank()">查看升阶</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category cards -->
+    <div class="mobile-sw-category-cards" id="mobileSwCategoryCards">
+      <div class="sw-cat-row">
+        <div class="sw-cat-card" data-cat="combat" onclick="UI.toggleSwCat('combat')">
+          <div class="sw-cat-header"><span class="sw-cat-icon">⚔</span><span class="sw-cat-title">战斗</span></div>
+          <div class="sw-cat-items">
+            <button onclick="event.stopPropagation();GameClient.openFeature('pk')">PK</button>
+            <button onclick="event.stopPropagation();GameClient.openFeature('equipment')">装备</button>
+            <button onclick="event.stopPropagation();GameClient.openFeature('skills')">技能</button>
+          </div>
+        </div>
+        <div class="sw-cat-card" data-cat="social" onclick="UI.toggleSwCat('social')">
+          <div class="sw-cat-header"><span class="sw-cat-icon">💬</span><span class="sw-cat-title">社交</span></div>
+          <div class="sw-cat-items">
+            <button onclick="event.stopPropagation();GameClient.openFeature('underworld')">冥界</button>
+            <button onclick="event.stopPropagation();GameClient.openFeature('rankings')">排行</button>
+            <button onclick="event.stopPropagation();GameClient.openFeature('broadcast')">放送</button>
+          </div>
+        </div>
+      </div>
+      <div class="sw-cat-row">
+        <div class="sw-cat-card" data-cat="collect" onclick="UI.toggleSwCat('collect')">
+          <div class="sw-cat-header"><span class="sw-cat-icon">▤</span><span class="sw-cat-title">收集</span></div>
+          <div class="sw-cat-items">
+            <button onclick="event.stopPropagation();GameClient.openFeature('inventory')">背包</button>
+            <button onclick="event.stopPropagation();GameClient.openFeature('titles')">称号</button>
+            <button onclick="event.stopPropagation();GameClient.openFeature('archive')">档案</button>
+          </div>
+        </div>
+        <div class="sw-cat-card" data-cat="system" onclick="UI.toggleSwCat('system')">
+          <div class="sw-cat-header"><span class="sw-cat-icon">⚙</span><span class="sw-cat-title">系统</span></div>
+          <div class="sw-cat-items">
+            <button onclick="event.stopPropagation();GameClient.openFeature('settings')">设置</button>
+            <button onclick="event.stopPropagation();GameClient.openFeature('changelog')">更新</button>
+            <button onclick="event.stopPropagation();GameClient.openFeature('feedback')">反馈</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Story Wheel Bottom Nav (3-tab) -->
+    <nav class="mobile-sw-bottom-nav" id="mobileSwBottomNav">
+      <button class="sw-nav-item sw-nav-active" onclick="GameClient.openFeature('story')"><span>▸</span> 主线</button>
+      <button class="sw-nav-item" onclick="GameClient.openMapFromMobile()"><span>◎</span> 探索</button>
+      <button class="sw-nav-item" onclick="UI.toggleSwMoreMenu()"><span>⋯</span> 更多</button>
+    </nav>
+
+    <!-- Story Wheel More Menu (bottom sheet) -->
+    <div class="mobile-sw-more-overlay hidden" id="mobileSwMoreOverlay" onclick="UI.closeSwMoreMenu()">
+      <div class="sw-more-panel" onclick="event.stopPropagation()">
+        <div class="sw-more-handle"></div>
+        <div class="sw-more-grid">
+          <button class="sw-more-item" onclick="GameClient.openFeature('inventory');UI.closeSwMoreMenu()"><span>▤</span>背包</button>
+          <button class="sw-more-item" onclick="GameClient.openFeature('equipment');UI.closeSwMoreMenu()"><span>◆</span>装备</button>
+          <button class="sw-more-item" onclick="GameClient.openFeature('skills');UI.closeSwMoreMenu()"><span>✦</span>技能</button>
+          <button class="sw-more-item" onclick="GameClient.openFeature('titles');UI.closeSwMoreMenu()"><span>♛</span>称号</button>
+          <button class="sw-more-item" onclick="GameClient.openFeature('pk');UI.closeSwMoreMenu()"><span>⚔</span>PK</button>
+          <button class="sw-more-item" onclick="GameClient.openFeature('rankings');UI.closeSwMoreMenu()"><span>☰</span>排行</button>
+          <button class="sw-more-item" onclick="GameClient.openFeature('broadcast');UI.closeSwMoreMenu()"><span>★</span>放送</button>
+          <button class="sw-more-item" onclick="GameClient.openFeature('archive');UI.closeSwMoreMenu()"><span>◈</span>档案</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ====== Main Game Layout ====== -->
     <div class="game-layout">
 
@@ -268,7 +507,7 @@
             <button class="ma-btn ma-btn-explore" id="btnQuickExplore" onclick="GameClient.quickExplore()">快速探索 x3</button>
             <button class="ma-btn ma-btn-alt" id="btnChangeLocation" onclick="GameClient.changeLocation()">切换地点</button>
             <button class="ma-btn ma-btn-camp" id="btnCamp" onclick="GameClient.doCamp()">休息</button>
-            <button class="ma-btn ma-btn-alt" id="btnReturnCamp" onclick="GameClient.returnCamp()">返回营地</button>
+
           </div>
           <div class="main-action-status">
             <span class="mas-loc" id="bottomLocation">废墟车站</span>

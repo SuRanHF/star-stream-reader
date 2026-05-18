@@ -13,6 +13,7 @@ const GameClient = {
 
     this.setupNavigation();
     this.setupModals();
+    this.initMobileUI();
     this.checkChangelog();
 
     const token = Storage.getToken();
@@ -293,6 +294,53 @@ const GameClient = {
         if (feature) this.openFeature(feature);
       });
     });
+  },
+
+  // ===== Mobile UI Layout Switcher =====
+  _mobileUIMode: 'default',
+
+  initMobileUI() {
+    const saved = Storage.get('mobileUIMode') || 'default';
+    this.applyMobileUI(saved);
+  },
+
+  switchMobileUI(mode) {
+    this.applyMobileUI(mode);
+    Storage.set('mobileUIMode', mode);
+  },
+
+  applyMobileUI(mode) {
+    this._mobileUIMode = mode;
+    UI._applyMobileUi(mode);
+  },
+
+  updateMobileUI(player) {
+    if (!player) return;
+    var s = player.stats || player;
+    var hp = s.hp || 0, maxHp = s.maxHp || 100, stamina = s.stamina || 0, maxStamina = s.maxStamina || 50;
+    var rankKey = s.avatarRank || 'F', rankName = s.avatarRankName || '临时化身';
+    // Design A — floating pill
+    UI.setText('dbPillName', player.player_name);
+    UI.setText('dbPillRank', rankKey + '级·' + rankName);
+    UI.setText('dbPillLv', 'Lv.' + (s.level || 1));
+    UI.setText('dbPillHp', hp + '/' + maxHp);
+    UI.setText('dbPillSta', stamina + '/' + maxStamina);
+    // Design B — top bar & more
+    UI.setText('irTopRank', rankKey + '级');
+    UI.setText('irTopHp', '♥ ' + hp + '/' + maxHp);
+    UI.setText('irTopSta', '⚡ ' + stamina);
+    UI.setText('irTopCoins', '◎ ' + (player.coins || 0));
+    UI.setText('irMoreName', player.player_name);
+    UI.setText('irMoreRank', rankKey + '级·' + rankName);
+    UI.setText('irMoreLv', 'Lv.' + (s.level || 1));
+    // Design C — top bar & hamburger
+    UI.setText('swTopName', player.player_name);
+    UI.setText('swTopRank', rankKey + '级·' + rankName);
+    UI.setText('swTopHp', '♥ ' + hp + '/' + maxHp);
+    UI.setText('swTopCoins', '◎ ' + (player.coins || 0));
+    UI.setText('swHamName', player.player_name);
+    UI.setText('swHamRank', rankKey + '级·' + rankName);
+    UI.setText('swHamLv', 'Lv.' + (s.level || 1));
   },
 
   setupModals() {
@@ -831,25 +879,8 @@ const GameClient = {
     await this.loadExplore();
   },
 
-  // Return to camp / safe zone
-  async returnCamp() {
-    if (this._isResting) {
-      UI.addLog('你正在休息中。', 'system');
-      return;
-    }
-    try {
-      const result = await API.startRest(this.playerId);
-      if (!result.error) {
-        this._isResting = true;
-        UI.addLog('你返回营地，进入休息状态。', 'system');
-        UI.renderLeftPanel(result.player);
-        this.updateMainActionBar(result.player);
-        this._updateRestUI(true);
-        this._startRecoveryLoop();
-      }
-    } catch (e) {
-      UI.addLog('返回营地失败。', 'warning');
-    }
+  doRest() {
+    if (this._isResting) this.stopRest(); else this.startRest();
   },
 
   async startRest() {

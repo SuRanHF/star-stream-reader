@@ -88,11 +88,36 @@ const UI = {
 
     // Mobile top bar
     UI.setText('mtbName', player.player_name);
-    UI.setText('mtbRank', (s.avatarRank || 'F') + '级');
+    UI.setText('mtbRank', (s.avatarRank || 'F') + '级·' + (s.avatarRankName || '临时化身'));
     UI.setText('mtbLevel', `Lv.${s.level || 1}`);
     UI.setText('mtbHp', `♥ ${hp}/${maxHp}`);
     UI.setText('mtbStamina', `⚡ ${stamina}`);
     UI.setText('mtbCoins', `◎ ${player.coins || 0}`);
+
+    // Mobile: Design A (Dashboard) — floating pill
+    UI.setText('dbPillName', player.player_name);
+    UI.setText('dbPillRank', rankKey + '级·' + rankName);
+    UI.setText('dbPillLv', 'Lv.' + (s.level || 1));
+    UI.setText('dbPillHp', hp + '/' + maxHp);
+    UI.setText('dbPillSta', stamina + '/' + maxStamina);
+
+    // Mobile: Design B (Reader) — top bar & more menu
+    UI.setText('irTopRank', rankKey + '级');
+    UI.setText('irTopHp', '♥ ' + hp + '/' + maxHp);
+    UI.setText('irTopSta', '⚡ ' + stamina);
+    UI.setText('irTopCoins', '◎ ' + (player.coins || 0));
+    UI.setText('irMoreName', player.player_name);
+    UI.setText('irMoreRank', rankKey + '级·' + rankName);
+    UI.setText('irMoreLv', 'Lv.' + (s.level || 1));
+
+    // Mobile: Design C (Wheel) — top bar & hamburger
+    UI.setText('swTopName', player.player_name);
+    UI.setText('swTopRank', rankKey + '级·' + rankName);
+    UI.setText('swTopHp', '♥ ' + hp + '/' + maxHp);
+    UI.setText('swTopCoins', '◎ ' + (player.coins || 0));
+    UI.setText('swHamName', player.player_name);
+    UI.setText('swHamRank', rankKey + '级·' + rankName);
+    UI.setText('swHamLv', 'Lv.' + (s.level || 1));
 
     Storage.cacheState(player);
   },
@@ -1783,6 +1808,12 @@ const UI = {
   },
 
   // ===== Settings Panel =====
+  renderSettingsPanel() {
+    var content = this.renderSettings();
+    var body = document.getElementById('drawerBody');
+    if (body) body.innerHTML = content;
+  },
+
   renderSettings() {
     var currentSettings = UI._loadAllSettings();
     var html = '';
@@ -1831,6 +1862,28 @@ const UI = {
     html += '<input type="checkbox" id="settingDayMode" ' + (currentSettings.dayMode ? 'checked' : '') + ' onchange="UI._onSettingChange(\'dayMode\', this.checked)">';
     html += '<span class="settings-toggle-slider"></span>';
     html += '</label>';
+    html += '</div></div>';
+
+    // Mobile layout switcher
+    html += '<div class="settings-group">';
+    html += '<span class="settings-label">手机端布局</span>';
+    html += '<span class="settings-desc">切换手机版界面样式（仅移动端生效）</span>';
+    html += '<div class="layout-picker-grid" style="margin-top:8px;">';
+    var layouts = [
+      { value: 'default', icon: '📱', name: '默认布局', desc: '经典底栏导航' },
+      { value: 'dashboard', icon: '📊', name: '星流仪表盘', desc: '数据面板总览' },
+      { value: 'reader', icon: '📖', name: '沉浸式阅读器', desc: '全屏故事体验' },
+      { value: 'wheel', icon: '🎡', name: '故事轮盘', desc: '快捷轮盘操作' }
+    ];
+    var currentLayout = Storage.get('mobileUIMode') || 'default';
+    layouts.forEach(function(l) {
+      html += '<button class="layout-picker-item' + (l.value === currentLayout ? ' active' : '') + '" ';
+      html += 'onclick="GameClient.switchMobileUI(\'' + l.value + '\');UI.renderSettingsPanel()">';
+      html += '<span class="lpi-icon">' + l.icon + '</span>';
+      html += '<span class="lpi-name">' + l.name + '</span>';
+      html += '<span class="lpi-desc">' + l.desc + '</span>';
+      html += '</button>';
+    });
     html += '</div></div>';
 
     // Gameplay
@@ -2231,5 +2284,130 @@ const UI = {
         item.classList.remove('mbn-active');
       }
     });
+    document.querySelectorAll('.db-nav-item').forEach(item => { item.classList.remove('db-nav-active'); });
+    document.querySelectorAll('.ir-nav-item').forEach(item => { item.classList.remove('ir-nav-active'); });
+    document.querySelectorAll('.sw-nav-item').forEach(item => { item.classList.remove('sw-nav-active'); });
+  },
+
+  // ===== Design A: Dashboard FAB & Right Menu =====
+  toggleFabMenu() {
+    var menu = document.getElementById('mobileDbFabMenu');
+    if (!menu) return;
+    if (menu.classList.contains('hidden')) {
+      menu.classList.remove('hidden');
+    } else {
+      menu.classList.add('hidden');
+    }
+  },
+
+  closeFabMenu() {
+    var menu = document.getElementById('mobileDbFabMenu');
+    if (menu) menu.classList.add('hidden');
+  },
+
+  toggleDbRightMenu() {
+    var menu = document.getElementById('mobileDbRightMenu');
+    if (!menu) return;
+    if (menu.classList.contains('hidden')) {
+      menu.classList.remove('hidden');
+    } else {
+      menu.classList.add('hidden');
+    }
+  },
+
+  closeDbRightMenu() {
+    var menu = document.getElementById('mobileDbRightMenu');
+    if (menu) menu.classList.add('hidden');
+  },
+
+  // ===== Design B: Immersive Reader More Menu =====
+  toggleIrMoreMenu() {
+    var overlay = document.getElementById('mobileIrMoreOverlay');
+    if (!overlay) return;
+    if (overlay.classList.contains('hidden')) {
+      overlay.classList.remove('hidden');
+    } else {
+      overlay.classList.add('hidden');
+    }
+  },
+
+  closeIrMoreMenu() {
+    var overlay = document.getElementById('mobileIrMoreOverlay');
+    if (overlay) overlay.classList.add('hidden');
+  },
+
+  // ===== Design C: Story Wheel =====
+  toggleSwHamburger() {
+    var overlay = document.getElementById('mobileSwHamburgerOverlay');
+    if (!overlay) return;
+    if (overlay.classList.contains('hidden')) {
+      overlay.classList.remove('hidden');
+    } else {
+      overlay.classList.add('hidden');
+    }
+  },
+
+  closeSwHamburger() {
+    var overlay = document.getElementById('mobileSwHamburgerOverlay');
+    if (overlay) overlay.classList.add('hidden');
+  },
+
+  toggleSwStatusBubble() {
+    var bubble = document.getElementById('mobileSwStatusBubble');
+    if (!bubble) return;
+    if (bubble.classList.contains('expanded')) {
+      bubble.classList.remove('expanded');
+      bubble.classList.add('collapsed');
+    } else {
+      bubble.classList.remove('collapsed');
+      bubble.classList.add('expanded');
+    }
+  },
+
+  toggleSwMoreMenu() {
+    var overlay = document.getElementById('mobileSwMoreOverlay');
+    if (!overlay) return;
+    if (overlay.classList.contains('hidden')) {
+      overlay.classList.remove('hidden');
+    } else {
+      overlay.classList.add('hidden');
+    }
+  },
+
+  closeSwMoreMenu() {
+    var overlay = document.getElementById('mobileSwMoreOverlay');
+    if (overlay) overlay.classList.add('hidden');
+  },
+
+  toggleSwCat(category) {
+    var card = document.querySelector('.sw-cat-card[data-cat="' + category + '"]');
+    if (card) card.classList.toggle('expanded');
+    // Close other cards
+    document.querySelectorAll('.sw-cat-card[data-cat]').forEach(function(c) {
+      if (c.dataset.cat !== category) c.classList.remove('expanded');
+    });
+  },
+
+  // ===== Mobile UI Theme Switcher =====
+  _applyMobileUi(theme) {
+    document.body.setAttribute('data-mobile-ui', theme);
+    // Explicitly control classic bottom nav visibility
+    var classicNav = document.getElementById('mobileBottomNav');
+    var classicTopBar = document.getElementById('mobileTopBar');
+    if (theme === 'default') {
+      if (classicNav) classicNav.style.display = '';
+      if (classicTopBar) classicTopBar.style.display = '';
+    } else {
+      if (classicNav) classicNav.style.display = 'none';
+      if (classicTopBar) classicTopBar.style.display = 'none';
+    }
+    this.closeMobileMoreMenu();
+    this.closeFabMenu();
+    this.closeDbRightMenu();
+    this.closeIrMoreMenu();
+    this.closeSwHamburger();
+    this.closeSwMoreMenu();
+    var bubble = document.getElementById('mobileSwStatusBubble');
+    if (bubble) { bubble.classList.remove('expanded'); bubble.classList.add('collapsed'); }
   }
 };

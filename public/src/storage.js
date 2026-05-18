@@ -52,5 +52,20 @@ const Storage = {
       const s = localStorage.getItem('cached_state');
       return s ? JSON.parse(s) : null;
     } catch (e) { return null; }
+  },
+  get(key) {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  },
+  set(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) { /* ignore */ }
+  },
+  getJson(key) {
+    try {
+      const v = localStorage.getItem(key);
+      return v ? JSON.parse(v) : null;
+    } catch (e) { return null; }
+  },
+  setJson(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* ignore */ }
   }
 };

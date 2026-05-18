@@ -6,6 +6,11 @@ const GameClient = {
 
   async init() {
     this.state = 'LOADING';
+
+    // Version check — block if client outdated
+    const versionOk = await this.checkVersion();
+    if (!versionOk) return;
+
     this.setupNavigation();
     this.setupModals();
     this.checkChangelog();
@@ -429,6 +434,9 @@ const GameClient = {
     // Switch from auth page to game
     document.getElementById('authPage')?.classList.add('hidden');
     document.getElementById('gameWrapper')?.classList.remove('hidden');
+
+    // Start polling for new versions
+    this.startVersionPolling();
 
     this._isResting = !!(player.stats && player.stats.isResting);
     UI.renderLeftPanel(player);
@@ -1372,6 +1380,31 @@ const GameClient = {
     }
   },
 
+  async resetAllocation() {
+    try {
+      const { player } = await API.getPlayer(this.playerId);
+      if (!player.stats && player.stats_json) {
+        player.stats = typeof player.stats_json === 'string' ? JSON.parse(player.stats_json) : player.stats_json;
+      }
+      const s = player.stats || {};
+      const totalAlloc = (s.allocatedAtk || 0) + (s.allocatedDef || 0) + (s.allocatedSpd || 0) + (s.allocatedCrit || 0);
+      if (totalAlloc <= 0) { alert('没有已分配的属性点'); return; }
+      const cost = Math.max(50, totalAlloc * 20);
+      if (!confirm(`重置全部分配需要 ${cost} 枚硬币。已分配的 ${totalAlloc} 点属性将返还为自由点数。确认支付？`)) return;
+
+      const result = await API.resetAllocation(this.playerId);
+      if (result.success) {
+        UI.addLog(`已重置全部分配，${totalAlloc} 点返还至自由属性，消耗 ${cost} 硬币`, 'system');
+        UI.renderLeftPanel(result.data.player);
+        this.loadDetailedStats();
+      } else {
+        alert((result.error && result.error.message) || '重置失败');
+      }
+    } catch (e) {
+      alert('重置失败: ' + (e.message || ''));
+    }
+  },
+
   // ===== Constellation =====
   async pickConstellation(constellationKey) {
     try {
@@ -1497,6 +1530,65 @@ const GameClient = {
 
   // ===== Changelog =====
   _latestChangelogVersion: null,
+
+  // ===== Version Check — detect new deployments and force refresh =====
+  async checkVersion() {
+    try {
+      const resp = await fetch('/api/version');
+      const data = await resp.json();
+      const serverVersion = data.version || '0.0.0';
+      const clientVersion = localStorage.getItem('game_client_version');
+
+      if (!clientVersion) {
+        // First visit — store current version
+        localStorage.setItem('game_client_version', serverVersion);
+        console.log('[version] first visit, stored:', serverVersion);
+        return true;
+      }
+
+      if (clientVersion !== serverVersion) {
+        // Version mismatch — show update overlay and block all operations
+        console.log('[version] mismatch — client:', clientVersion, 'server:', serverVersion);
+        var overlay = document.getElementById('versionUpdateOverlay');
+        if (overlay) overlay.style.display = 'flex';
+        document.getElementById('versionUpdateMsg').textContent =
+          '游戏已更新到 v' + serverVersion + '，请刷新页面以获取最新内容。';
+        // Hide game UI
+        var gw = document.getElementById('gameWrapper');
+        if (gw) gw.classList.add('hidden');
+        var auth = document.getElementById('authPage');
+        if (auth) auth.classList.add('hidden');
+        return false;
+      }
+
+      console.log('[version] up to date:', serverVersion);
+      return true;
+    } catch (e) {
+      console.error('[version] check failed:', e);
+      return true; // Allow on error — don't block the game
+    }
+  },
+
+  // Start periodic version check (every 60s)
+  startVersionPolling() {
+    var self = this;
+    if (this._versionPolling) return;
+    this._versionPolling = setInterval(async function() {
+      try {
+        var resp = await fetch('/api/version?_=' + Date.now());
+        var data = await resp.json();
+        var serverVersion = data.version || '0.0.0';
+        var clientVersion = localStorage.getItem('game_client_version');
+        if (clientVersion && clientVersion !== serverVersion) {
+          var overlay = document.getElementById('versionUpdateOverlay');
+          if (overlay) overlay.style.display = 'flex';
+          document.getElementById('versionUpdateMsg').textContent =
+            '游戏已更新到 v' + serverVersion + '，请刷新页面以获取最新内容。';
+          clearInterval(self._versionPolling);
+        }
+      } catch (e) { /* silent */ }
+    }, 60000);
+  },
 
   async checkChangelog() {
     try {

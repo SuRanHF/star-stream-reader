@@ -176,6 +176,10 @@ const API = {
     return this.request('POST', '/api/player/allocate-points', { playerId, atk, def, spd, crit });
   },
 
+  resetAllocation(playerId) {
+    return this.request('POST', '/api/player/reset-allocation', { playerId });
+  },
+
   // Constellation (背后星)
   getConstellations() {
     return this.request('GET', '/api/player/constellations');

@@ -1249,22 +1249,35 @@ const UI = {
     html += '<div class="ds-section-label">战斗属性</div>';
     html += '<div class="ds-attr-grid">';
     html += `<div class="ds-attr-item"><span class="ds-attr-key">Lv.</span><span class="ds-attr-val">${s.level || 1}</span></div>`;
-    html += `<div class="ds-attr-item"><span class="ds-attr-key">攻击</span><span class="ds-attr-val">${totalAtk}</span><span class="ds-attr-sub">(+${allocatedAtk})</span></div>`;
-    html += `<div class="ds-attr-item"><span class="ds-attr-key">防御</span><span class="ds-attr-val">${totalDef}</span><span class="ds-attr-sub">(+${allocatedDef})</span></div>`;
-    html += `<div class="ds-attr-item"><span class="ds-attr-key">速度</span><span class="ds-attr-val">${totalSpd}</span><span class="ds-attr-sub">(+${allocatedSpd})</span></div>`;
-    html += `<div class="ds-attr-item"><span class="ds-attr-key">暴击</span><span class="ds-attr-val">${totalCrit}%</span><span class="ds-attr-sub">(+${allocatedCrit * 2}%)</span></div>`;
+    html += `<div class="ds-attr-item"><span class="ds-attr-key">攻击</span><span class="ds-attr-val">${totalAtk}</span><span class="ds-attr-sub">(基础${s.attack||10} +${allocatedAtk})</span></div>`;
+    html += `<div class="ds-attr-item"><span class="ds-attr-key">防御</span><span class="ds-attr-val">${totalDef}</span><span class="ds-attr-sub">(基础${s.defense||5} +${allocatedDef})</span></div>`;
+    html += `<div class="ds-attr-item"><span class="ds-attr-key">速度</span><span class="ds-attr-val">${totalSpd}</span><span class="ds-attr-sub">(基础${s.speed||10} +${allocatedSpd})</span></div>`;
+    html += `<div class="ds-attr-item"><span class="ds-attr-key">暴击</span><span class="ds-attr-val">${totalCrit}%</span><span class="ds-attr-sub">(基础${Math.round((s.critRate||0.05)*100)}% +${allocatedCrit*2}%)</span></div>`;
     html += `<div class="ds-attr-item"><span class="ds-attr-key">评分</span><span class="ds-attr-val">${s.rating || 1000}</span></div>`;
     html += '</div>';
 
+    // Show locked (already allocated) stats
+    if (allocatedAtk > 0 || allocatedDef > 0 || allocatedSpd > 0 || allocatedCrit > 0) {
+      html += '<div class="ds-section-label" style="margin-top:12px;color:var(--gold);">◆ 已锁定分配</div>';
+      html += '<div class="alloc-locked-grid">';
+      if (allocatedAtk > 0) html += `<div class="alloc-locked-item">攻击 <span style="color:var(--gold);">+${allocatedAtk}</span></div>`;
+      if (allocatedDef > 0) html += `<div class="alloc-locked-item">防御 <span style="color:var(--gold);">+${allocatedDef}</span></div>`;
+      if (allocatedSpd > 0) html += `<div class="alloc-locked-item">速度 <span style="color:var(--gold);">+${allocatedSpd}</span></div>`;
+      if (allocatedCrit > 0) html += `<div class="alloc-locked-item">暴击 <span style="color:var(--gold);">+${allocatedCrit * 2}%</span></div>`;
+      html += '</div>';
+      html += '<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">已锁定属性不可撤回。如需重新分配，请支付代价重置。</div>';
+      html += `<button class="btn-action btn-reset-alloc" onclick="GameClient.resetAllocation()" style="margin-top:8px;width:100%;background:var(--red-dim);color:var(--text-bright);">重置全部分配 (${this._resetAllocCost(s)} 硬币)</button>`;
+    }
+
     // Free attribute points allocation
-    html += `<div class="ds-section-label" style="margin-top:12px;">自由属性 <span style="color:var(--gold);">剩余: ${freePoints}</span></div>`;
+    html += `<div class="ds-section-label" style="margin-top:12px;">自由属性 <span style="color:var(--gold);" id="freePointsLabel">剩余: ${freePoints}</span></div>`;
     if (freePoints > 0) {
       html += '<div class="alloc-grid">';
       const allocRow = (label, id, key) => `
         <div class="alloc-row">
           <span class="alloc-label">${label}</span>
           <button class="alloc-btn" onclick="UI._adjustAlloc('${id}', -1)">-</button>
-          <input class="alloc-input alloc-editable" id="${id}" type="number" value="0" min="0" max="${freePoints}" oninput="UI._validateAlloc(this)">
+          <input class="alloc-input alloc-editable" id="${id}" type="number" value="0" min="0" max="${freePoints}" oninput="UI._onAllocChange(this)">
           <button class="alloc-btn" onclick="UI._adjustAlloc('${id}', 1)">+</button>
         </div>`;
       html += allocRow('攻击', 'allocAtk', 'atk');
@@ -1273,6 +1286,8 @@ const UI = {
       html += allocRow('暴击(2%)', 'allocCrit', 'crit');
       html += '</div>';
       html += `<button class="btn-action" onclick="GameClient.allocatePoints()" style="margin-top:8px;width:100%;">确认分配</button>`;
+    } else if (!allocatedAtk && !allocatedDef && !allocatedSpd && !allocatedCrit) {
+      html += '<div style="font-size:12px;color:var(--text-muted);padding:8px;">暂无自由属性点。升级可获得属性点。</div>';
     }
     html += '</div>';
 
@@ -1372,7 +1387,6 @@ const UI = {
     const newVal = val + delta;
     if (newVal < 0) return;
 
-    // Sum all allocation inputs
     const ids = ['allocAtk', 'allocDef', 'allocSpd', 'allocCrit'];
     let currentTotal = 0;
     ids.forEach(id => {
@@ -1381,42 +1395,58 @@ const UI = {
     });
     currentTotal += newVal;
 
-    // Read freePoints from the label text
-    const label = document.querySelector('.ds-section-label span');
-    if (!label) return;
-    const match = label.textContent.match(/剩余:\s*(\d+)/);
-    const maxPoints = match ? parseInt(match[1]) : 0;
-
+    const maxPoints = UI._getStoredFreePoints();
     if (currentTotal <= maxPoints) {
       input.value = newVal;
-      const scrollCls = delta > 0 ? 'scroll-up' : 'scroll-down';
-      input.classList.remove('scroll-up', 'scroll-down');
-      void input.offsetHeight;
-      input.classList.add(scrollCls);
-      setTimeout(() => input.classList.remove(scrollCls), 260);
+      UI._updateFreePointsLabel(maxPoints, currentTotal);
+      UI._validateAllInputs();
     }
   },
 
-  _validateAlloc(input) {
+  _onAllocChange(input) {
     const val = parseInt(input.value) || 0;
-    if (val < 0) { input.value = 0; return; }
-
+    if (val < 0) { input.value = 0; }
     const ids = ['allocAtk', 'allocDef', 'allocSpd', 'allocCrit'];
     let total = 0;
-    ids.forEach(id => {
-      total += parseInt(document.getElementById(id)?.value) || 0;
-    });
+    ids.forEach(id => { total += parseInt(document.getElementById(id)?.value) || 0; });
+    const maxPoints = UI._getStoredFreePoints();
+    UI._updateFreePointsLabel(maxPoints, total);
+    UI._validateAllInputs();
+  },
 
-    const label = document.querySelector('.ds-section-label span');
-    const match = label ? label.textContent.match(/剩余:\s*(\d+)/) : null;
-    const maxPoints = match ? parseInt(match[1]) : 0;
+  _getStoredFreePoints() {
+    const label = document.getElementById('freePointsLabel');
+    if (label) { const m = label.textContent.match(/剩余:\s*(\d+)/); if (m) return parseInt(m[1]); }
+    return 0;
+  },
 
-    const allInputs = ids.map(id => document.getElementById(id)).filter(Boolean);
-    if (total > maxPoints) {
-      allInputs.forEach(el => { el.style.borderColor = 'var(--red)'; el.style.boxShadow = '0 0 6px var(--red-dim)'; });
-    } else {
-      allInputs.forEach(el => { el.style.borderColor = ''; el.style.boxShadow = ''; });
+  _updateFreePointsLabel(totalFree, allocated) {
+    const label = document.getElementById('freePointsLabel');
+    if (label) {
+      const remaining = totalFree - allocated;
+      label.textContent = '剩余: ' + Math.max(0, remaining);
+      label.style.color = remaining < 0 ? 'var(--red)' : 'var(--gold)';
     }
+  },
+
+  _validateAllInputs() {
+    const ids = ['allocAtk', 'allocDef', 'allocSpd', 'allocCrit'];
+    let total = 0;
+    const inputs = ids.map(id => document.getElementById(id)).filter(Boolean);
+    inputs.forEach(el => { total += parseInt(el.value) || 0; });
+    const maxPoints = UI._getStoredFreePoints();
+    inputs.forEach(el => {
+      if (total > maxPoints) {
+        el.style.borderColor = 'var(--red)'; el.style.boxShadow = '0 0 6px var(--red-dim)';
+      } else {
+        el.style.borderColor = ''; el.style.boxShadow = '';
+      }
+    });
+  },
+
+  _resetAllocCost(stats) {
+    const totalAlloc = (stats.allocatedAtk || 0) + (stats.allocatedDef || 0) + (stats.allocatedSpd || 0) + (stats.allocatedCrit || 0);
+    return Math.max(50, totalAlloc * 20);
   },
 
   // ===== Constellation Picker =====

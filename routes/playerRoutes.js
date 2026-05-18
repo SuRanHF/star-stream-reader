@@ -147,4 +147,43 @@ router.post('/allocate-points', (req, res) => {
   }
 });
 
+// 重置属性分配 — 将已分配点数返还为自由点数，消耗硬币
+router.post('/reset-allocation', (req, res) => {
+  try {
+    const { playerId } = req.body;
+    if (!playerId) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAMS', message: '缺少必要参数' } });
+
+    const player = playerService.getRaw(Number(playerId));
+    if (!player) return res.status(404).json({ success: false, error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } });
+
+    const stats = JSON.parse(player.stats_json);
+    const totalAlloc = (stats.allocatedAtk || 0) + (stats.allocatedDef || 0) + (stats.allocatedSpd || 0) + (stats.allocatedCrit || 0);
+    if (totalAlloc <= 0) {
+      return res.status(400).json({ success: false, error: { code: 'NO_ALLOCATION', message: '没有已分配的属性点' } });
+    }
+
+    const cost = Math.max(50, totalAlloc * 20);
+    if ((player.coins || 0) < cost) {
+      return res.status(400).json({ success: false, error: { code: 'NOT_ENOUGH_COINS', message: `硬币不足，需要 ${cost} 枚` } });
+    }
+
+    // Refund allocated points to freePoints
+    stats.freePoints = (stats.freePoints || 0) + totalAlloc;
+    stats.allocatedAtk = 0;
+    stats.allocatedDef = 0;
+    stats.allocatedSpd = 0;
+    stats.allocatedCrit = 0;
+
+    const newCoins = player.coins - cost;
+    playerService.update(player.id, { stats_json: stats, coins: newCoins });
+    playerService.addLog(player.id, `重置全部分配：${totalAlloc} 点返还，消耗 ${cost} 硬币`);
+
+    const updated = playerService.get(player.id);
+    res.json({ success: true, data: { player: updated } });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
+  }
+});
+
 module.exports = router;

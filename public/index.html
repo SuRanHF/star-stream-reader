@@ -437,5 +437,17 @@
   </div>
 </div>
 
+<!-- ================================================================
+     Version Update Overlay — 检测到新版本时强制刷新
+     ================================================================ -->
+<div id="versionUpdateOverlay" style="position:fixed;inset:0;background:#000000ee;z-index:9999;display:flex;align-items:center;justify-content:center;display:none;">
+  <div style="background:#1f1e1b;border:1px solid var(--border);border-radius:12px;padding:32px 40px;text-align:center;max-width:420px;">
+    <div style="font-size:48px;margin-bottom:12px;">🔄</div>
+    <div style="font-size:18px;color:var(--gold);margin-bottom:8px;">检测到新版本</div>
+    <div id="versionUpdateMsg" style="font-size:13px;color:var(--text-dim);margin-bottom:20px;line-height:1.6;">游戏已更新，请刷新页面以获取最新内容。</div>
+    <button onclick="location.reload(true)" style="background:var(--gold-dim);color:#fff;border:none;border-radius:8px;padding:12px 40px;font-size:15px;cursor:pointer;font-family:var(--font-ui);">刷新页面</button>
+  </div>
+</div>
+
 </body>
 </html>

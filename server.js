@@ -163,6 +163,18 @@ async function start() {
     }
   });
 
+  // Version check — client uses this to detect new deployments
+  app.get('/api/version', (req, res) => {
+    try {
+      const raw = fs.readFileSync(changelogPath, 'utf8');
+      const changelog = JSON.parse(raw);
+      const version = changelog[0]?.version || '0.0.0';
+      res.json({ version, deployTime: changelog[0]?.date || '' });
+    } catch (e) {
+      res.json({ version: '0.0.0', deployTime: '' });
+    }
+  });
+
   // Global error handler — must be registered after all routes
   app.use((err, req, res, next) => {
     console.error('Unhandled error:', err);

@@ -383,6 +383,11 @@ input, textarea, select { font-family: var(--font-ui); }
 }
 .alloc-input.scroll-up { animation: allocScrollUp 0.25s ease; }
 .alloc-input.scroll-down { animation: allocScrollDown 0.25s ease; }
+@keyframes breathRed {
+  0%, 100% { box-shadow: 0 0 3px var(--red-dim); border-color: var(--red-dim); }
+  50% { box-shadow: 0 0 12px var(--red); border-color: var(--red); }
+}
+.alloc-input.blocked { animation: breathRed 0.8s ease-in-out 2; }
 
 /* World state in detailed stats */
 .ds-world-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 2px; color: var(--text-dim); }

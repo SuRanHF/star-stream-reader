@@ -39,6 +39,25 @@ const UI = {
     UI.setText('statCoins', player.coins || 0);
     UI.setText('statFragments', player.story_fragments || 0);
 
+    // Avatar Rank display
+    var rankName = s.avatarRankName || '临时化身';
+    var rankKey = s.avatarRank || 'F';
+    UI.setText('avatarRankBadge', rankKey + '级·' + rankName);
+    var badge = document.getElementById('avatarRankBadge');
+    if (badge) { badge.className = 'rank-badge rank-' + rankKey; }
+
+    var gradeKey = s.storyGrade || 'ordinary';
+    var gradeLabels = { ordinary: '普通故事', notable: '显著故事', heroic: '英雄故事', legendary: '传说故事', mythic: '神话故事' };
+    UI.setText('storyGradeText', gradeLabels[gradeKey] || '普通故事');
+
+    var ch = s.channelHeat || 0;
+    var tierLabel = ch >= 1000 ? '终章注视者' : ch >= 600 ? '世界线偏移者' : ch >= 300 ? '星流焦点' : ch >= 150 ? '剧情扰动者' : ch >= 50 ? '频道新星' : '无名观测者';
+    UI.setText('starstreamTierText', tierLabel);
+
+    // Show rank-up button
+    var rankBtn = document.getElementById('rankUpBtn');
+    if (rankBtn) rankBtn.style.display = 'block';
+
     // Current location
     UI.setText('currentLocationDisplay', player.current_location_name || player.current_location || '星之流观测站');
 
@@ -594,6 +613,103 @@ const UI = {
         <td>${r.losses}</td>
       </tr>
     `).join('');
+    html += '</tbody></table>';
+    return html;
+  },
+
+  // ===== Drawer: Avatar Rank Panel =====
+  renderAvatarRankPanel(data, playerId) {
+    if (!data || data.error) {
+      return '<p style="text-align:center;color:var(--text-secondary);padding:32px">无法加载位阶信息。</p>';
+    }
+    var html = '<div class="drawer-card">';
+    // Current rank
+    html += '<div class="drawer-section-label">当前化身位阶</div>';
+    html += '<div class="rank-display-big" style="font-size:1.3em;color:var(--gold);margin:4px 0;">' + data.currentRank.displayName + '</div>';
+    html += '<div style="color:var(--text-secondary);font-size:0.85em;margin-bottom:8px;">' + data.currentRank.description + '</div>';
+
+    // Story grade + Starstream tier
+    html += '<div style="display:flex;gap:16px;margin-bottom:12px;">';
+    html += '<div><span class="section-label">故事位格</span><br><span style="color:var(--teal);">' + data.storyGrade.label + '</span></div>';
+    html += '<div><span class="section-label">星流段位</span><br><span style="color:var(--purple);">' + data.starstreamTier.label + '</span></div>';
+    html += '</div>';
+
+    if (data.isMaxRank) {
+      html += '<div style="text-align:center;color:var(--gold);padding:16px;">已到达当前测试服开放的最高位阶。</div>';
+      html += '</div>';
+      return html;
+    }
+
+    // Next rank
+    html += '<div class="drawer-section-label" style="margin-top:8px;">下一位阶</div>';
+    html += '<div style="font-size:1.1em;color:var(--text-primary);margin:4px 0;">' + data.nextRank.displayName + '</div>';
+    html += '<div style="color:var(--text-secondary);font-size:0.8em;margin-bottom:8px;">' + data.nextRank.description + '</div>';
+
+    // Requirements
+    var doneCount = data.requirements.filter(function(r) { return r.completed; }).length;
+    var totalCount = data.requirements.length;
+    html += '<div class="drawer-section-label">升阶条件 (' + doneCount + '/' + totalCount + ')</div>';
+
+    for (var i = 0; i < data.requirements.length; i++) {
+      var req = data.requirements[i];
+      var pct = req.required > 0 ? Math.min(100, Math.round(req.current / req.required * 100)) : 100;
+      var fillColor = req.completed ? 'var(--teal)' : 'var(--gold)';
+      html += '<div style="margin:6px 0;">';
+      html += '<div style="display:flex;justify-content:space-between;font-size:0.85em;margin-bottom:2px;">';
+      html += '<span>' + (req.completed ? '✓ ' : '') + req.label + '</span>';
+      html += '<span style="color:var(--text-secondary);">' + req.current + ' / ' + req.required + '</span>';
+      html += '</div>';
+      html += '<div class="stat-bar-track" style="height:4px;background:var(--bg-canvas);border-radius:2px;">';
+      html += '<div style="width:' + pct + '%;height:100%;background:' + fillColor + ';border-radius:2px;"></div>';
+      html += '</div></div>';
+    }
+
+    // Rewards preview
+    html += '<div class="drawer-section-label" style="margin-top:8px;">晋升奖励</div>';
+    html += '<div style="font-size:0.85em;color:var(--text-secondary);">';
+    if (data.rewards && data.rewards.stats) {
+      var rewardItems = [];
+      var statKeys = Object.keys(data.rewards.stats);
+      for (var j = 0; j < statKeys.length; j++) {
+        var sk = statKeys[j];
+        var label = { maxHp: '最大生命', maxStamina: '最大体力', attack: '攻击', defense: '防御', insight: '洞察', willpower: '意志', leadership: '领导力', channelHeat: '频道热度' }[sk] || sk;
+        rewardItems.push(label + ' +' + data.rewards.stats[sk]);
+      }
+      html += rewardItems.join('、');
+    }
+    if (data.rewards && data.rewards.storyGrade) {
+      html += '<br>故事位格提升为：' + data.rewards.storyGrade;
+    }
+    html += '</div>';
+
+    // Rank-up button
+    if (data.canRankUp) {
+      html += '<button class="ma-btn primary" onclick="GameClient.doRankUp(' + playerId + ')" style="width:100%;margin-top:12px;padding:10px;">晋升为 ' + data.nextRank.displayName + '</button>';
+    } else {
+      html += '<button class="ma-btn" disabled style="width:100%;margin-top:12px;padding:10px;opacity:0.4;">条件未满足</button>';
+    }
+
+    html += '</div>';
+    return html;
+  },
+
+  // ===== Drawer: Avatar Rank Leaderboard =====
+  renderAvatarRankLeaderboard(rankings) {
+    if (!rankings || rankings.length === 0) {
+      return '<p style="text-align:center;color:var(--text-secondary);padding:32px">暂无位阶排行数据。</p>';
+    }
+    var html = '<table class="drawer-table"><thead><tr><th>#</th><th>玩家</th><th>化身位阶</th><th>Lv</th><th>故事位格</th><th>星流段位</th></tr></thead><tbody>';
+    for (var i = 0; i < rankings.length; i++) {
+      var r = rankings[i];
+      html += '<tr>';
+      html += '<td class="' + (i < 3 ? 'rank-top' : '') + '">' + (r.rank || i + 1) + '</td>';
+      html += '<td>' + r.player_name + '</td>';
+      html += '<td style="color:var(--gold);">' + r.avatarRank + '级·' + r.avatarRankName + '</td>';
+      html += '<td>' + r.level + '</td>';
+      html += '<td>' + r.storyGradeLabel + '</td>';
+      html += '<td style="color:var(--purple);">' + r.starstreamTierLabel + '</td>';
+      html += '</tr>';
+    }
     html += '</tbody></table>';
     return html;
   },

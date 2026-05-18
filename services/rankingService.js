@@ -48,4 +48,9 @@ function getPlayerRank(playerId) {
   };
 }
 
-module.exports = { getRankings, getPlayerRank };
+function getAvatarRankLeaderboard(limit) {
+  var avatarRankService = require('./avatarRankService');
+  return avatarRankService.getAvatarRankLeaderboard(limit);
+}
+
+module.exports = { getRankings, getPlayerRank, getAvatarRankLeaderboard };

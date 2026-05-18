@@ -562,6 +562,21 @@ a { color: var(--teal); text-decoration: none; }
 .rarity-epic { color: var(--purple); }
 .rarity-legendary { color: var(--gold); }
 
+/* Avatar Rank */
+.rank-info { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
+.rank-badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 3px; letter-spacing: 1px; }
+.rank-badge.rank-F { color: #9a9488; background: #1f1e1b; border: 1px solid #3a3835; }
+.rank-badge.rank-E { color: #5db8a6; background: #1a2825; border: 1px solid #3d6e62; }
+.rank-badge.rank-D { color: #6a9fd8; background: #1a2430; border: 1px solid #3d6288; }
+.rank-badge.rank-C { color: #8a5ac0; background: #201e2e; border: 1px solid #5a3d88; }
+.rank-badge.rank-B { color: #cc785c; background: #2e1f1a; border: 1px solid #7a4838; }
+.rank-badge.rank-A { color: #e8c84a; background: #2e2818; border: 1px solid #8a7830; }
+.story-grade-text { font-size: 10px; color: var(--teal); }
+.starstream-tier-text { font-size: 10px; color: var(--purple); }
+.rank-next-info { font-size: 10px; color: var(--text-secondary); margin-top: 4px; }
+.rank-up-btn { width: 100%; padding: 6px 12px; margin-top: 6px; background: var(--bg-card); color: var(--gold); border: 1px solid var(--gold); border-radius: 4px; cursor: pointer; font-family: var(--font-ui); font-size: 12px; }
+.rank-up-btn:hover { background: var(--gold); color: var(--bg-canvas); }
+
 /* World state danger */
 .ws-danger { color: var(--red) !important; }
 

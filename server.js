@@ -127,6 +127,9 @@ async function start() {
   app.use('/api/skills', authRequired, require('./routes/skillRoutes'));
   app.use('/api/pk', authRequired, require('./routes/pkRoutes'));
 
+  // Avatar Rank (auth required)
+  app.use('/api/avatar-rank', authRequired, require('./routes/avatarRankRoutes'));
+
   // === Public Routes (no auth required) ===
   app.use('/api/rankings', require('./routes/rankingRoutes'));
 

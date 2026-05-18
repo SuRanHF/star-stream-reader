@@ -1123,13 +1123,70 @@ const GameClient = {
   },
 
   // ===== Rankings =====
+  _rankingTab: 'pk',
   async loadRankings() {
+    var self = this;
     try {
-      const data = await API.getRankings(50);
-      const contentHTML = UI.renderRankings(data.rankings || []);
+      var data = await API.getRankings(50);
+      var contentHTML = '<div style="display:flex;gap:8px;margin-bottom:12px;">' +
+        '<button class="ma-btn ' + (self._rankingTab === 'pk' ? 'primary' : '') + '" onclick="GameClient.loadRankingsTab(\'pk\')">PK榜</button>' +
+        '<button class="ma-btn ' + (self._rankingTab === 'avatar' ? 'primary' : '') + '" onclick="GameClient.loadRankingsTab(\'avatar\')">位阶榜</button>' +
+        '</div>';
+      contentHTML += UI.renderRankings(data.rankings || []);
       UI.openDrawer('排行榜', contentHTML);
     } catch (e) {
       UI.addLog('加载排行失败: ' + (e.message || e), 'warning');
+    }
+  },
+  async loadRankingsTab(tab) {
+    this._rankingTab = tab;
+    if (tab === 'avatar') {
+      await this.loadAvatarRankLeaderboard();
+    } else {
+      await this.loadRankings();
+    }
+  },
+  async loadAvatarRankLeaderboard() {
+    try {
+      var self = this;
+      var data = await API.getAvatarRankLeaderboard(50);
+      var contentHTML = '<div style="display:flex;gap:8px;margin-bottom:12px;">' +
+        '<button class="ma-btn" onclick="GameClient.loadRankingsTab(\'pk\')">PK榜</button>' +
+        '<button class="ma-btn primary" onclick="GameClient.loadRankingsTab(\'avatar\')">位阶榜</button>' +
+        '</div>';
+      contentHTML += UI.renderAvatarRankLeaderboard(data.rankings || []);
+      UI.openDrawer('排行榜 - 化身位阶', contentHTML);
+    } catch (e) {
+      UI.addLog('加载位阶榜失败: ' + (e.message || e), 'warning');
+    }
+  },
+
+  // ===== Avatar Rank =====
+  async openAvatarRank() {
+    try {
+      var data = await API.getAvatarRank(this.playerId);
+      var contentHTML = UI.renderAvatarRankPanel(data, this.playerId);
+      UI.openDrawer('化身位阶', contentHTML);
+    } catch (e) {
+      UI.addLog('加载位阶失败: ' + (e.message || e), 'warning');
+    }
+  },
+  async doRankUp(playerId) {
+    try {
+      var result = await API.rankUp(playerId);
+      if (result && result.rankedUp) {
+        UI.addLog(result.log, 'system');
+        var resp = await API.getPlayer(playerId);
+        if (resp && resp.player) {
+          UI.renderLeftPanel(resp.player);
+          this._currentPlayer = resp.player;
+        }
+        var data = await API.getAvatarRank(playerId);
+        var contentHTML = UI.renderAvatarRankPanel(data, playerId);
+        UI.openDrawer('化身位阶', contentHTML);
+      }
+    } catch (e) {
+      UI.addLog('升阶失败: ' + (e.message || e), 'warning');
     }
   },
 

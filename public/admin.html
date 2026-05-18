@@ -467,7 +467,7 @@
             <thead>
               <tr>
                 <th>ID</th><th>玩家名</th><th>Lv</th><th>HP</th><th>体</th><th>攻</th><th>防</th><th>速</th><th>暴击%</th>
-                <th>&#9670;</th><th>&#9671;</th><th>EXP</th><th>自由点</th><th>星座</th><th>状态</th><th>操作</th>
+                <th>&#9670;</th><th>&#9671;</th><th>EXP</th><th>自由点</th><th>星座</th><th>位阶</th><th>状态</th><th>操作</th>
               </tr>
             </thead>
             <tbody id="playerBody"></tbody>
@@ -498,6 +498,21 @@
             <span class="form-label">防御力</span><input class="form-input" id="s_defense" type="number" step="1">
             <span class="form-label">速度</span><input class="form-input" id="s_speed" type="number" step="1">
             <span class="form-label">暴击率%</span><input class="form-input" id="s_critRate" type="number" step="1">
+          </div>
+          <h3 style="margin-top:12px;">位阶</h3>
+          <div class="form-row">
+            <span class="form-label">位阶</span>
+            <select class="form-input" id="s_avatarRank">
+              <option value="F">F级·临时化身</option><option value="E">E级·剧本幸存者</option>
+              <option value="D">D级·频道记录者</option><option value="C">C级·剧本执行者</option>
+              <option value="B">B级·星流候选者</option><option value="A">A级·故事承载者</option>
+            </select>
+            <span class="form-label">故事位格</span>
+            <select class="form-input" id="s_storyGrade">
+              <option value="ordinary">普通故事</option><option value="notable">显著故事</option>
+              <option value="heroic">英雄故事</option><option value="legendary">传说故事</option><option value="mythic">神话故事</option>
+            </select>
+            <span class="form-label">频道热度</span><input class="form-input" id="s_channelHeat" type="number" step="1" value="0">
           </div>
           <h3 style="margin-top:12px;">资源</h3>
           <div class="form-row">
@@ -531,6 +546,8 @@
             <button class="admin-btn" onclick="Admin.quickAction('start_rest')">进入休息</button>
             <button class="admin-btn" onclick="Admin.quickAction('stop_rest')">停止休息</button>
             <button class="admin-btn danger" onclick="Admin.quickAction('clear_death')">清除死亡</button>
+            <button class="admin-btn primary" onclick="Admin.quickAction('fill_rank_requirements')">满足位阶条件</button>
+            <button class="admin-btn primary" onclick="Admin.quickAction('force_rank_up')">一键升阶</button>
           </div>
           <div id="quickActionResult" style="margin-top:10px;font-size:12px;"></div>
         </div>
@@ -923,6 +940,7 @@ var Admin = {
         '<td>' + p.coins + '</td><td>' + p.story_fragments + '</td><td>' + p.exp + '</td>' +
         '<td style="color:var(--gold);">' + p.freePoints + '</td>' +
         '<td style="font-size:11px;">' + constName + '</td>' +
+        '<td style="color:var(--gold);font-size:11px;">' + (p.avatarRank || 'F') + '级</td>' +
         '<td>' + (status || '正常') + '</td>' +
         '<td>' +
           '<button class="admin-btn tiny" onclick="Admin.openEdit(' + p.id + ')">编辑</button> ' +
@@ -985,6 +1003,27 @@ var Admin = {
             '<option value="wheel_of_fate"' + (s.constellation==='wheel_of_fate'?' selected':'') + '>命运之轮</option>' +
             '<option value="queen_of_underworld"' + (s.constellation==='queen_of_underworld'?' selected':'') + '>冥界女王</option>' +
             '<option value="star_stream_watcher"' + (s.constellation==='star_stream_watcher'?' selected':'') + '>星之流观测者</option>' +
+          '</select>' +
+        '</div>' +
+        '<div class="edit-row">' +
+          '<span class="edit-label">化身位阶</span>' +
+          '<select class="edit-input" id="edit_avatarRank">' +
+            '<option value="F"' + ((s.avatarRank||'F')==='F'?' selected':'') + '>F级·临时化身</option>' +
+            '<option value="E"' + ((s.avatarRank||'F')==='E'?' selected':'') + '>E级·剧本幸存者</option>' +
+            '<option value="D"' + ((s.avatarRank||'F')==='D'?' selected':'') + '>D级·频道记录者</option>' +
+            '<option value="C"' + ((s.avatarRank||'F')==='C'?' selected':'') + '>C级·剧本执行者</option>' +
+            '<option value="B"' + ((s.avatarRank||'F')==='B'?' selected':'') + '>B级·星流候选者</option>' +
+            '<option value="A"' + ((s.avatarRank||'F')==='A'?' selected':'') + '>A级·故事承载者</option>' +
+          '</select>' +
+        '</div>' +
+        '<div class="edit-row">' +
+          '<span class="edit-label">故事位格</span>' +
+          '<select class="edit-input" id="edit_storyGrade">' +
+            '<option value="ordinary"' + ((s.storyGrade||'ordinary')==='ordinary'?' selected':'') + '>普通故事</option>' +
+            '<option value="notable"' + ((s.storyGrade||'ordinary')==='notable'?' selected':'') + '>显著故事</option>' +
+            '<option value="heroic"' + ((s.storyGrade||'ordinary')==='heroic'?' selected':'') + '>英雄故事</option>' +
+            '<option value="legendary"' + ((s.storyGrade||'ordinary')==='legendary'?' selected':'') + '>传说故事</option>' +
+            '<option value="mythic"' + ((s.storyGrade||'ordinary')==='mythic'?' selected':'') + '>神话故事</option>' +
           '</select>' +
         '</div>' +
         '<div class="edit-row">' +
@@ -1069,11 +1108,15 @@ var Admin = {
     self.api('GET', '/api/admin/players/' + playerId).then(function(data) {
       if (data.success) {
         var p = data.data.player;
+        var s = p.stats || {};
         var fields = {
-          s_hp: p.hp, s_maxHp: p.maxHp, s_stamina: p.stamina, s_maxStamina: p.maxStamina,
-          s_attack: p.attack, s_defense: p.defense, s_speed: p.speed,
-          s_critRate: Math.round(p.critRate * 100),
-          s_level: p.level, s_exp: p.exp, s_coins: p.coins, s_fragments: p.story_fragments
+          s_hp: s.hp, s_maxHp: s.maxHp, s_stamina: s.stamina, s_maxStamina: s.maxStamina,
+          s_attack: s.attack, s_defense: s.defense, s_speed: s.speed,
+          s_critRate: Math.round((s.critRate || 0) * 100),
+          s_level: s.level, s_exp: s.exp, s_coins: p.coins, s_fragments: p.story_fragments,
+          s_avatarRank: s.avatarRank || 'F',
+          s_storyGrade: s.storyGrade || 'ordinary',
+          s_channelHeat: s.channelHeat || 0
         };
         Object.keys(fields).forEach(function(k) {
           var el = document.getElementById(k);
@@ -1096,6 +1139,14 @@ var Admin = {
     });
     var crEl = document.getElementById('s_critRate');
     if (crEl) statsBody.critRate = (parseInt(crEl.value) || 5) / 100;
+    // Avatar rank & story grade
+    var arEl = document.getElementById('s_avatarRank');
+    if (arEl) statsBody.avatarRank = arEl.value;
+    var sgEl = document.getElementById('s_storyGrade');
+    if (sgEl) statsBody.storyGrade = sgEl.value;
+    var chEl = document.getElementById('s_channelHeat');
+    if (chEl) statsBody.channelHeat = parseInt(chEl.value) || 0;
+
     var resFields = { s_level: 'level', s_exp: 'exp', s_coins: 'coins', s_fragments: 'story_fragments' };
     Object.keys(resFields).forEach(function(k) {
       var el = document.getElementById(k);

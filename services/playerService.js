@@ -18,7 +18,11 @@ const defaultStats = {
   freePoints: 40,
   allocatedAtk: 0, allocatedDef: 0, allocatedSpd: 0, allocatedCrit: 0,
   // 背后星
-  constellation: null
+  constellation: null,
+  // 化身位阶
+  avatarRank: 'F',
+  avatarRankName: '临时化身',
+  storyGrade: 'ordinary'
 };
 
 function migratePlayerStats(stats) {

@@ -88,6 +88,10 @@ router.get('/players', (req, res) => {
         exp: stats.exp || 0,
         freePoints: stats.freePoints || 0,
         constellation: stats.constellation || null,
+        avatarRank: stats.avatarRank || 'F',
+        avatarRankName: stats.avatarRankName || '临时化身',
+        storyGrade: stats.storyGrade || 'ordinary',
+        channelHeat: stats.channelHeat || 0,
         isDead: !!stats.isDead,
         isResting: !!stats.isResting,
         current_chapter: p.current_chapter,
@@ -200,6 +204,7 @@ router.patch('/players/:id/stats', (req, res) => {
     const allowedStats = ['hp', 'maxHp', 'stamina', 'maxStamina', 'attack', 'defense', 'speed',
       'critRate', 'critDamage', 'level', 'exp', 'freePoints', 'luck', 'channelHeat', 'worldLineShift',
       'insight', 'willpower', 'leadership', 'bond'];
+    const stringStats = ['avatarRank', 'storyGrade'];
     const changed = [];
 
     for (const key of allowedStats) {
@@ -209,6 +214,17 @@ router.patch('/players/:id/stats', (req, res) => {
           return res.status(400).json({ success: false, error: { code: 'INVALID_VALUE', message: `${key} 必须为非负数字` } });
         }
         stats[key] = val;
+        changed.push(key);
+      }
+    }
+    for (const key of stringStats) {
+      if (req.body[key] !== undefined) {
+        stats[key] = req.body[key];
+        // Auto-set avatarRankName when rank changes
+        if (key === 'avatarRank') {
+          var ranks = { F: '临时化身', E: '剧本幸存者', D: '频道记录者', C: '剧本执行者', B: '星流候选者', A: '故事承载者' };
+          stats.avatarRankName = ranks[req.body[key]] || '临时化身';
+        }
         changed.push(key);
       }
     }
@@ -468,6 +484,20 @@ router.post('/players/:id/quick-action', (req, res) => {
         stats.hp = Math.max(stats.hp || 1, 1);
         msg = '已清除死亡状态';
         break;
+      case 'fill_rank_requirements': {
+        var avs = require('../services/avatarRankService');
+        var r1 = avs.adminFillRankRequirements(playerId);
+        if (!r1.success) return res.status(400).json(r1);
+        msg = '位阶条件已一键满足';
+        break;
+      }
+      case 'force_rank_up': {
+        var avs2 = require('../services/avatarRankService');
+        var r2 = avs2.rankUp(playerId);
+        if (!r2.success) return res.status(400).json(r2.error);
+        msg = '已执行升阶: ' + r2.data.displayName;
+        break;
+      }
       default:
         return res.status(400).json({ success: false, error: { code: 'INVALID_ACTION', message: '无效的操作: ' + action } });
     }

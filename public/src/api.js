@@ -210,4 +210,15 @@ const API = {
   submitFeedback(data) {
     return this.request('POST', '/api/feedback', data);
   },
+
+  // Avatar Rank
+  getAvatarRank(playerId) {
+    return this.request('GET', '/api/avatar-rank/' + playerId);
+  },
+  rankUp(playerId) {
+    return this.request('POST', '/api/avatar-rank/' + playerId + '/rank-up');
+  },
+  getAvatarRankLeaderboard(limit) {
+    return this.request('GET', '/api/avatar-rank/leaderboard?limit=' + (limit || 50));
+  },
 };

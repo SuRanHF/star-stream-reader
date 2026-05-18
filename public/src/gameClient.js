@@ -1737,8 +1737,9 @@ const GameClient = {
       }
 
       if (clientVersion !== serverVersion) {
-        // Version mismatch — show update overlay and block all operations
+        // Version mismatch — update localStorage first so reload doesn't loop
         console.log('[version] mismatch — client:', clientVersion, 'server:', serverVersion);
+        localStorage.setItem('game_client_version', serverVersion);
         var overlay = document.getElementById('versionUpdateOverlay');
         if (overlay) overlay.style.display = 'flex';
         document.getElementById('versionUpdateMsg').textContent =
@@ -1770,6 +1771,7 @@ const GameClient = {
         var serverVersion = data.version || '0.0.0';
         var clientVersion = localStorage.getItem('game_client_version');
         if (clientVersion && clientVersion !== serverVersion) {
+          localStorage.setItem('game_client_version', serverVersion);
           var overlay = document.getElementById('versionUpdateOverlay');
           if (overlay) overlay.style.display = 'flex';
           document.getElementById('versionUpdateMsg').textContent =

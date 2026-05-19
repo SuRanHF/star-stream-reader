@@ -1,0 +1,99 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]: 【测试服 v1.0.7】当前版本用于群友试玩和反馈，数据可能在更新时重置。
+  - generic [ref=e4]:
+    - main [ref=e5]:
+      - generic [ref=e7]: 星之流观测站
+      - generic [ref=e8]:
+        - generic [ref=e9]: "--:-- 系统初始化完成。等待读者就绪..."
+        - generic [ref=e10]: 18:40:01巨型昆虫从通风管道中挤出身体，黑色的甲壳在车厢灯光下折射出油亮的光泽。人群尖叫着后退。但你知道它的弱点——在小说中，这只昆虫的关节处有一道旧伤。你只需要利用身边的物品就能解决它。虫鸣和人的哭喊混合在一起，倒计时只剩下最后三分钟。
+        - generic [ref=e11]: "18:40:01装备了: 旧读者徽章"
+        - generic [ref=e12]: 18:40:01与 5 成为好友
+        - generic [ref=e13]: "18:40:01探索推进剧情至: 鬼怪降临"
+        - generic [ref=e14]: "18:40:01获得道具: old_subway_ticket x1"
+        - generic [ref=e15]: "18:40:01选择了: 【行动】抢占车厢角落的有利位置"
+        - generic [ref=e16]: "18:40:01选择了: 【剧情】安抚恐慌的乘客，让他们冷静下来听规则"
+        - generic [ref=e17]: "18:40:01获得称号: 情报贩子"
+        - generic [ref=e18]: "18:40:01探索推进剧情至: 第一个剧本：杀生"
+        - generic [ref=e19]: "18:40:01选择了: 【剧情】找到从通风口出现的昆虫并解决它"
+        - generic [ref=e20]: "18:40:01获得称号: 第一只猎物"
+        - generic [ref=e21]: "18:40:01探索推进剧情至: 昆虫之死"
+        - generic [ref=e22]: "18:40:01选择了: 【行动】趁其他人还在恐慌，收集车厢内的可用物资"
+        - generic [ref=e23]: "18:40:01选择了: 【剧情】面对其他幸存者的注视——你刚杀了那只昆虫，他们现在都在看你"
+        - generic [ref=e24]: 18:40:01加入了讨伐队伍
+        - generic [ref=e25]: 18:40:01离开了讨伐队伍
+      - generic [ref=e27]: 等待事件触发...
+      - generic [ref=e28]:
+        - generic [ref=e29]:
+          - button "继续探索(-5)" [ref=e30] [cursor=pointer]
+          - generic "批量探索：一次结算 N 次结果" [ref=e31]:
+            - button "×1" [ref=e32] [cursor=pointer]
+            - button "×5" [ref=e33] [cursor=pointer]
+            - button "×10" [ref=e34] [cursor=pointer]
+          - generic "自动连续探索，遭遇事件/体力不足时自动停止" [ref=e35] [cursor=pointer]:
+            - checkbox "自动" [ref=e36]
+            - generic [ref=e37]: 自动
+        - generic [ref=e38]:
+          - button "切换地点" [ref=e39] [cursor=pointer]
+          - button "休息" [ref=e40] [cursor=pointer]
+        - generic [ref=e41]:
+          - generic [ref=e42]: 废弃车站
+          - generic [ref=e43]: "|"
+          - generic [ref=e44]: 体力 49/50
+          - generic [ref=e45]: "|"
+          - generic [ref=e46]: ◎ 251
+          - generic [ref=e47]: "|"
+          - generic [ref=e48]: 故事沉淀 0
+          - generic [ref=e49]: "|"
+          - generic [ref=e50]: 今日探索 0 次
+    - navigation [ref=e51]:
+      - button "▣ 角色" [ref=e52] [cursor=pointer]:
+        - generic [ref=e53]: ▣
+        - generic [ref=e54]: 角色
+      - button "▤ 背包" [ref=e55] [cursor=pointer]:
+        - generic [ref=e56]: ▤
+        - generic [ref=e57]: 背包
+      - button "◆ 装备" [ref=e58] [cursor=pointer]:
+        - generic [ref=e59]: ◆
+        - generic [ref=e60]: 装备
+      - button "✦ 技能" [ref=e61] [cursor=pointer]:
+        - generic [ref=e62]: ✦
+        - generic [ref=e63]: 技能
+      - button "◈ 档案" [ref=e64] [cursor=pointer]:
+        - generic [ref=e65]: ◈
+        - generic [ref=e66]: 档案
+      - button "♛ 称号" [ref=e67] [cursor=pointer]:
+        - generic [ref=e68]: ♛
+        - generic [ref=e69]: 称号
+      - button "⚔ PK" [ref=e70] [cursor=pointer]:
+        - generic [ref=e71]: ⚔
+        - generic [ref=e72]: PK
+      - button "☰ 排行" [ref=e73] [cursor=pointer]:
+        - generic [ref=e74]: ☰
+        - generic [ref=e75]: 排行
+      - button "★ 放送" [ref=e76] [cursor=pointer]:
+        - generic [ref=e77]: ★
+        - generic [ref=e78]: 放送
+      - button "⬡ 阵营" [ref=e79] [cursor=pointer]:
+        - generic [ref=e80]: ⬡
+        - generic [ref=e81]: 阵营
+      - button "◎ 交易" [ref=e82] [cursor=pointer]:
+        - generic [ref=e83]: ◎
+        - generic [ref=e84]: 交易
+      - button "👥 组队" [ref=e85] [cursor=pointer]:
+        - generic [ref=e86]: 👥
+        - generic [ref=e87]: 组队
+      - button "⚙ 设置" [ref=e89] [cursor=pointer]:
+        - generic [ref=e90]: ⚙
+        - generic [ref=e91]: 设置
+      - button "💀 冥界" [ref=e93] [cursor=pointer]:
+        - generic [ref=e94]: 💀
+        - generic [ref=e95]: 冥界
+      - button "📋 更新" [ref=e96] [cursor=pointer]:
+        - generic [ref=e97]: 📋
+        - generic [ref=e98]: 更新
+      - button "▸ 主线" [ref=e100] [cursor=pointer]:
+        - generic [ref=e101]: ▸
+        - generic [ref=e102]: 主线
+      - button "✉ 反馈" [ref=e104] [cursor=pointer]:
+        - generic [ref=e105]: ✉
+        - generic [ref=e106]: 反馈

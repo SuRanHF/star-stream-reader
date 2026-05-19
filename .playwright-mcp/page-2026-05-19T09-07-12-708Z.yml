@@ -1,0 +1,143 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]: 【测试服 v1.0.7】当前版本用于群友试玩和反馈，数据可能在更新时重置。
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]: 全知读者视角
+      - generic [ref=e6]: Omniscient Reader
+      - generic [ref=e7]: 2026-05-19 | 付费服务开始 | 偏移 0 | 观测中
+    - generic [ref=e8]:
+      - complementary [ref=e9]:
+        - generic [ref=e10]:
+          - generic [ref=e11]: 未命名读者
+          - generic [ref=e12]: 付费服务开始
+        - generic [ref=e13]:
+          - generic [ref=e14]:
+            - generic [ref=e15]: HP
+            - generic [ref=e18]: 100/100
+          - generic [ref=e19]:
+            - generic [ref=e20]: 体力
+            - generic [ref=e23]: 50/50
+        - generic [ref=e25]:
+          - generic [ref=e26]:
+            - generic [ref=e27]: Lv.
+            - generic [ref=e28]: "1"
+          - generic [ref=e29]:
+            - generic [ref=e30]: ◎
+            - generic [ref=e31]: "102"
+          - generic [ref=e32]:
+            - generic [ref=e33]: ◆
+            - generic [ref=e34]: "5"
+        - generic [ref=e35]:
+          - generic [ref=e36]: 化身位阶
+          - generic [ref=e37]:
+            - generic [ref=e38]: F级·临时化身
+            - generic [ref=e39]: 普通故事
+            - generic [ref=e40]: 无名观测者
+          - generic [ref=e41]: "距E级·剧本幸存者: 2/3 条件"
+          - button "查看升阶" [ref=e42] [cursor=pointer]
+        - generic [ref=e43]:
+          - generic [ref=e44]: 当前位置
+          - generic [ref=e45]: 废弃车站
+        - generic [ref=e46]:
+          - generic [ref=e47]: 称号
+          - text: 称号 0
+        - button "详细属性 →" [ref=e49] [cursor=pointer]
+      - main [ref=e50]:
+        - generic [ref=e52]: 星之流观测站
+        - generic [ref=e53]:
+          - generic [ref=e54]: "--:-- 系统初始化完成。等待读者就绪..."
+          - generic [ref=e138]: 17:07:04一团蓝色的光雾在车厢中央凝聚。从光雾中走出了一个矮小的身影——它的皮肤灰白，头上长着两只角，身上披着破旧的黑袍。一只鬼怪。它发出尖锐得令人牙酸的笑声：「亲爱的乘客们，恭喜你们！你们被选中参与一场非常——特别的剧本。」蓝光从它的指尖扩散，扫过每一个人的头顶，留下一串串数字。倒计时浮现：15分钟。第一个剧本正式公布——「在15分钟内杀死一个或以上的生命体。失败者将被处决。」车厢内爆发出尖叫。但你没有叫。因为你知道规则。
+          - generic [ref=e139]: 17:07:04当前有主线剧情待推进，下次探索将触发（此次探索免费）
+          - generic [ref=e140]: "17:07:04选择了: 【调查】再次打开手机，仔细查看小说的最终话"
+          - generic [ref=e141]: "17:07:04选择了: 【剧情】走向车厢前方查看震动的来源"
+          - generic [ref=e142]: 17:07:045 向你发送了好友申请
+          - generic [ref=e143]: "17:07:04获得道具: small_hp_potion x1"
+          - generic [ref=e144]: "17:07:04获得道具: small_hp_potion x1"
+          - generic [ref=e145]: 17:07:04你进入休息状态，生命与体力恢复速度提升。
+          - generic [ref=e146]: "17:07:04参加了星流放送: 废都探索驱动"
+          - generic [ref=e147]: 17:07:04你结束休息。
+          - generic [ref=e148]: "17:07:04领取了星流放送奖励: 废都探索驱动"
+          - generic [ref=e149]: "17:07:04参加了星流放送: 遗失章节狩猎"
+          - generic [ref=e150]: "17:07:04领取了星流放送奖励: 遗失章节狩猎"
+          - generic [ref=e151]: "17:07:04卸下了: 旧读者徽章"
+          - generic [ref=e152]: "17:07:04装备了: 旧读者徽章"
+          - generic [ref=e153]: 17:07:04与 5 成为好友
+          - generic [ref=e154]: "17:07:04探索推进剧情至: 鬼怪降临"
+        - generic [ref=e56]: 等待事件触发...
+        - generic [ref=e57]:
+          - generic [ref=e58]:
+            - button "继续探索(-5)" [ref=e59] [cursor=pointer]
+            - generic "批量探索：一次结算 N 次结果" [ref=e60]:
+              - button "×1" [ref=e61] [cursor=pointer]
+              - button "×5" [ref=e62] [cursor=pointer]
+              - button "×10" [ref=e63] [cursor=pointer]
+            - generic "自动连续探索，遭遇事件/体力不足时自动停止" [ref=e64] [cursor=pointer]:
+              - checkbox "自动" [ref=e65]
+              - generic [ref=e66]: 自动
+          - generic [ref=e67]:
+            - button "切换地点" [ref=e68] [cursor=pointer]
+            - button "休息" [ref=e69] [cursor=pointer]
+          - generic [ref=e70]:
+            - generic [ref=e71]: 废弃车站
+            - generic [ref=e72]: "|"
+            - generic [ref=e73]: 体力 50/50
+            - generic [ref=e74]: "|"
+            - generic [ref=e75]: ◎ 102
+            - generic [ref=e76]: "|"
+            - generic [ref=e77]: 故事沉淀 0
+            - generic [ref=e78]: "|"
+            - generic [ref=e79]: 今日探索 0 次
+      - navigation [ref=e80]:
+        - button "▣ 角色" [ref=e81] [cursor=pointer]:
+          - generic [ref=e82]: ▣
+          - generic [ref=e83]: 角色
+        - button "▤ 背包" [ref=e84] [cursor=pointer]:
+          - generic [ref=e85]: ▤
+          - generic [ref=e86]: 背包
+        - button "◆ 装备" [ref=e87] [cursor=pointer]:
+          - generic [ref=e88]: ◆
+          - generic [ref=e89]: 装备
+        - button "✦ 技能" [ref=e90] [cursor=pointer]:
+          - generic [ref=e91]: ✦
+          - generic [ref=e92]: 技能
+        - button "◈ 档案" [ref=e93] [cursor=pointer]:
+          - generic [ref=e94]: ◈
+          - generic [ref=e95]: 档案
+        - button "♛ 称号" [ref=e96] [cursor=pointer]:
+          - generic [ref=e97]: ♛
+          - generic [ref=e98]: 称号
+        - button "⚔ PK" [ref=e99] [cursor=pointer]:
+          - generic [ref=e100]: ⚔
+          - generic [ref=e101]: PK
+        - button "☰ 排行" [ref=e102] [cursor=pointer]:
+          - generic [ref=e103]: ☰
+          - generic [ref=e104]: 排行
+        - button "★ 放送" [ref=e105] [cursor=pointer]:
+          - generic [ref=e106]: ★
+          - generic [ref=e107]: 放送
+        - button "⬡ 阵营" [ref=e108] [cursor=pointer]:
+          - generic [ref=e109]: ⬡
+          - generic [ref=e110]: 阵营
+        - button "⚙ 设置" [ref=e112] [cursor=pointer]:
+          - generic [ref=e113]: ⚙
+          - generic [ref=e114]: 设置
+        - button "💀 冥界" [ref=e116] [cursor=pointer]:
+          - generic [ref=e117]: 💀
+          - generic [ref=e118]: 冥界
+        - button "📋 更新" [ref=e119] [cursor=pointer]:
+          - generic [ref=e120]: 📋
+          - generic [ref=e121]: 更新
+        - button "▸ 主线" [ref=e123] [cursor=pointer]:
+          - generic [ref=e124]: ▸
+          - generic [ref=e125]: 主线
+        - button "✉ 反馈" [ref=e127] [cursor=pointer]:
+          - generic [ref=e128]: ✉
+          - generic [ref=e129]: 反馈
+    - generic [ref=e130]:
+      - button "好友" [ref=e131] [cursor=pointer]
+      - button "申请" [ref=e132] [cursor=pointer]
+      - button "聊天" [ref=e133] [cursor=pointer]
+      - button "赠礼" [ref=e134] [cursor=pointer]
+      - button "切磋" [ref=e135] [cursor=pointer]
+      - button "组队" [disabled] [ref=e136]
+      - button "最近互动" [ref=e137] [cursor=pointer]

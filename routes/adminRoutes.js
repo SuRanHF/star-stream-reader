@@ -52,6 +52,19 @@ function flexibleAuth(req, res, next) {
 
 router.use(flexibleAuth);
 
+// ===== Test Data Seed =====
+router.post('/seed-test-data', (req, res) => {
+  try {
+    var { seedTestData } = require('../utils/seedTestData');
+    var result = seedTestData();
+    logAction(getAdminName(req), 'seed_test_data', null, result.data);
+    res.json(result);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
+  }
+});
+
 // ===== Existing: List all players =====
 router.get('/players', (req, res) => {
   try {
@@ -272,8 +285,8 @@ router.patch('/players/:id/resources', (req, res) => {
 
     const fields = {};
     const resourceKeys = ['coins', 'story_fragments'];
-    const stats = JSON.parse(player.stats_json || '{}');
-    const statsResources = ['scenarioProof', 'constellationFavor', 'kingToken', 'abyssMark', 'finalPage'];
+    const breakthroughResources = JSON.parse(player.breakthrough_resources_json || '{}');
+    const breakthroughKeys = ['constellationFavor', 'abyssMark'];
     const changed = [];
 
     for (const key of resourceKeys) {
@@ -287,19 +300,19 @@ router.patch('/players/:id/resources', (req, res) => {
       }
     }
 
-    let statsChanged = false;
-    for (const key of statsResources) {
+    let brChanged = false;
+    for (const key of breakthroughKeys) {
       if (req.body[key] !== undefined) {
         const val = Number(req.body[key]);
         if (isNaN(val) || val < 0) {
           return res.status(400).json({ success: false, error: { code: 'INVALID_VALUE', message: `${key} 必须为非负数字` } });
         }
-        stats[key] = val;
-        statsChanged = true;
+        breakthroughResources[key] = val;
+        brChanged = true;
         changed.push(key);
       }
     }
-    if (statsChanged) fields.stats_json = stats;
+    if (brChanged) fields.breakthrough_resources_json = breakthroughResources;
 
     if (changed.length === 0) {
       return res.status(400).json({ success: false, error: { code: 'NO_CHANGES', message: '没有提供有效的资源字段' } });

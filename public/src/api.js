@@ -59,6 +59,14 @@ const API = {
     return this.request('POST', `/api/player/reset/${playerId}`);
   },
 
+  // Worldline
+  getWorldlineStatus() {
+    return this.request('GET', '/api/worldline/status').then(r => r.data);
+  },
+  getWorldlineHistory(limit) {
+    return this.request('GET', `/api/worldline/history?limit=${limit || 20}`).then(r => r.data);
+  },
+
   // Story
   getCurrentStory(playerId) {
     return this.request('GET', `/api/story/current/${playerId}`);
@@ -176,6 +184,9 @@ const API = {
   getBroadcastRanking(eventId, limit) {
     return this.request('GET', `/api/broadcast/${eventId}/ranking?limit=${limit || 20}`);
   },
+  getBroadcastLeaderboard(limit) {
+    return this.request('GET', `/api/broadcast/leaderboard?limit=${limit || 50}`);
+  },
   getBroadcastHistory() {
     return this.request('GET', '/api/broadcast/history');
   },
@@ -234,5 +245,128 @@ const API = {
   },
   getAvatarRankLeaderboard(limit) {
     return this.request('GET', '/api/avatar-rank/leaderboard?limit=' + (limit || 50));
+  },
+  prestige(playerId) {
+    return this.request('POST', '/api/avatar-rank/' + playerId + '/prestige');
+  },
+
+  // Chat
+  sendChatMessage(playerId, playerName, message, channel) {
+    return this.request('POST', '/api/chat/send', { playerId, playerName, message, channel: channel || 'global' });
+  },
+  getChatMessages(channel, limit, sinceId) {
+    var url = '/api/chat/messages/' + (channel || 'global') + '?limit=' + (limit || 50);
+    if (sinceId) url += '&since=' + sinceId;
+    return this.request('GET', url);
+  },
+  getActiveChatters(channel, minutes) {
+    return this.request('GET', '/api/chat/active/' + (channel || 'global') + '?minutes=' + (minutes || 10));
+  },
+
+  // Factions (阵营)
+  getFactions() {
+    return this.request('GET', '/api/factions');
+  },
+  getFactionDetail(constellationKey) {
+    return this.request('GET', '/api/factions/' + constellationKey);
+  },
+  getFactionMembers(constellationKey, limit) {
+    return this.request('GET', '/api/factions/' + constellationKey + '/members?limit=' + (limit || 50));
+  },
+  getFactionLeaderboard() {
+    return this.request('GET', '/api/factions/leaderboard');
+  },
+  getMyFaction(playerId) {
+    return this.request('GET', '/api/factions/my/' + playerId);
+  },
+  getWeeklyWar() {
+    return this.request('GET', '/api/factions/war/current');
+  },
+
+  // Trade (交易市场)
+  getActiveListings(itemType) {
+    var url = '/api/trade/listings';
+    if (itemType) url += '?type=' + itemType;
+    return this.request('GET', url);
+  },
+  getMyListings(playerId) {
+    return this.request('GET', '/api/trade/listings/my/' + playerId);
+  },
+  createListing(sellerId, itemKey, itemType, quantity, price) {
+    return this.request('POST', '/api/trade/listings', { sellerId, itemKey, itemType, quantity, price });
+  },
+  buyListing(listingId, buyerId) {
+    return this.request('POST', '/api/trade/listings/' + listingId + '/buy', { buyerId });
+  },
+  cancelListing(listingId, playerId) {
+    return this.request('POST', '/api/trade/listings/' + listingId + '/cancel', { playerId });
+  },
+
+  // Party (组队)
+  getActiveParties() {
+    return this.request('GET', '/api/party');
+  },
+  getMyParty(playerId) {
+    return this.request('GET', '/api/party/my/' + playerId);
+  },
+  createParty(leaderId, bossKey) {
+    return this.request('POST', '/api/party/create', { leaderId, bossKey: bossKey || null });
+  },
+  joinParty(partyId, playerId) {
+    return this.request('POST', '/api/party/' + partyId + '/join', { playerId });
+  },
+  leaveParty(partyId, playerId) {
+    return this.request('POST', '/api/party/' + partyId + '/leave', { playerId });
+  },
+  setReady(partyId, playerId, ready) {
+    return this.request('POST', '/api/party/' + partyId + '/ready', { playerId, ready: ready });
+  },
+  startPartyBossBattle(partyId, playerId) {
+    return this.request('POST', '/api/party/' + partyId + '/start-battle', { playerId });
+  },
+
+  // Narrative (碎片化叙事)
+  getItemMemories(itemKey) {
+    return this.request('GET', '/api/narrative/item-memories/' + (itemKey || 'all'));
+  },
+  getLocationEchoes(locationKey) {
+    return this.request('GET', '/api/narrative/location-echoes/' + locationKey);
+  },
+  checkGhostEncounter(playerId, locationKey) {
+    return this.request('GET', '/api/narrative/ghost-check/' + playerId + '/' + locationKey);
+  },
+  processGhostEncounter(playerId, ghostKey, nodeIndex, choiceIndex) {
+    return this.request('POST', '/api/narrative/ghost-encounter', { playerId, ghostKey, nodeIndex, choiceIndex });
+  },
+
+  // Friends
+  getFriendList(playerId) {
+    return this.request('GET', '/api/friends/list/' + playerId);
+  },
+  getFriendRequests(playerId) {
+    return this.request('GET', '/api/friends/requests/' + playerId);
+  },
+  sendFriendRequest(playerId, friendId) {
+    return this.request('POST', '/api/friends/request', { playerId, friendId });
+  },
+  acceptFriendRequest(playerId, requestId) {
+    return this.request('POST', '/api/friends/accept', { playerId, requestId });
+  },
+  declineFriendRequest(playerId, requestId) {
+    return this.request('POST', '/api/friends/decline', { playerId, requestId });
+  },
+  rejectFriendRequest(playerId, requestId) {
+    return this.request('POST', '/api/friends/decline', { playerId, requestId });
+  },
+  removeFriend(playerId, friendId) {
+    return this.request('POST', '/api/friends/remove', { playerId, friendId });
+  },
+  // Gift
+  sendGift(playerId, targetId, itemKey) {
+    return this.request('POST', '/api/friends/gift', { playerId, targetId, itemKey });
+  },
+  // Recent interactions
+  getRecentInteractions(playerId) {
+    return this.request('GET', '/api/friends/recent/' + playerId);
   },
 };

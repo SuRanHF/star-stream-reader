@@ -80,6 +80,8 @@ CREATE TABLE IF NOT EXISTS players (
     stage_progress_json TEXT NOT NULL DEFAULT '{}',
     current_location TEXT NOT NULL DEFAULT '',
     last_heartbeat TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    prestige_level INTEGER NOT NULL DEFAULT 0,
+    prestige_bonus_json TEXT NOT NULL DEFAULT '{}',
     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
 );
@@ -381,3 +383,165 @@ CREATE INDEX IF NOT EXISTS idx_broadcast_participation_event ON broadcast_partic
 CREATE INDEX IF NOT EXISTS idx_broadcast_participation_player ON broadcast_participation(player_id);
 CREATE INDEX IF NOT EXISTS idx_broadcast_contributions_event ON broadcast_contributions(event_id);
 CREATE INDEX IF NOT EXISTS idx_broadcast_contributions_player ON broadcast_contributions(player_id);
+
+-- 聊天频道
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    player_name TEXT NOT NULL,
+    message TEXT NOT NULL,
+    channel TEXT NOT NULL DEFAULT 'global',
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_messages_channel ON chat_messages(channel);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_created ON chat_messages(created_at);
+
+-- 好友系统
+CREATE TABLE IF NOT EXISTS friendships (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    friend_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    status TEXT NOT NULL DEFAULT 'pending', -- pending / accepted / blocked
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    UNIQUE(player_id, friend_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_friendships_player ON friendships(player_id);
+CREATE INDEX IF NOT EXISTS idx_friendships_friend ON friendships(friend_id);
+
+-- Constellation factions (Phase 3)
+CREATE TABLE IF NOT EXISTS constellation_factions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    constellation_key TEXT UNIQUE NOT NULL,
+    faction_name TEXT NOT NULL,
+    total_contribution_score REAL NOT NULL DEFAULT 0,
+    active_members INTEGER NOT NULL DEFAULT 0,
+    faction_level INTEGER NOT NULL DEFAULT 1,
+    faction_skills_json TEXT NOT NULL DEFAULT '[]',
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+
+CREATE TABLE IF NOT EXISTS faction_contributions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    constellation_key TEXT NOT NULL,
+    contribution_type TEXT NOT NULL,
+    amount REAL NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+
+CREATE TABLE IF NOT EXISTS faction_wars (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    week_start TEXT NOT NULL,
+    week_end TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active',
+    final_scores_json TEXT NOT NULL DEFAULT '{}',
+    winner_constellation TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_faction_contributions_player ON faction_contributions(player_id);
+CREATE INDEX IF NOT EXISTS idx_faction_contributions_const ON faction_contributions(constellation_key);
+CREATE INDEX IF NOT EXISTS idx_faction_wars_status ON faction_wars(status);
+
+-- Global world state (singleton, Phase 2)
+CREATE TABLE IF NOT EXISTS world_state (
+    id INTEGER PRIMARY KEY CHECK(id = 1),
+    world_line_shift REAL NOT NULL DEFAULT 0,
+    ripple_decay_rate REAL NOT NULL DEFAULT 0.01,
+    last_decay_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    global_event_triggered_at_10 INTEGER NOT NULL DEFAULT 0,
+    global_event_triggered_at_25 INTEGER NOT NULL DEFAULT 0,
+    global_event_triggered_at_50 INTEGER NOT NULL DEFAULT 0,
+    global_event_triggered_at_100 INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+
+-- ============================================================
+-- Phase 4: 交易系统 + 组队Boss战
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS trade_listings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    seller_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    item_key TEXT NOT NULL,
+    item_type TEXT NOT NULL DEFAULT 'item' CHECK(item_type IN ('item','equipment')),
+    quantity INTEGER NOT NULL DEFAULT 1 CHECK(quantity > 0),
+    price INTEGER NOT NULL CHECK(price >= 0),
+    listing_status TEXT NOT NULL DEFAULT 'active' CHECK(listing_status IN ('active','sold','cancelled')),
+    buyer_id INTEGER REFERENCES players(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    sold_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS parties (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    leader_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    status TEXT NOT NULL DEFAULT 'recruiting' CHECK(status IN ('recruiting','full','in_combat','disbanded')),
+    boss_key TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+
+CREATE TABLE IF NOT EXISTS party_members (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    party_id INTEGER NOT NULL REFERENCES parties(id) ON DELETE CASCADE,
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    ready INTEGER NOT NULL DEFAULT 0,
+    joined_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    UNIQUE(party_id, player_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_trade_listings_seller ON trade_listings(seller_id);
+CREATE INDEX IF NOT EXISTS idx_trade_listings_status ON trade_listings(listing_status, item_type);
+CREATE INDEX IF NOT EXISTS idx_parties_status ON parties(status);
+CREATE INDEX IF NOT EXISTS idx_party_members_party ON party_members(party_id);
+CREATE INDEX IF NOT EXISTS idx_party_members_player ON party_members(player_id);
+
+-- ============================================================
+-- Phase 5: 碎片化叙事系统
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS item_memories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    item_key TEXT NOT NULL,
+    memory_text TEXT NOT NULL,
+    narrator TEXT NOT NULL DEFAULT 'system',
+    unlock_condition TEXT DEFAULT NULL
+);
+
+CREATE TABLE IF NOT EXISTS location_echoes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    location_key TEXT NOT NULL,
+    echo_text TEXT NOT NULL,
+    narrator TEXT NOT NULL DEFAULT 'location',
+    weight REAL NOT NULL DEFAULT 1.0
+);
+
+CREATE TABLE IF NOT EXISTS npc_ghosts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ghost_key TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    dialogue_tree_json TEXT NOT NULL DEFAULT '[]',
+    location_keys_json TEXT NOT NULL DEFAULT '[]',
+    encounter_weight REAL NOT NULL DEFAULT 0.05,
+    is_unique INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS player_npc_encounters (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    ghost_key TEXT NOT NULL,
+    choice_made TEXT DEFAULT NULL,
+    outcome TEXT DEFAULT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_item_memories_item ON item_memories(item_key);
+CREATE INDEX IF NOT EXISTS idx_location_echoes_location ON location_echoes(location_key);
+CREATE INDEX IF NOT EXISTS idx_player_npc_encounters_player ON player_npc_encounters(player_id);

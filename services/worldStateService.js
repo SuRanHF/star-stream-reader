@@ -28,14 +28,18 @@ function getWorldStateSummary() {
     stageDist[stage] = (stageDist[stage] || 0) + 1;
   });
 
-  // 世界线偏移和频道热度
-  let totalWLO = 0;
+  // 世界线偏移 (Phase 2: global shared state) 和频道热度
+  let globalWLO = 0;
+  try {
+    var wsRow = db.prepare('SELECT world_line_shift FROM world_state WHERE id = 1').get();
+    globalWLO = wsRow ? wsRow.world_line_shift : 0;
+  } catch (e) { /* table may not exist yet */ }
   let totalCH = 0;
   allPlayers.forEach(p => {
-    try { const s = JSON.parse(p.stats_json); totalWLO += s.worldLineShift || 0; totalCH += s.channelHeat || 0; }
+    try { const s = JSON.parse(p.stats_json); totalCH += s.channelHeat || 0; }
     catch (e) { /* ignore */ }
   });
-  const averageWorldLineShift = allPlayers.length > 0 ? Math.round(totalWLO / allPlayers.length * 100) / 100 : 0;
+  const averageWorldLineShift = globalWLO;
   const averageChannelHeat = allPlayers.length > 0 ? Math.round(totalCH / allPlayers.length * 100) / 100 : 0;
 
   // 最常见称号

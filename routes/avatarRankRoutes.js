@@ -46,4 +46,17 @@ router.post('/:playerId/rank-up', function(req, res) {
   }
 });
 
+// Phase 6: 回归
+router.post('/:playerId/prestige', function(req, res) {
+  try {
+    var playerId = parseInt(req.params.playerId);
+    var result = avatarRankService.prestige(playerId);
+    if (result.error) return res.status(400).json(result);
+    res.json({ success: true, data: result.data });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+  }
+});
+
 module.exports = router;

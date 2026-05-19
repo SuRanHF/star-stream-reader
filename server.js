@@ -39,6 +39,7 @@ const { seedEquipment } = require('./data/seedEquipment');
 const { seedSkills } = require('./data/seedSkills');
 const { seedMainChapters } = require('./data/seedMainChapters');
 const { seedExplorationEvents } = require('./data/seedExplorationEvents');
+const { seedNarrative } = require('./data/seedNarrative');
 const { authRequired } = require('./middleware/authMiddleware');
 
 const app = express();
@@ -102,6 +103,12 @@ async function start() {
       console.log('Seeding Round 5 exploration events...');
       seedExplorationEvents(db);
     }
+    // Phase 5: seed narrative data if empty
+    var nmCount = db.prepare('SELECT COUNT(*) as c FROM item_memories').get().c;
+    if (nmCount === 0) {
+      console.log('Seeding Phase 5 narrative data...');
+      seedNarrative(db);
+    }
     console.log(`Database contains ${chapterCount} chapters, skipping story seed.`);
   }
 
@@ -131,6 +138,7 @@ async function start() {
   app.use('/api/avatar-rank', authRequired, require('./routes/avatarRankRoutes'));
 
   // === Public Routes (no auth required) ===
+  app.use('/api/worldline', require('./routes/worldlineRoutes'));
   app.use('/api/rankings', require('./routes/rankingRoutes'));
 
   // Admin (auth + admin check)
@@ -138,7 +146,13 @@ async function start() {
 
   // Round 6: broadcast (partial auth — active/history public, join/claim protected)
   app.use('/api/broadcast', require('./routes/broadcastRoutes'));
-  app.use('/api/ai-director', require('./routes/aiDirectorRoutes'));
+  app.use('/api/chat', require('./routes/chatRoutes'));
+  app.use('/api/friends', require('./routes/friendRoutes'));
+  app.use('/api/factions', require('./routes/factionRoutes'));
+app.use('/api/trade', authRequired, require('./routes/tradeRoutes'));
+app.use('/api/party', authRequired, require('./routes/partyRoutes'));
+app.use('/api/narrative', require('./routes/narrativeRoutes'));
+app.use('/api/ai-director', require('./routes/aiDirectorRoutes'));
 
   // Health check
   app.get('/api/health', (req, res) => {
@@ -246,6 +260,12 @@ async function start() {
 
   app.listen(PORT, () => {
     console.log(`全知读者视角 游戏服务器已启动 (Round 11): http://localhost:${PORT}`);
+    // 启动全服调度引擎
+    try {
+      require('./services/schedulerService').start();
+    } catch (e) {
+      console.error('Failed to start scheduler:', e.message);
+    }
   });
 }
 

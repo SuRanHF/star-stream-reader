@@ -525,7 +525,7 @@ function awardStageResources(playerId, effects) {
       chapterService.awardResource(playerId, 'constellationFavor', 1);
     }
     if (effects.flags.took_throne || effects.flags.stopped_yjh) {
-      chapterService.awardResource(playerId, 'kingToken', 1);
+      chapterService.awardResource(playerId, 'abyssMark', 1);
     }
     if (effects.flags.demon_candidate || effects.flags.entered_underworld) {
       chapterService.awardResource(playerId, 'abyssMark', 1);

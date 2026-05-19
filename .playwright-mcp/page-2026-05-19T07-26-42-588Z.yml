@@ -1,0 +1,113 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]: 【测试服 v1.0.7】当前版本用于群友试玩和反馈，数据可能在更新时重置。
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - button "☰" [ref=e5] [cursor=pointer]
+      - generic [ref=e6]:
+        - generic [ref=e7]: 未命名读者
+        - generic [ref=e8]: F级·临时化身
+        - generic [ref=e9]: ♥ 100/100
+        - generic [ref=e10]: ◎ 80
+      - generic [ref=e11]:
+        - button "💬" [ref=e12] [cursor=pointer]
+        - button "🔔" [ref=e13] [cursor=pointer]
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - generic [ref=e16] [cursor=pointer]:
+          - generic [ref=e17]:
+            - generic [ref=e18]: ⚔
+            - generic [ref=e19]: 战斗
+          - generic [ref=e20]:
+            - button "PK" [ref=e21]
+            - button "装备" [ref=e22]
+            - button "技能" [ref=e23]
+        - generic [ref=e24] [cursor=pointer]:
+          - generic [ref=e25]:
+            - generic [ref=e26]: 💬
+            - generic [ref=e27]: 社交
+          - generic [ref=e28]:
+            - button "冥界" [ref=e29]
+            - button "排行" [ref=e30]
+            - button "放送" [ref=e31]
+      - generic [ref=e32]:
+        - generic [ref=e33] [cursor=pointer]:
+          - generic [ref=e34]:
+            - generic [ref=e35]: ▤
+            - generic [ref=e36]: 收集
+          - generic [ref=e37]:
+            - button "背包" [ref=e38]
+            - button "称号" [ref=e39]
+            - button "档案" [ref=e40]
+        - generic [ref=e41] [cursor=pointer]:
+          - generic [ref=e42]:
+            - generic [ref=e43]: ⚙
+            - generic [ref=e44]: 系统
+          - generic [ref=e45]:
+            - button "设置" [ref=e46]
+            - button "更新" [ref=e47]
+            - button "反馈" [ref=e48]
+    - main [ref=e50]:
+      - generic [ref=e52]: 最后一班地铁
+      - generic [ref=e53]:
+        - generic [ref=e54]: "--:-- 系统初始化完成。等待读者就绪..."
+        - generic [ref=e55]: 15:26:42地铁在昏暗的隧道中穿行。你靠在门边，手机屏幕的光映在脸上——这是《在灭亡的世界中存活的三种方法》的最终话。3149章，十年的连载，今天结束了。你翻到最后一页，文字在屏幕上淡去。就在这时，地铁猛地一震。灯光闪烁。周围乘客的手机同时失去信号。你抬起头，意识到有什么东西正在降临。
+        - generic [ref=e56]: "15:26:42获得初始装备: 生锈短刀、车站守卫外套、旧读者徽章"
+        - generic [ref=e57]: "15:26:42选择了背后星: 最古之金乌（金乌）"
+        - generic [ref=e58]: "15:26:42选择了: 【调查】再次打开手机，仔细查看小说的最终话"
+        - generic [ref=e59]: "15:26:42选择了: 【剧情】走向车厢前方查看震动的来源"
+        - generic [ref=e60]: 15:26:425 向你发送了好友申请
+        - generic [ref=e61]: "15:26:42获得道具: small_hp_potion x1"
+        - generic [ref=e62]: "15:26:42获得道具: small_hp_potion x1"
+        - generic [ref=e63]: 15:26:42你进入休息状态，生命与体力恢复速度提升。
+        - generic [ref=e64]: "15:26:42参加了星流放送: 废都探索驱动"
+        - generic [ref=e65]: 15:26:42你结束休息。
+        - generic [ref=e66]: "15:26:42领取了星流放送奖励: 废都探索驱动"
+        - generic [ref=e67]: "15:26:42参加了星流放送: 遗失章节狩猎"
+        - generic [ref=e68]: "15:26:42领取了星流放送奖励: 遗失章节狩猎"
+        - generic [ref=e69]: "15:26:42卸下了: 旧读者徽章"
+        - generic [ref=e70]: "15:26:42装备了: 旧读者徽章"
+      - generic [ref=e71]:
+        - generic [ref=e72]:
+          - generic [ref=e73]:
+            - generic [ref=e74]: 调查
+            - generic [ref=e75]: 【调查】再次打开手机，仔细查看小说的最终话
+          - generic [ref=e76]: 本章已结束，请通过探索推进剧情
+          - generic [ref=e77]:
+            - button "未解锁" [disabled]
+        - generic [ref=e78]:
+          - generic [ref=e79]:
+            - generic [ref=e80]: 调查
+            - generic [ref=e81]: 【调查】观察周围乘客的反应
+          - generic [ref=e82]: 本章已结束，请通过探索推进剧情
+          - generic [ref=e83]:
+            - button "未解锁" [disabled]
+        - generic [ref=e84]:
+          - generic [ref=e85]:
+            - generic [ref=e86]: 剧情推进
+            - generic [ref=e87]: 【剧情】走向车厢前方查看震动的来源
+          - generic [ref=e88]: 本章已结束，请通过探索推进剧情
+          - generic [ref=e89]:
+            - button "未解锁" [disabled]
+      - generic [ref=e90]:
+        - generic [ref=e91]:
+          - button "继续探索(-5)" [ref=e92] [cursor=pointer]
+          - generic "批量探索：一次结算 N 次结果" [ref=e93]:
+            - button "×1" [ref=e94] [cursor=pointer]
+            - button "×5" [ref=e95] [cursor=pointer]
+            - button "×10" [ref=e96] [cursor=pointer]
+          - generic "自动连续探索，遭遇事件/体力不足时自动停止" [ref=e97] [cursor=pointer]:
+            - checkbox "自动" [ref=e98]
+            - generic [ref=e99]: 自动
+        - generic [ref=e100]:
+          - button "切换地点" [ref=e101] [cursor=pointer]
+          - button "休息" [ref=e102] [cursor=pointer]
+        - generic [ref=e103]:
+          - generic [ref=e104]: 废弃车站
+          - generic [ref=e105]: "|"
+          - generic [ref=e106]: 体力 38/50
+          - generic [ref=e107]: "|"
+          - generic [ref=e108]: ◎ 80
+          - generic [ref=e109]: "|"
+          - generic [ref=e110]: 故事沉淀 0
+          - generic [ref=e111]: "|"
+          - generic [ref=e112]: 今日探索 0 次

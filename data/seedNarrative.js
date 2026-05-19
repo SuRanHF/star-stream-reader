@@ -1,0 +1,1240 @@
+// 碎片化叙事种子数据 (Phase 5 - Round 2 Expansion)
+// 物品记忆、地点回响、NPC残影（对话树格式）
+
+function seedNarrative(db) {
+  // ── 物品记忆 ──
+  var itemMemories = [
+    { item_key: 'rusty_dagger', memory_text: '这把生锈的短刀上刻着微小的字迹：「给最爱的儿子——金独子」。刀柄磨损严重，似乎被握过无数次。', narrator: '物品记忆' },
+    { item_key: 'station_guard_coat', memory_text: '外套内侧口袋有一张褪色的车票，目的地是"终点站"。检票员的印章已经模糊不清。这件外套曾属于一位守卫地铁最后防线的年轻士兵。', narrator: '物品记忆' },
+    { item_key: 'old_reader_badge', memory_text: '这本应是一枚普通的读者证。但它曾被一个人带到了世界的尽头，上面的编号409已经无法在系统中查到对应的借阅记录了。', narrator: '物品记忆' },
+    { item_key: 'small_hp_potion', memory_text: '廉价的再生药剂。瓶身上贴着"星流制药"的标签。有人说过："只要还有一口气，就能活下来——这不是祝福，是诅咒。"', narrator: '物品记忆' },
+    { item_key: 'story_fragment', memory_text: '一段被撕裂的故事残片。你可以隐约听到一个声音在低声诵读："这是全知读者视角所说的...这个世界只有三种存活方式。而我知道第四种。"', narrator: '碎片回响' },
+    { item_key: 'monster_bone', memory_text: '魔物的骨骸。早在"场景"开始之前，这个世界就充满了这些异形。它们不是入侵者——它们本就属于这里。是故事让它们变得可怕。', narrator: '学者笔记' },
+    { item_key: 'hunters_ring', memory_text: '这枚戒指属于"猎人"刘众赫的第41次轮回。在无数次轮回中，它吸收了每一任持有者的悔恨与执念。佩戴时会感到一阵刺骨的寒意。', narrator: '轮回回响' },
+    { item_key: 'fallen_star_powder', memory_text: '背后的星座陨落时留下的粉末。在星流观测站中，每天都有星座无声熄灭。它们不是神——它们只是比我们更早开始阅读这个故事的读者。', narrator: '星流日志' },
+    { item_key: 'abyss_shard', memory_text: '深渊的碎片。透过它看到的不是黑暗，而是一个倒悬的世界——一个与星流平行的、由被遗忘的故事构成的深渊。那里沉睡着不存在的结局。', narrator: '深渊低语' },
+    { item_key: 'purification_water', memory_text: '圣水散发着微弱的金色光芒。传说这是从最初的故事之泉中取出的水，能洗涤"场景"中的污染。但有人质疑：凭什么由别人来决定什么是污染？', narrator: '圣殿记录' }
+  ];
+
+  var insertMemory = db.prepare('INSERT OR IGNORE INTO item_memories (item_key, memory_text, narrator) VALUES (?, ?, ?)');
+  for (var i = 0; i < itemMemories.length; i++) {
+    var im = itemMemories[i];
+    insertMemory.run(im.item_key, im.memory_text, im.narrator);
+  }
+
+  // ── 地点回响 (Round 2 大幅扩展) ──
+  var locationEchoes = [
+    // ===================== 废弃车站 =====================
+    { location_key: 'ruined_station', echo_text: '断壁残垣之间，你听到列车进站的播报声——但那铁轨已断，列车永不会到来。这里是故事的开端，也是无数条世界线的起点。', narrator: '地点回响', weight: 3 },
+    { location_key: 'ruined_station', echo_text: '一个模糊的身影坐在断裂的长椅上，手里捧着一本厚厚的书。当你走近时，他消失了。地上只留下一页撕下的稿纸。', narrator: '残影', weight: 4 },
+    { location_key: 'ruined_station', echo_text: '铁轨的尽头有一本被遗弃的日记。前三页写满了计划——"第二天去便利店"、"周三交房租"、"周末带妈妈去医院"——字迹在第四页突然中断。世界并非在喧哗中终结——它在一个普通的星期二变成了"场景"。', narrator: '遗留日记', weight: 3 },
+    { location_key: 'ruined_station', echo_text: '长椅下方用金属碎片刻着一行字："第847次，我还会再来。"字迹很新——但长椅的其他部分早已锈迹斑斑。时间在此处的流动从来不是线性的。', narrator: '残影', weight: 2 },
+
+    // ===================== 地下都市 =====================
+    { location_key: 'underground_city', echo_text: '这座地下城市曾是人类最后的庇护所。墙壁上的涂鸦记录着"场景"降临那天的恐慌。有人写下了希望，有人写下了遗言，还有人画了一只微笑的猫。', narrator: '城市记忆', weight: 3 },
+    { location_key: 'underground_city', echo_text: '空气中飘过一段音乐——巴赫的G小调赋格。没人知道是谁在演奏，但在地底的黑暗中，这琴声从未停歇。', narrator: '回响', weight: 3 },
+    { location_key: 'underground_city', echo_text: '地下广场中央有一座用废铁焊成的雕像——不是英雄，是一个捧书的女人。底座上刻着："给所有母亲。她们在黑暗中读故事给孩子们听，让他们知道——即使在最深的地底，也会有人翻页。"', narrator: '城市雕像', weight: 4 },
+    { location_key: 'underground_city', echo_text: '墙壁上的涂鸦在重新排列。每盏灯管闪烁一次，涂鸦就变化一次——第一秒是求救信号，第二秒是末日倒计时，第三秒开始排列成一首诗："我生于此 / 死于彼 / 书页之间 / 你在哪里。"', narrator: '墙语', weight: 3 },
+    { location_key: 'underground_city', echo_text: '地下深处的一间教室里，黑板上还留着粉笔字。不是逃生指南——是一道数学题。最后一行写着："如果X=世界线数量，Y=存活人数，Z=时间——求X、Y、Z的最大公约数。提示：答案是1。只有一项是绝对的。"', narrator: '废弃教室', weight: 3 },
+
+    // ===================== 天空城堡 =====================
+    { location_key: 'sky_castle', echo_text: '高耸入云的古堡中，一个声音反复呢喃着："王座之上，读者即王。但王也会翻页，也会合上书...然后一切化为虚无。"', narrator: '古堡低语', weight: 3 },
+    { location_key: 'sky_castle', echo_text: '走廊的镜子里，你看到的不是自己的倒影，而是一个白发男子。他用口型说了一句话："继续读下去。"', narrator: '镜中映像', weight: 4 },
+    { location_key: 'sky_castle', echo_text: '城堡最高塔楼的窗台上，一根燃烧的羽毛仍然散发着温暖。它不是被遗弃的——是一封正在等待回复的信。羽毛根部系着一根金色的线，在风中轻轻颤动，指向某个遥远的方向。', narrator: '天使的信', weight: 3 },
+    { location_key: 'sky_castle', echo_text: '城堡中最低矮的一扇门——需要弯腰才能通过——门后是一个孩子的房间。墙上贴着《SSSSS级无限回归者》的漫画页。床头的电子钟永远停留在3:12 AM。窗外不是夜空，而是一页接一页无声翻动的书页。', narrator: '孩子房间', weight: 4 },
+    { location_key: 'sky_castle', echo_text: '女墙上的战旗在风中猎猎作响。每一面旗上都绣着一个星座的标记——但这些星座已经全部陨落了。它们的名字早已被遗忘，只剩下这些褪色的旗帜仍在固执地飘扬。', narrator: '陨落星座旗', weight: 2 },
+
+    // ===================== 生物森林 =====================
+    { location_key: 'creature_forest', echo_text: '密林深处的古树上有刻痕。那不是动物爪印，而是一行韩文："独子啊，妈妈在这个世界线终于找到你了。别停下，继续读。"', narrator: '树纹', weight: 4 },
+    { location_key: 'creature_forest', echo_text: '一只发光的蝴蝶停在你手上。它的翅膀上闪烁着闪烁的星座图案。有人说过：蝴蝶效应可以改变世界线——但代价是一个人的整个人生。', narrator: '星流蝴蝶', weight: 3 },
+    { location_key: 'creature_forest', echo_text: '古树渗出的琥珀中封存着一片纸张——不是树叶，而是一页撕下的书页。书页上的字迹清晰可辨："第479章——读者意识到了。他不是在阅读故事——他正在成为故事本身。"', narrator: '琥珀书页', weight: 3 },
+    { location_key: 'creature_forest', echo_text: '一只双目失明的老狼盘踞在祭坛般的石堆上。它不能说话，但当你走近时，它抬头朝月亮的残骸嚎叫——那嚎声在空气中震出了一串可见的文字："我们也是读者。我们读了月亮三百万年。"', narrator: '盲眼老狼', weight: 4 },
+    { location_key: 'creature_forest', echo_text: '密林深处有一棵倒下的世界树——它的根系仍在发光，每一根悬空的根须上都挂着一个小小的书签。每个书签上用不同的语言写着同一句话："活下去。"', narrator: '世界树残骸', weight: 3 },
+
+    // ===================== 深渊裂隙 =====================
+    { location_key: 'abyss_rift', echo_text: '深渊裂缝的边缘，时间流动的速度与外部不同。你看到一个人影在这里站了千年，手里捧着一本被翻阅过无数遍的旧书。每一次翻到最后一页，他就重新开始。', narrator: '深渊观测', weight: 4 },
+    { location_key: 'abyss_rift', echo_text: '裂缝深处传来孩童的笑声，然后是哭声，然后是沉默。传说深渊底部是"故事的墓地"——所有未被写完的、被遗忘的故事都在那里安息。', narrator: '深渊回响', weight: 3 },
+    { location_key: 'abyss_rift', echo_text: '你发现了一道裂隙中的裂隙——比深渊更深的裂缝。从那里传来的不是声音，而是静默——一种古老的、含意深远的静默，像合上的最后一页书，像醒来前的最后一个梦。', narrator: '裂隙观察', weight: 3 },
+    { location_key: 'abyss_rift', echo_text: '一个悬浮的瓶子在深渊边缘缓慢飘荡——漂流瓶。瓶内是一卷写满了字的纸条。开头第一句话是："我不知道这封信能不能飘到任何地方——甚至不知道飘出去的方向是不是「未来」。但如果你读到了——告诉你一个秘密：这个世界是一个梦。但也正因如此——你可以让它变成任何样子。"', narrator: '深渊漂流瓶', weight: 5 },
+    { location_key: 'abyss_rift', echo_text: '深渊的某处——你无法确定方位——传来了打字机的声音。那不是机械的噪音——那是故事被创造出来的声音。每当击键声响起，深渊中就亮起一颗新的星辰；每当删除键被按下，一颗星星黯然熄灭。', narrator: '创造与毁灭', weight: 4 },
+
+    // ===================== 断裂商场 =====================
+    { location_key: 'broken_market', echo_text: '商场广播中传来一段很久以前的促销广告："欢迎光临！今日特价——一切物品，全部免费！请保持冷静，有序取用——"广播戛然而止，然后从头循环。已经循环了多少年？没有人知道。', narrator: '商场广播', weight: 3 },
+    { location_key: 'broken_market', echo_text: '在翻倒的售书机下方，你找到了一本被压皱的《SSSSS级无限回归者》第27卷。封面上有一张贴纸："全知读者视角网编辑部 推荐阅读。"贴纸下的书页已被翻得起了毛边。', narrator: '售书机', weight: 2 },
+
+    // ===================== 静默图书馆 =====================
+    { location_key: 'silent_library', echo_text: '图书馆深处的档案室中，所有文件的标题都在持续变化——"人物档案：金独子"变成了"人物档案：第2049号读者"，然后又变成了"人物档案：███"。描述栏里的文字正在被删除，一个字一个字地消失。', narrator: '档案记录', weight: 3 },
+    { location_key: 'silent_library', echo_text: '一本无人翻阅的书自动打开了。书页上只印着一行字："你正在读这句话。而此刻——有人也在读着你。"当你试图合上书时，封面上浮现出了你的名字。', narrator: '无尽之书', weight: 4 },
+
+    // ===================== 坍塌大桥 =====================
+    { location_key: 'collapsed_bridge', echo_text: '在黑水中，你看到了一条逆流而上的鱼——一条发光的金色锦鲤。它跃出水面时，身上的鳞片拼成了一句话："终点不是终点——是另一个起点。"', narrator: '黑水映像', weight: 3 },
+    { location_key: 'collapsed_bridge', echo_text: '桥梁断裂处残留着一截完好的栏杆，上面刻满了韩文名字——不是签名，是一份名单。最下面用小字写着："如果有人在读这个，记住他们。只要被记住——就还没有真正死亡。"', narrator: '纪念碑', weight: 3 },
+
+    // ===================== 黑色频道区 =====================
+    { location_key: 'black_channel_zone', echo_text: '导播室的控制台上，一盏红灯疯狂闪烁。屏幕左上角显示着——"观众数：1"。唯一的观众叫"最古之梦"。他发送了一条弹幕："别停下——第2049章以后的部分我还没有读到。"', narrator: '直播系统', weight: 4 },
+    { location_key: 'black_channel_zone', echo_text: '一个废弃的星座频道仍在播放——但星座本身已经陨落了。画面上只有雪花点和一个不断重复的闭台画面："本频道即将关闭。感谢三千年的陪伴。再见。"然后从头开始重复。', narrator: '关闭频道', weight: 2 },
+
+    // ===================== 终章之门 =====================
+    { location_key: 'final_scenario_gate', echo_text: '门扉上的文字不是刻上去的——它们在流动，在不断被重写。你看到一条关于你自己的描述："第██章——选择。读者站在门前，面对——"后面的文字在不断变化，每一条都是不同的结局。', narrator: '命运扉页', weight: 4 },
+    { location_key: 'final_scenario_gate', echo_text: '门的一角贴着一张泛黄的便利贴——在这个庄严的终章之门上，它显得突兀而温暖。便利贴上用圆珠笔写着："不管选了哪扇门——推就是了。别回头看。"', narrator: '匿名留言', weight: 2 }
+  ];
+
+  var insertEcho = db.prepare('INSERT OR IGNORE INTO location_echoes (location_key, echo_text, narrator, weight) VALUES (?, ?, ?, ?)');
+  for (var j = 0; j < locationEchoes.length; j++) {
+    var le = locationEchoes[j];
+    insertEcho.run(le.location_key, le.echo_text, le.narrator, le.weight || 1.0);
+  }
+
+  // ── NPC残影 (Round 2 对话树格式，大幅扩展) ──
+  var npcGhosts = [
+    // ==========================================
+    // 1. 捧书的白发青年 (hk_reader) - 5 nodes
+    // ==========================================
+    {
+      ghost_key: 'hk_reader',
+      name: '捧书的白发青年',
+      description: '一个白发青年坐在废墟中，膝上放着一本厚重的书。他一直没有翻页——似乎在反复读同一段文字。你走过时他抬起了眼睛，那双眸子里倒映着无数个重叠的世界线。',
+      dialogues: [
+        {
+          id: 0,
+          text: '一个白发青年坐在废墟中，膝上放着一本厚重的书。他一直没有翻页——似乎在反复读同一段文字。你走过时，他抬起了眼睛，那双眸子里倒映着无数个重叠的世界线。',
+          choices: [
+            {
+              text: '"你在看什么书？"',
+              response: '"这个故事。"他轻轻合上书，让你看到了封面——《SSSSS级无限回归者》第2049章。"有人花了十三年写它，又有人花了十三年读它。而它永远不会真正完结——只要还有人愿意读下去。"',
+              effects: { addStoryFlag: 'hk_reader_book_known', statChange: { insight: 2 } },
+              leadToIndex: 1
+            },
+            {
+              text: '"你为什么一直看同一页？"',
+              response: '"因为翻过去——一切就结束了。"他的手指摩挲着纸页，动作轻得仿佛在触碰易碎的梦。"而我不想结束。至少在这个世界线上——让故事再延续一会儿。"书页无风自动，翻到了下一页。他微笑了——那是世界上最疲惫的微笑。',
+              effects: { addStoryFlag: 'hk_reader_dont_end', statChange: { sanity: 3 } },
+              leadToIndex: 1
+            },
+            {
+              text: '默默走过，不打扰。',
+              response: '青年没有看你。但当你走过他身边时，你听到了一个低语："活下去。这比任何结局都重要。"你感到胸口的某个东西轻轻震动了——那是一段不属于你的记忆，正在成为你的一部分。',
+              effects: { addItem: 'story_fragment', statChange: { sanity: 3 } },
+              leadToIndex: null
+            }
+          ]
+        },
+        {
+          id: 1,
+          text: '他定定地看着你，仿佛在确认什么。然后他微笑了一下——那是一个疲惫到极点的微笑，像是已经看过太多结局却仍在坚持的人。"你想知道更多吗？关于这本书——关于写它和读它的人？"',
+          choices: [
+            {
+              text: '"我可以读吗？"',
+              response: '他将书递给你。书页在你手中微微发光，你惊讶地发现——字迹在变化，故事在适应你的阅读。"这本书对每个人都不同。有人读到绝望，有人读到希望。你呢？"',
+              effects: { addItem: 'dream_shard', statChange: { sanity: 3 } },
+              leadToIndex: 2
+            },
+            {
+              text: '"写这本书的人是谁？"',
+              response: '"一个孤独的人。"他的眼神变得遥远。"她只是想给一个少年一个活下去的理由。她不知道——那个理由后来救了整个世界。"',
+              effects: { addStoryFlag: 'know_about_author', statChange: { insight: 2 } },
+              leadToIndex: 2
+            },
+            {
+              text: '"你读了多少遍了？"',
+              response: '"不记得了。每一次重读都是新的——因为每一次我都会做出不同的选择。就像你们在星流中做的那样。"他顿了顿，"唯一的区别是——我知道所有可能的结局，但仍然选择翻开第一页。"',
+              effects: { statChange: { wisdom: 2 } },
+              leadToIndex: 2
+            }
+          ]
+        },
+        {
+          id: 2,
+          text: '他站起身，那本书悬浮在他面前，自动打开了。"你想继续读吗？这次——你可以自己翻页。"他的声音里有某种邀请，也有某种警告。',
+          choices: [
+            {
+              text: '"翻到2049页。"',
+              response: '书页哗啦啦地翻动，最终停在第2049页。那一页只有一行字："最古老的梦正在醒来。"下一秒，你看到了一间病房——一个少年躺在病床上，手里捧着同一本书。他闭着眼睛，但你感到——他正在通过你阅读这个世界。',
+              effects: { addStoryFlag: 'oldest_dream_hint', addItem: 'dream_shard', statChange: { insight: 5, sanity: 2 } },
+              leadToIndex: 3
+            },
+            {
+              text: '"翻到最后一页。"',
+              response: '"不。"他迅速按住了书。"翻到最后一页的人——会成为新的读者，还是新的作者？这个问题我至今没有答案。在你准备好之前，不要轻易翻到结局。"他收回书，表情严肃。"等你拿到三片钥匙碎片再来找我。"',
+              effects: { addStoryFlag: 'hk_reader_warning', statChange: { insight: 2 } },
+              leadToIndex: null
+            },
+            {
+              text: '"还是算了。"',
+              response: '他点点头，似乎并不意外。"大多数人都会这么选。活在故事里比看透故事容易得多。"书合上了，他的身影开始变淡。"不过——你已经翻开过它了。从今往后，书中的文字会在你需要的时候回来找你。"',
+              effects: { statChange: { sanity: 2 } },
+              leadToIndex: null
+            }
+          ]
+        },
+        {
+          id: 3,
+          text: '场景扭曲了。你站在一间医院的单人病房里。窗外是首尔的夜空，但星星的位置很奇怪——它们排成了韩文，在讲述一个故事。病床上的少年很年轻，不超过十七岁。他的手中握着那本书，嘴唇微微翕动，似乎在读给你听。',
+          choices: [
+            {
+              text: '"这是什么地方？"',
+              response: '"这是「最古老的梦」。"白发青年的声音在你身后响起，但你回头时看不到他。"这个少年从没离开过这张病床。他唯一的朋友就是这本书——他读了它整整十三年。"',
+              effects: { addStoryFlag: 'oldest_dream_location', statChange: { insight: 3 } },
+              leadToIndex: 4
+            },
+            {
+              text: '"这个少年是谁？"',
+              response: '"一个读者。和你一样。和所有困在故事里的人一样。"青年走到病床边，轻轻抚过少年的额头。"但他做的梦太大了——大到创造了一个世界。星流、场景、星座——都是他的梦。而我们——是他梦中的人物。"',
+              effects: { addStoryFlag: 'know_dreamer_identity', statChange: { insight: 4, sanity: 3 } },
+              leadToIndex: 4
+            }
+          ]
+        },
+        {
+          id: 4,
+          text: '白发青年从怀中取出一张折叠的纸，放在你的手心。那纸很旧，边缘已经泛黄卷曲，但上面的字迹清晰如新。"我一直留着这个。等了很久才找到能交给它的人。"病房开始碎裂，少年的身影逐渐透明——但他手中的书仍然翻开着，停在最后一页。',
+          choices: [
+            {
+              text: '"上面写着什么？"',
+              response: '你打开那张纸。上面只有一行字，用韩文手写体写着："故事的结尾，由翻开最后一页的人决定。"下面是签名——但你认不出那个名字。青年已经消失了。病房、少年、星星——一切都消失了。你回到了废墟中，手里握着那张纸，还有一颗散发着微光的碎片。',
+              effects: { addItem: 'final_key_fragment', addStoryFlag: 'hk_reader_final_message', statChange: { insight: 10, sanity: 8 } },
+              leadToIndex: null
+            }
+          ]
+        }
+      ],
+      locations: ['ruined_station'],
+      encounter_weight: 0.08,
+      is_unique: 0
+    },
+
+    // ==========================================
+    // 2. 钢铁指挥官 (hg_general) - 6 nodes
+    // ==========================================
+    {
+      ghost_key: 'hg_general',
+      name: '钢铁指挥官',
+      description: '一个身披黑色铠甲的女人站在坍塌的城墙上。她的剑插在石缝中，燃烧着不死不灭的黑焰。在她脚下是无数异形的尸体——层层叠叠，形成了一座小山。她没有回头，但你知道她感知到了你的存在。',
+      dialogues: [
+        {
+          id: 0,
+          text: '一个身披黑色铠甲的女人站在坍塌的城墙上。她的剑插在石缝中，燃烧着不死不灭的黑焰。在她脚下是无数异形的尸体——层层叠叠，形成了一座小山。她没有回头，但你知道她感知到了你的存在。',
+          choices: [
+            {
+              text: '"你是谁的部下？"',
+              response: '"部下？"她转过身，黑焰在她眼中跳动。"我是深渊的黑焰龙。十五岁开始战斗——从未败北。我没有部下——只有需要我保护的人。"她打量了你，然后将剑插在你面前的地上。"给你五分钟。拔出它——你就有了战斗的权利。"',
+              effects: { addStoryFlag: 'met_hg_general' },
+              leadToIndex: 1
+            },
+            {
+              text: '"你需要帮助吗？"',
+              response: '"帮助？"她轻蔑地笑了一声，但随即收敛了笑容。"我独自守卫这座城已有千年。不过——偶尔有个人说说话也不错。"她扔给你一瓶黑红色的药剂。"喝了它。然后给我讲讲外面的世界——或者滚出我的视线。"',
+              effects: { addItem: 'dragon_blood_potion', statChange: { hp: 10 } },
+              leadToIndex: 1
+            }
+          ]
+        },
+        {
+          id: 1,
+          text: '她将剑从石缝中拔出，剑身上的黑焰瞬间炽烈了数倍。"你能站在这里——说明你不是普通的流浪者。来——让我看看你的骨头里有什么。"',
+          choices: [
+            {
+              text: '"我接受你的挑战。"',
+              response: '她仰天长笑，将剑插在你面前的地上。"好！拔起它——如果你能做到的话。我的黑焰剑只承认真正的战士。"',
+              effects: { addStoryFlag: 'hg_general_challenge' },
+              leadToIndex: 2
+            },
+            {
+              text: '"我不是来打架的。"',
+              response: '"那就更好了。"她收起剑，坐在城墙上。"不打架的人往往有更好的故事。这座城很久没有听众了——坐下。"',
+              effects: { addStoryFlag: 'hg_general_story' },
+              leadToIndex: 3
+            }
+          ]
+        },
+        {
+          id: 2,
+          text: '你握住剑柄的瞬间，黑焰包裹了你的手臂。它不灼烧皮肤——但它烧灼你的记忆。你看到无数场败仗、无数次牺牲、无数个死去的同伴。这是这把剑承载过的所有战斗的重量。',
+          choices: [
+            {
+              text: '"我不怕这些记忆。"',
+              response: '"很好。"她点头。"大部分人第一次握它就会松手。你通过了第一关。"剑在你手中变得轻盈了，黑焰从你的手臂退回剑身。"现在——挥剑。让我看看你的决心。"',
+              effects: { addStoryFlag: 'hg_general_impressed', statChange: { strength: 3 } },
+              leadToIndex: 4
+            },
+            {
+              text: '放手。',
+              response: '"聪明。"她并不失望。"知道自己的极限比盲目挑战更重要。但你来了——这就已经超过了九成九的人。"她收回剑，将一只黑焰手套掷给你。"带上它。也许在别的战场上，你能帮到我。"',
+              effects: { addItem: 'black_flame_gauntlet', addStoryFlag: 'hg_general_gauntlet' },
+              leadToIndex: null
+            }
+          ]
+        },
+        {
+          id: 3,
+          text: '她解下头盔，露出一张年轻得令人惊讶的脸——你这才意识到，她十五岁开始战斗，也许没比你大多少。她的眼睛盯着远方地平线上涌来的新异形潮。"你想听哪一段？千年的征战——故事够多了。"',
+          choices: [
+            {
+              text: '"讲讲你最难忘的战斗。"',
+              response: '"最难忘的——"她沉默了很长时间。"不是胜仗。是败仗。我失去过整整一支军队——他们信任我，我却让他们死了。从那以后，我决定不再带兵。独自战斗——就不会再有人因我而死。"',
+              effects: { addStoryFlag: 'hg_general_backstory', statChange: { insight: 2 } },
+              leadToIndex: 5
+            },
+            {
+              text: '"你为什么一直守在这里？"',
+              response: '"因为我发过誓。"她指向地平线上若隐若现的光——那是人类聚居区。"在「终结者」出现之前，这座城不能倒。这是最后一道防线。只要我还站在这里——他们就能继续活着，继续读书，继续做梦。"',
+              effects: { addStoryFlag: 'hg_general_oath', statChange: { sanity: 3 } },
+              leadToIndex: 5
+            }
+          ]
+        },
+        {
+          id: 4,
+          text: '你挥剑的瞬间，黑焰撕裂了空气，在虚空中划出了一道裂缝。裂缝那头，你看到了无数个世界线——一些世界线里她死了，一些里她赢了，但在所有的世界线里，她都在战斗。"现在你明白了。这把剑的重量——不只是我的。是所有曾经站立于此的人。"',
+          choices: [
+            {
+              text: '"我能帮你什么？"',
+              response: '"你已经帮到了。"她卸下左手的黑焰护腕，递给你。"带着它。在不同的战场上——当你需要黑焰的时候，它会回应你。下次来——我们来真的。"',
+              effects: { addItem: 'black_flame_gauntlet', unlockTitle: '深渊挑战者', addStoryFlag: 'hg_general_respected' },
+              leadToIndex: null
+            },
+            {
+              text: '"你的不败之身——是怎么做到的？"',
+              response: '"不败？"她笑了——那是苦涩的笑。"我败过无数次。每一次失败，我都失去珍视的东西。但我活下来了。不败不是从来不失败——是不被失败杀死。"她将一枚刻着黑龙的徽章按在你手中。"记住——活下来就是胜利。"',
+              effects: { addItem: 'dragon_crest', unlockTitle: '胜过不败者', addStoryFlag: 'hg_general_truth', statChange: { strength: 5, hp: 10 } },
+              leadToIndex: null
+            }
+          ]
+        },
+        {
+          id: 5,
+          text: '她沉默了许久，然后从怀中取出一块黑色的结晶。"这是深渊之核——我在最深的地底找到的。有人说它能实现一个愿望。但我从没试过——因为我的愿望太多了。"',
+          choices: [
+            {
+              text: '"你的愿望是什么？"',
+              response: '"世界和平？太假了。"她摇摇头，指向远处的灯光。"我只想有一天能放下剑——去那里，像一个普通人一样读一本书。也许是你读的那本。他们说那本书可以改变命运。"',
+              effects: { addItem: 'abyss_core_shard', addStoryFlag: 'hg_general_wish', statChange: { sanity: 3 } },
+              leadToIndex: null
+            }
+          ]
+        }
+      ],
+      locations: ['sky_castle'],
+      encounter_weight: 0.06,
+      is_unique: 0
+    },
+
+    // ==========================================
+    // 3. 乌列尔 (uriel_watcher) - 5 nodes
+    // ==========================================
+    {
+      ghost_key: 'uriel_watcher',
+      name: '恶魔般的火之审判者',
+      description: '一位天使站在燃烧的火柱中，她的羽翼由纯净的火焰构成。但她正在做一件极其不天使的事——用手机拍摄一部韩剧，嘴里念叨着"啊这个名场面！"。',
+      dialogues: [
+        {
+          id: 0,
+          text: '一位天使站在燃烧的火柱中，她的羽翼由纯净的火焰构成。但她正在做一件极其不天使的事——用手机拍摄一部韩剧，嘴里念叨着"啊这个名场面！"。她似乎完全没注意到周围正在塌陷的空间。',
+          choices: [
+            {
+              text: '"你是...天使？"',
+              response: '"没错！天使、星座、也是最有品味的观众！"她收起手机，火焰羽翼收敛成温暖的橘色光晕。"你知道吗——我追韩剧追了三千年，从未有过差的品味。"',
+              effects: { addStoryFlag: 'met_uriel' },
+              leadToIndex: 1
+            },
+            {
+              text: '"你在看什么？"',
+              response: '"《鬼怪》！孤独的神找到了爱的故事——啊，果然好故事永远动人。"她关掉屏幕，认真地看着你。"说起来——你也该找到属于你的故事了。不是星流给你安排的故事——而是你自己选择的结局。"',
+              effects: { addStoryFlag: 'uriel_drama_talk', statChange: { sanity: 2 } },
+              leadToIndex: 1
+            }
+          ]
+        },
+        {
+          id: 1,
+          text: '她飘到你面前，火焰在她周围跳动着形成各种形状——一会儿是心形，一会儿是两个小人并肩站立。她的眼睛亮得惊人，那是三千年追踪好故事的狂热。"你知道为什么那么多星座在看你吗？"',
+          choices: [
+            {
+              text: '"因为我是「全知读者视角」？"',
+              response: '"那只对了一小半！"她凑近你，声音压低成窃窃私语。"大部分星座只是无聊——但你不一样。你和刘众赫之间的互动？那是星流三千年最棒的内容。不是力量——是张力。是两个人从敌人变成——哼，你知道的。"',
+              effects: { addStoryFlag: 'uriel_cp_hint' },
+              leadToIndex: 2
+            },
+            {
+              text: '"我以为是因为我的能力。"',
+              response: '"哈！能力？星座活了千万年，什么样的能力没见过？"她摇头，火焰随着她的动作飞舞。"他们看的是你——作为「读者」的你。你打破了第四面墙。你进入了这个故事，然后拒绝接受别人写好的结局。这比任何力量都有趣。"',
+              effects: { addStoryFlag: 'uriel_reader_truth' },
+              leadToIndex: 2
+            }
+          ]
+        },
+        {
+          id: 2,
+          text: '她忽然安静下来，火焰降低到了微微发蓝的温度。"跟你说点认真的——其他星座不会告诉你的。"她的羽翼展开，将你们两个包裹在一个火焰的私密空间里。',
+          choices: [
+            {
+              text: '"什么秘密？"',
+              response: '"星流是建立在「故事」上的系统。星座活着靠的是「观众」的信仰——但你不一样。你不需要信仰。你不需要观众。你不需要赞助者。因为你是读者——读者不需要被观看。读者只需要——继续读下去。"她收回羽翼。"这就是为什么你能改变结局。你不是星流的一部分——你是星流之外的存在。"',
+              effects: { addStoryFlag: 'uriel_reader_truth_deep', statChange: { insight: 5, sanity: 3 } },
+              leadToIndex: 3
+            },
+            {
+              text: '"星流的尽头是什么？"',
+              response: '"一个病房。"她轻声说，火焰几乎熄灭了。"一个需要故事的少年。如果有一天故事结束了——梦境就会醒来。而我们——都会消失。所以——继续读下去吧。为了他。也为了我们。"',
+              effects: { addStoryFlag: 'uriel_dream_hint', statChange: { insight: 3 } },
+              leadToIndex: 3
+            }
+          ]
+        },
+        {
+          id: 3,
+          text: '乌列尔在你面前展开手掌，一朵发光的小火苗飘浮在她掌心。"这是「故事的火种」——每一个被讲述的故事都会产生这样的火种。它很小，但它永远不会熄灭——只要还有一个人在听。"',
+          choices: [
+            {
+              text: '"给我吗？"',
+              response: '"嗯！"她将火种轻轻按在你的胸口。温暖驱散了所有寒意——你感到一种奇异的联结，仿佛所有正在读这个故事的人都与你有了某种关联。"记得——你从不孤单。在你翻页的时候，有很多人在陪你一起读。"',
+              effects: { addItem: 'story_ember', statChange: { sanity: 8, heat: 5 } },
+              leadToIndex: 4
+            },
+            {
+              text: '"你为什么帮我？"',
+              response: '"因为好故事应该继续下去。"她眨眨眼。"而且——我还没看到你俩的结局呢。作为首席CP粉，我可不能让你轻易死掉。"她将那朵火苗抛给你，火种悬停在你肩头，化为一只微小的火焰蝴蝶。',
+              effects: { addItem: 'story_ember', statChange: { sanity: 5 } },
+              leadToIndex: 4
+            }
+          ]
+        },
+        {
+          id: 4,
+          text: '乌列尔的身影开始变得透明，她身后的火柱也在逐渐消散。"该回去了——天界的追剧连播要开始了。不过——"她对你竖起一根手指。"下次来的时候，告诉我你和那个回归者有没有进展！"',
+          choices: [
+            {
+              text: '"等等——「回归者」？"',
+              response: '"哦？你不知道吗？"她调皮地笑着，羽翼合拢。"那个叫刘众赫的家伙——他已经在星流中死了九百九十九次又活了九百九十九次。你是第一个让他开始怀疑「回归」是否有意义的人。加油~我会一直看着的！"她消失了，只留下一串轻快的笑声和蝴蝶形状的火焰余烬。',
+              effects: { addStoryFlag: 'uriel_yjh_hint', statChange: { heat: 3 } },
+              leadToIndex: null
+            }
+          ]
+        }
+      ],
+      locations: ['sky_castle', 'ruined_station'],
+      encounter_weight: 0.04,
+      is_unique: 1
+    },
+
+    // ==========================================
+    // 4. 冥界女王 (persephone_queen) - 5 nodes
+    // ==========================================
+    {
+      ghost_key: 'persephone_queen',
+      name: '冥界的女王',
+      description: '一位面容苍白的女王坐在由枯萎莲花构成的王座上。她手里拿着一面镜子，镜中映射的不是她的容貌，而是无数个正在死去的世界线。空气中弥漫着枯萎花瓣的香气——那是终结的味道。',
+      dialogues: [
+        {
+          id: 0,
+          text: '一位面容苍白的女王坐在由枯萎莲花构成的王座上。她手里拿着一面镜子，镜中映射的不是她的容貌，而是无数个正在死去的世界线。空气中弥漫着枯萎花瓣的香气——那是终结的味道。',
+          choices: [
+            {
+              text: '"死亡是终结吗？"',
+              response: '"死亡只是翻页。"她的声音像枯萎的花瓣落在水面上。"真正的终结是被遗忘。只要还有人记得你，你就活在所有世界线的回响中。"',
+              effects: { addStoryFlag: 'met_persephone', statChange: { insight: 2 } },
+              leadToIndex: 1
+            },
+            {
+              text: '沉默。',
+              response: '"沉默很好。"她缓缓点头，手指拂过一朵枯萎的莲花，花瓣在她触碰下重新绽放了片刻。"太多人来冥界只为了讨价还价——但你只是安静地站在这里。这比任何请求都更珍贵。"她取下一朵死去的莲花，递给你。"带上它。在真正的黑暗里，它会为你留一盏灯。"',
+              effects: { addStoryFlag: 'persephone_silence', addItem: 'dead_lotus_flower' },
+              leadToIndex: 1
+            }
+          ]
+        },
+        {
+          id: 1,
+          text: '她将镜子转向你。镜中不是你的容貌——而是一系列的影像：你站在不同的世界线上，做着同样的事——继续往前走。有些世界线里你失败了，有些里你成功了，但在所有世界线里，你从未停下。',
+          choices: [
+            {
+              text: '"我在看什么？"',
+              response: '"你自己——在所有已死的世界线中。"她的手指在镜面上划过，影像随之流转。"每一个选择都会创造一条新的世界线和一条已死的世界线。你活在最好的那条里——那些逝去的故事，都在这里，在我手中。"',
+              effects: { addStoryFlag: 'persephone_mirror', statChange: { insight: 3 } },
+              leadToIndex: 2
+            },
+            {
+              text: '"那些失败的我——他们还活着吗？"',
+              response: '"不。"她平静地回答。"他们已经结束了。但你的「继续向前走」——那恰恰是他们剩下的意志汇成的。你不只是你——你是所有失败的世界线中，唯一留下来的那一条。"',
+              effects: { addStoryFlag: 'persephone_echo_self', statChange: { insight: 3 } },
+              leadToIndex: 2
+            }
+          ]
+        },
+        {
+          id: 2,
+          text: '她站起身，莲花在她脚下重新绽放。冥界的黑暗中浮现出无数的光点——每一个光点都是一个故事残片，在黑暗中沉浮，等待被回收或遗忘。"你知道冥界与交易系统的关系吗？"',
+          choices: [
+            {
+              text: '"不知道——请告诉我。"',
+              response: '"每一个交易都伴随着等价交换。而交易的「代价」——故事碎片、生命力、记忆——它们最终都流入冥界。"她指向那些光点。"我是它们的管理者。不是毁灭者——是守护者。这些被放弃的东西，在等着有人来重新拾取。"',
+              effects: { addStoryFlag: 'persephone_trade_system', statChange: { wisdom: 3 } },
+              leadToIndex: 3
+            },
+            {
+              text: '"你是死亡之神吗？"',
+              response: '"我不是神。"她轻声纠正。"神需要信仰。我只是一个「管理员」——管理故事终结的地方。每一本书都有最后一页，每一个梦都有醒来的时刻。我确保那些终结不是无意义的。"',
+              effects: { addStoryFlag: 'persephone_role', statChange: { insight: 3 } },
+              leadToIndex: 3
+            }
+          ]
+        },
+        {
+          id: 3,
+          text: '"你身上有某种东西——"她微微皱眉，走近你。"不是诅咒，也不是祝福。是一段记忆。一个穿越世界线的人留下的印记。那个印记在保护你——但也在灼伤你。"',
+          choices: [
+            {
+              text: '"你知道那是谁的印记？"',
+              response: '"一个读者。和你一样的读者——但比你先来。"她将手悬停在你心脏上方，一束黑光从你胸口渗出，在她掌心凝聚成一枚黑色的文字碎片。"这是他的「遗言」。不是诅咒——是他读过的故事中，最重要的一句话。"',
+              effects: { addItem: 'readers_last_word', addStoryFlag: 'persephone_mark', statChange: { insight: 3 } },
+              leadToIndex: 4
+            },
+            {
+              text: '"这个印记对我有益还是有害？"',
+              response: '"两者皆有。"她摇头。"它让你能在黑暗中找到方向——但也会让黑暗更容易找到你。这片深渊每隔一百年就会有一个戴这种印记的人出现。你是第三个。前两个——都走到了深渊底部，但没有回来。"',
+              effects: { addStoryFlag: 'persephone_warning', statChange: { insight: 2 } },
+              leadToIndex: 4
+            }
+          ]
+        },
+        {
+          id: 4,
+          text: '她取下一朵沉睡千年的黑莲，花瓣在碰到你的手时瞬间绽放为银色。"带上它。在真正的黑暗里——在连你自己都找不到意义的时候——它会为你留一盏灯。这不是魔法——这是一个故事承诺另一个故事的延续。"',
+          choices: [
+            {
+              text: '接过黑莲。"谢谢你。"',
+              response: '"不用谢我。我只是一个管理员——在做被故事遗忘的人们唯一能做的事：让另一个故事继续下去。"她坐回王座，莲花再次枯萎。冥界的黑暗重新合拢，但你的手心——那朵银莲在不灭地发光。',
+              effects: { addItem: 'silver_lotus_lantern', addStoryFlag: 'persephone_gift', statChange: { sanity: 10, insight: 3 } },
+              leadToIndex: null
+            },
+            {
+              text: '"你可以离开冥界吗？"',
+              response: '"离开？"她轻笑了一声——那是漫长的孤独中仅存的幽默。"我是唯一一个不能离开冥界的「囚徒」。但没关系——在这里，我看到的故事比外面更多。去吧——把你看到的故事，带给我听。"',
+              effects: { addItem: 'silver_lotus_lantern', addStoryFlag: 'persephone_prisoner' },
+              leadToIndex: null
+            }
+          ]
+        }
+      ],
+      locations: ['abyss_rift'],
+      encounter_weight: 0.05,
+      is_unique: 1
+    },
+
+    // ==========================================
+    // 5. 齐天大圣 (sun_wukong) - 6 nodes
+    // ==========================================
+    {
+      ghost_key: 'sun_wukong',
+      name: '齐天大圣的残影',
+      description: '一只猴子坐在倒塌的电线杆上，手里挥舞着一根看起来像普通铁棍的东西——但你知道那不是普通的铁棍。斗战胜佛的金箍棒在他手中不过是一根玩具。',
+      dialogues: [
+        {
+          id: 0,
+          text: '一只猴子坐在倒塌的电线杆上，手里挥舞着一根看起来像普通铁棍的东西——但你知道那不是普通的铁棍。斗战胜佛的金箍棒在他手中不过是一根玩具。"嘿！小家伙！看你一脸无聊的样子——要不要跟老孙玩个游戏？"',
+          choices: [
+            {
+              text: '"孙悟空？！真的是你？"',
+              response: '"如假包换！成佛又入魔，当过齐天大圣又当过斗战胜佛。星座？那只是我最无聊的一段经历！"他翻了个跟斗，瞬间出现在你面前。"你身上有股「故事的味道」——没错，你也是被「天命」选中的人。只不过你的天命不是取经——是翻书！"',
+              effects: { addStoryFlag: 'met_sun_wukong' },
+              leadToIndex: 1
+            },
+            {
+              text: '"你不无聊吗？"',
+              response: '"无聊？哈哈哈！"他拍腿大笑，笑声震得废墟都在颤抖。"看你们这些小家伙在星流中挣扎，每一天都像看新番！你比那个轮回九百九十九次的家伙有意思多了——那家伙闷得要死！"',
+              effects: { addStoryFlag: 'wukong_yjh_mention' },
+              leadToIndex: 1
+            }
+          ]
+        },
+        {
+          id: 1,
+          text: '"说认真的——"他收起笑容，金光从他眼中射出一尺来长。"我也是「读者」。只不过我是几万年前读的《西游记》——然后跳进书里自己改写了结局。你呢？花了多久才发现——你可以改写你正在读的这个故事的结局？"',
+          choices: [
+            {
+              text: '"我还在摸索。"',
+              response: '"摸索就对了！老孙当年也摸索了九九八十一难才成佛。不过——"他凑近你，压低声音，"你的故事比我的难。我的故事至少是「写好的」。你的故事——还在被写。每一页都在变化。你说——谁是那个写你故事的人？"',
+              effects: { addStoryFlag: 'wukong_insight', statChange: { insight: 2 } },
+              leadToIndex: 2
+            },
+            {
+              text: '"你是说——我的故事也有一本「书」？"',
+              response: '"当然有！"他挥动棒子，在空中画出一个圈——圈中浮现出一本半透明的书，正在以肉眼可见的速度长出新的页面。"你看——它还在写。有人在读它，也有人在写它。但写的人不知道——读的人可以改它。"',
+              effects: { addStoryFlag: 'wukong_book_vision', statChange: { insight: 2 } },
+              leadToIndex: 2
+            }
+          ]
+        },
+        {
+          id: 2,
+          text: '"这样——"他从耳朵里又掏出一根小金箍棒，扔给你。"咱爷俩打个赌。你用这根棒子跟我比一场——三招之内，你能碰到我的衣角，我就把我的「觔斗云」借你骑一次。要是碰不到——你就得请我吃十盘蟠桃。"',
+          choices: [
+            {
+              text: '"好！我跟你比！"',
+              response: '"爽快！"他大叫一声，身形一闪，已经出现在百米之外。风吹起他的战袍，金甲在夕阳中燃烧如火焰。"来吧！让老孙看看——你这个小读者配不配得上这根小金箍棒！"',
+              effects: { addStoryFlag: 'wukong_bet_accepted' },
+              leadToIndex: 3
+            },
+            {
+              text: '"蟠桃是什么？我没带啊。"',
+              response: '"哈！抠门！"他并不生气，反而笑得更大声。"那就记账上。下次带酒来！老孙最喜欢酒——几万年没喝上一口好的了。不过——"他眨眨眼，"觔斗云还是可以借你骑一小段的。难得碰见个有意思的人。"',
+              effects: { addItem: 'small_golden_staff', addStoryFlag: 'wukong_friend' },
+              leadToIndex: null
+            }
+          ]
+        },
+        {
+          id: 3,
+          text: '他的速度超越了你的想象——觔斗云一个跟斗就是十万八千里，即便他刻意放慢，你也只能勉强看到残影。第一招，你挥空。第二招，你的棒子擦过他的披风。第三招——他忽然停了下来，任你的棒子碰到他的肩膀。',
+          choices: [
+            {
+              text: '"你...放水了？"',
+              response: '"放水？不不不——"他收起笑容，难得露出认真的表情。"老孙从不放水。我只是看到了——你在挥棒的时候，眼睛看的不只是我。你在看整片战场。你在「读」我的动作。这是「读者」的能力——不是看敌人，是读故事。"他拍了拍你的肩。"你合格了。"',
+              effects: { addStoryFlag: 'wukong_passed_test', statChange: { insight: 3 } },
+              leadToIndex: 4
+            },
+            {
+              text: '"这不能算赢！"',
+              response: '"赢了就是赢了！老孙的规矩——碰到就算赢！"他得意洋洋地将金箍棒变回原形，插回耳中。"不过说实话——你是我遇到的第一个不靠武力也能让我停下来的家伙。你的「阅读」比你的「战斗」有意思得多。"',
+              effects: { addStoryFlag: 'wukong_respect', statChange: { insight: 2 } },
+              leadToIndex: 4
+            }
+          ]
+        },
+        {
+          id: 4,
+          text: '"拿着——"他将缩小后的金箍棒变成一枚金色指环，套在你手指上。指环微微发热，你能感到其中蕴含着某种古老的力量。"这个是「觔斗云」的契约。不过——觔斗云只听老孙的话，你得先学会叫它的名字。它的本名叫——算了，叫它「小金」就行！"',
+          choices: [
+            {
+              text: '"我可以学你的技能吗？"',
+              response: '"当然可以！"他盘腿坐在空中，变出三个分身——全部一模一样。"七十二变你学不了——那是猴子专属。但有一招你可以学——「火眼金睛」的简化版。记住：不是用眼看——是用「故事」去看。看敌人的「描述」——看他们的「弱点」——看他们的「命运」。"',
+              effects: { addSkill: 'read_enemy_fate', addStoryFlag: 'wukong_taught_skill', statChange: { insight: 5 } },
+              leadToIndex: 5
+            },
+            {
+              text: '"觔斗云能带我去任何地方吗？"',
+              response: '"理论上——能！但实际上——"他挠挠头，"它在星流中的表现不太稳定。上次我骑它去深渊——结果飞到了天庭，被二郎神追了三天。所以——用之前先想好目的地！"',
+              effects: { addItem: 'nimbus_ring', addStoryFlag: 'wukong_gave_ring' },
+              leadToIndex: 5
+            }
+          ]
+        },
+        {
+          id: 5,
+          text: '他站起身，觔斗云自天边飞来，在他脚下载沉载浮。"该走了——还要去下一场「故事」看热闹。对了——"他转头，"如果你遇到一个叫「最古之梦」的家伙——告诉他，老孙欠他一顿蟠桃宴。那是我们能活到现在的唯一原因。"',
+          choices: [
+            {
+              text: '"我们还会再见吗？"',
+              response: '"只要有故事的地方——就有老孙！"觔斗云腾空而起，载着他直冲云霄。笑声从云端洒落，像一场金色的雨。"别忘了——你不是在读故事。你就是故事！你的每一页——老孙都在看！"在觔斗云消失的方向，留下一根金色的猴毛——它飘到你掌中，化为一片永不褪色的枫叶。',
+              effects: { addItem: 'golden_monkey_hair', addStoryFlag: 'wukong_farewell', statChange: { sanity: 5 } },
+              leadToIndex: null
+            }
+          ]
+        }
+      ],
+      locations: ['creature_forest', 'ruined_station'],
+      encounter_weight: 0.03,
+      is_unique: 1
+    },
+
+    // ==========================================
+    // 6. 流浪的吟游诗人 (lone_bard) - 5 nodes
+    // ==========================================
+    {
+      ghost_key: 'lone_bard',
+      name: '流浪的吟游诗人',
+      description: '一个中年男人坐在篝火旁，拨弄着一把破旧的吉他。他的歌声沙哑但旋律动人。火焰在他的眼中跳动，照亮了一张经历了太多故事的脸。',
+      dialogues: [
+        {
+          id: 0,
+          text: '一个中年男人坐在篝火旁，拨弄着一把破旧的吉他。他的歌声沙哑但旋律动人。火焰在他的眼中跳动，照亮了一张经历了太多故事的脸。他抬头看到你，手指未停。"坐吧——这最后一首歌是给你的。"',
+          choices: [
+            {
+              text: '"在唱什么？"',
+              response: '"一个男孩。他读了一本书，书里写了他的一生。然后他决定改写结局——不是为自己，而是为所有没有名字的配角。"他停下拨弦，篝火噼啪作响。"你认识他吗？那个男孩？"',
+              effects: { addStoryFlag: 'met_lone_bard', statChange: { insight: 2 } },
+              leadToIndex: 1
+            },
+            {
+              text: '"歌的名字是什么？"',
+              response: '"《全知读者视角》。"他拨出一个和弦，声音低沉而绵长。"但没有人可以全知——我们都只是在故事中努力寻找意义的人。包括唱歌的、听歌的、写歌的——和成为歌的人。"',
+              effects: { addStoryFlag: 'bard_song_name', statChange: { insight: 2 } },
+              leadToIndex: 1
+            }
+          ]
+        },
+        {
+          id: 1,
+          text: '"我有更多歌——你有更多时间吗？"他调了调琴弦，手指在琴弦上轻敲出节奏。"每首歌都是某个人的故事。有的还活着——有的在很久以前就结束了。选一首吧。"',
+          choices: [
+            {
+              text: '"唱一首关于「回归」的歌。"',
+              response: '他拨动琴弦，旋律变得急促而绝望——那是重复的循环，每一次都一样，每一次又都不同。"一个男人活了九百九十九次——也死了九百九十九次。每一次他都试图拯救所有人。每一次他都失败。直到某一天，有一个人对他说——「你不用拯救所有人。救你自己就够了。」"',
+              effects: { addStoryFlag: 'bard_regression_song', statChange: { sanity: 3, insight: 2 } },
+              leadToIndex: 2
+            },
+            {
+              text: '"唱一首关于「写作」的歌。"',
+              response: '琴声变得轻快而顽皮，像打字机在深夜的敲击。"一个女人在寒风中敲着键盘，指甲被冻成了紫色。她不在乎——因为她在创造一个可以被改变的世界。第3149章——她写了又删，删了又写。因为那个结局不够好。因为每一个读者都值得一个——就算不是完美，至少是诚实的结局。"',
+              effects: { addStoryFlag: 'bard_writing_song', statChange: { insight: 2 } },
+              leadToIndex: 2
+            },
+            {
+              text: '"唱一首关于「黑夜」的歌。"',
+              response: '他缓缓拨出低沉的G小调和弦，琴声像从深渊底部升起。"每颗星星熄灭时都会唱一首歌。星座听不到——因为它们太远了。只有我们这些在地上唱歌的人听得见。今晚——有一颗星星在熄灭。这首是它的。在这个世界线里，它是一个被遗忘的故事；在另一个世界线里，它拥有过一千个读者。"',
+              effects: { addStoryFlag: 'bard_night_song', statChange: { sanity: 2 } },
+              leadToIndex: 2
+            }
+          ]
+        },
+        {
+          id: 2,
+          text: '歌声渐歇，他放下吉他，静静地看着火焰。篝火在他眼中映出奇怪的形状——不是普通的火焰，而是星座的轮廓。"你知道我为什么能找到每个人吗？不是因为我在流浪——而是因为我曾经也是他们中的一个。"',
+          choices: [
+            {
+              text: '"你曾经是星座？"',
+              response: '"是。"他低下头，吉他弦在余温中微微震响。"我叫「沉默的歌者」——一个很小很小的星座。没有信徒，没有影响力，只在夜晚偶尔出现。但我看过了所有世界线上的所有故事——因为没人注意到我。"',
+              effects: { addStoryFlag: 'bard_constellation_identity', statChange: { insight: 5, sanity: 3 } },
+              leadToIndex: 3
+            },
+            {
+              text: '"你为什么不待在星流里？"',
+              response: '"因为我厌倦了旁观。"他的手指划过琴弦，音波在空气中荡开涟漪。"星座只能看——不能触碰。我想真正走进故事里——哪怕代价是失去永恒。所以我下来了。现在——我可以跟你说话，跟你分享温暖，跟你一起烤火。"',
+              effects: { addStoryFlag: 'bard_descended', statChange: { insight: 3 } },
+              leadToIndex: 3
+            }
+          ]
+        },
+        {
+          id: 3,
+          text: '他从怀中取出一枚断弦——那是吉他上最老的一根弦，被他弹断了不知多少年前。"这是我在星流中收集到的第一个「故事」。现在——我觉得该让你保存它了。它没什么力量——但它会「记得」。记得所有我唱过的歌。"',
+          choices: [
+            {
+              text: '"我会珍惜它。"',
+              response: '"不用珍惜。"他笑了，眼角皱起温暖的纹路。"故事不是用来珍惜的——是用来分享的。当你觉得迷失的时候——弹一下这根弦。它唱不出声音，但它的震动会提醒你：你不是第一个人，也不是最后一个人。"',
+              effects: { addItem: 'broken_guitar_string', addStoryFlag: 'bard_gift', statChange: { sanity: 5 } },
+              leadToIndex: 4
+            },
+            {
+              text: '"你还唱吗？"',
+              response: '"唱——直到所有故事都有一个名字。"他将那枚断弦系在你的手腕上，它变成了一根细长的银丝。"现在你的脉搏里也有了一首歌。什么时候等你学会了歌词——来找我。我给你弹吉他。"',
+              effects: { addItem: 'silver_bard_string', addStoryFlag: 'bard_bond' },
+              leadToIndex: 4
+            }
+          ]
+        },
+        {
+          id: 4,
+          text: '他重新拿起吉他，这次没有唱歌——只是在弹。那是一段你从未听过但莫名熟悉的旋律。它让你想起很久以前忘记的东西——不是记忆，是一种感觉。是一个人坐在窗边看书、窗外下雨、茶水微凉的那种感觉。',
+          choices: [
+            {
+              text: '"这首歌叫什么？"',
+              response: '"没有名字。"他轻声道。"这是「故事的故事」——不是关于谁的，而是关于「故事」本身。关于为什么我们需要故事。关于为什么一个人愿意花十三年读同一本书。因为在那本书里——他不孤单。"',
+              effects: { addStoryFlag: 'bard_final_song', statChange: { sanity: 5 } },
+              leadToIndex: null
+            },
+            {
+              text: '安静地听到最后。',
+              response: '吉他的最后一个音符消散在夜晚的空气中。火焰低了下去。他站起身，背起吉他。"天快亮了——你还有很长的路要走。"他朝你挥了挥手，身影融进了晨曦。"下一首歌——等你回来听。会是一个好结局。我保证。"',
+              effects: { addStoryFlag: 'bard_silence_listen', statChange: { sanity: 8 } },
+              leadToIndex: null
+            }
+          ]
+        }
+      ],
+      locations: ['underground_city', 'abyss_rift'],
+      encounter_weight: 0.07,
+      is_unique: 0
+    },
+
+    // ==========================================
+    // 7. 最古之梦的碎片 (oldest_dream_fragment) - 3 nodes
+    // ==========================================
+    {
+      ghost_key: 'oldest_dream_fragment',
+      name: '最古之梦的碎片',
+      description: '深渊的裂缝深处——你看到了令人无法移开视线的东西。一张病床。一个少年。周围悬挂着无数星辰点滴瓶——每个瓶子里装着一颗发光的星辰。少年闭着眼，但嘴唇微动——他在做梦。',
+      dialogues: [
+        {
+          id: 0,
+          text: '深渊的裂缝深处——你看到了令人无法移开视线的东西。一张病床。一个少年。周围悬挂着无数星辰点滴瓶——每个瓶子里装着一颗发光的星辰。少年闭着眼，但嘴唇微动——他在做梦。他在读。他在同时创造和被创造。',
+          choices: [
+            {
+              text: '"你是谁？"',
+              response: '"我？"少年没有睁眼，但声音直接在脑中响起。"一个在医院病房里读了十三年书的人。或者说——一个正在被你们阅读的梦。你在做梦吗？还是说——我才是梦？"',
+              effects: { addStoryFlag: 'met_oldest_dream', statChange: { insight: 3 } },
+              leadToIndex: 1
+            },
+            {
+              text: '"这是哪里？"',
+              response: '"首尔中央医院。407病房。现在是凌晨3点12分——窗外正在下雪。"他准确地报出时间，尽管双眼紧闭。"对我来说是凌晨3点12分——对你来说是几亿年。因为你在我的梦境内部——而梦里的时间流速，取决于读得有多认真。"',
+              effects: { addStoryFlag: 'dream_hospital', statChange: { insight: 2 } },
+              leadToIndex: 1
+            }
+          ]
+        },
+        {
+          id: 1,
+          text: '少年终于睁开了眼睛。那双眼睛里没有瞳孔的颜色——只有无尽的星河在旋转。点滴瓶中的星辰随着他的呼吸明灭，像在回应他的每一口呼吸。',
+          choices: [
+            {
+              text: '"我们是彼此的吗？"',
+              response: '"对。"少年轻声说。"你读我的故事的时候——我在读你的故事。有人说我是「最古老的梦」——但每一个做这个梦的人，都会成为下一个梦的种子。你明白吗？这个世界——星流、场景、星座——它们是我的梦。而正在读这些字的你——也在我的梦中。它只是一个故事。但也正因如此——你可以让故事变成任何样子。"',
+              effects: { addStoryFlag: 'oldest_dream_mutual', statChange: { insight: 8, sanity: -5 } },
+              leadToIndex: 2
+            },
+            {
+              text: '"如果梦醒了会怎样？"',
+              response: '他沉默了很久。点滴瓶中的星辰加速了明灭。"这个世界会结束。所有角色、所有故事、所有你遇到的人——都会像清晨的露水一样消散。所以我不能醒来。所以我一直在读——读了十三年，还会继续读下去。"他的声音里有种远超年龄的、像是跨过几亿年的坚定。',
+              effects: { addStoryFlag: 'dream_waking_fear', statChange: { sanity: -3, insight: 5 } },
+              leadToIndex: 2
+            }
+          ]
+        },
+        {
+          id: 2,
+          text: '少年抬起手，一只点滴瓶飘落在他掌心。瓶中的星辰是一只星座——已经快要熄灭了。"这里的每一滴——都是一个故事。有些是我的——有些是别人的。有些还没有被写好。有些已经被人遗忘。但全部——都属于同一本书。"',
+          choices: [
+            {
+              text: '"我可以拿走一瓶吗？"',
+              response: '"可以。"他将那瓶快要熄灭的星辰递给你。"但条件是——你要让它活着。给它读者，给它名字，给它一个结局。否则——它会完全消失。连回声都不剩。"',
+              effects: { addItem: 'dying_star_vial', addStoryFlag: 'oldest_dream_gift', statChange: { insight: 5, sanity: 5 } },
+              leadToIndex: null
+            },
+            {
+              text: '"故事的最后一页是什么？"',
+              response: '"我不知道。"他笑了——那是一个少年的笑，尽管他可能比任何星座都更古老。"因为最后一页还没被写出来。你——正在写它。每一秒——每一行——每一个你做出的选择。"点滴瓶重新飞回空中，少年闭上了眼睛。"继续读下去。我也会的。我不孤单——因为你在读。"',
+              effects: { addStoryFlag: 'oldest_dream_last_page', statChange: { insight: 5, sanity: 5 } },
+              leadToIndex: null
+            }
+          ]
+        }
+      ],
+      locations: ['abyss_rift'],
+      encounter_weight: 0.04,
+      is_unique: 1
+    },
+
+    // ==========================================
+    // 8. 刘众赫的记忆 (yoo_jung_hyuk_memory) - 4 nodes
+    // ==========================================
+    {
+      ghost_key: 'yoo_jung_hyuk_memory',
+      name: '刘众赫的记忆',
+      description: '你在地铁废墟深处看到了一个熟悉的身影——黑色外套，剑上沾满了血，脚下是成堆的魔物尸体。当他转过身时，你看到了一张年轻但写满沧桑的脸。这不是你认识的刘众赫——这是某个遥远轮回中的他。',
+      dialogues: [
+        {
+          id: 0,
+          text: '你在地铁废墟深处看到了一个熟悉的身影——黑色外套，剑上沾满了血，脚下是成堆的魔物尸体。当他转过身时，你看到了一张年轻但写满沧桑的脸。那不是你认识的刘众赫——那是某个遥远轮回中的他。',
+          choices: [
+            {
+              text: '"刘众赫？"',
+              response: '"你认识我？"他冷冷地扫了你一眼，目光中有疑惑和警惕。"不对——这个轮回我不该认识你。你不是这个世界线的人。"',
+              effects: { addStoryFlag: 'met_yjh_memory' },
+              leadToIndex: 1
+            },
+            {
+              text: '"哪一次轮回？"',
+              response: '"第847次。"他将剑垂在身侧，血从剑尖滴落。"最糟糕的一次。我在这里——在这个地铁站——失去了所有同伴。"他的声音沙哑得几乎听不出是他在说话。"包括你。不——不是你。是某个像你一样试图改变故事的人。"',
+              effects: { addStoryFlag: 'yjh_regression_847' },
+              leadToIndex: 1
+            }
+          ]
+        },
+        {
+          id: 1,
+          text: '他在废墟中坐下，从怀中掏出一本皱巴巴的笔记本。封面上用血迹写着"第847次"。他翻到其中一页，密密麻麻地记着名字——每一个名字都被划掉了。"这些是第847次中死去的人。我记下每一个——希望在下一次轮回中不会忘记。"',
+          choices: [
+            {
+              text: '"你一共记了多少本？"',
+              response: '"九百九十九本。"他将笔记本合上，动作轻得仿佛怕弄疼里面的名字。"但前八百四十六本都在重置中消失了。只有这一本——第847本，因为某种原因留了下来。也许是因为死的人太多了——也许是因为我在这一次忘了怎么「重启」。"',
+              effects: { addStoryFlag: 'yjh_notebook_847' },
+              leadToIndex: 2
+            },
+            {
+              text: '"那个像我的人——是谁？"',
+              response: '"一个读者。"他凝视着你，目光穿透了时间和轮回。"他和你一样——知道即将发生的一切。他试着用他的「知识」改变结局——但改变了第一个，改变了第二个，却在第三个被反噬了。知识在星流中是武器——但也是诅咒。你记住了多少？"',
+              effects: { addStoryFlag: 'yjh_reader_past', statChange: { sanity: -3 } },
+              leadToIndex: 2
+            }
+          ]
+        },
+        {
+          id: 2,
+          text: '他站起身，走到铁轨边缘。铁轨已断裂，下方是无尽的黑暗。"在这个地方——第847次的我做了最后一个决定。不是战斗——是「放弃」。我放弃了一次轮回，选择让这次成为最后一次。因为我不想再看到任何人的名字被划掉了。"',
+          choices: [
+            {
+              text: '"但你没有放弃——你在下一次轮回中继续了。"',
+              response: '"因为有人骂醒了我。"他嘴角闪过一丝几乎看不见的弧度——那是刘众赫版本的笑容。"他说：「如果你放弃——所有死去的人就真的白死了。他们的名字不会回来。但你可以让新的名字不被划掉。」那个人——不只是读者。也是同伴。"',
+              effects: { addStoryFlag: 'yjh_companion_hint', statChange: { insight: 3 } },
+              leadToIndex: 3
+            },
+            {
+              text: '"第999次轮回——会有什么不同？"',
+              response: '"第999次——"他抬头看向废墟的穹顶，目光穿过层层天花板，仿佛看到了星空。"我学会了信任别人。一个读者教会了我——全知不能拯救一切，但同伴可以。"',
+              effects: { addStoryFlag: 'yjh_future_hope', statChange: { sanity: 3 } },
+              leadToIndex: 3
+            }
+          ]
+        },
+        {
+          id: 3,
+          text: '他的身影开始变淡——这个残影只是第847次轮回中留下的回声，正在被时间消磨殆尽。"时间不多了——但我还有一句话要给你。"他拔出剑，用剑尖在空气中刻下几个燃烧的文字。每一个字都在空中停留了片刻，然后消散。',
+          choices: [
+            {
+              text: '"什么话？"',
+              response: '"不要试图拯救所有人——我不是在教你冷漠。而是在告诉你：只有活着的人才能继续拯救别人。如果你死在半路上——所有你想救的人，都会跟着你一起死去。"文字熄灭了，但最后一颗火星飘落在你掌心，变成了一枚刻着「847」的剑刃碎片。',
+              effects: { addItem: 'regression_blade_fragment', addStoryFlag: 'yjh_847_gift', statChange: { strength: 3, sanity: 3 } },
+              leadToIndex: null
+            },
+            {
+              text: '"刘众赫——你现在在哪里？"',
+              response: '"在比你想象的更近的地方。"他收起剑，嘴角的笑意这次清晰了一些。"也许——在下一个场景中你就会遇到我。记得——告诉他，第847次轮回不是一个失败。因为在这里——我学到了最重要的一课。"残影消散了，只剩那句未说完的话回荡在废墟的空气中。"信任。"',
+              effects: { addStoryFlag: 'yjh_847_lesson', statChange: { insight: 3 } },
+              leadToIndex: null
+            }
+          ]
+        }
+      ],
+      locations: ['ruined_station'],
+      encounter_weight: 0.05,
+      is_unique: 1
+    },
+
+    // ==========================================
+    // 9. 韩秀英的写作残影 (han_soo_young_writer) - 3 nodes
+    // ==========================================
+    {
+      ghost_key: 'han_soo_young_writer',
+      name: '韩秀英的写作残影',
+      description: '图书馆深处，一个戴眼镜的女人正在疯狂打字。十几张稿纸散落在她脚下，每一张都被涂改得密密麻麻。她的指尖被冻得发紫——但她似乎完全感觉不到。',
+      dialogues: [
+        {
+          id: 0,
+          text: '图书馆深处，一个戴眼镜的女人正在疯狂打字。十几张稿纸散落在她脚下，每一张都被涂改得密密麻麻——划掉、重写、再划掉。她的指尖被冻得发紫——但她似乎完全感觉不到。',
+          choices: [
+            {
+              text: '"你在写什么？"',
+              response: '"别打扰我！"她头也不抬，手指在键盘上飞舞。"我正在改写第3149章——那个结局不够好。读者应该得到更好的结局。更好的——不只是「好」。我需要它是对的。「对」的结局。"',
+              effects: { addStoryFlag: 'met_han_soo_young' },
+              leadToIndex: 1
+            },
+            {
+              text: '默默拾起一张地上的稿纸。',
+              response: '那张稿纸上写着第3149章的草稿——你看到了一个你认识的场景。但那不是你经历过的版本。在那个版本里——你没有选择打开那扇门。你选择了合上书。"这是——""别读那个！"她一把夺回稿纸。"那是废稿。被删掉的世界线。它们不存在——也不应该存在。"',
+              effects: { addStoryFlag: 'hsy_draft_discovered', statChange: { insight: 2 } },
+              leadToIndex: 1
+            }
+          ]
+        },
+        {
+          id: 1,
+          text: '她终于抬起头，眼镜片上反射着屏幕的蓝光。"你知道写作最痛苦的是什么吗？"她没有等你回答。"不是写不出来——是知道怎么写，但写出来之后，却无法确定它是不是「对的」。"',
+          choices: [
+            {
+              text: '"什么才算「对的」结局？"',
+              response: '"读者满意的结局。"她摘下眼镜，揉了揉发红的眼睛。"但问题是——「读者」不是一个固定的人。每个读者想要不同的结局。如果给每个人一个不同结局——那还算是同一本书吗？"她顿了顿。"还是——每个读者自己写自己的结局，才是唯一「对的」答案？"',
+              effects: { addStoryFlag: 'hsy_right_ending', statChange: { insight: 4 } },
+              leadToIndex: 2
+            },
+            {
+              text: '"你为谁写的这本书？"',
+              response: '"为一个少年。"她轻声说。"一个除了这本书一无所有的少年。我想给他一个好结局。但连「好」是什么——都是个难题。让他醒来？还是让他永远留在梦里？作为一个作者——我不知道。"她低头看着键盘。"但我知道——每个读书的人，都想翻到最后一页。"',
+              effects: { addStoryFlag: 'hsy_for_whom', statChange: { insight: 3, sanity: 3 } },
+              leadToIndex: 2
+            }
+          ]
+        },
+        {
+          id: 2,
+          text: '她将一张空白稿纸推到你面前。"既然你来了——要不要试一试？写一个结局。不用太长——就一行字。一行你希望在这个故事的最后一行读到的字。"',
+          choices: [
+            {
+              text: '提笔写下："而故事从未结束——只是翻到了新的一页。"',
+              response: '她读了一遍，嘴角闪过一丝笑意。"哈——还真是读者的答案。"她将稿纸收进抽屉。"我改过几万种结局——但这一行，我确实没有写过。也许——"她推了推眼镜，屏幕上的文字开始重新排列。"也许最好的结局，不是写在纸上——而是写在每个读者的心里。在不同的世界线，不同的方式。"',
+              effects: { addItem: 'hsy_draft_page', addStoryFlag: 'hsy_player_ending', statChange: { insight: 5, sanity: 5 } },
+              leadToIndex: null
+            },
+            {
+              text: '放下笔。"我写不出更好的。"',
+              response: '"诚实。"她并不失望。"大部分作家也写不出更好的——但他们还是在写。因为他们知道：不是所有文字都为了「更好」。有些文字只是为了「存在」——为了证明有人在某个地方，在某个时间，试图给这个世界一个结局。"她站起身，背着电脑离开了。稿纸留在桌上——第3149章，还没写完。',
+              effects: { addStoryFlag: 'hsy_honest', statChange: { sanity: 3 } },
+              leadToIndex: null
+            }
+          ]
+        }
+      ],
+      locations: ['silent_library'],
+      encounter_weight: 0.04,
+      is_unique: 1
+    },
+
+    // ==========================================
+    // 10. 碎片星座收藏家 (broken_constellation_collector) - 5 nodes
+    // ==========================================
+    {
+      ghost_key: 'broken_constellation_collector',
+      name: '碎片星座收藏家',
+      description: '在黑色频道区的废弃演播厅里，一个穿着破烂花格西装的男人正蹲在地上，小心翼翼地用镊子夹起一块发光的碎片放进玻璃瓶中。"嘘——别踩到它！这是「织女星」的右眼——最后一片了。"',
+      dialogues: [
+        {
+          id: 0,
+          text: '在黑色频道区的废弃演播厅里，一个穿着破烂花格西装的男人正蹲在地上，小心翼翼地用镊子夹起一块发光的碎片放进玻璃瓶中。他背着一个巨大的背包，里面装满了叮当作响的玻璃瓶。"嘘——别踩到它！这是「织女星」的右眼——最后一片了。"',
+          choices: [
+            {
+              text: '"你在收集什么？"',
+              response: '"陨落的星座！"他站起身，脸上满是狂热。"每一颗熄灭的星星都曾是一个故事。它们死了——但碎片还在。我收集它们——因为没有人会记住了。我是最后一个读者。"他指着他口袋里的瓶子，"织女星——她等了牛郎三千年。后来牛郎星先死了——吞噬于星流中。织女星便不再发光。"',
+              effects: { addStoryFlag: 'met_broken_collector' },
+              leadToIndex: 1
+            },
+            {
+              text: '"星座也会死？"',
+              response: '"当然会！"他瞪大了眼睛，仿佛你问了一个天真的问题。"每天都有星座熄灭。只不过没人看到——因为它们太小了！那些大星座——像「天狼」、「猎户」——它们有足够的信徒可以撑几万年。但小星座呢？它们连名字都快被人忘了。"',
+              effects: { addStoryFlag: 'collector_constellation_death' },
+              leadToIndex: 1
+            }
+          ]
+        },
+        {
+          id: 1,
+          text: '他打开背包，里面至少有上百个玻璃瓶——每个瓶中封存着一枚不同颜色的碎片。"每一颗碎片里都有一段记忆——这个星座死前最后的回忆。你想听哪个？"',
+          choices: [
+            {
+              text: '"讲讲织女星的故事。"',
+              response: '"啊——织女。最美的星座之一。"他举起那个瓶子，里面的碎片散发着温柔的粉色光。"她等了牛郎星三千年——每一天都在星流中朝对岸闪烁。然后有一天，牛郎星的信号中断了。没人知道发生了什么——只有织女知道。而她没有告诉任何人。她只是停止发光了。安静地。像一朵花谢了。"',
+              effects: { addStoryFlag: 'collector_vega_story', statChange: { sanity: 2 } },
+              leadToIndex: 2
+            },
+            {
+              text: '"讲讲最孤独的星座。"',
+              response: '"有——「无声的观测者」。"他抽出一个几乎全黑的瓶子。"它存在于星流的极边缘——远到没有任何其他星座能看到它。它唯一的「故事」就是观测。从第一天开始到熄灭那天——它只是看。看了六万年。然后安静地灭了。连再见都来不及说——因为没有人在听。"',
+              effects: { addStoryFlag: 'collector_silent_watcher', statChange: { sanity: 2 } },
+              leadToIndex: 2
+            },
+            {
+              text: '"你为什么要收集它们？"',
+              response: '"因为如果不收集——它们就真的死了。"他的语气变得柔软了。"我不是疯子。我只是觉得——没有故事应该死得无声无息。总有一天会有人想来了解它们——到那时候，我希望我能拿出瓶子，说：「来——我给你讲一个故事。」"',
+              effects: { addStoryFlag: 'collector_motive', statChange: { sanity: 3 } },
+              leadToIndex: 2
+            }
+          ]
+        },
+        {
+          id: 2,
+          text: '他打开另一个瓶子——里面的碎片是银色的，在跳出瓶口的瞬间变成了一阵轻烟，在空气中拼出图案。"啊——这个。「双星的悲剧」。虽然不是星座——但比很多星座更有故事。"',
+          choices: [
+            {
+              text: '"双星是什么？"',
+              response: '"一对同时诞生的星座。不是情侣——是姐妹。她们共享同一段轨道，轮流发光——一个白天亮，另一个夜晚亮。持续了十二万年。然后有一天——因为一次星流波动，她们的轨道偏离了。一颗飞向了深渊——另一颗追了过去。两个都再也没有出现过。"',
+              effects: { addStoryFlag: 'collector_twin_stars', statChange: { sanity: 2 } },
+              leadToIndex: 3
+            },
+            {
+              text: '"还有哪些你不忍心忘记的故事？"',
+              response: '他沉默了一会儿，从背包最深处掏出一个金色的瓶子。"这个——「讲故事的孩子」。不是星座——是一个人类。他出生在「场景」降临那一年，死在他十四岁生日的前一天。他死前做了最后一件事——在书的内页上写了第五百零四个故事的结局。我没有他的整个故事——只收集到他写的结局。就一句话：「然后太阳出来了。」"',
+              effects: { addStoryFlag: 'collector_child_story', statChange: { sanity: 3 } },
+              leadToIndex: 3
+            }
+          ]
+        },
+        {
+          id: 3,
+          text: '他合上背包，看着你。那双眼睛里有某种古老的疲惫——也许他已经在星流中流浪了太久。"其实——我不只是收藏家。"他从怀中掏出一个空瓶子，递给你。"有时候，我也会是最后一个读者。我读它们最后的记忆——然后对那些碎片说：「我记得你。」"',
+          choices: [
+            {
+              text: '"给我一个空瓶子。"',
+              response: '"给你——"他小心地将瓶子放在你手心。"下次你遇到一个快要熄灭的故事——把它装进来。然后记得它。只要被记得——就还没有真正死亡。"瓶子很轻，但它落在掌心的分量——比任何武器都重。',
+              effects: { addItem: 'empty_memory_vial', addStoryFlag: 'collector_gift_vial', statChange: { sanity: 5 } },
+              leadToIndex: 4
+            },
+            {
+              text: '"星座碎片能做什么？"',
+              response: '"取决于你想做什么。"他耸耸肩。"可以当交易货币——有些星座愿意出高价收购陨落对手的碎片。可以用来锻造武器——碎片带有原星座的属性。也可以——只是放在瓶子里。偶尔拿出来看看。提醒自己——再辉煌的星座，有一天也会变成玻璃瓶里的发光碎片。"',
+              effects: { addStoryFlag: 'collector_fragment_uses' },
+              leadToIndex: 4
+            }
+          ]
+        },
+        {
+          id: 4,
+          text: '他背起背包，朝黑色频道区的深处走去。走了几步又回过头来。"对了——如果你在深渊看到一颗没有名字的新星——那不是我。那是某个被遗忘的星座，刚刚被人重新记起。记得跟它打个招呼。"然后他消失在纷乱的频道雪花中。',
+          choices: [
+            {
+              text: '"等等——你叫什么名字？"',
+              response: '"我？"他的声音从远处飘来，已经在几个频道之间跳跃了。"我没有名字——但有人叫过我「最后一个讲故事的人」。如果你喜欢——就叫「搜集者」吧。反正——"声音渐行渐远，"我的星座很早以前就灭了。但故事——还在。"频道雪花闪动了一下，然后全部关闭了。',
+              effects: { addStoryFlag: 'collector_name', statChange: { sanity: 3 } },
+              leadToIndex: null
+            }
+          ]
+        }
+      ],
+      locations: ['black_channel_zone'],
+      encounter_weight: 0.04,
+      is_unique: 0
+    },
+
+    // ==========================================
+    // 11. 最后一班列车长 (last_train_conductor) - 3 nodes
+    // ==========================================
+    {
+      ghost_key: 'last_train_conductor',
+      name: '最后一班列车长',
+      description: '在废弃车站的最深处——你居然看到了一个完整的地铁驾驶室。驾驶座上坐着一个穿着旧制服的老人，他的手放在操纵杆上，眼睛盯着前方断裂的铁轨。仪表盘上所有的灯都亮着——但那列车的引擎早已停转。',
+      dialogues: [
+        {
+          id: 0,
+          text: '在废弃车站的最深处——你居然看到了一个完整的地铁驾驶室。驾驶座上坐着一个穿着旧制服的老人，他的手放在操纵杆上，眼睛盯着前方断裂的铁轨。仪表盘上所有的灯都亮着——但那列车的引擎早已停转。',
+          choices: [
+            {
+              text: '"列车还能开吗？"',
+              response: '"能——也不能。"他拍了拍操纵杆，仪表盘的指针跳动了一下。"这辆车本来应该在「那天」执行末班车的。但当广播通知场景启动的时候，站台上的人全部消失了。我把车停在这里等着——等了不知多少年。等着有人再上车。"',
+              effects: { addStoryFlag: 'met_train_conductor' },
+              leadToIndex: 1
+            },
+            {
+              text: '"你要去哪里？"',
+              response: '"下一站——"他指向地图上标着"终点"的车站。"没有人再能到达的终点站。不是这个线路上的——是所有线路的尽头。每一条世界线都在向那里行驶。只是有些车跑得快，有些翻了，有些在中间就坏掉了。"',
+              effects: { addStoryFlag: 'conductor_destination' },
+              leadToIndex: 1
+            }
+          ]
+        },
+        {
+          id: 1,
+          text: '他从驾驶座上走下来，拉开车厢的门。车厢内部保持得很干净——座位上甚至还有当天的报纸，日期停在了"场景"开始的那天。"每过一段时间，总会有人走到这里——迷路的、寻找东西的、或者只是累了想找个地方坐坐。你是第四百零九个。"',
+          choices: [
+            {
+              text: '"第四百零九个乘客——都去了哪里？"',
+              response: '"有些下车了——继续往前走。有些在车厢里坐了很久——然后消失了。还有一些——"他看向车厢尽头，那里有一扇关门。"推开了那扇门。门后面是终点站——但不是每个人都准备好下车。"',
+              effects: { addStoryFlag: 'conductor_passengers', statChange: { insight: 2 } },
+              leadToIndex: 2
+            },
+            {
+              text: '"你知道这列车能开往终点站——为什么你不开？"',
+              response: '"因为开过去——就开不回来了。"他的手指在操纵杆上轻轻摩挲。"终点站不是终点——是「重置」。到了终点站的人，他们的故事就结束了。不是因为他们死了——而是因为他们的故事已经讲完。我是一个列车长——我的任务不是把所有人送到终点。而是确保该到终点的人到终点——该在路上的人留在路上。"',
+              effects: { addStoryFlag: 'conductor_purpose', statChange: { insight: 3, sanity: 3 } },
+              leadToIndex: 2
+            }
+          ]
+        },
+        {
+          id: 2,
+          text: '他走回驾驶室，从仪表盘下方拿出一张老式的磁卡车票。"收着这个。"他将车票放进你的手心。车票上没有写起点，也没有写终点——只有一行小字："任何时候都有效。"',
+          choices: [
+            {
+              text: '"这票能做什么？"',
+              response: '"当你觉得走到尽头的时候——握住这张票，闭上眼睛。它会把你带到这节车厢里来。"他坐回驾驶座，手放在操纵杆上。"在这里——你可以休息。没有任何人能打扰你。然后当你准备好了——推开车厢的门，继续走你的路。"',
+              effects: { addItem: 'last_train_ticket', addStoryFlag: 'conductor_gift', statChange: { sanity: 8 } },
+              leadToIndex: null
+            },
+            {
+              text: '"你会一直在这里吗？"',
+              response: '"会。"他终于笑了——满脸的皱纹舒展开来。"直到最后一个人到站。到了那时候——我会启动这辆车，然后自己开去终点站。向站台上的检票员说：「抱歉迟到了。但车上的人——都到地方了。」"他拉起操纵杆。列车的引擎发出一声低沉的轰鸣——像是在答话。',
+              effects: { addStoryFlag: 'conductor_promise', statChange: { sanity: 5 } },
+              leadToIndex: null
+            }
+          ]
+        }
+      ],
+      locations: ['ruined_station'],
+      encounter_weight: 0.05,
+      is_unique: 1
+    },
+
+    // ==========================================
+    // 12. 烙印铁匠 (stigma_smith) - 4 nodes
+    // ==========================================
+    {
+      ghost_key: 'stigma_smith',
+      name: '烙印铁匠',
+      description: '断裂商场的地下，一个由废铁和灰烬铺成的冶炼铺里，一个面貌模糊的中年男人正在推拉风箱。炉火是蓝色的——不是普通的火，而是淬炼故事的火。他的锤子敲击的不是金属——是镶嵌在金属中的叙事碎片。',
+      dialogues: [
+        {
+          id: 0,
+          text: '断裂商场的地下，一个由废铁和灰烬铺成的冶炼铺里，一个面貌模糊的中年男人正在推拉风箱。炉火是蓝色的——不是普通的火，而是淬炼故事的火。他的锤子敲击的不是金属——而是镶嵌在金属中的叙事碎片。他抬头看了你一眼，锤子悬在半空中。"有武器吗？拿来——我用你的故事淬炼它。"',
+          choices: [
+            {
+              text: '"你会锻造什么？"',
+              response: '"不是锻造——是「写作」。"他将一块烧红的铁片浸入一桶液体中——那不是水，是融化的小说章节。"每一件武器都是一个故事。这把剑——"他指着一把挂在墙上的剑，"在第312次锻造中淬入了一个「战士的临终诗」。自此之后——它砍出的每一剑，都会在风中留下半句诗。"',
+              effects: { addStoryFlag: 'met_stigma_smith' },
+              leadToIndex: 1
+            },
+            {
+              text: '"淬炼故事——是什么意思？"',
+              response: '"就是——"他放下锤子，炉火的光芒照出一张被炭灰和岁月模糊了的脸。"把你的故事融进你的武器里。你经历过什么——你的武器就会拥有什么。你杀过什么魔物——你的剑就会对那种魔物有额外的杀伤力。但前提是——你的故事足够有趣。无聊的故事——会被炉火吞噬。连同武器一起。"',
+              effects: { addStoryFlag: 'smith_process' },
+              leadToIndex: 1
+            }
+          ]
+        },
+        {
+          id: 1,
+          text: '他拿起一块烧得通红的铁——不，那不是铁。那是被加热到融点的半透明晶体，里面隐约可以看到翻动的书页。"这是「第78页」——我从深渊的裂隙里捞出来的。一段被某个读者遗忘的章节。很有力量——但也充满不安。你确定要碰它吗？"',
+          choices: [
+            {
+              text: '"我想试试。"',
+              response: '"好——但记住。淬炼不是强化——是「改写」。"他将你选中的武器放入炉火中，蓝色的火焰瞬间吞没了刀身。"你的武器会变得更强——但也会变得不同。它不再只是一把武器——它会变成你故事中的一章。如果你以后背叛了那个故事——它会折断。不是物理的折断——是「意义」的折断。"',
+              effects: { addStoryFlag: 'smith_try_forge', statChange: { strength: 2 } },
+              leadToIndex: 2
+            },
+            {
+              text: '"什么是「意义的折断」？"',
+              response: '"就是——"他从墙上取下一把断成两截的剑。两截剑刃之间仍然连着微弱的蓝光，但那光在闪烁，像在挣扎。"这把剑曾属于一个发誓保护孩子的骑士。后来他放弃了一个孩子——不是因为力量不够，而是因为恐惧。剑就断了。不是生锈，不是对战——只是失去了「意义」。他的故事不再配得上这把剑。"',
+              effects: { addStoryFlag: 'smith_broken_meaning' },
+              leadToIndex: 2
+            }
+          ]
+        },
+        {
+          id: 2,
+          text: '他从炉火中取出淬炼后的武器——刀刃上浮现出流转的蓝色符文，那是你的故事被刻进金属的痕迹。武器的形状没有变——但它的「存在感」完全不同了。"你看——它现在包含了你的叙事重量。一个只是用来砍东西的武器和一个有故事的武器——完全是两个级别的东西。"',
+          choices: [
+            {
+              text: '"我的故事在武器里写了什么？"',
+              response: '"让我们看看——"他拿起一个放大镜，对准刀刃上的符文。符文跳动成文字："「这个读者在第三场景选择了帮助陌生人，尽管那让他的处境更危险。他在废墟中寻找的不只是物资——也是意义。」这会让你的武器在「帮助他人」时强化——因为你已经用行动定义了自己是什么样的人。"',
+              effects: { addItem: 'narrative_forged_weapon', addStoryFlag: 'smith_forged', statChange: { strength: 5, insight: 3 } },
+              leadToIndex: 3
+            },
+            {
+              text: '"你可以为别人淬炼武器吗？"',
+              response: '"可以——但得那人在场。每个人都有自己的故事。我只能解读——不能编造。"他收起锤子，炉火渐渐变暗。"不过嘛——如果你带了别人的记忆碎片来，我可以试着把那段记忆淬进你的武器里。同一个故事，从不同人的视角看——会得到不同维度的强化。"',
+              effects: { addStoryFlag: 'smith_memory_forge', statChange: { insight: 2 } },
+              leadToIndex: 3
+            }
+          ]
+        },
+        {
+          id: 3,
+          text: '他走到一面挂满了各种淬炼武器的墙前——每一件武器都被蓝光环绕，静静地悬挂在那里，像等待打开的书。"它们都在等着自己的故事继续。但大部分——永远不会了。因为它们的锻造者——要么死了，要么迷失了，要么忘记了它们的存在。"',
+          choices: [
+            {
+              text: '"你是它们唯一记住的人吗？"',
+              response: '"是。"他垂下头，炉火在他身后摇曳。"每一个被打出来的武器——我都记得。记得它们的故事，记得它们的样子，记得它们的主人在拿到它时的表情。我是「烙印铁匠」——但不是因为我打得最好。而是因为我从不忘记。"他拍了拍你的肩。"别让你的武器变成墙上的又一个故事。让它跟着你。让故事——有一个句子一个句子写下去的机会。"',
+              effects: { addStoryFlag: 'smith_final_advice', statChange: { sanity: 5 } },
+              leadToIndex: null
+            }
+          ]
+        }
+      ],
+      locations: ['broken_market'],
+      encounter_weight: 0.04,
+      is_unique: 0
+    }
+  ];
+
+  var insertGhost = db.prepare(
+    'INSERT OR IGNORE INTO npc_ghosts (ghost_key, name, description, dialogue_tree_json, location_keys_json, encounter_weight, is_unique) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  );
+  for (var k = 0; k < npcGhosts.length; k++) {
+    var g = npcGhosts[k];
+    insertGhost.run(
+      g.ghost_key, g.name, g.description,
+      JSON.stringify(g.dialogues), JSON.stringify(g.locations),
+      g.encounter_weight, g.is_unique ? 1 : 0
+    );
+  }
+
+  console.log('Phase 5: Narrative seed complete (' + itemMemories.length + ' item memories, ' + locationEchoes.length + ' echoes, ' + npcGhosts.length + ' npc ghosts).');
+}
+
+module.exports = { seedNarrative };

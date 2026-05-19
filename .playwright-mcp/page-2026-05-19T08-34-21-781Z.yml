@@ -1,0 +1,293 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]: 【测试服 v1.0.7】当前版本用于群友试玩和反馈，数据可能在更新时重置。
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]: 全知读者视角
+      - generic [ref=e6]: Omniscient Reader
+      - generic [ref=e7]: 2026-05-19 | 付费服务开始 | 偏移 0 | 观测中
+    - generic [ref=e8]:
+      - complementary [ref=e9]:
+        - generic [ref=e10]:
+          - generic [ref=e11]: 未命名读者
+          - generic [ref=e12]: 付费服务开始
+        - generic [ref=e13]:
+          - generic [ref=e14]:
+            - generic [ref=e15]: HP
+            - generic [ref=e18]: 100/100
+          - generic [ref=e19]:
+            - generic [ref=e20]: 体力
+            - generic [ref=e23]: 45/50
+        - generic [ref=e25]:
+          - generic [ref=e26]:
+            - generic [ref=e27]: Lv.
+            - generic [ref=e28]: "1"
+          - generic [ref=e29]:
+            - generic [ref=e30]: ◎
+            - generic [ref=e31]: "92"
+          - generic [ref=e32]:
+            - generic [ref=e33]: ◆
+            - generic [ref=e34]: "3"
+        - generic [ref=e35]:
+          - generic [ref=e36]: 化身位阶
+          - generic [ref=e37]:
+            - generic [ref=e38]: F级·临时化身
+            - generic [ref=e39]: 普通故事
+            - generic [ref=e40]: 无名观测者
+          - generic [ref=e41]: "距E级·剧本幸存者: 0/3 条件"
+          - button "查看升阶" [ref=e42] [cursor=pointer]
+        - generic [ref=e43]:
+          - generic [ref=e44]: 当前位置
+          - generic [ref=e45]: 废弃车站
+        - generic [ref=e46]:
+          - generic [ref=e47]: 称号
+          - text: 称号 0
+        - button "详细属性 →" [ref=e49] [cursor=pointer]
+      - main [ref=e50]:
+        - generic [ref=e52]: 星之流观测站
+        - generic [ref=e53]:
+          - generic [ref=e54]: "--:-- 系统初始化完成。等待读者就绪..."
+          - generic [ref=e55]: 16:32:54地铁在昏暗的隧道中穿行。你靠在门边，手机屏幕的光映在脸上——这是《在灭亡的世界中存活的三种方法》的最终话。3149章，十年的连载，今天结束了。你翻到最后一页，文字在屏幕上淡去。就在这时，地铁猛地一震。灯光闪烁。周围乘客的手机同时失去信号。你抬起头，意识到有什么东西正在降临。
+          - generic [ref=e56]: "16:32:54选择了背后星: 最古之金乌（金乌）"
+          - generic [ref=e57]: "16:32:54选择了: 【调查】再次打开手机，仔细查看小说的最终话"
+          - generic [ref=e58]: "16:32:54选择了: 【剧情】走向车厢前方查看震动的来源"
+          - generic [ref=e59]: 16:32:545 向你发送了好友申请
+          - generic [ref=e60]: "16:32:54获得道具: small_hp_potion x1"
+          - generic [ref=e61]: "16:32:54获得道具: small_hp_potion x1"
+          - generic [ref=e62]: 16:32:54你进入休息状态，生命与体力恢复速度提升。
+          - generic [ref=e63]: "16:32:54参加了星流放送: 废都探索驱动"
+          - generic [ref=e64]: 16:32:54你结束休息。
+          - generic [ref=e65]: "16:32:54领取了星流放送奖励: 废都探索驱动"
+          - generic [ref=e66]: "16:32:54参加了星流放送: 遗失章节狩猎"
+          - generic [ref=e67]: "16:32:54领取了星流放送奖励: 遗失章节狩猎"
+          - generic [ref=e68]: "16:32:54卸下了: 旧读者徽章"
+          - generic [ref=e69]: "16:32:54装备了: 旧读者徽章"
+          - generic [ref=e70]: 16:32:54与 5 成为好友
+        - generic [ref=e72]: 等待事件触发...
+        - generic [ref=e73]:
+          - generic [ref=e74]:
+            - button "继续探索(-5)" [ref=e75] [cursor=pointer]
+            - generic "批量探索：一次结算 N 次结果" [ref=e76]:
+              - button "×1" [ref=e77] [cursor=pointer]
+              - button "×5" [ref=e78] [cursor=pointer]
+              - button "×10" [ref=e79] [cursor=pointer]
+            - generic "自动连续探索，遭遇事件/体力不足时自动停止" [ref=e80] [cursor=pointer]:
+              - checkbox "自动" [ref=e81]
+              - generic [ref=e82]: 自动
+          - generic [ref=e83]:
+            - button "切换地点" [ref=e84] [cursor=pointer]
+            - button "休息" [ref=e85] [cursor=pointer]
+          - generic [ref=e86]:
+            - generic [ref=e87]: 废弃车站
+            - generic [ref=e88]: "|"
+            - generic [ref=e89]: 体力 45/50
+            - generic [ref=e90]: "|"
+            - generic [ref=e91]: ◎ 92
+            - generic [ref=e92]: "|"
+            - generic [ref=e93]: 故事沉淀 0
+            - generic [ref=e94]: "|"
+            - generic [ref=e95]: 今日探索 0 次
+      - navigation [ref=e96]:
+        - button "▣ 角色" [ref=e97] [cursor=pointer]:
+          - generic [ref=e98]: ▣
+          - generic [ref=e99]: 角色
+        - button "▤ 背包" [ref=e100] [cursor=pointer]:
+          - generic [ref=e101]: ▤
+          - generic [ref=e102]: 背包
+        - button "◆ 装备" [ref=e103] [cursor=pointer]:
+          - generic [ref=e104]: ◆
+          - generic [ref=e105]: 装备
+        - button "✦ 技能" [ref=e106] [cursor=pointer]:
+          - generic [ref=e107]: ✦
+          - generic [ref=e108]: 技能
+        - button "◈ 档案" [ref=e109] [cursor=pointer]:
+          - generic [ref=e110]: ◈
+          - generic [ref=e111]: 档案
+        - button "♛ 称号" [ref=e112] [cursor=pointer]:
+          - generic [ref=e113]: ♛
+          - generic [ref=e114]: 称号
+        - button "⚔ PK" [ref=e115] [cursor=pointer]:
+          - generic [ref=e116]: ⚔
+          - generic [ref=e117]: PK
+        - button "☰ 排行" [ref=e118] [cursor=pointer]:
+          - generic [ref=e119]: ☰
+          - generic [ref=e120]: 排行
+        - button "★ 放送" [ref=e121] [cursor=pointer]:
+          - generic [ref=e122]: ★
+          - generic [ref=e123]: 放送
+        - button "⚙ 设置" [ref=e125] [cursor=pointer]:
+          - generic [ref=e126]: ⚙
+          - generic [ref=e127]: 设置
+        - button "💀 冥界" [ref=e129] [cursor=pointer]:
+          - generic [ref=e130]: 💀
+          - generic [ref=e131]: 冥界
+        - button "📋 更新" [ref=e132] [cursor=pointer]:
+          - generic [ref=e133]: 📋
+          - generic [ref=e134]: 更新
+        - button "▸ 主线" [ref=e136] [cursor=pointer]:
+          - generic [ref=e137]: ▸
+          - generic [ref=e138]: 主线
+        - button "✉ 反馈" [ref=e140] [cursor=pointer]:
+          - generic [ref=e141]: ✉
+          - generic [ref=e142]: 反馈
+    - generic [ref=e143]:
+      - generic [ref=e144]:
+        - generic [ref=e145]: 详细属性
+        - button "✕" [ref=e146] [cursor=pointer]
+      - generic [ref=e147]:
+        - generic [ref=e307]:
+          - generic [ref=e308]: 战斗属性
+          - generic [ref=e309]:
+            - generic [ref=e310]:
+              - generic [ref=e311]: Lv.
+              - generic [ref=e312]: "1"
+            - generic [ref=e313]:
+              - generic [ref=e314]: 攻击
+              - generic [ref=e315]: "10"
+              - generic [ref=e316]: (基础10 +0)
+            - generic [ref=e317]:
+              - generic [ref=e318]: 防御
+              - generic [ref=e319]: "5"
+              - generic [ref=e320]: (基础5 +0)
+            - generic [ref=e321]:
+              - generic [ref=e322]: 速度
+              - generic [ref=e323]: "10"
+              - generic [ref=e324]: (基础10 +0)
+            - generic [ref=e325]:
+              - generic [ref=e326]: 暴击
+              - generic [ref=e327]: 5%
+              - generic [ref=e328]: (基础5% +0%)
+            - generic [ref=e329]:
+              - generic [ref=e330]: 评分
+              - generic [ref=e331]: "1000"
+          - generic [ref=e332]: "自由属性 剩余: 40"
+          - generic [ref=e333]:
+            - generic [ref=e334]:
+              - generic [ref=e335]: 攻击
+              - button "-" [ref=e336] [cursor=pointer]
+              - spinbutton [ref=e337]: "0"
+              - button "+" [ref=e338] [cursor=pointer]
+            - generic [ref=e339]:
+              - generic [ref=e340]: 防御
+              - button "-" [ref=e341] [cursor=pointer]
+              - spinbutton [ref=e342]: "0"
+              - button "+" [ref=e343] [cursor=pointer]
+            - generic [ref=e344]:
+              - generic [ref=e345]: 速度
+              - button "-" [ref=e346] [cursor=pointer]
+              - spinbutton [ref=e347]: "0"
+              - button "+" [ref=e348] [cursor=pointer]
+            - generic [ref=e349]:
+              - generic [ref=e350]: 暴击(2%)
+              - button "-" [ref=e351] [cursor=pointer]
+              - spinbutton [ref=e352]: "0"
+              - button "+" [ref=e353] [cursor=pointer]
+          - button "确认分配" [ref=e354] [cursor=pointer]
+        - generic [ref=e355]:
+          - generic [ref=e356]: 剧情能力
+          - generic [ref=e357]:
+            - generic [ref=e358]:
+              - generic [ref=e359]: 智慧
+              - generic [ref=e360]: "1"
+            - generic [ref=e361]:
+              - generic [ref=e362]: 战斗
+              - generic [ref=e363]: "0"
+            - generic [ref=e364]:
+              - generic [ref=e365]: 领导
+              - generic [ref=e366]: "0"
+            - generic [ref=e367]:
+              - generic [ref=e368]: 羁绊
+              - generic [ref=e369]: "0"
+            - generic [ref=e370]:
+              - generic [ref=e371]: 残酷
+              - generic [ref=e372]: "0"
+            - generic [ref=e373]:
+              - generic [ref=e374]: 洞察
+              - generic [ref=e375]: "1"
+        - generic [ref=e376]:
+          - generic [ref=e377]: 经验值
+          - generic [ref=e378]:
+            - generic [ref=e379]: EXP
+            - generic [ref=e382]: 36/100
+        - generic [ref=e383]:
+          - generic [ref=e384]: 世界线状态
+          - generic [ref=e385]:
+            - generic [ref=e386]: 世界线偏移
+            - generic [ref=e387]: "0"
+          - generic [ref=e388]:
+            - generic [ref=e389]: 频道热度
+            - generic [ref=e390]: "0"
+        - generic [ref=e391]:
+          - generic [ref=e392]: 持有资源
+          - generic [ref=e393]:
+            - generic [ref=e394]:
+              - generic [ref=e395]: ◎
+              - generic [ref=e396]: "92"
+              - generic [ref=e397]: 硬币
+            - generic [ref=e398]:
+              - generic [ref=e399]: ◆
+              - generic [ref=e400]: "3"
+              - generic [ref=e401]: 故事碎片
+            - generic [ref=e402]:
+              - generic [ref=e403]: ☆
+              - generic [ref=e404]: "0"
+              - generic [ref=e405]: 星座垂青
+            - generic [ref=e406]:
+              - generic [ref=e407]: ⬡
+              - generic [ref=e408]: "0"
+              - generic [ref=e409]: 深渊刻痕
+        - generic [ref=e410]:
+          - generic [ref=e411]: 当前装备
+          - generic [ref=e412]:
+            - generic [ref=e413]: 武器
+            - generic [ref=e414]: 生锈短刀
+          - generic [ref=e415]:
+            - generic [ref=e416]: 防具
+            - generic [ref=e417]: 车站守卫外套
+          - generic [ref=e418]:
+            - generic [ref=e419]: 饰品
+            - generic [ref=e420]: 旧读者徽章
+          - generic [ref=e421]:
+            - generic [ref=e422]: 遗物
+            - generic [ref=e423]: —
+        - generic [ref=e424]:
+          - generic [ref=e425]: 阶段进度
+          - generic [ref=e426]: "剧情事件: 0"
+          - generic [ref=e427]: "Boss线索: 0"
+          - generic [ref=e428]: "机遇事件: 1"
+          - generic [ref=e429]: "保底计数: 0/5"
+    - generic [ref=e271]:
+      - generic [ref=e272]:
+        - generic [ref=e273]: 属性指南
+        - button "◀" [ref=e274] [cursor=pointer]
+      - generic [ref=e275]:
+        - generic [ref=e430]: 世界背景
+        - generic [ref=e431]: 世界早已终结。你是一名"读者"——被星座选中的化身，拥有阅读世界线并改变故事走向的能力。在这个末日后的星流之中，星座靠人类集体意识中的故事为生，而化身则是它们在现实世界的代言人。每一次选择、每一场战斗，都是你在书写自己的传说。
+        - generic [ref=e432]: 背后星指引
+        - generic [ref=e433]: 金乌眷顾高攻击高暴击的化身。灼热的光芒将贯穿一切防御。优先将点数分配给攻击和暴击。
+        - generic [ref=e434]:
+          - generic [ref=e435]: 推荐优先
+          - generic [ref=e436]: 攻击
+        - generic [ref=e437]:
+          - generic [ref=e438]: 次要属性
+          - generic [ref=e439]: 暴击
+        - generic [ref=e440]: 属性说明
+        - generic [ref=e441]:
+          - generic [ref=e442]: 攻击
+          - generic [ref=e443]: 决定伤害输出
+        - generic [ref=e444]:
+          - generic [ref=e445]: 防御
+          - generic [ref=e446]: 减少受到的伤害
+        - generic [ref=e447]:
+          - generic [ref=e448]: 速度
+          - generic [ref=e449]: 决定出手顺序
+        - generic [ref=e450]:
+          - generic [ref=e451]: 暴击(2%/点)
+          - generic [ref=e452]: 增加暴击率
+    - generic [ref=e299]:
+      - button "好友" [ref=e300] [cursor=pointer]
+      - button "申请" [ref=e301] [cursor=pointer]
+      - button "聊天" [ref=e302] [cursor=pointer]
+      - button "赠礼" [ref=e303] [cursor=pointer]
+      - button "切磋" [ref=e304] [cursor=pointer]
+      - button "组队" [disabled] [ref=e305]
+      - button "最近互动" [ref=e306] [cursor=pointer]

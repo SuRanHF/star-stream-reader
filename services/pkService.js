@@ -199,6 +199,12 @@ function challenge(attackerId, defenderId) {
   playerService.update(loser.id, { stats_json: loserStats });
   playerService.addLog(loser.id, '你在PK中战败了...意识沉入冥界。');
 
+  // 世界线偏移 — PK死亡增加世界线偏移
+  try {
+    const worldlineService = require('./worldlineService');
+    worldlineService.contributeShift(1, loser.id);
+  } catch (e) { /* worldline not critical */ }
+
   // 记录 PK (loserChange 已是负数，直接使用)
   const atkChange = attackerWins ? ratingChange.winnerChange + atkRatingBonus : ratingChange.loserChange;
   const defChange = attackerWins ? ratingChange.loserChange : ratingChange.winnerChange + defRatingBonus;
@@ -209,10 +215,10 @@ function challenge(attackerId, defenderId) {
     if (Math.random() < 0.2) {
       chapterService.awardResource(attackerId, 'constellationFavor', 1);
     }
-    // kingToken: PK评分越高概率越大
+    // abyssMark: PK评分越高概率越大
     const atkRatingNow = getOrCreateRanking(attackerId).rating;
     if (Math.random() < Math.min(0.25, atkRatingNow / 10000)) {
-      chapterService.awardResource(attackerId, 'kingToken', 1);
+      chapterService.awardResource(attackerId, 'abyssMark', 1);
     }
   } else {
     if (Math.random() < 0.2) {
@@ -220,7 +226,7 @@ function challenge(attackerId, defenderId) {
     }
     const defRatingNow = getOrCreateRanking(defenderId).rating;
     if (Math.random() < Math.min(0.25, defRatingNow / 10000)) {
-      chapterService.awardResource(defenderId, 'kingToken', 1);
+      chapterService.awardResource(defenderId, 'abyssMark', 1);
     }
   }
 
@@ -238,6 +244,12 @@ function challenge(attackerId, defenderId) {
       const broadcastService = require('./broadcastService');
       broadcastService.tryRecordContributions(attackerId, [{ type: 'win_pk', amount: 1, metadata: { opponent_id: defenderId } }]);
     } catch (e) { /* broadcast not critical */ }
+
+    // Phase 3: 阵营贡献记录 — PK 获胜
+    try {
+      const factionService = require('./factionService');
+      factionService.recordContribution(attackerId, 3, 'win_pk');
+    } catch (e) { /* faction not critical */ }
   }
 
   return {
@@ -294,28 +306,7 @@ function updateRanking(playerId, rating, wins, losses) {
 }
 
 function getRankings() {
-  const db = getDb();
-  const rows = db.prepare(`
-    SELECT r.*, p.player_name, p.stats_json, p.titles_json
-    FROM rankings r
-    JOIN players p ON r.player_id = p.id
-    ORDER BY r.rating DESC
-    LIMIT 50
-  `).all();
-
-  return rows.map((r, i) => {
-    const stats = JSON.parse(r.stats_json);
-    return {
-      rank: i + 1,
-      player_id: r.player_id,
-      player_name: r.player_name,
-      level: stats.level || 1,
-      rating: r.rating,
-      wins: r.wins,
-      losses: r.losses,
-      highest_rating: r.highest_rating
-    };
-  });
+  return require('./rankingService').getRankings();
 }
 
 function getPKRecords(playerId) {

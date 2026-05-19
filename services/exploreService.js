@@ -154,7 +154,20 @@ function startExploration(playerId, locationKey, opts) {
     const broadcastService = require('./broadcastService');
     broadcastMods = broadcastService.getActiveModifiers(playerId);
   } catch (e) { /* broadcast not critical */ }
-  const effectiveCoinMultiplier = coinMultiplier * (broadcastMods.exploreRewardMult || 1.0);
+
+  // 世界线全局修正
+  let worldlineMods = { exploreRewardMult: 1.0, battleEncounterProbBonus: 0, storyEncounterProbBonus: 0, anomalyLocation: null, anomalyIntensity: 0, storyFragmentDropMult: 1.0 };
+  try {
+    worldlineMods = require('./worldlineService').getWorldlineGlobalModifiers();
+  } catch (e) { /* worldline not critical */ }
+
+  // 阵营领域修正
+  let factionMods = { exploreStoryProbBonus: 0 };
+  try {
+    factionMods = require('./factionService').getDomainModifiers(playerId);
+  } catch (e) { /* faction not critical */ }
+
+  const effectiveCoinMultiplier = coinMultiplier * (broadcastMods.exploreRewardMult || 1.0) * worldlineMods.exploreRewardMult;
 
   // 体力检查
   const stats = { ...player.stats };
@@ -194,6 +207,26 @@ function startExploration(playerId, locationKey, opts) {
     adjustedProbs.opportunity = Math.min(1.0, (adjustedProbs.opportunity || 0) + broadcastMods.opportunityProbabilityBonus);
   }
 
+  // 应用世界线全局修正 — 战斗遭遇概率加成
+  if (worldlineMods.battleEncounterProbBonus) {
+    adjustedProbs.battle = Math.min(1.0, (adjustedProbs.battle || 0) + worldlineMods.battleEncounterProbBonus);
+  }
+  if (worldlineMods.storyEncounterProbBonus) {
+    adjustedProbs.story = Math.min(1.0, (adjustedProbs.story || 0) + worldlineMods.storyEncounterProbBonus);
+  }
+
+  // 应用阵营领域修正 — 故事事件概率加成
+  if (factionMods.exploreStoryProbBonus) {
+    adjustedProbs.story = Math.min(1.0, (adjustedProbs.story || 0) + factionMods.exploreStoryProbBonus);
+  }
+
+  // 如果当前探索的地点是世界线异常热点，事件概率+20%
+  if (worldlineMods.anomalyLocation && worldlineMods.anomalyLocation === locationKey) {
+    adjustedProbs.story = Math.min(1.0, (adjustedProbs.story || 0) + 0.20);
+    adjustedProbs.battle = Math.min(1.0, (adjustedProbs.battle || 0) + 0.10);
+    adjustedProbs.hidden = Math.min(1.0, (adjustedProbs.hidden || 0) + 0.05);
+  }
+
   // 应用剧情保底 pity
   const pityThreshold = 5;
   if (stageProgress.storyPity >= pityThreshold) {
@@ -214,7 +247,7 @@ function startExploration(playerId, locationKey, opts) {
   }
 
   // ── 根据 resultType 处理事件 ──
-  const result = processEventType(db, player, playerId, location, locationKey, resultType, stageProgress, currentMain, stageConfig, finalCoinMultiplier);
+  const result = processEventType(db, player, playerId, location, locationKey, resultType, stageProgress, currentMain, stageConfig, finalCoinMultiplier, worldlineMods);
 
   // 更新阶段进度
   saveStageProgress(playerId, stageProgress);
@@ -234,6 +267,22 @@ function startExploration(playerId, locationKey, opts) {
     broadcastService.tryRecordContributions(playerId, contribs);
   } catch (e) { /* broadcast not critical */ }
 
+  // Phase 3: 阵营贡献记录
+  try {
+    const factionService = require('./factionService');
+    var contribAmount = resultType === 'story' ? 3 : (resultType === 'boss_clue' ? 2 : 1);
+    factionService.recordContribution(playerId, contribAmount, 'explore_' + resultType);
+  } catch (e) { /* faction not critical */ }
+
+  // Phase 5: 碎片化叙事 — 地点回响 & NPC残影遭遇
+  var locationEcho = null;
+  var npcGhost = null;
+  try {
+    const narrativeService = require('./narrativeService');
+    locationEcho = narrativeService.recordLocationEcho(playerId, locationKey);
+    npcGhost = narrativeService.checkNpcGhostEncounter(playerId, locationKey);
+  } catch (e) { /* narrative not critical */ }
+
   // Update current_location for seamless exploration
   playerService.update(playerId, { current_location: locationKey });
 
@@ -247,7 +296,9 @@ function startExploration(playerId, locationKey, opts) {
     result: result.resultData,
     player: updatedPlayer,
     stage_progress: stageProgress,
-    story_pity: stageProgress.storyPity
+    story_pity: stageProgress.storyPity,
+    location_echo: locationEcho,
+    npc_ghost: npcGhost
   };
 }
 
@@ -270,8 +321,9 @@ function tryAdvanceChapter(playerId) {
   return { advanced: true, new_chapter_key: pendingNext, chapter_title: chapter.title };
 }
 
-function processEventType(db, player, playerId, location, locationKey, resultType, stageProgress, currentMain, stageConfig, coinMultiplier) {
+function processEventType(db, player, playerId, location, locationKey, resultType, stageProgress, currentMain, stageConfig, coinMultiplier, worldlineMods) {
   const playerFull = playerService.get(playerId);
+  worldlineMods = worldlineMods || {};
 
   switch (resultType) {
     case 'story':
@@ -296,11 +348,36 @@ function processEventType(db, player, playerId, location, locationKey, resultTyp
       return handleHiddenEvent(db, playerId, locationKey, stageProgress, playerFull);
 
     case 'resource':
-      return handleResourceEvent(playerId, location, coinMultiplier);
+      return handleResourceEvent(playerId, location, coinMultiplier, worldlineMods);
 
     case 'nothing':
-    default:
-      return { resultData: { description: '这次探索没有发现任何特别的东西。', coins: 0 } };
+    default: {
+      // Use location event_pool_json for random flavor text variety
+      let eventPool = [];
+      try { eventPool = JSON.parse(location.event_pool_json || '[]'); } catch (e) { /* ignore */ }
+      let desc = eventPool.length > 0
+        ? eventPool[Math.floor(Math.random() * eventPool.length)]
+        : '这次探索没有发现任何特别的东西。';
+
+      // 20% chance of minor discovery (1-5 coins or 1 fragment)
+      const minorRoll = Math.random();
+      const fragmentMult = worldlineMods.storyFragmentDropMult || 1.0;
+      let coins = 0;
+      let story_fragments = 0;
+      if (minorRoll < 0.1) {
+        coins = Math.round((1 + Math.floor(Math.random() * 5)) * (coinMultiplier || 1));
+        playerService.update(playerId, { coins: (playerService.getRaw(playerId).coins || 0) + coins });
+        desc += ` 硬币 +${coins}`;
+      } else if (minorRoll < 0.2) {
+        story_fragments = Math.round(1 * fragmentMult);
+        if (story_fragments > 0) {
+          chapterService.awardResource(playerId, 'storyFragments', story_fragments);
+          desc += ` 故事碎片 +${story_fragments}`;
+        }
+      }
+
+      return { resultData: { event_name: '探索发现', description: desc, event_type: 'nothing', coins, story_fragments } };
+    }
   }
 }
 
@@ -379,11 +456,17 @@ function handleStoryEvent(db, player, playerId, locationKey, stageProgress, curr
   stageProgress.storyPity = 0;
 
   if (isFinal) {
-    chapterService.awardResource(playerId, 'scenarioProof', 1);
+    chapterService.awardResource(playerId, 'storyFragments', 10);
   }
 
   // 尝试推进章节
   const chapterAdvance = tryAdvanceChapter(playerId);
+
+  // 世界线贡献 — 故事事件成功触发
+  try {
+    const worldlineService = require('./worldlineService');
+    worldlineService.contributeShift(0.5, playerId);
+  } catch (e) { /* worldline not critical */ }
 
   return {
     resultData: {
@@ -616,21 +699,25 @@ function handleBattleEvent(db, player, playerId, location, isElite, coinMultipli
 }
 
 // ── 资源事件处理 ──
-function handleResourceEvent(playerId, location, coinMultiplier) {
+function handleResourceEvent(playerId, location, coinMultiplier, worldlineMods) {
+  worldlineMods = worldlineMods || {};
+  const fragmentMult = worldlineMods.storyFragmentDropMult || 1.0;
   const roll = Math.random();
   if (roll < 0.5) {
     const coins = Math.round((25 + Math.floor(Math.random() * 45)) * coinMultiplier);
     playerService.update(playerId, { coins: (playerService.getRaw(playerId).coins || 0) + coins });
-    chapterService.awardResource(playerId, 'storyFragments', 1);
-    return { resultData: { event_name: '发现资源', description: `你搜刮了一些残留物资。获得硬币 +${coins}，故事碎片 +1`, event_type: 'resource', coins, story_fragments: 1 } };
+    const fragments = Math.round(1 * fragmentMult);
+    if (fragments > 0) chapterService.awardResource(playerId, 'storyFragments', fragments);
+    return { resultData: { event_name: '发现资源', description: `你搜刮了一些残留物资。获得硬币 +${coins}，故事碎片 +${fragments}`, event_type: 'resource', coins, story_fragments: fragments } };
   } else if (roll < 0.8) {
     inventoryService.addItem(playerId, 'small_hp_potion', 1);
     return { resultData: { event_name: '发现补给', description: '你找到了一个小型HP药剂。', event_type: 'resource', items: ['small_hp_potion'] } };
   } else {
     const coins = Math.round(10 * coinMultiplier);
     playerService.update(playerId, { coins: (playerService.getRaw(playerId).coins || 0) + coins });
-    chapterService.awardResource(playerId, 'storyFragments', 2);
-    return { resultData: { event_name: '意外发现', description: `在废墟中翻找时找到了一个隐藏的暗格！硬币 +${coins}，故事碎片 +2`, event_type: 'resource', coins, story_fragments: 2 } };
+    const fragments = Math.round(2 * fragmentMult);
+    if (fragments > 0) chapterService.awardResource(playerId, 'storyFragments', fragments);
+    return { resultData: { event_name: '意外发现', description: `在废墟中翻找时找到了一个隐藏的暗格！硬币 +${coins}，故事碎片 +${fragments}`, event_type: 'resource', coins, story_fragments: fragments } };
   }
 }
 
@@ -681,11 +768,11 @@ function applyEventRewards(playerId, rewards, player) {
   }
 
   // 阶段资源
-  if (rewards.scenarioProof) chapterService.awardResource(playerId, 'scenarioProof', rewards.scenarioProof);
+  if (rewards.scenarioProof) playerService.update(playerId, { story_fragments: (rawPlayer.story_fragments || 0) + (rewards.scenarioProof * 10) });
   if (rewards.constellationFavor) chapterService.awardResource(playerId, 'constellationFavor', rewards.constellationFavor);
-  if (rewards.kingToken) chapterService.awardResource(playerId, 'kingToken', rewards.kingToken);
+  if (rewards.kingToken) chapterService.awardResource(playerId, 'abyssMark', rewards.kingToken);
   if (rewards.abyssMark) chapterService.awardResource(playerId, 'abyssMark', rewards.abyssMark);
-  if (rewards.finalPage) chapterService.awardResource(playerId, 'finalPage', rewards.finalPage);
+  // finalPage removed — no longer a currency
 
   playerService.update(playerId, {
     coins, story_fragments: storyFragments,
@@ -705,7 +792,8 @@ function applyEventRisks(playerId, risks) {
     stats.hp = Math.max(0, (stats.hp || 0) - risks.hp_loss);
   }
   if (risks.worldLineShift) {
-    stats.worldLineShift = (stats.worldLineShift || 0) + risks.worldLineShift;
+    const worldlineService = require('./worldlineService');
+    worldlineService.contributeShift(risks.worldLineShift, playerId);
   }
   if (risks.channelHeat) {
     stats.channelHeat = (stats.channelHeat || 0) + risks.channelHeat;

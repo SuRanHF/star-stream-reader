@@ -1,0 +1,151 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]: 【测试服 v1.0.7】当前版本用于群友试玩和反馈，数据可能在更新时重置。
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]: 全知读者视角
+      - generic [ref=e6]: Omniscient Reader
+      - generic [ref=e7]: 2026-05-19 | 付费服务开始 | 偏移 0 | 观测中
+    - generic [ref=e8]:
+      - complementary [ref=e9]:
+        - generic [ref=e10]:
+          - generic [ref=e11]: 未命名读者
+          - generic [ref=e12]: 付费服务开始
+        - generic [ref=e13]:
+          - generic [ref=e14]:
+            - generic [ref=e15]: HP
+            - generic [ref=e18]: 100/100
+          - generic [ref=e19]:
+            - generic [ref=e20]: 体力
+            - generic [ref=e23]: 50/50
+        - generic [ref=e25]:
+          - generic [ref=e26]:
+            - generic [ref=e27]: Lv.
+            - generic [ref=e28]: "1"
+          - generic [ref=e29]:
+            - generic [ref=e30]: ◎
+            - generic [ref=e31]: "251"
+          - generic [ref=e32]:
+            - generic [ref=e33]: ◆
+            - generic [ref=e34]: "10"
+        - generic [ref=e35]:
+          - generic [ref=e36]: 化身位阶
+          - generic [ref=e37]:
+            - generic [ref=e38]: F级·临时化身
+            - generic [ref=e39]: 普通故事
+            - generic [ref=e40]: 无名观测者
+          - generic [ref=e41]: 晋升进度：查看升阶面板
+          - button "查看升阶" [ref=e42] [cursor=pointer]
+        - generic [ref=e43]:
+          - generic [ref=e44]: 当前位置
+          - generic [ref=e45]: 废弃车站
+        - generic [ref=e46]:
+          - generic [ref=e47]: 称号
+          - generic [ref=e48]:
+            - generic [ref=e49]: 情报贩子
+            - generic [ref=e50]: 第一只猎物
+          - text: 称号 2
+        - button "详细属性 →" [ref=e52] [cursor=pointer]
+      - main [ref=e53]:
+        - generic [ref=e55]: 星之流观测站
+        - generic [ref=e56]:
+          - generic [ref=e57]: "--:-- 系统初始化完成。等待读者就绪..."
+          - generic [ref=e58]: 18:48:03巨型昆虫从通风管道中挤出身体，黑色的甲壳在车厢灯光下折射出油亮的光泽。人群尖叫着后退。但你知道它的弱点——在小说中，这只昆虫的关节处有一道旧伤。你只需要利用身边的物品就能解决它。虫鸣和人的哭喊混合在一起，倒计时只剩下最后三分钟。
+          - generic [ref=e59]: "18:48:03装备了: 旧读者徽章"
+          - generic [ref=e60]: 18:48:03与 5 成为好友
+          - generic [ref=e61]: "18:48:03探索推进剧情至: 鬼怪降临"
+          - generic [ref=e62]: "18:48:03获得道具: old_subway_ticket x1"
+          - generic [ref=e63]: "18:48:03选择了: 【行动】抢占车厢角落的有利位置"
+          - generic [ref=e64]: "18:48:03选择了: 【剧情】安抚恐慌的乘客，让他们冷静下来听规则"
+          - generic [ref=e65]: "18:48:03获得称号: 情报贩子"
+          - generic [ref=e66]: "18:48:03探索推进剧情至: 第一个剧本：杀生"
+          - generic [ref=e67]: "18:48:03选择了: 【剧情】找到从通风口出现的昆虫并解决它"
+          - generic [ref=e68]: "18:48:03获得称号: 第一只猎物"
+          - generic [ref=e69]: "18:48:03探索推进剧情至: 昆虫之死"
+          - generic [ref=e70]: "18:48:03选择了: 【行动】趁其他人还在恐慌，收集车厢内的可用物资"
+          - generic [ref=e71]: "18:48:03选择了: 【剧情】面对其他幸存者的注视——你刚杀了那只昆虫，他们现在都在看你"
+          - generic [ref=e72]: 18:48:03加入了讨伐队伍
+          - generic [ref=e73]: 18:48:03离开了讨伐队伍
+        - generic [ref=e75]: 等待事件触发...
+        - generic [ref=e76]:
+          - generic [ref=e77]:
+            - button "继续探索(-5)" [ref=e78] [cursor=pointer]
+            - generic "批量探索：一次结算 N 次结果" [ref=e79]:
+              - button "×1" [ref=e80] [cursor=pointer]
+              - button "×5" [ref=e81] [cursor=pointer]
+              - button "×10" [ref=e82] [cursor=pointer]
+            - generic "自动连续探索，遭遇事件/体力不足时自动停止" [ref=e83] [cursor=pointer]:
+              - checkbox "自动" [ref=e84]
+              - generic [ref=e85]: 自动
+          - generic [ref=e86]:
+            - button "切换地点" [ref=e87] [cursor=pointer]
+            - button "休息" [ref=e88] [cursor=pointer]
+          - generic [ref=e89]:
+            - generic [ref=e90]: 废弃车站
+            - generic [ref=e91]: "|"
+            - generic [ref=e92]: 体力 50/50
+            - generic [ref=e93]: "|"
+            - generic [ref=e94]: ◎ 251
+            - generic [ref=e95]: "|"
+            - generic [ref=e96]: 故事沉淀 0
+            - generic [ref=e97]: "|"
+            - generic [ref=e98]: 今日探索 0 次
+      - navigation [ref=e99]:
+        - button "▣ 角色" [ref=e100] [cursor=pointer]:
+          - generic [ref=e101]: ▣
+          - generic [ref=e102]: 角色
+        - button "▤ 背包" [ref=e103] [cursor=pointer]:
+          - generic [ref=e104]: ▤
+          - generic [ref=e105]: 背包
+        - button "◆ 装备" [ref=e106] [cursor=pointer]:
+          - generic [ref=e107]: ◆
+          - generic [ref=e108]: 装备
+        - button "✦ 技能" [ref=e109] [cursor=pointer]:
+          - generic [ref=e110]: ✦
+          - generic [ref=e111]: 技能
+        - button "◈ 档案" [ref=e112] [cursor=pointer]:
+          - generic [ref=e113]: ◈
+          - generic [ref=e114]: 档案
+        - button "♛ 称号" [ref=e115] [cursor=pointer]:
+          - generic [ref=e116]: ♛
+          - generic [ref=e117]: 称号
+        - button "⚔ PK" [ref=e118] [cursor=pointer]:
+          - generic [ref=e119]: ⚔
+          - generic [ref=e120]: PK
+        - button "☰ 排行" [ref=e121] [cursor=pointer]:
+          - generic [ref=e122]: ☰
+          - generic [ref=e123]: 排行
+        - button "★ 放送" [ref=e124] [cursor=pointer]:
+          - generic [ref=e125]: ★
+          - generic [ref=e126]: 放送
+        - button "⬡ 阵营" [ref=e127] [cursor=pointer]:
+          - generic [ref=e128]: ⬡
+          - generic [ref=e129]: 阵营
+        - button "◎ 交易" [ref=e130] [cursor=pointer]:
+          - generic [ref=e131]: ◎
+          - generic [ref=e132]: 交易
+        - button "👥 组队" [ref=e133] [cursor=pointer]:
+          - generic [ref=e134]: 👥
+          - generic [ref=e135]: 组队
+        - button "⚙ 设置" [ref=e137] [cursor=pointer]:
+          - generic [ref=e138]: ⚙
+          - generic [ref=e139]: 设置
+        - button "💀 冥界" [ref=e141] [cursor=pointer]:
+          - generic [ref=e142]: 💀
+          - generic [ref=e143]: 冥界
+        - button "📋 更新" [ref=e144] [cursor=pointer]:
+          - generic [ref=e145]: 📋
+          - generic [ref=e146]: 更新
+        - button "▸ 主线" [ref=e148] [cursor=pointer]:
+          - generic [ref=e149]: ▸
+          - generic [ref=e150]: 主线
+        - button "✉ 反馈" [ref=e152] [cursor=pointer]:
+          - generic [ref=e153]: ✉
+          - generic [ref=e154]: 反馈
+    - generic [ref=e155]:
+      - button "好友" [ref=e156] [cursor=pointer]
+      - button "申请" [ref=e157] [cursor=pointer]
+      - button "聊天" [ref=e158] [cursor=pointer]
+      - button "赠礼" [ref=e159] [cursor=pointer]
+      - button "切磋" [ref=e160] [cursor=pointer]
+      - button "组队" [disabled] [ref=e161]
+      - button "最近互动" [ref=e162] [cursor=pointer]

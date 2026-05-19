@@ -328,6 +328,13 @@ function selectConstellation(playerId, constellationKey) {
   update(playerId, { stats_json: stats });
   const c = CONSTELLATIONS[constellationKey];
   addLog(playerId, `选择了背后星: ${c.title}（${c.name}）`);
+
+  // Phase 3: 加入阵营并记录初始贡献
+  try {
+    const factionService = require('./factionService');
+    factionService.recordContribution(playerId, 10, 'join_faction');
+  } catch (e) { /* faction not critical */ }
+
   return { constellation: { key: constellationKey, name: c.name, title: c.title, effects: c.effects } };
 }
 

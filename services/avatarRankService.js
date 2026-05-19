@@ -31,11 +31,8 @@ function getResources(playerId) {
   var resources = JSON.parse(player.breakthrough_resources_json || '{}');
   return {
     storyFragments: player.story_fragments || 0,
-    scenarioProof: resources.scenarioProof || 0,
     constellationFavor: resources.constellationFavor || 0,
-    kingToken: resources.kingToken || 0,
-    abyssMark: resources.abyssMark || 0,
-    finalPage: resources.finalPage || 0
+    abyssMark: resources.abyssMark || 0
   };
 }
 
@@ -80,7 +77,7 @@ function evaluateRequirement(req, player, playerId) {
     }
     case 'scenario_proof_min': {
       var resources = getResources(playerId);
-      current = resources.scenarioProof || 0;
+      current = Math.floor((resources.storyFragments || 0) / 10);
       required = req.value;
       break;
     }
@@ -153,7 +150,9 @@ function calculateRankProgress(playerId) {
     nextRank: {
       rankKey: nextRank.rankKey,
       displayName: nextRank.displayName,
-      description: nextRank.description
+      description: nextRank.description,
+      resourceCost: nextRank.resourceCost || null,
+      breakthroughRate: nextRank.breakthroughRate !== undefined ? nextRank.breakthroughRate : null
     },
     canRankUp: canRankUp, isMaxRank: false,
     requirements: requirements, rewards: nextRank.rewards
@@ -187,6 +186,72 @@ function rankUp(playerId) {
   var currentRank = getPlayerRankConfig(player);
   var nextRank = getNextRankConfig(currentRank);
   var rewards = nextRank.rewards;
+
+  // Resource cost check
+  var resourceCost = nextRank.resourceCost;
+  if (resourceCost) {
+    var raw = playerService.getRaw(playerId);
+    var res = JSON.parse(raw.breakthrough_resources_json || '{}');
+    var dbUpdates = {};
+    for (var rk in resourceCost) {
+      if (resourceCost.hasOwnProperty(rk)) {
+        var have;
+        if (rk === 'story_fragments') {
+          have = raw.story_fragments || 0;
+        } else {
+          have = res[rk] || 0;
+        }
+        if (have < resourceCost[rk]) {
+          return {
+            success: false,
+            error: {
+              code: 'INSUFFICIENT_RESOURCES',
+              message: '突破资源不足，需要 ' + rk + ' x' + resourceCost[rk] + '，当前: ' + have
+            }
+          };
+        }
+      }
+    }
+    // Consume resources
+    for (var cr in resourceCost) {
+      if (resourceCost.hasOwnProperty(cr)) {
+        if (cr === 'story_fragments') {
+          dbUpdates.story_fragments = (raw.story_fragments || 0) - resourceCost[cr];
+        } else {
+          res[cr] = (res[cr] || 0) - resourceCost[cr];
+        }
+      }
+    }
+    dbUpdates.breakthrough_resources_json = res;
+    playerService.update(playerId, dbUpdates);
+  }
+
+  // Breakthrough probability roll (S+ ranks)
+  var breakthroughRate = nextRank.breakthroughRate;
+  var breakthroughSuccess = true;
+  if (breakthroughRate !== undefined && breakthroughRate < 1.0) {
+    var roll = Math.random();
+    breakthroughSuccess = roll < breakthroughRate;
+  }
+
+  if (!breakthroughSuccess) {
+    var failLog = '突破失败！你在晋升' + nextRank.displayName + '的过程中遭遇了世界线的抵抗。请再次尝试。';
+    playerService.addLog(playerId, failLog);
+    return {
+      success: false,
+      data: {
+        rankedUp: false,
+        breakthroughFailed: true,
+        breakthroughRate: breakthroughRate,
+        displayName: nextRank.displayName
+      },
+      error: {
+        code: 'BREAKTHROUGH_FAILED',
+        message: failLog
+      }
+    };
+  }
+
   var newStats = Object.assign({}, player.stats);
 
   if (rewards.stats) {
@@ -199,6 +264,7 @@ function rankUp(playerId) {
   }
 
   if (rewards.storyGrade) newStats.storyGrade = rewards.storyGrade;
+  if (rewards.channelHeat) newStats.channelHeat = (newStats.channelHeat || 0) + rewards.channelHeat;
 
   newStats.avatarRank = nextRank.rankKey;
   newStats.avatarRankName = nextRank.rankName;
@@ -217,6 +283,7 @@ function rankUp(playerId) {
       displayName: nextRank.displayName,
       rewards: rewards.stats || {},
       storyGrade: newStats.storyGrade,
+      breakthroughRate: breakthroughRate,
       log: logMsg
     }
   };
@@ -325,9 +392,13 @@ function adminFillRankRequirements(playerId) {
         break;
       }
       case 'scenario_proof_min': {
-        var resources = player.breakthrough_resources || {};
-        resources.scenarioProof = Math.max(resources.scenarioProof || 0, req.required);
-        updateFields.breakthrough_resources_json = resources;
+        var raw = playerService.getRaw(playerId);
+        var br = JSON.parse(raw.breakthrough_resources_json || '{}');
+        var neededFrags = req.required * 10;
+        var currentFrags = player.story_fragments || 0;
+        if (currentFrags < neededFrags) {
+          updateFields.story_fragments = neededFrags;
+        }
         break;
       }
       case 'pk_or_broadcast':
@@ -341,6 +412,83 @@ function adminFillRankRequirements(playerId) {
   return { success: true, data: { message: '位阶条件已一键满足，请执行升阶。' } };
 }
 
+// Phase 6: 位阶限制表
+var RANK_ACCESS = {
+  F: { locations: 1, trade: false, party: false, skillSlots: 0 },
+  E: { locations: 2, trade: false, party: false, skillSlots: 0 },
+  D: { locations: 3, trade: false, party: false, skillSlots: 1 },
+  C: { locations: 5, trade: true, party: false, skillSlots: 2 },
+  B: { locations: 8, trade: true, party: true, skillSlots: 3 },
+  A: { locations: 99, trade: true, party: true, skillSlots: 4 },
+  S: { locations: 99, trade: true, party: true, skillSlots: 5 },
+  SS: { locations: 99, trade: true, party: true, skillSlots: 5 },
+  SSS: { locations: 99, trade: true, party: true, skillSlots: 5 }
+};
+
+function getRankAccess(player) {
+  var rank = (player.stats && player.stats.avatarRank) || 'F';
+  return RANK_ACCESS[rank] || RANK_ACCESS.F;
+}
+
+function checkAccess(player, feature) {
+  var access = getRankAccess(player);
+  switch (feature) {
+    case 'location_count':
+      return access.locations;
+    case 'trade':
+      return access.trade;
+    case 'party':
+      return access.party;
+    case 'skill_slots':
+      return access.skillSlots;
+    default:
+      return true;
+  }
+}
+
+function prestige(playerId) {
+  var player = playerService.get(playerId);
+  if (!player) return { error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } };
+  var stats = player.stats;
+  if (stats.avatarRank !== 'SSS') return { error: { code: 'NOT_SSS', message: '只有达到SSS位阶才能进行回归' } };
+
+  var raw = playerService.getRaw(playerId);
+  var prestigeLevel = (raw.prestige_level || 0) + 1;
+  var bonus = JSON.parse(raw.prestige_bonus_json || '{}');
+
+  // Permanent bonus: +2% all stats per prestige
+  bonus.atkBonus = (bonus.atkBonus || 0) + 0.02;
+  bonus.defBonus = (bonus.defBonus || 0) + 0.02;
+  bonus.spdBonus = (bonus.spdBonus || 0) + 0.02;
+  bonus.hpBonus = (bonus.hpBonus || 0) + 0.02;
+
+  // Reset rank to F but keep equipment, inventory, coins, story_fragments
+  var newStats = Object.assign({}, playerService.defaultStats);
+  newStats.avatarRank = 'F';
+  newStats.avatarRankName = '临时化身';
+  newStats.storyGrade = 'ordinary';
+  newStats.prestigeLevel = prestigeLevel;
+  // Preserve constellation choice
+  newStats.constellation = stats.constellation;
+
+  playerService.update(playerId, {
+    stats_json: newStats,
+    prestige_level: prestigeLevel,
+    prestige_bonus_json: bonus
+  });
+
+  playerService.addLog(playerId, '进行了第' + prestigeLevel + '次回归！位阶重置为F，获得永久加成。');
+
+  return {
+    success: true,
+    data: {
+      prestigeLevel: prestigeLevel,
+      bonus: bonus,
+      message: '回归完成！你已经历' + prestigeLevel + '次回归，所有属性永久+' + (prestigeLevel * 2) + '%'
+    }
+  };
+}
+
 module.exports = {
   getAvatarRankConfig: getAvatarRankConfig,
   getStarstreamTier: getStarstreamTier,
@@ -349,6 +497,9 @@ module.exports = {
   getPlayerAvatarRank: getPlayerAvatarRank,
   calculateRankProgress: calculateRankProgress,
   rankUp: rankUp,
+  prestige: prestige,
+  getRankAccess: getRankAccess,
+  checkAccess: checkAccess,
   getAvatarRankLeaderboard: getAvatarRankLeaderboard,
   adminFillRankRequirements: adminFillRankRequirements
 };

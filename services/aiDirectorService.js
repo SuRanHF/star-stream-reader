@@ -20,8 +20,8 @@ ${JSON.stringify(worldState, null, 2)}
 允许: ${allowedContribTypes}
 
 ## 奖励上限
-- 参与奖: coins <= ${limits.participation.coins}, storyFragments <= ${limits.participation.storyFragments}, scenarioProof <= ${limits.participation.scenarioProof}
-- 排名奖: coins <= ${limits.ranking.coins}, storyFragments <= ${limits.ranking.storyFragments}, scenarioProof <= ${limits.ranking.scenarioProof}
+- 参与奖: coins <= ${limits.participation.coins}, storyFragments <= ${limits.participation.storyFragments}
+- 排名奖: coins <= ${limits.ranking.coins}, storyFragments <= ${limits.ranking.storyFragments}
 
 ## 约束
 1. eventType 必须在允许列表中
@@ -126,8 +126,8 @@ function fallbackBroadcastGenerator(worldState) {
         { type: 'kill_monster', target: Math.max(15, worldState.activePlayers * 5), label: '讨伐怪物', score_per_unit: 1 }
       ],
       rewards: {
-        participation: { coins: 300, storyFragments: 5, scenarioProof: 1 },
-        completion: { coins: 600, storyFragments: 15, scenarioProof: 2 },
+        participation: { coins: 300, storyFragments: 15 },
+        completion: { coins: 600, storyFragments: 35 },
         ranking: { coins: 1200, storyFragments: 25 }
       },
       failurePenalty: {},
@@ -172,8 +172,8 @@ function fallbackBroadcastGenerator(worldState) {
         { type: 'complete_stage', target: 1, label: '推进主线阶段', score_per_unit: 10 }
       ],
       rewards: {
-        participation: { coins: 400, storyFragments: 8, scenarioProof: 1 },
-        completion: { coins: 800, storyFragments: 20, scenarioProof: 2 },
+        participation: { coins: 400, storyFragments: 18 },
+        completion: { coins: 800, storyFragments: 40 },
         ranking: { coins: 1500, storyFragments: 30 }
       },
       failurePenalty: { worldLineShift: 1 },
@@ -198,7 +198,7 @@ function fallbackBroadcastGenerator(worldState) {
       ],
       rewards: {
         participation: { coins: 250, storyFragments: 5 },
-        completion: { coins: 500, storyFragments: 12, scenarioProof: 1 },
+        completion: { coins: 500, storyFragments: 22 },
         ranking: { coins: 1000, storyFragments: 20 }
       },
       failurePenalty: {},
@@ -223,8 +223,8 @@ function fallbackBroadcastGenerator(worldState) {
       ],
       rewards: {
         participation: { coins: 200, storyFragments: 5 },
-        completion: { coins: 500, storyFragments: 15, scenarioProof: 2 },
-        ranking: { coins: 1000, storyFragments: 25, scenarioProof: 3 }
+        completion: { coins: 500, storyFragments: 35 },
+        ranking: { coins: 1000, storyFragments: 55 }
       },
       failurePenalty: {},
       reason: `${dominantStage[0]} 阶段有 ${dominantStage[1]} 名玩家，适合阶段支援任务`,

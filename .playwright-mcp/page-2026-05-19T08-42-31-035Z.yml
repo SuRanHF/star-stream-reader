@@ -1,0 +1,139 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]: 【测试服 v1.0.7】当前版本用于群友试玩和反馈，数据可能在更新时重置。
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]: 全知读者视角
+      - generic [ref=e6]: Omniscient Reader
+      - generic [ref=e7]: 2026-05-19 | 付费服务开始 | 偏移 0 | 观测中
+    - generic [ref=e8]:
+      - complementary [ref=e9]:
+        - generic [ref=e10]:
+          - generic [ref=e11]: 未命名读者
+          - generic [ref=e12]: 付费服务开始
+        - generic [ref=e13]:
+          - generic [ref=e14]:
+            - generic [ref=e15]: HP
+            - generic [ref=e18]: 100/100
+          - generic [ref=e19]:
+            - generic [ref=e20]: 体力
+            - generic [ref=e23]: 50/50
+        - generic [ref=e25]:
+          - generic [ref=e26]:
+            - generic [ref=e27]: Lv.
+            - generic [ref=e28]: "1"
+          - generic [ref=e29]:
+            - generic [ref=e30]: ◎
+            - generic [ref=e31]: "92"
+          - generic [ref=e32]:
+            - generic [ref=e33]: ◆
+            - generic [ref=e34]: "3"
+        - generic [ref=e35]:
+          - generic [ref=e36]: 化身位阶
+          - generic [ref=e37]:
+            - generic [ref=e38]: F级·临时化身
+            - generic [ref=e39]: 普通故事
+            - generic [ref=e40]: 无名观测者
+          - generic [ref=e41]: 晋升进度：查看升阶面板
+          - button "查看升阶" [ref=e42] [cursor=pointer]
+        - generic [ref=e43]:
+          - generic [ref=e44]: 当前位置
+          - generic [ref=e45]: 废弃车站
+        - generic [ref=e46]:
+          - generic [ref=e47]: 称号
+          - text: 称号 0
+        - button "详细属性 →" [ref=e49] [cursor=pointer]
+      - main [ref=e50]:
+        - generic [ref=e52]: 星之流观测站
+        - generic [ref=e53]:
+          - generic [ref=e54]: "--:-- 系统初始化完成。等待读者就绪..."
+          - generic [ref=e55]: 16:42:30地铁在昏暗的隧道中穿行。你靠在门边，手机屏幕的光映在脸上——这是《在灭亡的世界中存活的三种方法》的最终话。3149章，十年的连载，今天结束了。你翻到最后一页，文字在屏幕上淡去。就在这时，地铁猛地一震。灯光闪烁。周围乘客的手机同时失去信号。你抬起头，意识到有什么东西正在降临。
+          - generic [ref=e56]: "16:42:30选择了背后星: 最古之金乌（金乌）"
+          - generic [ref=e57]: "16:42:30选择了: 【调查】再次打开手机，仔细查看小说的最终话"
+          - generic [ref=e58]: "16:42:30选择了: 【剧情】走向车厢前方查看震动的来源"
+          - generic [ref=e59]: 16:42:305 向你发送了好友申请
+          - generic [ref=e60]: "16:42:30获得道具: small_hp_potion x1"
+          - generic [ref=e61]: "16:42:30获得道具: small_hp_potion x1"
+          - generic [ref=e62]: 16:42:30你进入休息状态，生命与体力恢复速度提升。
+          - generic [ref=e63]: "16:42:30参加了星流放送: 废都探索驱动"
+          - generic [ref=e64]: 16:42:30你结束休息。
+          - generic [ref=e65]: "16:42:30领取了星流放送奖励: 废都探索驱动"
+          - generic [ref=e66]: "16:42:30参加了星流放送: 遗失章节狩猎"
+          - generic [ref=e67]: "16:42:30领取了星流放送奖励: 遗失章节狩猎"
+          - generic [ref=e68]: "16:42:30卸下了: 旧读者徽章"
+          - generic [ref=e69]: "16:42:30装备了: 旧读者徽章"
+          - generic [ref=e70]: 16:42:30与 5 成为好友
+        - generic [ref=e72]: 等待事件触发...
+        - generic [ref=e73]:
+          - generic [ref=e74]:
+            - button "继续探索(-5)" [ref=e75] [cursor=pointer]
+            - generic "批量探索：一次结算 N 次结果" [ref=e76]:
+              - button "×1" [ref=e77] [cursor=pointer]
+              - button "×5" [ref=e78] [cursor=pointer]
+              - button "×10" [ref=e79] [cursor=pointer]
+            - generic "自动连续探索，遭遇事件/体力不足时自动停止" [ref=e80] [cursor=pointer]:
+              - checkbox "自动" [ref=e81]
+              - generic [ref=e82]: 自动
+          - generic [ref=e83]:
+            - button "切换地点" [ref=e84] [cursor=pointer]
+            - button "休息" [ref=e85] [cursor=pointer]
+          - generic [ref=e86]:
+            - generic [ref=e87]: 废弃车站
+            - generic [ref=e88]: "|"
+            - generic [ref=e89]: 体力 50/50
+            - generic [ref=e90]: "|"
+            - generic [ref=e91]: ◎ 92
+            - generic [ref=e92]: "|"
+            - generic [ref=e93]: 故事沉淀 0
+            - generic [ref=e94]: "|"
+            - generic [ref=e95]: 今日探索 0 次
+      - navigation [ref=e96]:
+        - button "▣ 角色" [ref=e97] [cursor=pointer]:
+          - generic [ref=e98]: ▣
+          - generic [ref=e99]: 角色
+        - button "▤ 背包" [ref=e100] [cursor=pointer]:
+          - generic [ref=e101]: ▤
+          - generic [ref=e102]: 背包
+        - button "◆ 装备" [ref=e103] [cursor=pointer]:
+          - generic [ref=e104]: ◆
+          - generic [ref=e105]: 装备
+        - button "✦ 技能" [ref=e106] [cursor=pointer]:
+          - generic [ref=e107]: ✦
+          - generic [ref=e108]: 技能
+        - button "◈ 档案" [ref=e109] [cursor=pointer]:
+          - generic [ref=e110]: ◈
+          - generic [ref=e111]: 档案
+        - button "♛ 称号" [ref=e112] [cursor=pointer]:
+          - generic [ref=e113]: ♛
+          - generic [ref=e114]: 称号
+        - button "⚔ PK" [ref=e115] [cursor=pointer]:
+          - generic [ref=e116]: ⚔
+          - generic [ref=e117]: PK
+        - button "☰ 排行" [ref=e118] [cursor=pointer]:
+          - generic [ref=e119]: ☰
+          - generic [ref=e120]: 排行
+        - button "★ 放送" [ref=e121] [cursor=pointer]:
+          - generic [ref=e122]: ★
+          - generic [ref=e123]: 放送
+        - button "⚙ 设置" [ref=e125] [cursor=pointer]:
+          - generic [ref=e126]: ⚙
+          - generic [ref=e127]: 设置
+        - button "💀 冥界" [ref=e129] [cursor=pointer]:
+          - generic [ref=e130]: 💀
+          - generic [ref=e131]: 冥界
+        - button "📋 更新" [ref=e132] [cursor=pointer]:
+          - generic [ref=e133]: 📋
+          - generic [ref=e134]: 更新
+        - button "▸ 主线" [ref=e136] [cursor=pointer]:
+          - generic [ref=e137]: ▸
+          - generic [ref=e138]: 主线
+        - button "✉ 反馈" [ref=e140] [cursor=pointer]:
+          - generic [ref=e141]: ✉
+          - generic [ref=e142]: 反馈
+    - generic [ref=e143]:
+      - button "好友" [ref=e144] [cursor=pointer]
+      - button "申请" [ref=e145] [cursor=pointer]
+      - button "聊天" [ref=e146] [cursor=pointer]
+      - button "赠礼" [ref=e147] [cursor=pointer]
+      - button "切磋" [ref=e148] [cursor=pointer]
+      - button "组队" [disabled] [ref=e149]
+      - button "最近互动" [ref=e150] [cursor=pointer]

@@ -1,0 +1,550 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - heading "灵界" [level=1] [ref=e5] [cursor=pointer]
+        - generic [ref=e6]: 大乘期中期
+        - generic "点击查看环境加成" [ref=e7] [cursor=pointer]: 灵历437年 夏 7月6日 未时(昼)
+      - generic [ref=e9] [cursor=pointer]: 人民
+    - generic [ref=e11]:
+      - text: "QQ内测群: 1091701734 -- 欢迎加群反馈建议与BUG"
+      - button "x" [ref=e12] [cursor=pointer]
+    - generic [ref=e13]:
+      - complementary [ref=e14]:
+        - generic [ref=e15]:
+          - heading "角色信息" [level=3] [ref=e16]
+          - generic [ref=e17]:
+            - generic [ref=e18]: 姓名
+            - generic [ref=e19] [cursor=pointer]:
+              - generic [ref=e377]: 人民
+              - generic "性别已登记，可消耗仙缘重塑" [ref=e378]: 不拘
+              - generic "已在护道设置中开启接单" [ref=e379]: 护道接单中
+          - generic [ref=e20]:
+            - generic [ref=e21]: 境界
+            - generic [ref=e22]: 大乘期中期 ⓘ
+          - generic [ref=e23]:
+            - generic [ref=e24]: 修为
+            - generic "点击查看修为加成详情" [ref=e25] [cursor=pointer]: 71,842,182 / 200,000,000
+          - generic [ref=e27]: 35.9%
+          - generic [ref=e380]: 突破天材 ⓘ
+        - generic [ref=e28]:
+          - heading "属性" [level=3] [ref=e29]
+          - generic [ref=e30]:
+            - generic [ref=e31]: 生命
+            - generic "504522 / 504522" [ref=e338] [cursor=pointer]: 50.5万 / 50.5万 ⓘ
+          - generic [ref=e33]:
+            - generic [ref=e34]: 灵力
+            - generic "78240 / 78240" [ref=e171] [cursor=pointer]: 7.82万 / 7.82万 ⓘ
+          - generic [ref=e36]:
+            - generic [ref=e37]: 攻击
+            - generic "31611" [ref=e172]: 31,611 ⓘ
+          - generic [ref=e39]:
+            - generic [ref=e40]: 防御
+            - generic "16631" [ref=e173]: 16,631 ⓘ
+          - generic [ref=e42]:
+            - generic [ref=e43]: 战力
+            - generic "1,146,437，点击查看战力口径" [ref=e174] [cursor=pointer]: 115万 ⓘ
+          - generic [ref=e45]:
+            - generic [ref=e46]: 神识
+            - generic "点击操作与详情" [ref=e47] [cursor=pointer]: 11,194/11,258 ⓘ
+          - generic [ref=e48]:
+            - generic [ref=e49]: 气运
+            - generic "点击操作与详情" [ref=e50] [cursor=pointer]: 4 ⓘ
+          - generic [ref=e175]:
+            - generic [ref=e176]: 灵兽
+            - generic [ref=e177] [cursor=pointer]: 春秋蝉 100% 灵100%
+          - generic [ref=e51]:
+            - generic [ref=e52]: 灵根
+            - generic "点击操作与详情" [ref=e53] [cursor=pointer]: 天灵根 ⓘ
+          - generic [ref=e54]:
+            - generic [ref=e55]: 寿元
+            - generic [ref=e56]: 56岁 / 4489岁
+          - generic [ref=e57]:
+            - generic [ref=e58]: 仙缘
+            - generic "点击查看仙缘详情" [ref=e59] [cursor=pointer]: 0 ⓘ
+        - generic [ref=e60]:
+          - heading "法相穿搭 一键换装" [level=3] [ref=e61]:
+            - generic [ref=e62]: 法相穿搭
+            - button "一键换装" [ref=e64] [cursor=pointer]:
+              - img [ref=e65]
+              - generic [ref=e67]: 换装
+          - generic [ref=e68]:
+            - generic [ref=e69] [cursor=pointer]:
+              - generic [ref=e381]: 主手
+              - generic [ref=e383]: 传说轮回判官笔
+            - generic [ref=e71] [cursor=pointer]:
+              - generic [ref=e384]: 服饰
+              - generic [ref=e386]: 传说天妖万重仙躯甲
+            - generic [ref=e73] [cursor=pointer]:
+              - generic [ref=e387]: 法器
+              - generic [ref=e389]: 传说道心珠
+            - generic [ref=e75] [cursor=pointer]:
+              - generic [ref=e390]: 须弥戒
+              - generic [ref=e392]: 传说储物戒
+            - generic [ref=e77] [cursor=pointer]:
+              - generic [ref=e393]: 炼丹炉
+              - generic [ref=e395]: 史诗天道熔炉
+        - generic [ref=e79]:
+          - heading "灵石" [level=3] [ref=e80]:
+            - generic [ref=e81]: 灵石
+          - generic [ref=e82]:
+            - generic [ref=e83]: 持有
+            - generic "5,001,548" [ref=e193]
+          - button "玄筹阁" [ref=e86] [cursor=pointer]:
+            - img [ref=e87]
+            - generic [ref=e89]: 玄筹阁
+        - generic [ref=e90]:
+          - heading "其他" [level=3] [ref=e91]
+          - generic [ref=e194]:
+            - generic [ref=e195]: 道号
+            - generic "点此立号或更号" [ref=e196] [cursor=pointer]: 虚假尊者
+          - generic [ref=e92]:
+            - generic [ref=e93]: 功法
+            - generic [ref=e94]: 大罗金仙真箓
+          - generic [ref=e95]:
+            - generic [ref=e96]: 位置
+            - generic [ref=e97]: 飞升劫台
+          - generic [ref=e98]:
+            - generic [ref=e99]: 今日求助
+            - generic [ref=e100]: 0/30
+          - generic [ref=e101]:
+            - generic [ref=e102]: 今日协助
+            - generic [ref=e103]: 0/30
+        - generic [ref=e104]:
+          - text: 服务器由
+          - link "极玩数据" [ref=e105] [cursor=pointer]:
+            - /url: https://idc.jiwanvip.com/
+          - text: 提供
+        - generic [ref=e106]:
+          - link [ref=e107] [cursor=pointer]:
+            - /url: https://hk.688hk.net/s/nNYeUys3
+            - img [ref=e108]
+          - img "微信加群" [ref=e109]
+      - main [ref=e110]:
+        - generic [ref=e111]:
+          - generic [ref=e113]:
+            - paragraph [ref=e396]: "[支出] 自动补灵: 929 灵石 (余额5649608)"
+            - paragraph [ref=e397]: 自动补灵：消耗 929 颗灵石，恢复灵力 +11612
+            - paragraph [ref=e398]: "[收入] 击败渊界吞噬者: 9790 灵石 (余额5659398)"
+            - paragraph [ref=e399]: 在飞升劫台击败渊界吞噬者，吸收到修为107003，满载而归。
+            - paragraph [ref=e400]: "└ 修为加成: 基础 41215 × (1 + 宗门15% + 镇派28% + 灵根16% + 虚空淬体80% + 道韵20%)"
+            - paragraph [ref=e401]: 击败渊界吞噬者获得 混沌晶核碎片 x9
+            - paragraph [ref=e402]: "[支出] 自动补灵: 1165 灵石 (余额5658233)"
+            - paragraph [ref=e403]: 自动补灵：消耗 1165 颗灵石，恢复灵力 +14562
+            - paragraph [ref=e404]: "[收入] 击败渊界吞噬者: 13473 灵石 (余额5671706)"
+            - paragraph [ref=e405]: 在飞升劫台击败渊界吞噬者，吸收到修为71359，满载而归。
+            - paragraph [ref=e406]: "└ 修为加成: 基础 27988 × (1 + 宗门15% + 镇派28% + 灵根11% + 虚空淬体80% + 道韵20%)"
+            - paragraph [ref=e407]: 击败渊界吞噬者获得 高阶妖核碎片 x8
+            - paragraph [ref=e408]: "[支出] 自动补灵: 1754 灵石 (余额5669952)"
+            - paragraph [ref=e409]: 自动补灵：消耗 1754 颗灵石，恢复灵力 +21925
+            - paragraph [ref=e410]: 自动运功：消耗灵力 9895，恢复气血 +19790
+            - paragraph [ref=e411]: "[支出] 自动补灵: 792 灵石 (余额5669160)"
+            - paragraph [ref=e412]: 自动补灵：消耗 792 颗灵石，恢复灵力 +9900
+            - paragraph [ref=e413]: "[收入] 探索采集灵石: 7438 灵石 (余额5676598)"
+            - paragraph [ref=e414]: "探索灵石事件: 在飞升劫台炼化太古遗迹，获得 7438 灵石。"
+            - paragraph [ref=e415]: 你盘膝而坐，缓缓闭上双眼，灵气开始涌入体内...
+            - paragraph [ref=e416]: "[支出] 一键修复装备 x3: 675050 灵石 (余额5001548)"
+            - paragraph [ref=e417]: 一键修复装备 3 件，消耗 675050 灵石，全部破损清零。
+            - paragraph [ref=e418]: 徒弟 古月带派(#1412) 反哺修为（批量探索感悟）：+21825。
+            - paragraph [ref=e419]: 徒弟 古月带派(#1412) 反哺修为（击败荒漠沙虫）：+29030。
+            - paragraph [ref=e420]: 徒弟 古月带派(#1412) 反哺修为（击败渊野狂兽）：+46745。
+            - paragraph [ref=e421]: 徒弟 古月带派(#1412) 反哺修为（批量探索宝地）：+20016。
+            - paragraph [ref=e422]: 徒弟 古月带派(#1412) 反哺修为（批量探索宝地）：+11640。
+            - paragraph [ref=e423]: 徒弟 古月带派(#1412) 反哺修为（击败天妖星蛛）：+52313。
+            - paragraph [ref=e424]: 徒弟 古月带派(#1412) 反哺修为（击败坠渊散修）：+51483。
+            - paragraph [ref=e425]: 徒弟 古月带派(#1412) 反哺修为（击败渊海巨魔）：+94121。
+            - paragraph [ref=e426]: 徒弟 古月带派(#1412) 反哺修为（击败坠渊散修）：+43889。
+            - paragraph [ref=e427]: 徒弟 古月带派(#1412) 反哺修为（击败天妖星蛛）：+9624。
+            - paragraph [ref=e428]: 徒弟 古月带派(#1412) 反哺修为（击败天妖星蛛）：+54154。
+            - paragraph [ref=e429]: 徒弟 古月带派(#1412) 反哺修为（击败渊野狂兽）：+47426。
+            - paragraph [ref=e430]: 徒弟 古月带派(#1412) 反哺修为（击败天妖星蛛）：+45997。
+            - paragraph [ref=e431]: 徒弟 古月带派(#1412) 反哺修为（击败坠渊散修）：+45541。
+            - paragraph [ref=e432]: 徒弟 古月带派(#1412) 反哺修为（批量探索感悟）：+27283。
+            - paragraph [ref=e433]: 徒弟 古月带派(#1412) 反哺修为（批量探索宝地）：+30984。
+            - paragraph [ref=e434]: 徒弟 古月带派(#1412) 反哺修为（击败天妖星蛛）：+19914。
+            - paragraph [ref=e435]: 徒弟 古月带派(#1412) 反哺修为（击败天妖星蛛）：+11410。
+            - paragraph [ref=e436]: "新的一天到来，天道流转，你今日的初始气运刷新为: 4"
+            - paragraph [ref=e437]: 【洞府·同心阵】你与sr同修 8时0分，重叠期间修为与恢复提升 22%。
+            - paragraph [ref=e438]: 【洞府·修炼室】闭关修为提升 16%。
+            - paragraph [ref=e439]: 你缓缓收功，结束了本次修炼。
+            - paragraph [ref=e440]: "修炼时长: 8时0分"
+            - paragraph [ref=e441]: "获得修为: 952103"
+            - paragraph [ref=e442]: "恢复神识: 11242"
+            - paragraph [ref=e443]: "恢复气血: 44407"
+            - paragraph [ref=e444]: "探索修为事件: 在飞升劫台感悟大道，获得 15517 修为。"
+            - paragraph [ref=e445]: "└ 修为加成: 基础 9943 × (1 + 时令10% + 宗门15% + 灵根11% + 道韵20%)"
+          - generic [ref=e115]:
+            - button "地图" [ref=e446] [cursor=pointer]
+            - button "秘境" [ref=e447] [cursor=pointer]
+            - button "排行" [active] [ref=e448] [cursor=pointer]
+            - button "历程" [ref=e449] [cursor=pointer]
+            - button "灵渊" [ref=e450] [cursor=pointer]: 灵渊
+            - button "聊天" [ref=e452] [cursor=pointer]
+            - button "坊市" [ref=e453] [cursor=pointer]
+            - button "拍卖" [ref=e454] [cursor=pointer]
+            - button "商铺" [ref=e455] [cursor=pointer]
+            - button "传功" [ref=e456] [cursor=pointer]
+            - button "宗门" [ref=e457] [cursor=pointer]
+            - button "武道" [ref=e458] [cursor=pointer]
+            - button "试炼" [ref=e459] [cursor=pointer]
+            - button "飞鸿" [ref=e460] [cursor=pointer]
+            - button "图鉴" [ref=e461] [cursor=pointer]
+            - button "说明" [ref=e462] [cursor=pointer]
+            - button "反馈" [ref=e463] [cursor=pointer]
+            - button "公告" [ref=e464] [cursor=pointer]
+            - button "打赏" [ref=e465] [cursor=pointer]
+            - button "设置" [ref=e466] [cursor=pointer]
+            - button "自定义" [ref=e467] [cursor=pointer]
+            - button "退出" [ref=e468] [cursor=pointer]
+        - generic [ref=e137]:
+          - generic [ref=e138]:
+            - button "冥想修炼" [ref=e139] [cursor=pointer]
+            - button "探索(-64神识)" [ref=e269] [cursor=pointer]:
+              - generic [ref=e469]: 探索(-64神识)
+            - generic "批量探索：一次事件按 N 次结算；不受招妖/避妖丹药加成；妖兽只打一场且不能合击/护道；商人/道友只消耗 1 次并退还剩余神识" [ref=e142]:
+              - button "×1" [ref=e143] [cursor=pointer]
+            - generic "开启后将触发AI奇遇链(与倍数互斥)" [ref=e144] [cursor=pointer]:
+              - checkbox "奇遇" [ref=e145]
+              - generic [ref=e146]: 奇遇
+            - generic "自动连续探索，遭遇妖兽/云游商人/奇遇/神识不足时自动停止" [ref=e147] [cursor=pointer]:
+              - checkbox "自动" [ref=e148]
+              - generic [ref=e149]: 自动
+            - generic "自动战斗设置" [ref=e150] [cursor=pointer]: ⓘ
+          - generic [ref=e152]:
+            - button "储物" [ref=e153] [cursor=pointer]
+            - button "炼造" [ref=e154] [cursor=pointer]
+            - button "洞府" [ref=e155] [cursor=pointer]
+            - button "功法" [ref=e156] [cursor=pointer]
+            - button "道友" [ref=e157] [cursor=pointer]
+            - button "师徒 1" [ref=e332] [cursor=pointer]:
+              - text: 师徒
+              - generic [ref=e333]: "1"
+            - button "接引" [ref=e159] [cursor=pointer]
+            - button "对战" [ref=e160] [cursor=pointer]
+            - button "灵兽" [ref=e161] [cursor=pointer]
+            - button "护道" [ref=e162] [cursor=pointer]
+            - button "称号" [ref=e163] [cursor=pointer]
+      - complementary [ref=e470]:
+        - generic [ref=e472]:
+          - heading "境界榜 x" [level=3] [ref=e473]:
+            - generic [ref=e474]: 境界榜
+            - button "x" [ref=e475] [cursor=pointer]
+          - paragraph [ref=e476]: 修为登顶，问鼎苍穹
+          - paragraph [ref=e477]: "我的排名: 第88名 / 共1775人"
+          - generic [ref=e478]:
+            - button "境界" [ref=e479] [cursor=pointer]
+            - button "灵石" [ref=e480] [cursor=pointer]
+            - button "战力" [ref=e481] [cursor=pointer]
+            - button "击杀" [ref=e482] [cursor=pointer]
+            - button "陨落" [ref=e483] [cursor=pointer]
+            - button "炼丹" [ref=e484] [cursor=pointer]
+            - button "秘境" [ref=e485] [cursor=pointer]
+            - button "人气" [ref=e486] [cursor=pointer]
+            - button "仙缘" [ref=e487] [cursor=pointer]
+            - button "凶煞" [ref=e488] [cursor=pointer]
+          - generic [ref=e489]:
+            - generic [ref=e490]:
+              - generic [ref=e491]: "1"
+              - link "长生大帝" [ref=e493] [cursor=pointer]:
+                - /url: javascript:void(0)
+              - generic [ref=e494]: 真仙境后期
+              - generic [ref=e495]: 藏锋隐世 · 不可窥探
+            - generic [ref=e496]:
+              - generic [ref=e497]: "2"
+              - generic [ref=e498]:
+                - generic [ref=e499]: 灭法上真
+                - link "蜉蝣一梦" [ref=e500] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e501]: 不拘
+                - generic [ref=e502]: 试炼之巅
+                - generic [ref=e503]: 天灵根
+              - generic [ref=e504]: 真仙境后期
+              - generic [ref=e505]: 修为 4.6亿 | 70岁/85413
+            - generic [ref=e506]:
+              - generic [ref=e507]: "3"
+              - generic [ref=e508]:
+                - generic [ref=e509]: 开心上真
+                - link "终是虚妄" [ref=e510] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e511]: 男修
+                - generic [ref=e512]: 圣灵根
+              - generic [ref=e513]: 真仙境中期
+              - generic [ref=e514]: 修为 17.4亿 | 76岁/100000
+            - generic [ref=e515]:
+              - generic [ref=e516]: "4"
+              - generic [ref=e517]:
+                - generic [ref=e518]: 小妖上真
+                - link "隔壁小妖" [ref=e519] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e520]: 不拘
+                - generic [ref=e521]: 武道亚军
+                - generic [ref=e522]: 天灵根
+              - generic [ref=e523]: 真仙境初期
+              - generic [ref=e524]: 修为 5.3亿 | 83岁/96076
+            - generic [ref=e525]:
+              - generic [ref=e526]: "5"
+              - generic [ref=e527]:
+                - generic [ref=e528]: 邪键上真
+                - link "吸人无数-血傀" [ref=e529] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e530]: 不拘
+                - generic [ref=e531]: 逆天破局者
+                - generic [ref=e532]: 圣灵根
+              - generic [ref=e533]: 真仙境初期
+              - generic [ref=e534]: 修为 4.7亿 | 82岁/95256
+            - generic [ref=e535]:
+              - generic [ref=e536]: "6"
+              - link "提意见≠我会听" [ref=e538] [cursor=pointer]:
+                - /url: javascript:void(0)
+              - generic [ref=e539]: 渡劫期十劫仙人
+              - generic [ref=e540]: 藏锋隐世 · 不可窥探
+            - generic [ref=e541]:
+              - generic [ref=e542]: "7"
+              - generic [ref=e543]:
+                - generic [ref=e544]: 免费仙
+                - link "年愁今夜未到乡，卧思可哀笑南梁。" [ref=e545] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e546]: 不拘
+                - generic [ref=e547]: 代渡之人
+                - generic [ref=e548]: 金灵根
+              - generic [ref=e549]: 渡劫期九劫仙人
+              - generic [ref=e550]: 修为 22.3亿 | 87岁/8661
+            - generic [ref=e551]:
+              - generic [ref=e552]: "8"
+              - generic [ref=e553]:
+                - generic [ref=e554]: 灵蝶仙
+                - link "羽柔子" [ref=e555] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e556]: 女修
+                - generic [ref=e557]: 武道魁首
+                - generic [ref=e558]: 金灵根
+              - generic [ref=e559]: 渡劫期九劫仙人
+              - generic [ref=e560]: 修为 16.9亿 | 65岁/7373
+            - generic [ref=e561]:
+              - generic [ref=e562]: "9"
+              - generic [ref=e563]:
+                - generic [ref=e564]: 灵石仙
+                - link "前路又断" [ref=e565] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e566]: 不拘
+                - generic [ref=e567]: 问道者
+                - generic [ref=e568]: 圣灵根
+              - generic [ref=e569]: 渡劫期九劫仙人
+              - generic [ref=e570]: 修为 13.8亿 | 84岁/7694
+            - generic [ref=e571]:
+              - generic [ref=e572]: "10"
+              - generic [ref=e573]:
+                - generic [ref=e574]: 神龙仙
+                - link "空我" [ref=e575] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e576]: 不拘
+                - generic [ref=e577]: 倒悬者
+                - generic [ref=e578]: 天灵根
+              - generic [ref=e579]: 渡劫期九劫仙人
+              - generic [ref=e580]: 修为 9.4亿 | 84岁/6806
+            - generic [ref=e581]:
+              - generic [ref=e582]: "11"
+              - generic [ref=e583]:
+                - generic [ref=e584]: 万法仙
+                - link "卷心菜不内卷" [ref=e585] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e586]: 不拘
+                - generic [ref=e587]: 圣灵根
+              - generic [ref=e588]: 渡劫期九劫仙人
+              - generic [ref=e589]: 修为 5.8亿 | 81岁/7306
+            - generic [ref=e590]:
+              - generic [ref=e591]: "12"
+              - generic [ref=e592]:
+                - generic [ref=e593]: 仙缘仙
+                - link "睡" [ref=e594] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e595]: 不拘
+                - generic [ref=e596]: 武道亚军
+                - generic [ref=e597]: 圣灵根
+              - generic [ref=e598]: 渡劫期八劫仙人
+              - generic [ref=e599]: 修为 23.5亿 | 76岁/8920
+            - generic [ref=e600]:
+              - generic [ref=e601]: "13"
+              - generic [ref=e602]:
+                - link "御极仙" [ref=e603] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e604]: 不拘
+                - generic [ref=e605]: 倒悬者
+                - generic [ref=e606]: 圣灵根
+              - generic [ref=e607]: 渡劫期八劫仙人
+              - generic [ref=e608]: 修为 14.7亿 | 69岁/8625
+            - generic [ref=e609]:
+              - generic [ref=e610]: "14"
+              - link "韩铁" [ref=e612] [cursor=pointer]:
+                - /url: javascript:void(0)
+              - generic [ref=e613]: 渡劫期八劫仙人
+              - generic [ref=e614]: 藏锋隐世 · 不可窥探
+            - generic [ref=e615]:
+              - generic [ref=e616]: "15"
+              - generic [ref=e617]:
+                - generic [ref=e618]: 大爱仙
+                - link "A.shadow" [ref=e619] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e620]: 不拘
+                - generic [ref=e621]: 金灵根
+              - generic [ref=e622]: 渡劫期八劫仙人
+              - generic [ref=e623]: 修为 9.3亿 | 76岁/6154
+            - generic [ref=e624]:
+              - generic [ref=e625]: "16"
+              - generic [ref=e626]:
+                - generic [ref=e627]: 害怕仙
+                - link "邓邓子" [ref=e628] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e629]: 不拘
+                - generic [ref=e630]: 天灵根
+              - generic [ref=e631]: 渡劫期七劫仙人
+              - generic [ref=e632]: 修为 20.0亿 | 84岁/7066
+            - generic [ref=e633]:
+              - generic [ref=e634]: "17"
+              - generic [ref=e635]:
+                - generic [ref=e636]: 神人仙
+                - link "你和你的ai一样狗屎" [ref=e637] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e638]: 男修
+                - generic [ref=e639]: 倒悬者
+                - generic [ref=e640]: 圣灵根
+              - generic [ref=e641]: 渡劫期七劫仙人
+              - generic [ref=e642]: 修为 19.8亿 | 76岁/8928
+            - generic [ref=e643]:
+              - generic [ref=e644]: "18"
+              - link "无心道人" [ref=e646] [cursor=pointer]:
+                - /url: javascript:void(0)
+              - generic [ref=e647]: 渡劫期七劫仙人
+              - generic [ref=e648]: 藏锋隐世 · 不可窥探
+            - generic [ref=e649]:
+              - generic [ref=e650]: "19"
+              - generic [ref=e651]:
+                - generic [ref=e652]: 韩立仙
+                - link "韩丶立" [ref=e653] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e654]: 不拘
+                - generic [ref=e655]: 倒悬者
+                - generic [ref=e656]: 圣灵根
+              - generic [ref=e657]: 渡劫期七劫仙人
+              - generic [ref=e658]: 修为 14.1亿 | 83岁/7777
+            - generic [ref=e659]:
+              - generic [ref=e660]: "20"
+              - link "筱谪" [ref=e662] [cursor=pointer]:
+                - /url: javascript:void(0)
+              - generic [ref=e663]: 渡劫期七劫仙人
+              - generic [ref=e664]: 藏锋隐世 · 不可窥探
+            - generic [ref=e665]:
+              - generic [ref=e666]: "21"
+              - generic [ref=e667]:
+                - generic [ref=e668]: 虚舟仙
+                - link "JO仙人" [ref=e669] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e670]: 男修
+                - generic [ref=e671]: 问道者
+                - generic [ref=e672]: 土灵根
+              - generic [ref=e673]: 渡劫期七劫仙人
+              - generic [ref=e674]: 修为 11.0亿 | 74岁/7178
+            - generic [ref=e675]:
+              - generic [ref=e676]: "22"
+              - generic [ref=e677]:
+                - link "青枝仙" [ref=e678] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e679]: 男修
+                - generic [ref=e680]: 倒悬者
+                - generic [ref=e681]: 天灵根
+              - generic [ref=e682]: 渡劫期七劫仙人
+              - generic [ref=e683]: 修为 10.4亿 | 79岁/8025
+            - generic [ref=e684]:
+              - generic [ref=e685]: "23"
+              - generic [ref=e686]:
+                - link "曼巴仙" [ref=e687] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e688]: 男修
+                - generic [ref=e689]: 接引仙人
+                - generic [ref=e690]: 圣灵根
+              - generic [ref=e691]: 渡劫期七劫仙人
+              - generic [ref=e692]: 修为 7.9亿 | 58岁/9067
+            - generic [ref=e693]:
+              - generic [ref=e694]: "24"
+              - generic [ref=e695]:
+                - generic [ref=e696]: 喵喵仙
+                - link "青喵" [ref=e697] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e698]: 不拘
+                - generic [ref=e699]: 倒悬者
+                - generic [ref=e700]: 圣灵根
+              - generic [ref=e701]: 渡劫期七劫仙人
+              - generic [ref=e702]: 修为 5.5亿 | 60岁/7570
+            - generic [ref=e703]:
+              - generic [ref=e704]: "25"
+              - generic [ref=e705]:
+                - generic [ref=e706]: 青玄仙
+                - link "澜仙" [ref=e707] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e708]: 不拘
+                - generic [ref=e709]: 倒悬者
+                - generic [ref=e710]: 天灵根
+              - generic [ref=e711]: 渡劫期七劫仙人
+              - generic [ref=e712]: 修为 3.1亿 | 83岁/8751
+            - generic [ref=e713]:
+              - generic [ref=e714]: "26"
+              - generic [ref=e715]:
+                - generic [ref=e716]: 牛牛仙
+                - link "游戏开发者首先必须玩自己的游戏" [ref=e717] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e718]: 不拘
+                - generic [ref=e719]: 圣灵根
+              - generic [ref=e720]: 渡劫期七劫仙人
+              - generic [ref=e721]: 修为 6931.9万 | 68岁/7546
+            - generic [ref=e722]:
+              - generic [ref=e723]: "27"
+              - generic [ref=e724]:
+                - generic [ref=e725]: 鹤云仙
+                - link "云兮" [ref=e726] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e727]: 不拘
+                - generic [ref=e728]: 倒悬者
+                - generic [ref=e729]: 天灵根
+              - generic [ref=e730]: 渡劫期六劫仙人
+              - generic [ref=e731]: 修为 17.0亿 | 84岁/10000
+            - generic [ref=e732]:
+              - generic [ref=e733]: "28"
+              - generic [ref=e734]:
+                - generic [ref=e735]: 牛大仙
+                - link "酒剑仙" [ref=e736] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e737]: 男修
+                - generic [ref=e738]: 天灵根
+              - generic [ref=e739]: 渡劫期六劫仙人
+              - generic [ref=e740]: 修为 9.0亿 | 79岁/6924
+            - generic [ref=e741]:
+              - generic [ref=e742]: "29"
+              - generic [ref=e743]:
+                - generic [ref=e744]: 炼天仙
+                - link "笔迹" [ref=e745] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e746]: 男修
+                - generic [ref=e747]: 接引仙人
+                - generic [ref=e748]: 天灵根
+              - generic [ref=e749]: 渡劫期六劫仙人
+              - generic [ref=e750]: 修为 3.2亿 | 56岁/9729
+            - generic [ref=e751]:
+              - generic [ref=e752]: "30"
+              - generic [ref=e753]:
+                - generic [ref=e754]: 吹干仙
+                - link "秦文枭" [ref=e755] [cursor=pointer]:
+                  - /url: javascript:void(0)
+                - generic [ref=e756]: 不拘
+                - generic [ref=e757]: 倒悬者
+                - generic [ref=e758]: 天灵根
+              - generic [ref=e759]: 渡劫期五劫仙人
+              - generic [ref=e760]: 修为 13.6亿 | 57岁/7862
+          - generic [ref=e761]:
+            - button "上一页" [disabled] [ref=e762]
+            - generic [ref=e763]: 1 / 60
+            - button "下一页" [ref=e764] [cursor=pointer]
+            - generic [ref=e765]:
+              - spinbutton [ref=e766]: "1"
+              - button "跳转" [ref=e767] [cursor=pointer]
+        - text: ▼ 暂无消息 + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + +
+  - text: +

@@ -262,6 +262,98 @@ function runMigrations(database) {
   database.run('CREATE INDEX IF NOT EXISTS idx_choices_chapter_type ON choices(chapter_key, choice_type)');
   database.run('CREATE INDEX IF NOT EXISTS idx_exploration_events_stage_type ON exploration_events(stage_key, event_type)');
   database.run('CREATE INDEX IF NOT EXISTS idx_chapters_main_order ON chapters(main_chapter_key, order_index)');
+
+  // Phase 2: world_state singleton
+  database.run(`
+    CREATE TABLE IF NOT EXISTS world_state (
+      id INTEGER PRIMARY KEY CHECK(id = 1),
+      world_line_shift REAL NOT NULL DEFAULT 0,
+      ripple_decay_rate REAL NOT NULL DEFAULT 0.01,
+      last_decay_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+      global_event_triggered_at_10 INTEGER NOT NULL DEFAULT 0,
+      global_event_triggered_at_25 INTEGER NOT NULL DEFAULT 0,
+      global_event_triggered_at_50 INTEGER NOT NULL DEFAULT 0,
+      global_event_triggered_at_100 INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+    )
+  `);
+  var wsRow = database.prepare('SELECT id FROM world_state WHERE id = 1').get();
+  if (!wsRow) {
+    database.prepare('INSERT INTO world_state (id) VALUES (1)').run();
+  }
+
+  if (!columnExists('world_state', 'anomaly_location')) {
+    database.run("ALTER TABLE world_state ADD COLUMN anomaly_location TEXT DEFAULT NULL");
+  }
+  if (!columnExists('world_state', 'anomaly_intensity')) {
+    database.run("ALTER TABLE world_state ADD COLUMN anomaly_intensity INTEGER NOT NULL DEFAULT 0");
+  }
+  if (!columnExists('world_state', 'dominant_constellation')) {
+    database.run("ALTER TABLE world_state ADD COLUMN dominant_constellation TEXT DEFAULT NULL");
+  }
+
+  // Phase 6: prestige columns
+  if (!columnExists('players', 'prestige_level')) {
+    database.run('ALTER TABLE players ADD COLUMN prestige_level INTEGER NOT NULL DEFAULT 0');
+  }
+  if (!columnExists('players', 'prestige_bonus_json')) {
+    database.run("ALTER TABLE players ADD COLUMN prestige_bonus_json TEXT NOT NULL DEFAULT '{}'");
+  }
+
+  // Phase 3: Initialize constellation factions
+  var facCount = database.prepare('SELECT COUNT(*) as c FROM constellation_factions').get().c;
+  if (facCount === 0) {
+    var factions = [
+      { key: 'golden_sun', name: '金乌神教' },
+      { key: 'black_flame_dragon', name: '黑焰龙渊' },
+      { key: 'demon_judge_of_fire', name: '火之审判庭' },
+      { key: 'abyss_eye', name: '深渊凝视者' },
+      { key: 'wheel_of_fate', name: '命运编织会' },
+      { key: 'queen_of_underworld', name: '冥界女王府' },
+      { key: 'maritime_war_god', name: '海上战神盟' },
+      { key: 'star_stream_watcher', name: '星流守望塔' }
+    ];
+    var insertFaction = database.prepare(
+      'INSERT INTO constellation_factions (constellation_key, faction_name) VALUES (?, ?)'
+    );
+    for (var fi = 0; fi < factions.length; fi++) {
+      insertFaction.run(factions[fi].key, factions[fi].name);
+    }
+    console.log('Phase 3: 8 constellation factions initialized.');
+  }
+
+  // Phase 1: Currency merge migration (scenarioProof→story_fragments, kingToken→abyssMark, delete finalPage)
+  try {
+    var players = database.prepare('SELECT id, story_fragments, breakthrough_resources_json FROM players').all();
+    for (var pi = 0; pi < players.length; pi++) {
+      var p = players[pi];
+      var res = JSON.parse(p.breakthrough_resources_json || '{}');
+      var newFragments = (p.story_fragments || 0);
+      var changed = false;
+      if (res.scenarioProof) {
+        newFragments += res.scenarioProof * 10;
+        delete res.scenarioProof;
+        changed = true;
+      }
+      if (res.kingToken) {
+        res.abyssMark = (res.abyssMark || 0) + res.kingToken;
+        delete res.kingToken;
+        changed = true;
+      }
+      if (res.finalPage !== undefined) {
+        delete res.finalPage;
+        changed = true;
+      }
+      if (changed) {
+        database.prepare('UPDATE players SET story_fragments = ?, breakthrough_resources_json = ? WHERE id = ?')
+          .run(newFragments, JSON.stringify(res), p.id);
+      }
+    }
+    console.log('Phase 1 currency migration complete.');
+  } catch (e) {
+    console.log('Phase 1 migration skipped:', e.message);
+  }
 }
 
 module.exports = { initDb, getDb, saveDb, closeDb, beginTransaction, commitTransaction, rollbackTransaction };

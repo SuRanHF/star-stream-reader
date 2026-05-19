@@ -1,0 +1,23 @@
+- generic [ref=e1]:
+  - generic [ref=e2]: 【测试服 v1.0.7】当前版本用于群友试玩和反馈，数据可能在更新时重置。
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e6]:
+        - heading "全知读者视角" [level=1] [ref=e7]
+        - paragraph [ref=e8]: Omniscient Reader's Viewpoint
+      - generic [ref=e11]: ◆
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - generic [ref=e28]: 用户名
+          - textbox "请输入用户名" [ref=e29]
+        - generic [ref=e30]:
+          - generic [ref=e31]: 邮箱
+          - textbox "请输入邮箱" [ref=e32]
+        - generic [ref=e33]:
+          - generic [ref=e34]: 密码
+          - textbox "至少6位密码" [ref=e35]
+        - button "注 册" [ref=e36] [cursor=pointer]
+      - generic [ref=e21]:
+        - text: 已有账号？
+        - button "立即登录" [active] [ref=e37] [cursor=pointer]
+    - paragraph [ref=e24]: 星流观测站 · 所有故事皆为虚构

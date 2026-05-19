@@ -14,7 +14,7 @@ const LABELS = {
 
 const UI = {
   // ===== Left Panel (精简版) =====
-  renderLeftPanel(player) {
+  renderLeftPanel(player, globalWLS) {
     if (!player) return;
     const s = player.stats || {};
 
@@ -78,7 +78,7 @@ const UI = {
     const topStatus = document.getElementById('topStatus');
     if (topStatus) {
       const stageName = player.stage_name || '初入星流';
-      const wls = s.worldLineShift || 0;
+      const wls = globalWLS || 0;
       const chVal = s.channelHeat || 0;
       const heatLabel = chVal >= 70 ? '高热度' : chVal >= 40 ? '升温中' : '观测中';
       const now = new Date();
@@ -120,6 +120,32 @@ const UI = {
     UI.setText('swHamLv', 'Lv.' + (s.level || 1));
 
     Storage.cacheState(player);
+  },
+
+  // Update the rankNextInfo in left panel with live progress
+  setRankProgressInfo(rankData) {
+    const el = document.getElementById('rankNextInfo');
+    if (!el) return;
+    if (!rankData) {
+      el.textContent = '晋升进度：查看升阶面板';
+      el.style.color = 'var(--text-dim)';
+      return;
+    }
+    if (rankData.isMaxRank) {
+      el.textContent = '已到达当前最高位阶';
+      el.style.color = 'var(--gold)';
+    } else if (rankData.canRankUp) {
+      el.textContent = '★ 满足晋升条件！点击查看 →';
+      el.style.color = 'var(--green)';
+      el.style.fontWeight = 'bold';
+    } else {
+      const completed = rankData.requirements ? rankData.requirements.filter(r => r.completed).length : 0;
+      const total = rankData.requirements ? rankData.requirements.length : 0;
+      const nextName = rankData.nextRank ? rankData.nextRank.displayName : '下一阶';
+      el.textContent = `距${nextName}: ${completed}/${total} 条件`;
+      el.style.color = completed > 0 ? 'var(--teal)' : 'var(--text-dim)';
+      el.style.fontWeight = 'normal';
+    }
   },
 
   // ===== Log Stream (center) =====
@@ -177,13 +203,29 @@ const UI = {
 
     // Choice type config: label, tag class, event card class
     const choiceConfig = {
-      action:      { label: '行动',   tagClass: 'tag-action',      cardClass: 'event-action' },
+      action:      { label: '调查',   tagClass: 'tag-action',      cardClass: 'event-action' },
       repeatable:  { label: '可重复', tagClass: 'tag-repeatable',  cardClass: 'event-repeatable' },
-      progress:    { label: '剧情',   tagClass: 'tag-progress',    cardClass: 'event-progress' },
+      progress:    { label: '剧情推进', tagClass: 'tag-progress',    cardClass: 'event-progress' },
       decision:    { label: '决策',   tagClass: 'tag-decision',    cardClass: 'event-decision' },
       stage_final: { label: '阶段最终', tagClass: 'tag-stage-final', cardClass: 'event-stage-final' },
       locked:      { label: '锁定',   tagClass: 'tag-locked',      cardClass: 'event-locked' },
       special:     { label: '特殊',   tagClass: 'tag-progress',    cardClass: 'event-special' }
+    };
+
+    // Helper: build effect preview HTML from effects object
+    const buildEffectPreview = (effects) => {
+      if (!effects || Object.keys(effects).length === 0) return '';
+      const parts = [];
+      if (effects.coins) parts.push(`<span class="eff-preview eff-coins">◎ +${effects.coins}</span>`);
+      if (effects.story_fragments) parts.push(`<span class="eff-preview eff-frags">◆ +${effects.story_fragments}</span>`);
+      if (effects.exp) parts.push(`<span class="eff-preview eff-exp">EXP +${effects.exp}</span>`);
+      if (effects.stats) {
+        for (const [k, v] of Object.entries(effects.stats)) {
+          if (v > 0) parts.push(`<span class="eff-preview eff-stat">${UI._labelStat(k)} +${v}</span>`);
+        }
+      }
+      if (effects.equipment) parts.push(`<span class="eff-preview eff-equip">装备: ${effects.equipment}</span>`);
+      return parts.length > 0 ? `<div class="event-effects">${parts.join('')}</div>` : '';
     };
 
     // Render available choices as event cards
@@ -197,14 +239,18 @@ const UI = {
 
         // Card header with tag + title
         let html = `<div class="event-card-header"><span class="choice-tag ${cfg.tagClass}">${cfg.label}</span>`;
-        html += `<span class="event-title">${ch.is_irreversible ? '⚠ ' + ch.text : ch.text}</span></div>`;
+        html += `<span class="event-title">${ch.is_irreversible ? '⚠ ' + ch.text : ch.text}</span>`;
+        html += `<span class="event-arrow">▶</span></div>`;
+
+        // Effect preview
+        html += buildEffectPreview(ch.effects);
 
         // Description if available
         if (ch.description || ch.summary) {
           html += `<div class="event-desc">${ch.description || ch.summary || ''}</div>`;
         }
 
-        // Action button(s)
+        // Action button
         html += '<div class="event-actions">';
         const btnClass = choiceType === 'stage_final' ? 'btn-event-primary' : 'btn-event';
         html += `<button class="${btnClass}" onclick="`;
@@ -270,7 +316,42 @@ const UI = {
     const dailyCount = player.daily_explore_count || 0;
     UI.setText('masExploreCount', `今日探索 ${dailyCount} 次`);
 
+    // Explore button label (shows stamina cost)
+    const exploreBtn = document.getElementById('btnContinueExplore');
+    if (exploreBtn) {
+      const cost = GameClient._lastExploreCost || 5;
+      exploreBtn.textContent = `继续探索(-${cost})`;
+    }
 
+    // Rest button state
+    const campBtn = document.getElementById('btnCamp');
+    if (campBtn && player.is_resting) {
+      campBtn.classList.add('ma-btn-resting');
+      campBtn.textContent = '休息中…';
+    } else if (campBtn) {
+      campBtn.classList.remove('ma-btn-resting');
+      campBtn.textContent = '休息';
+    }
+  },
+
+  // ===== Broadcast Marquee =====
+  _broadcastMessages: [],
+  setBroadcastMarquee(messages) {
+    const bar = document.getElementById('broadcastMarquee');
+    const textEl = document.getElementById('broadcastScrollText');
+    if (!bar || !textEl) return;
+    if (!messages || messages.length === 0) {
+      bar.style.display = 'none';
+      return;
+    }
+    bar.style.display = 'flex';
+    this._broadcastMessages = messages;
+    const text = messages.map(m => `【${m.type || '放送'}】${m.content}`).join('    ◆    ');
+    textEl.textContent = text;
+    // Reset animation
+    textEl.style.animation = 'none';
+    textEl.offsetHeight; // trigger reflow
+    textEl.style.animation = '';
   },
 
   // ===== Social Action Bar (static placeholder) =====
@@ -278,8 +359,33 @@ const UI = {
     // Static content — rendered in HTML, nothing dynamic needed for now
   },
 
+  // Close ALL overlays and drawers — call before opening any new panel
+  closeAllOverlays() {
+    const overlayIds = [
+      'feedbackOverlay', 'storyPopupOverlay', 'explorePopupOverlay', 'combatPopupOverlay',
+      'mapOverlay', 'changelogOverlay', 'modalOverlay', 'pkModalOverlay',
+      'constellationPopupOverlay', 'challengePopupOverlay', 'underworldPopupOverlay', 'warningOverlay'
+    ];
+    for (var i = 0; i < overlayIds.length; i++) {
+      var el = document.getElementById(overlayIds[i]);
+      if (el && !el.classList.contains('hidden')) {
+        el.classList.add('hidden');
+        el.classList.remove('closing');
+      }
+    }
+    UI.closeDrawer();
+  },
+
   showSocialPlaceholder(featureName) {
-    UI.addLog(`「${featureName}」功能开发中，敬请期待。`, 'system');
+    if (featureName === '申请') {
+      GameClient.openFriendRequests();
+    } else if (featureName === '赠礼') {
+      GameClient.openGiftPanel();
+    } else if (featureName === '最近互动') {
+      GameClient.openRecentInteractions();
+    } else {
+      UI.addLog(`「${featureName}」功能开发中，敬请期待。`, 'system');
+    }
   },
 
   // Backward-compat alias
@@ -345,11 +451,8 @@ const UI = {
       const rewards = r.rewards;
       if (rewards.coins) html += `<span style="font-size:12px;color:var(--green);">+${rewards.coins}硬币</span>`;
       if (rewards.story_fragments) html += `<span style="font-size:12px;color:var(--green);">+${rewards.story_fragments}碎片</span>`;
-      if (rewards.scenarioProof) html += `<span style="font-size:12px;color:var(--green);">剧本证明 +${rewards.scenarioProof}</span>`;
       if (rewards.constellationFavor) html += `<span style="font-size:12px;color:var(--green);">星座垂青 +${rewards.constellationFavor}</span>`;
-      if (rewards.kingToken) html += `<span style="font-size:12px;color:var(--green);">王者印记 +${rewards.kingToken}</span>`;
       if (rewards.abyssMark) html += `<span style="font-size:12px;color:var(--green);">深渊刻痕 +${rewards.abyssMark}</span>`;
-      if (rewards.finalPage) html += `<span style="font-size:12px;color:var(--green);">终章钥匙 +${rewards.finalPage}</span>`;
       if (rewards.equipment) html += `<span style="font-size:12px;color:var(--green);">装备: ${rewards.equipment}</span>`;
       if (rewards.items) html += `<span style="font-size:12px;color:var(--green);">道具: ${rewards.items.join(', ')}</span>`;
       if (rewards.exp) html += `<span style="font-size:12px;color:var(--green);">EXP +${rewards.exp}</span>`;
@@ -387,6 +490,7 @@ const UI = {
   openDrawer(title, contentHTML) {
     const drawer = document.getElementById('rightDrawer');
     if (!drawer) return;
+    UI.closeAllOverlays();
     UI.setText('drawerTitle', title);
     const body = document.getElementById('drawerBody');
     const wasOpen = drawer.classList.contains('open');
@@ -708,9 +812,35 @@ const UI = {
     }
     html += '</div>';
 
+    // Resource cost (for S+ ranks)
+    if (data.nextRank && data.nextRank.resourceCost) {
+      html += '<div class="drawer-section-label" style="margin-top:8px;">突破消耗</div>';
+      html += '<div style="font-size:0.85em;color:var(--text-secondary);display:flex;flex-wrap:wrap;gap:8px;">';
+      var rcLabels = { story_fragments: '故事碎片', constellationFavor: '星座恩惠', abyssMark: '深渊印记' };
+      var rcKeys = Object.keys(data.nextRank.resourceCost);
+      for (var ri = 0; ri < rcKeys.length; ri++) {
+        var rk = rcKeys[ri];
+        var rcVal = data.nextRank.resourceCost[rk];
+        html += '<span style="white-space:nowrap;">' + (rcLabels[rk] || rk) + ' ×' + rcVal + '</span>';
+      }
+      html += '</div>';
+    }
+
+    // Breakthrough rate (for S+ ranks)
+    if (data.nextRank && data.nextRank.breakthroughRate !== null && data.nextRank.breakthroughRate !== undefined) {
+      var ratePct = Math.round(data.nextRank.breakthroughRate * 100);
+      var rateColor = ratePct >= 70 ? 'var(--green)' : ratePct >= 40 ? 'var(--gold)' : 'var(--red)';
+      html += '<div class="drawer-section-label" style="margin-top:6px;">突破成功率</div>';
+      html += '<div style="font-size:0.85em;color:' + rateColor + ';">' + ratePct + '%（失败不消耗条件材料，但资源会消耗）</div>';
+    }
+
     // Rank-up button
     if (data.canRankUp) {
-      html += '<button class="ma-btn primary" onclick="GameClient.doRankUp(' + playerId + ')" style="width:100%;margin-top:12px;padding:10px;">晋升为 ' + data.nextRank.displayName + '</button>';
+      var btnLabel = '晋升为 ' + data.nextRank.displayName;
+      if (data.nextRank && data.nextRank.breakthroughRate !== null && data.nextRank.breakthroughRate !== undefined) {
+        btnLabel += ' (' + Math.round(data.nextRank.breakthroughRate * 100) + '% 成功率)';
+      }
+      html += '<button class="ma-btn primary" onclick="GameClient.doRankUp(' + playerId + ')" style="width:100%;margin-top:12px;padding:10px;">' + btnLabel + '</button>';
     } else {
       html += '<button class="ma-btn" disabled style="width:100%;margin-top:12px;padding:10px;opacity:0.4;">条件未满足</button>';
     }
@@ -734,6 +864,25 @@ const UI = {
       html += '<td>' + r.level + '</td>';
       html += '<td>' + r.storyGradeLabel + '</td>';
       html += '<td style="color:var(--purple);">' + r.starstreamTierLabel + '</td>';
+      html += '</tr>';
+    }
+    html += '</tbody></table>';
+    return html;
+  },
+
+  // ===== Drawer: Broadcast Contribution Leaderboard =====
+  renderBroadcastLeaderboard(rankings) {
+    if (!rankings || rankings.length === 0) {
+      return '<p style="text-align:center;color:var(--text-secondary);padding:32px">暂无贡献排行数据。</p>';
+    }
+    var html = '<table class="drawer-table"><thead><tr><th>#</th><th>玩家</th><th>Lv</th><th>总贡献值</th></tr></thead><tbody>';
+    for (var i = 0; i < rankings.length; i++) {
+      var r = rankings[i];
+      html += '<tr>';
+      html += '<td class="' + (i < 3 ? 'rank-top' : '') + '">' + (r.rank || i + 1) + '</td>';
+      html += '<td>' + r.player_name + '</td>';
+      html += '<td>' + r.level + '</td>';
+      html += '<td style="color:var(--teal);">' + r.total_contribution + '</td>';
       html += '</tr>';
     }
     html += '</tbody></table>';
@@ -808,7 +957,7 @@ const UI = {
     // Resources
     if (status.resources) {
       const res = status.resources;
-      const labels = { storyFragments: '碎片', scenarioProof: '证明', constellationFavor: '垂青', kingToken: '王印', abyssMark: '深渊', finalPage: '钥匙' };
+      const labels = { storyFragments: '碎片', constellationFavor: '垂青', abyssMark: '深渊' };
       html += `<div class="drawer-section-label" style="margin-top:16px;">持有资源</div>`;
       html += '<div class="stage-resources">';
       html += Object.entries(labels).map(([k, label]) =>
@@ -821,7 +970,7 @@ const UI = {
   },
 
   // ===== Drawer: Broadcast (星流放送) =====
-  renderBroadcast(activeEvents, history) {
+  renderBroadcast(activeEvents, history, playerId) {
     let html = '';
 
     // Active events
@@ -829,35 +978,55 @@ const UI = {
     if (!activeEvents || activeEvents.length === 0) {
       html += '<p style="color:var(--text-secondary);padding:8px;">当前星流安静，暂无临时剧本。</p>';
     } else {
-      const event = activeEvents[0];
-      const objectives = event.progress ? event.progress.objectives : [];
-      const timeLeft = event.end_time ? Math.max(0, Math.floor((new Date(event.end_time) - Date.now()) / 60000)) : 0;
+      var isParticipating = false;
+      for (var ei = 0; ei < activeEvents.length; ei++) {
+        var event = activeEvents[ei];
+        var objectives = event.progress ? event.progress.objectives : [];
+        var timeLeft = event.end_time ? Math.max(0, Math.floor((new Date(event.end_time) - Date.now()) / 60000)) : 0;
+        var typeLabel = UI._labelBroadcastEventType(event.event_type);
 
-      html += `<div class="drawer-card broadcast-active">
-        <div class="broadcast-header">
-          <span class="broadcast-type-tag broadcast-type-${event.event_type}">${UI._labelBroadcastEventType(event.event_type)}</span>
-          <span class="broadcast-title">${event.title}</span>
-          <span style="font-size:12px;color:var(--text-secondary);">剩余 ${timeLeft} 分钟</span>
-        </div>
-        <p style="margin-top:8px;">${event.description || ''}</p>
-        ${objectives.map(o => `
-          <div class="broadcast-obj">
-            <span>${o.label}</span>
-            <div class="contribution-bar"><div class="contribution-fill" style="width:${Math.round((o.progress || 0) * 100)}%"></div></div>
-            <span>${o.current || 0} / ${o.target}</span>
-          </div>
-        `).join('')}
-        ${event.progress ? `<p style="font-size:12px;color:var(--text-secondary);">参与: ${event.progress.totalParticipants || 0} 人</p>` : ''}
-        <div style="margin-top:12px;display:flex;gap:8px;">
-          <button class="btn-action btn-sm" onclick="GameClient.doJoinBroadcast(${event.id})">参加</button>
-          <button class="btn-action btn-sm" onclick="GameClient.doClaimBroadcastReward(${event.id})">领奖</button>
-        </div>
-      </div>`;
+        // Check if already participating
+        if (event.progress && event.progress.totalParticipants !== undefined) {
+          // We'll let GameClient check individually
+        }
 
-      // Progress & ranking containers
-      html += '<div id="broadcastProgress" class="hidden"></div>';
-      html += '<div id="broadcastRanking" class="hidden"></div>';
-      html += '<div id="myContribution" class="hidden"></div>';
+        html += '<div class="drawer-card broadcast-active" style="margin-bottom:12px;">';
+        html += '<div class="broadcast-header">';
+        html += '<span class="broadcast-type-tag broadcast-type-' + event.event_type + '">' + typeLabel + '</span>';
+        html += '<span class="broadcast-title">' + event.title + '</span>';
+        html += '<span style="font-size:12px;color:var(--text-secondary);">剩余 ' + timeLeft + ' 分钟</span>';
+        html += '</div>';
+        html += '<p style="margin-top:8px;">' + (event.description || '') + '</p>';
+
+        for (var oi = 0; oi < objectives.length; oi++) {
+          var o = objectives[oi];
+          html += '<div class="broadcast-obj">';
+          html += '<span>' + o.label + '</span>';
+          html += '<div class="contribution-bar"><div class="contribution-fill" style="width:' + Math.round((o.progress || 0) * 100) + '%"></div></div>';
+          html += '<span>' + (o.current || 0) + ' / ' + o.target + '</span>';
+          html += '</div>';
+        }
+
+        if (event.progress) {
+          html += '<p style="font-size:12px;color:var(--text-secondary);">参与: ' + (event.progress.totalParticipants || 0) + ' 人</p>';
+        }
+
+        html += '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">';
+        html += '<button class="btn-action btn-sm" onclick="GameClient.doJoinBroadcast(' + event.id + ')">参加</button>';
+        html += '<button class="btn-action btn-sm" onclick="GameClient.doClaimBroadcastReward(' + event.id + ')">领奖</button>';
+        if (playerId) {
+          html += '<button class="btn-action btn-sm" onclick="GameClient.doSubmitBroadcastResource(' + event.id + ')" style="background:var(--bg-card);">提交资源</button>';
+        }
+        html += '</div>';
+        html += '</div>';
+
+        // Only one progress container (for the last/first event)
+        if (ei === 0) {
+          html += '<div id="broadcastProgress" class="hidden"></div>';
+          html += '<div id="broadcastRanking" class="hidden"></div>';
+          html += '<div id="myContribution" class="hidden"></div>';
+        }
+      }
     }
 
     // History
@@ -865,15 +1034,16 @@ const UI = {
     if (!history || history.length === 0) {
       html += '<p style="color:var(--text-secondary);padding:8px;">暂无历史记录。</p>';
     } else {
-      const statusLabels = { completed: '已完成', failed: '失败', expired: '已过期', rewarded: '已发奖', cancelled: '已取消' };
-      const typeLabels = { world_boss: '世界Boss', exploration_drive: '探索驱动', story_hunt: '剧情狩猎', pk_tournament: 'PK锦标赛', faction_conflict: '阵营冲突', disaster: '灾厄', opportunity_rain: '机遇放送', stage_support: '阶段支援' };
-      html += history.map(e => `
-        <div class="drawer-record">
-          <span class="broadcast-type-tag broadcast-type-${e.event_type}">${typeLabels[e.event_type] || e.event_type}</span>
-          <strong>${e.title}</strong>
-          <span style="color:var(--text-secondary);float:right;">${statusLabels[e.status] || e.status}</span>
-        </div>
-      `).join('');
+      var statusLabels = { completed: '已完成', failed: '失败', expired: '已过期', rewarded: '已发奖', cancelled: '已取消' };
+      var typeLabels = { world_boss: '世界Boss', exploration_drive: '探索驱动', story_hunt: '剧情狩猎', pk_tournament: 'PK锦标赛', faction_conflict: '阵营冲突', disaster: '灾厄', opportunity_rain: '机遇放送', stage_support: '阶段支援' };
+      for (var hi = 0; hi < history.length; hi++) {
+        var e = history[hi];
+        html += '<div class="drawer-record">';
+        html += '<span class="broadcast-type-tag broadcast-type-' + e.event_type + '">' + (typeLabels[e.event_type] || e.event_type) + '</span>';
+        html += '<strong>' + e.title + '</strong>';
+        html += '<span style="color:var(--text-secondary);float:right;">' + (statusLabels[e.status] || e.status) + '</span>';
+        html += '</div>';
+      }
     }
 
     return html;
@@ -926,6 +1096,84 @@ const UI = {
       <p>贡献分: <span style="color:var(--gold);">${d.score || 0}</span></p>
       <p style="font-size:12px;color:var(--text-secondary);">奖励: ${d.claimedReward === 'none' ? '未领取' : '已领取: ' + d.claimedReward}</p>
     `;
+  },
+
+  // ===== Friends =====
+  renderFriendList(friends, requests) {
+    var html = '';
+
+    // Pending requests
+    html += '<div class="drawer-section-label">好友申请';
+    if (requests && requests.length > 0) {
+      html += ' <span style="color:var(--gold);">(' + requests.length + ')</span>';
+    }
+    html += '</div>';
+    if (!requests || requests.length === 0) {
+      html += '<p style="color:var(--text-secondary);padding:4px 0;font-size:0.85em;">暂无待处理的申请。</p>';
+    } else {
+      for (var ri = 0; ri < requests.length; ri++) {
+        var req = requests[ri];
+        html += '<div class="drawer-record" style="display:flex;align-items:center;justify-content:space-between;">';
+        html += '<span>' + req.from_player_name + '</span>';
+        html += '<span style="display:flex;gap:6px;">';
+        html += '<button class="ma-btn" style="padding:2px 10px;font-size:11px;" onclick="GameClient.acceptFriend(' + req.id + ')">接受</button>';
+        html += '<button class="ma-btn" style="padding:2px 10px;font-size:11px;background:var(--bg-card);" onclick="GameClient.declineFriend(' + req.id + ')">拒绝</button>';
+        html += '</span></div>';
+      }
+    }
+
+    // Add friend by ID
+    html += '<div class="drawer-section-label" style="margin-top:12px;">添加好友</div>';
+    html += '<div style="display:flex;gap:8px;margin-bottom:12px;">';
+    html += '<input type="number" id="friendIdInput" class="chat-input" placeholder="输入玩家 ID..." style="flex:1;">';
+    html += '<button class="ma-btn primary" onclick="GameClient.addFriend()" style="padding:8px 14px;">添加</button>';
+    html += '</div>';
+
+    // Friends list
+    html += '<div class="drawer-section-label">我的好友';
+    if (friends) html += ' (' + friends.length + ')';
+    html += '</div>';
+
+    if (!friends || friends.length === 0) {
+      html += '<p style="color:var(--text-secondary);padding:4px 0;font-size:0.85em;">暂无好友。可以通过玩家 ID 添加。</p>';
+    } else {
+      for (var fi = 0; fi < friends.length; fi++) {
+        var f = friends[fi];
+        var onlineDot = f.isOnline ? '<span style="color:var(--green);">●</span>' : '<span style="color:var(--text-dim);">○</span>';
+        html += '<div class="drawer-record" style="display:flex;align-items:center;justify-content:space-between;">';
+        html += '<span>' + onlineDot + ' ' + f.player_name + ' <span style="color:var(--text-dim);font-size:0.75em;">Lv.' + f.level + ' | ' + f.avatarRank + '级·' + f.avatarRankName + '</span></span>';
+        html += '<button class="ma-btn" style="padding:2px 8px;font-size:10px;background:var(--bg-card);" onclick="GameClient.removeFriend(' + f.player_id + ')">删除</button>';
+        html += '</div>';
+      }
+    }
+
+    return html;
+  },
+
+  // ===== Chat =====
+  renderChat(messages, playerId) {
+    var html = '<div class="chat-container">';
+    html += '<div class="chat-messages" id="chatMessages">';
+    if (!messages || messages.length === 0) {
+      html += '<p style="text-align:center;color:var(--text-secondary);padding:32px;">暂无消息。发送第一条消息吧！</p>';
+    } else {
+      for (var i = 0; i < messages.length; i++) {
+        var m = messages[i];
+        var isMine = playerId && m.player_id === playerId;
+        html += '<div class="chat-msg' + (isMine ? ' chat-msg-mine' : '') + '">';
+        if (!isMine) html += '<span class="chat-msg-author">' + m.player_name + '</span>';
+        html += '<span class="chat-msg-text">' + m.message + '</span>';
+        html += '<span class="chat-msg-time">' + (m.created_at || '').substr(11, 5) + '</span>';
+        html += '</div>';
+      }
+    }
+    html += '</div>';
+    html += '<div class="chat-input-row">';
+    html += '<input type="text" class="chat-input" id="chatInput" placeholder="输入消息..." maxlength="500" onkeydown="if(event.key===\'Enter\')GameClient.sendChatMessage()">';
+    html += '<button class="ma-btn primary" onclick="GameClient.sendChatMessage()" style="padding:8px 16px;">发送</button>';
+    html += '</div>';
+    html += '</div>';
+    return html;
   },
 
   // ===== Nav Highlight =====
@@ -1381,7 +1629,7 @@ const UI = {
   },
 
   // ===== Detailed Stats in Drawer =====
-  renderDetailedStats(player) {
+  renderDetailedStats(player, globalWLS) {
     if (!player) return '<p style="text-align:center;color:var(--text-dim);padding:32px;">暂无角色数据。</p>';
     const s = player.stats || {};
     let html = '';
@@ -1466,10 +1714,10 @@ const UI = {
     // World state
     html += '<div class="detailed-stats-section">';
     html += '<div class="ds-section-label">世界线状态</div>';
-    const wls = s.worldLineShift || 0;
+    const wls = globalWLS || 0;
     const ch = s.channelHeat || 0;
     const chCls = ch >= 70 ? 'ds-world-danger' : ch >= 40 ? 'ds-world-warn' : '';
-    html += `<div class="ds-world-row"><span>世界线偏移</span><span class="ds-world-val">${wls}</span></div>`;
+    html += `<div class="ds-world-row"><span>世界线偏移 (全服)</span><span class="ds-world-val">${wls.toFixed(2)}</span></div>`;
     html += `<div class="ds-world-row"><span>频道热度</span><span class="ds-world-val ${chCls}">${ch}</span></div>`;
     html += '</div>';
 
@@ -1480,11 +1728,8 @@ const UI = {
     const res = player.breakthrough_resources || {};
     html += `<div class="ds-res-item"><span class="ds-res-icon">◎</span><span class="ds-res-val">${player.coins || 0}</span><span class="ds-res-key">硬币</span></div>`;
     html += `<div class="ds-res-item"><span class="ds-res-icon">◆</span><span class="ds-res-val">${player.story_fragments || 0}</span><span class="ds-res-key">故事碎片</span></div>`;
-    html += `<div class="ds-res-item"><span class="ds-res-icon">◇</span><span class="ds-res-val">${res.scenarioProof || 0}</span><span class="ds-res-key">剧本证明</span></div>`;
     html += `<div class="ds-res-item"><span class="ds-res-icon">☆</span><span class="ds-res-val">${res.constellationFavor || 0}</span><span class="ds-res-key">星座垂青</span></div>`;
-    html += `<div class="ds-res-item"><span class="ds-res-icon">♛</span><span class="ds-res-val">${res.kingToken || 0}</span><span class="ds-res-key">王者印记</span></div>`;
     html += `<div class="ds-res-item"><span class="ds-res-icon">⬡</span><span class="ds-res-val">${res.abyssMark || 0}</span><span class="ds-res-key">深渊刻痕</span></div>`;
-    html += `<div class="ds-res-item"><span class="ds-res-icon">◈</span><span class="ds-res-val">${res.finalPage || 0}</span><span class="ds-res-key">终章钥匙</span></div>`;
     html += '</div></div>';
 
     // Equipment
@@ -2374,6 +2619,234 @@ const UI = {
     }
   },
 
+  // ===== 交易面板 (Phase 4) =====
+  renderTradePanel(playerId, listings, myListings) {
+    var html = '';
+
+    // My listings section
+    html += '<div style="margin-bottom:12px;">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
+    html += '<span style="font-size:14px;font-weight:bold;color:var(--text-primary);">我的挂单</span>';
+    html += '<button class="ma-btn primary" style="padding:4px 12px;font-size:12px;" onclick="UI.showCreateListingForm()">发布新挂单</button>';
+    html += '</div>';
+    if (myListings.length === 0) {
+      html += '<p style="color:var(--text-secondary);font-size:12px;text-align:center;padding:8px;">暂无挂单</p>';
+    } else {
+      for (var i = 0; i < myListings.length; i++) {
+        var ml = myListings[i];
+        html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid var(--border);font-size:12px;">';
+        html += '<span style="flex:1;">' + ml.itemName + ' ×' + ml.quantity + '</span>';
+        html += '<span style="color:var(--accent);">◎' + ml.price + '</span>';
+        html += '<span style="color:' + (ml.listingStatus === 'active' ? '#4caf50' : 'var(--text-dim)') + ';">' + ml.listingStatus + '</span>';
+        if (ml.listingStatus === 'active') {
+          html += '<button class="ma-btn" style="padding:2px 8px;font-size:11px;" onclick="GameClient.cancelListing(' + ml.id + ')">取消</button>';
+        }
+        html += '</div>';
+      }
+    }
+    html += '</div>';
+
+    // Create listing form (hidden by default)
+    html += '<div id="createListingForm" style="display:none;background:var(--bg-card);border:1px solid var(--border-gold);border-radius:8px;padding:12px;margin-bottom:12px;">';
+    html += '<div style="font-size:14px;font-weight:bold;color:var(--accent);margin-bottom:8px;">发布挂单</div>';
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+    html += '<input class="app-input" id="listingItemKey" placeholder="物品Key" style="flex:1;min-width:100px;">';
+    html += '<select class="app-input" id="listingItemType" style="width:80px;"><option value="item">道具</option><option value="equipment">装备</option></select>';
+    html += '<input class="app-input" id="listingQuantity" type="number" value="1" min="1" style="width:60px;" placeholder="数量">';
+    html += '<input class="app-input" id="listingPrice" type="number" value="10" min="1" style="width:80px;" placeholder="单价">';
+    html += '</div>';
+    html += '<div style="margin-top:8px;display:flex;gap:8px;">';
+    html += '<button class="ma-btn primary" style="font-size:12px;" onclick="GameClient.createTradeListing(document.getElementById(\'listingItemKey\').value,document.getElementById(\'listingItemType\').value,parseInt(document.getElementById(\'listingQuantity\').value)||1,parseInt(document.getElementById(\'listingPrice\').value)||10)">发布</button>';
+    html += '<button class="ma-btn" style="font-size:12px;" onclick="document.getElementById(\'createListingForm\').style.display=\'none\'">取消</button>';
+    html += '</div>';
+    html += '</div>';
+
+    // Market listings
+    html += '<div style="font-size:14px;font-weight:bold;color:var(--text-primary);margin-bottom:8px;">交易市场</div>';
+    if (listings.length === 0) {
+      html += '<p style="text-align:center;color:var(--text-secondary);padding:16px;">市场上暂无挂单</p>';
+    } else {
+      for (var j = 0; j < listings.length; j++) {
+        var l = listings[j];
+        html += '<div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--border);">';
+        html += '<span style="font-size:11px;color:var(--text-dim);min-width:40px;">' + (l.itemType === 'equipment' ? '装备' : '道具') + '</span>';
+        html += '<div style="flex:1;min-width:0;">';
+        html += '<div style="font-size:13px;">' + l.itemName + ' ×' + l.quantity + '</div>';
+        html += '<div style="font-size:11px;color:var(--text-dim);">卖家: ' + l.sellerName + '</div>';
+        html += '</div>';
+        html += '<span style="font-size:14px;font-weight:bold;color:var(--accent);">◎' + l.price + '</span>';
+        html += '<button class="ma-btn primary" style="padding:2px 10px;font-size:11px;" onclick="GameClient.buyListing(' + l.id + ')">购买</button>';
+        html += '</div>';
+      }
+    }
+    return html;
+  },
+
+  showCreateListingForm() {
+    var form = document.getElementById('createListingForm');
+    if (form) form.style.display = 'block';
+  },
+
+  // ===== 组队面板 (Phase 4) =====
+  renderPartyPanel(playerId, myParty, parties) {
+    var html = '';
+
+    // My party section
+    if (myParty) {
+      html += '<div style="background:var(--panel-bg);border:1px solid var(--border-gold);border-radius:8px;padding:12px;margin-bottom:12px;">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
+      html += '<span style="font-size:14px;font-weight:bold;color:var(--accent);">我的队伍</span>';
+      html += '<span style="font-size:11px;color:' + (myParty.status === 'in_combat' ? 'var(--red)' : '#4caf50') + ';">' + myParty.status + '</span>';
+      html += '</div>';
+      html += '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">队长: ' + myParty.leaderName + '</div>';
+      if (myParty.bossKey) {
+        html += '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">讨伐目标: ' + myParty.bossKey + '</div>';
+      }
+      html += '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">成员 (' + myParty.members.length + '/3):</div>';
+      for (var i = 0; i < myParty.members.length; i++) {
+        var m = myParty.members[i];
+        html += '<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px;">';
+        html += '<span>' + m.playerName + ' Lv.' + m.level + '</span>';
+        html += '<span style="color:' + (m.ready ? '#4caf50' : 'var(--text-dim)') + ';">' + (m.ready ? '✓就绪' : '未准备') + '</span>';
+        if (m.playerId === myParty.leaderId) html += '<span style="color:var(--accent);font-size:10px;">[队长]</span>';
+        html += '</div>';
+      }
+      html += '<div style="margin-top:8px;display:flex;gap:6px;">';
+      if (myParty.leaderId === playerId) {
+        html += '<button class="ma-btn primary" style="font-size:11px;padding:4px 10px;" onclick="GameClient.startPartyBossBattle(' + myParty.id + ')">发起讨伐</button>';
+      }
+      html += '<button class="ma-btn" style="font-size:11px;padding:4px 10px;" onclick="GameClient.leaveParty(' + myParty.id + ')">离开队伍</button>';
+      html += '</div>';
+      html += '</div>';
+    } else {
+      html += '<div style="background:var(--panel-bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;text-align:center;color:var(--text-secondary);">';
+      html += '<p>你不在任何队伍中</p>';
+      html += '<button class="ma-btn primary" style="font-size:12px;margin-top:4px;" onclick="UI.showCreatePartyForm()">创建讨伐队伍</button>';
+      html += '</div>';
+
+      // Create party form (hidden)
+      html += '<div id="createPartyForm" style="display:none;background:var(--bg-card);border:1px solid var(--border-gold);border-radius:8px;padding:12px;margin-bottom:12px;">';
+      html += '<div style="font-size:14px;font-weight:bold;color:var(--accent);margin-bottom:8px;">创建讨伐队伍</div>';
+      html += '<input class="app-input" id="partyBossKey" placeholder="Boss Key（可选，留空则为自由组队）" style="width:100%;margin-bottom:8px;">';
+      html += '<div style="display:flex;gap:8px;">';
+      html += '<button class="ma-btn primary" style="font-size:12px;" onclick="GameClient.createParty(document.getElementById(\'partyBossKey\').value||null)">创建</button>';
+      html += '<button class="ma-btn" style="font-size:12px;" onclick="document.getElementById(\'createPartyForm\').style.display=\'none\'">取消</button>';
+      html += '</div>';
+      html += '</div>';
+    }
+
+    // Active parties list
+    html += '<div style="font-size:14px;font-weight:bold;color:var(--text-primary);margin-bottom:8px;">招募中的队伍</div>';
+    if (parties.length === 0) {
+      html += '<p style="text-align:center;color:var(--text-secondary);padding:16px;">暂无招募中的队伍</p>';
+    } else {
+      for (var j = 0; j < parties.length; j++) {
+        var p = parties[j];
+        if (myParty && p.id === myParty.id) continue; // Skip own party
+        html += '<div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--border);">';
+        html += '<div style="flex:1;min-width:0;">';
+        html += '<div style="font-size:13px;">' + p.leaderName + ' 的队伍</div>';
+        html += '<div style="font-size:11px;color:var(--text-dim);">' + p.members.length + '/3 人' + (p.bossKey ? ' · ' + p.bossKey : '') + '</div>';
+        html += '</div>';
+        html += '<button class="ma-btn primary" style="padding:2px 12px;font-size:11px;" onclick="GameClient.joinParty(' + p.id + ')">加入</button>';
+        html += '</div>';
+      }
+    }
+    return html;
+  },
+
+  showCreatePartyForm() {
+    var form = document.getElementById('createPartyForm');
+    if (form) form.style.display = 'block';
+  },
+
+  // ===== 阵营面板 (Phase 3) =====
+  renderFactionPanel(playerId, myFaction, factions, war) {
+    var CONST_NAMES = {
+      golden_sun: '金乌神教', black_flame_dragon: '黑焰龙渊',
+      demon_judge_of_fire: '火之审判庭', abyss_eye: '深渊凝视者',
+      wheel_of_fate: '命运编织会', queen_of_underworld: '冥界女王府',
+      maritime_war_god: '海上战神盟', star_stream_watcher: '星流守望塔'
+    };
+    var CONST_ICONS = {
+      golden_sun: '☀', black_flame_dragon: '🐉',
+      demon_judge_of_fire: '🔥', abyss_eye: '👁',
+      wheel_of_fate: '⚙', queen_of_underworld: '👑',
+      maritime_war_god: '⚓', star_stream_watcher: '⭐'
+    };
+
+    var html = '';
+
+    // My faction section
+    if (myFaction) {
+      html += '<div style="background:var(--panel-bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;">';
+      html += '<div style="font-size:14px;font-weight:bold;color:var(--accent);margin-bottom:8px;">' + CONST_ICONS[myFaction.constellationKey] + ' 我的阵营</div>';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
+      html += '<div>';
+      html += '<div style="font-size:16px;font-weight:bold;">' + myFaction.factionName + '</div>';
+      html += '<div style="font-size:12px;color:var(--text-secondary);">Lv.' + myFaction.factionLevel + ' · ' + myFaction.activeMembers + ' 名成员</div>';
+      html += '</div>';
+      html += '<div style="text-align:right;">';
+      html += '<div style="font-size:18px;font-weight:bold;color:var(--accent);">' + Math.floor(myFaction.totalContributionScore) + '</div>';
+      html += '<div style="font-size:11px;color:var(--text-secondary);">贡献分数</div>';
+      html += '</div>';
+      html += '</div>';
+      if (myFaction.factionSkills && myFaction.factionSkills.length > 0) {
+        html += '<div style="margin-top:8px;font-size:12px;color:var(--text-secondary);">阵营技能: ';
+        for (var si = 0; si < myFaction.factionSkills.length; si++) {
+          html += '<span style="color:var(--accent);">' + myFaction.factionSkills[si] + '</span> ';
+        }
+        html += '</div>';
+      }
+      html += '</div>';
+    } else {
+      html += '<div style="background:var(--panel-bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;text-align:center;color:var(--text-secondary);">';
+      html += '<p>你尚未选择背后星（星座）。</p><p style="font-size:12px;">选择星座后将自动加入对应阵营。</p>';
+      html += '</div>';
+    }
+
+    // Weekly War
+    if (war) {
+      html += '<div style="background:var(--panel-bg);border:1px solid var(--accent);border-radius:8px;padding:12px;margin-bottom:12px;">';
+      html += '<div style="font-size:14px;font-weight:bold;color:var(--accent);margin-bottom:8px;">⚔ 本周阵营战</div>';
+      html += '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">' + (war.weekStart || '').substr(0, 10) + ' ~ ' + (war.weekEnd || '').substr(0, 10) + '</div>';
+      if (war.status === 'active') {
+        html += '<div style="font-size:12px;color:#4caf50;">进行中...</div>';
+      } else if (war.winnerConstellation) {
+        html += '<div style="font-size:13px;font-weight:bold;color:var(--accent);">';
+        html += '🏆 本周冠军: ' + (CONST_NAMES[war.winnerConstellation] || war.winnerConstellation);
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+
+    // Leaderboard
+    html += '<div style="font-size:14px;font-weight:bold;color:var(--text-primary);margin-bottom:8px;">阵营排行榜</div>';
+    if (factions.length === 0) {
+      html += '<p style="text-align:center;color:var(--text-secondary);padding:16px;">暂无阵营数据</p>';
+    } else {
+      for (var i = 0; i < factions.length; i++) {
+        var f = factions[i];
+        var isMyFaction = myFaction && f.constellationKey === myFaction.constellationKey;
+        var rankIcon = i === 0 ? '🥇' : (i === 1 ? '🥈' : (i === 2 ? '🥉' : (i + 1)));
+        html += '<div style="display:flex;align-items:center;gap:8px;padding:8px;' + (isMyFaction ? 'background:rgba(212,160,80,0.08);border-radius:6px;' : '') + 'border-bottom:1px solid var(--border);">';
+        html += '<span style="width:24px;text-align:center;font-size:14px;">' + rankIcon + '</span>';
+        html += '<span style="font-size:16px;">' + (CONST_ICONS[f.constellationKey] || '◆') + '</span>';
+        html += '<div style="flex:1;min-width:0;">';
+        html += '<div style="font-size:13px;font-weight:bold;">' + f.factionName + '</div>';
+        html += '<div style="font-size:11px;color:var(--text-secondary);">Lv.' + f.factionLevel + ' · ' + f.activeMembers + ' 人</div>';
+        html += '</div>';
+        html += '<div style="text-align:right;">';
+        html += '<div style="font-size:14px;font-weight:bold;color:var(--accent);">' + Math.floor(f.totalContributionScore) + '</div>';
+        html += '<div style="font-size:10px;color:var(--text-secondary);">分</div>';
+        html += '</div>';
+        html += '</div>';
+      }
+    }
+
+    return html;
+  },
+
   closeSwMoreMenu() {
     var overlay = document.getElementById('mobileSwMoreOverlay');
     if (overlay) overlay.classList.add('hidden');
@@ -2395,8 +2868,9 @@ const UI = {
     var classicNav = document.getElementById('mobileBottomNav');
     var classicTopBar = document.getElementById('mobileTopBar');
     if (theme === 'default') {
-      if (classicNav) classicNav.style.display = '';
-      if (classicTopBar) classicTopBar.style.display = '';
+      // Remove inline style so CSS media queries control visibility
+      if (classicNav) classicNav.style.display = null;
+      if (classicTopBar) classicTopBar.style.display = null;
     } else {
       if (classicNav) classicNav.style.display = 'none';
       if (classicTopBar) classicTopBar.style.display = 'none';

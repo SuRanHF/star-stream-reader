@@ -3,6 +3,10 @@ const GameClient = {
   state: 'INIT',
   playerId: null,
   _currentUser: null,
+  _exploreMultiplier: 1,
+  _autoExploreActive: false,
+  _autoExploreTimer: null,
+  _lastExploreCost: 5,
 
   async init() {
     this.state = 'LOADING';
@@ -367,11 +371,7 @@ const GameClient = {
 
     switch (featureName) {
       case 'story':
-        UI.closeDrawer();
-        // Close all popups (synchronous — avoid dismissPopup timer race)
-        document.getElementById('storyPopupOverlay')?.classList.add('hidden');
-        document.getElementById('explorePopupOverlay')?.classList.add('hidden');
-        document.getElementById('mapOverlay')?.classList.add('hidden');
+        UI.closeAllOverlays();
         const logEl = document.getElementById('logStream');
         if (logEl) logEl.scrollTop = logEl.scrollHeight;
         this.fetchChapter();
@@ -402,6 +402,15 @@ const GameClient = {
         break;
       case 'broadcast':
         this.loadBroadcast();
+        break;
+      case 'faction':
+        this.openFaction();
+        break;
+      case 'trade':
+        this.openTrade();
+        break;
+      case 'party':
+        this.openParty();
         break;
       case 'settings':
         this.showSettings();
@@ -479,6 +488,7 @@ const GameClient = {
 
   async loadGame(player) {
     this.state = 'PLAYING';
+    this._currentPlayer = player;
 
     // Normalize player: API.me() returns raw row with stats_json string, not parsed stats object
     if (!player.stats && player.stats_json) {
@@ -518,6 +528,7 @@ const GameClient = {
     }
 
     await this.fetchChapter({ isInitialLoad: true });
+    this.refreshRankProgress();
     UI.renderSocialActionBar();
     // Description panel is shown on-demand when user opens features
     this._updateRestUI(this._isResting);
@@ -575,6 +586,8 @@ const GameClient = {
         // No content to show in popup — just close any existing
         document.getElementById('storyPopupOverlay')?.classList.add('hidden');
       }
+
+      // Event panel removed — choices hidden from central area
 
       UI.renderLeftPanel(data.player);
       UI.renderMainActionBar(data.player);
@@ -659,7 +672,6 @@ const GameClient = {
 
       if (result.ending) {
         this.state = 'SHOWING_ENDING';
-        UI.renderCurrentEventPanel(result.chapter, [], []);
         UI.renderLeftPanel(result.player);
         UI.renderMainActionBar(result.player);
         setTimeout(() => UI.renderEnding(result.ending), 800);
@@ -706,6 +718,11 @@ const GameClient = {
         return;
       }
 
+      // Store actual stamina cost from server
+      if (result.stamina_cost !== undefined) {
+        this._lastExploreCost = result.stamina_cost;
+      }
+
       // Check for combat encounter
       if (result.result?.combat_encounter) {
         // Store bond for support rate display
@@ -714,7 +731,7 @@ const GameClient = {
         this.updateMainActionBar(result.player);
         UI.addLog(`遭遇${result.result.is_elite ? '精英' : ''}怪物: ${result.result.event_name}`, 'battle', { id: `encounter_${Date.now()}` });
         UI.showCombatPopup(result);
-        return;
+        return 'combat';
       }
 
       // Show explore result in popup
@@ -756,8 +773,10 @@ const GameClient = {
       // Always refresh story after exploration
       await this.fetchChapter({ fromExplore: true });
       UI.renderStageIndicator(result.player);
+      return result.result_type || 'nothing';
     } catch (e) {
       UI.addLog('探索出错: ' + (e.message || e), 'battle');
+      return 'error';
     }
   },
 
@@ -807,29 +826,119 @@ const GameClient = {
       UI.addLog('玩家数据未加载，请刷新页面。', 'warning');
       return;
     }
-    // Use player.current_location, default to first unlocked map
+    const mult = this._exploreMultiplier || 1;
     try {
       const { locations } = await API.getLocations(this.playerId);
       if (!locations || locations.length === 0) {
         UI.addLog('暂无可探索的地图，请先推进剧情解锁。', 'warning');
         return;
       }
+      for (let i = 0; i < mult; i++) {
+        const playerData = await API.getPlayer(this.playerId);
+        const player = playerData && playerData.player;
+        if (!player) {
+          UI.addLog('获取玩家数据失败，探索已停止。', 'warning');
+          break;
+        }
+        const stamina = (player.stats && player.stats.stamina) || 0;
+        if (stamina < 5) {
+          UI.addLog(`体力不足 (${stamina})，已完成 ${i}/${mult} 次探索。`, 'warning');
+          this.updateMainActionBar(player);
+          break;
+        }
+        const locKey = this._getExploreTarget(locations, player);
+        const resultType = await this.doExplore(locKey);
+        // Stop batch on major events (story, combat, etc.)
+        if (resultType === 'combat' || resultType === 'story' || resultType === 'side_story' || resultType === 'boss_clue' || resultType === 'hidden') {
+          if (mult > 1 && i < mult - 1) {
+            UI.addLog(`批量探索遇到重要事件，已暂停 (${i + 1}/${mult})。`, 'plot');
+          }
+          break;
+        }
+        // Small delay between batch explores
+        if (i < mult - 1) {
+          await new Promise(r => setTimeout(r, 300));
+        }
+      }
+    } catch (e) {
+      UI.addLog('探索失败: ' + (e.message || e), 'warning');
+    }
+  },
+
+  setExploreMultiplier(n, event) {
+    this._exploreMultiplier = n;
+    document.querySelectorAll('.ma-batch-btn').forEach(btn => {
+      btn.classList.toggle('active', parseInt(btn.dataset.mult) === n);
+    });
+  },
+
+  toggleAutoExplore(checked) {
+    this._autoExploreActive = checked;
+    if (checked) {
+      UI.addLog('自动探索已开启，将连续探索直到遭遇重要事件或体力不足。', 'system');
+      this._autoExploreLoop();
+    } else {
+      if (this._autoExploreTimer) {
+        clearTimeout(this._autoExploreTimer);
+        this._autoExploreTimer = null;
+      }
+      UI.addLog('自动探索已关闭。', 'system');
+    }
+  },
+
+  async _autoExploreLoop() {
+    if (!this._autoExploreActive) return;
+    if (this._isResting) {
+      UI.addLog('正在休息中，自动探索已暂停。', 'warning');
+      this._autoExploreActive = false;
+      const toggle = document.getElementById('autoExploreToggle');
+      if (toggle) toggle.checked = false;
+      return;
+    }
+    if (!this.playerId) {
+      this._autoExploreActive = false;
+      return;
+    }
+    try {
       const playerData = await API.getPlayer(this.playerId);
       const player = playerData && playerData.player;
-      if (!player) {
-        UI.addLog('获取玩家数据失败，请刷新页面后重试。', 'warning');
-        return;
-      }
-      const locKey = this._getExploreTarget(locations, player);
+      if (!player) { this._autoExploreActive = false; return; }
       const stamina = (player.stats && player.stats.stamina) || 0;
       if (stamina < 5) {
-        UI.addLog(`体力不足 (${stamina})，请等待恢复或使用道具。`, 'warning');
+        UI.addLog(`体力不足 (${stamina})，自动探索已停止。`, 'warning');
+        this._autoExploreActive = false;
+        const toggle = document.getElementById('autoExploreToggle');
+        if (toggle) toggle.checked = false;
         this.updateMainActionBar(player);
         return;
       }
-      await this.doExplore(locKey);
+      const { locations } = await API.getLocations(this.playerId);
+      if (!locations || locations.length === 0) {
+        this._autoExploreActive = false;
+        return;
+      }
+      const locKey = this._getExploreTarget(locations, player);
+      const resultType = await this.doExplore(locKey);
+      if (resultType === 'combat' || resultType === 'story' || resultType === 'side_story' || resultType === 'boss_clue' || resultType === 'hidden') {
+        UI.addLog('遭遇重要事件，自动探索已暂停。', 'plot');
+        this._autoExploreActive = false;
+        const toggle = document.getElementById('autoExploreToggle');
+        if (toggle) toggle.checked = false;
+        return;
+      }
+      // Auto-close minor explore popups
+      const exploreOverlay = document.getElementById('explorePopupOverlay');
+      if (exploreOverlay && !exploreOverlay.classList.contains('hidden')) {
+        exploreOverlay.classList.add('hidden');
+      }
+      if (this._autoExploreActive) {
+        this._autoExploreTimer = setTimeout(() => this._autoExploreLoop(), 600);
+      }
     } catch (e) {
-      UI.addLog('探索失败: ' + (e.message || e), 'warning');
+      UI.addLog('自动探索出错: ' + (e.message || e), 'warning');
+      this._autoExploreActive = false;
+      const toggle = document.getElementById('autoExploreToggle');
+      if (toggle) toggle.checked = false;
     }
   },
 
@@ -1186,16 +1295,29 @@ const GameClient = {
   },
 
   // ===== Rankings =====
-  _rankingTab: 'pk',
+  _rankingTab: (function() { try { return localStorage.getItem('rsg_rankingTab') || 'hub'; } catch(e) { return 'hub'; } })(),
   async loadRankings() {
     var self = this;
     try {
-      var data = await API.getRankings(50);
-      var contentHTML = '<div style="display:flex;gap:8px;margin-bottom:12px;">' +
-        '<button class="ma-btn ' + (self._rankingTab === 'pk' ? 'primary' : '') + '" onclick="GameClient.loadRankingsTab(\'pk\')">PK榜</button>' +
-        '<button class="ma-btn ' + (self._rankingTab === 'avatar' ? 'primary' : '') + '" onclick="GameClient.loadRankingsTab(\'avatar\')">位阶榜</button>' +
+      var tab = self._rankingTab;
+      var contentHTML = '<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">' +
+        '<button class="ma-btn ' + (tab === 'hub' ? 'primary' : '') + '" onclick="GameClient.loadRankingsTab(\'hub\')">总览</button>' +
+        '<button class="ma-btn ' + (tab === 'pk' ? 'primary' : '') + '" onclick="GameClient.loadRankingsTab(\'pk\')">PK榜</button>' +
+        '<button class="ma-btn ' + (tab === 'avatar' ? 'primary' : '') + '" onclick="GameClient.loadRankingsTab(\'avatar\')">位阶榜</button>' +
+        '<button class="ma-btn ' + (tab === 'broadcast' ? 'primary' : '') + '" onclick="GameClient.loadRankingsTab(\'broadcast\')">贡献榜</button>' +
         '</div>';
-      contentHTML += UI.renderRankings(data.rankings || []);
+      if (tab === 'hub') {
+        contentHTML += await self._renderRankingsHub();
+      } else if (tab === 'avatar') {
+        var data = await API.getAvatarRankLeaderboard(50);
+        contentHTML += UI.renderAvatarRankLeaderboard(data.rankings || []);
+      } else if (tab === 'broadcast') {
+        var bdata = await API.getBroadcastLeaderboard(50);
+        contentHTML += UI.renderBroadcastLeaderboard(bdata.data || []);
+      } else {
+        var pkdata = await API.getRankings(50);
+        contentHTML += UI.renderRankings(pkdata.rankings || []);
+      }
       UI.openDrawer('排行榜', contentHTML);
     } catch (e) {
       UI.addLog('加载排行失败: ' + (e.message || e), 'warning');
@@ -1203,28 +1325,72 @@ const GameClient = {
   },
   async loadRankingsTab(tab) {
     this._rankingTab = tab;
-    if (tab === 'avatar') {
-      await this.loadAvatarRankLeaderboard();
-    } else {
-      await this.loadRankings();
-    }
+    try { localStorage.setItem('rsg_rankingTab', tab); } catch(e) {}
+    await this.loadRankings();
   },
-  async loadAvatarRankLeaderboard() {
+  async _renderRankingsHub() {
+    var html = '';
     try {
-      var self = this;
-      var data = await API.getAvatarRankLeaderboard(50);
-      var contentHTML = '<div style="display:flex;gap:8px;margin-bottom:12px;">' +
-        '<button class="ma-btn" onclick="GameClient.loadRankingsTab(\'pk\')">PK榜</button>' +
-        '<button class="ma-btn primary" onclick="GameClient.loadRankingsTab(\'avatar\')">位阶榜</button>' +
-        '</div>';
-      contentHTML += UI.renderAvatarRankLeaderboard(data.rankings || []);
-      UI.openDrawer('排行榜 - 化身位阶', contentHTML);
+      // Load all three leaderboards in parallel, show top 5 of each
+      var pkData = await API.getRankings(5);
+      var avatarData = await API.getAvatarRankLeaderboard(5);
+      var broadcastData = await API.getBroadcastLeaderboard(5);
+
+      html += '<div class="drawer-section-label" style="margin-top:0;">PK 排行榜 (Top 5)</div>';
+      if (pkData.rankings && pkData.rankings.length > 0) {
+        html += '<table class="drawer-table" style="margin-bottom:16px;"><thead><tr><th>#</th><th>玩家</th><th>Lv</th><th>评分</th></tr></thead><tbody>';
+        for (var i = 0; i < pkData.rankings.length; i++) {
+          var r = pkData.rankings[i];
+          html += '<tr><td class="' + (i < 3 ? 'rank-top' : '') + '">' + (r.rank || i + 1) + '</td><td>' + r.player_name + '</td><td>' + r.level + '</td><td>' + r.rating + '</td></tr>';
+        }
+        html += '</tbody></table>';
+      } else {
+        html += '<p style="color:var(--text-secondary);text-align:center;padding:12px;">暂无数据</p>';
+      }
+
+      html += '<div class="drawer-section-label">位阶排行榜 (Top 5)</div>';
+      if (avatarData.rankings && avatarData.rankings.length > 0) {
+        html += '<table class="drawer-table" style="margin-bottom:16px;"><thead><tr><th>#</th><th>玩家</th><th>化身位阶</th><th>Lv</th></tr></thead><tbody>';
+        for (var j = 0; j < avatarData.rankings.length; j++) {
+          var ar = avatarData.rankings[j];
+          html += '<tr><td class="' + (j < 3 ? 'rank-top' : '') + '">' + (ar.rank || j + 1) + '</td><td>' + ar.player_name + '</td><td style="color:var(--gold);">' + ar.avatarRank + '级·' + ar.avatarRankName + '</td><td>' + ar.level + '</td></tr>';
+        }
+        html += '</tbody></table>';
+      } else {
+        html += '<p style="color:var(--text-secondary);text-align:center;padding:12px;">暂无数据</p>';
+      }
+
+      html += '<div class="drawer-section-label">星流贡献榜 (Top 5)</div>';
+      var bRankings = broadcastData.data || [];
+      if (bRankings.length > 0) {
+        html += '<table class="drawer-table" style="margin-bottom:16px;"><thead><tr><th>#</th><th>玩家</th><th>Lv</th><th>贡献值</th></tr></thead><tbody>';
+        for (var k = 0; k < bRankings.length; k++) {
+          var br = bRankings[k];
+          html += '<tr><td class="' + (k < 3 ? 'rank-top' : '') + '">' + (br.rank || k + 1) + '</td><td>' + br.player_name + '</td><td>' + br.level + '</td><td style="color:var(--teal);">' + br.total_contribution + '</td></tr>';
+        }
+        html += '</tbody></table>';
+      } else {
+        html += '<p style="color:var(--text-secondary);text-align:center;padding:12px;">暂无数据</p>';
+      }
+
+      html += '<div style="text-align:center;margin-top:8px;">';
+      html += '<span style="color:var(--text-secondary);font-size:0.8em;">点击上方标签查看完整榜单</span>';
+      html += '</div>';
     } catch (e) {
-      UI.addLog('加载位阶榜失败: ' + (e.message || e), 'warning');
+      html = '<p style="text-align:center;color:var(--text-secondary);padding:32px;">加载排行总览失败。</p>';
     }
+    return html;
   },
 
   // ===== Avatar Rank =====
+  async refreshRankProgress() {
+    try {
+      const resp = await API.getAvatarRank(this.playerId);
+      const rankData = resp && resp.data ? resp.data : resp;
+      if (rankData) UI.setRankProgressInfo(rankData);
+    } catch (e) { /* non-critical */ }
+  },
+
   async openAvatarRank() {
     try {
       var resp = await API.getAvatarRank(this.playerId);
@@ -1241,6 +1407,7 @@ const GameClient = {
       var rankResult = result && result.data ? result.data : result;
       if (rankResult && rankResult.rankedUp) {
         UI.addLog(rankResult.log, 'system');
+        this.refreshRankProgress();
         var resp = await API.getPlayer(playerId);
         if (resp && resp.data && resp.data.player) {
           UI.renderLeftPanel(resp.data.player);
@@ -1250,6 +1417,9 @@ const GameClient = {
         var rankData = rankResp && rankResp.data ? rankResp.data : rankResp;
         var contentHTML = UI.renderAvatarRankPanel(rankData, playerId);
         UI.openDrawer('化身位阶', contentHTML);
+      } else if (rankResult && rankResult.breakthroughFailed) {
+        UI.addLog(rankResult.displayName + ' 突破失败！概率: ' + Math.round((rankResult.breakthroughRate || 0) * 100) + '%', 'warning');
+        this.refreshRankProgress();
       }
     } catch (e) {
       UI.addLog('升阶失败: ' + (e.message || e), 'warning');
@@ -1305,7 +1475,7 @@ const GameClient = {
       ]);
       const activeEvents = (activeResp && activeResp.data) || [];
       const history = (historyResp && historyResp.data) || [];
-      const contentHTML = UI.renderBroadcast(activeEvents, history);
+      const contentHTML = UI.renderBroadcast(activeEvents, history, this.playerId);
       UI.openDrawer('星流放送', contentHTML);
 
       if (activeEvents.length > 0) {
@@ -1323,7 +1493,7 @@ const GameClient = {
     try {
       const result = await API.joinBroadcast(eventId, this.playerId);
       if (result.error) {
-        alert(result.error.message || '参加失败');
+        UI.addLog(result.error.message || '参加失败', 'warning');
         return;
       }
       UI.addLog('参加了星流放送', 'broadcast');
@@ -1337,7 +1507,7 @@ const GameClient = {
     try {
       const result = await API.claimBroadcastReward(eventId, this.playerId);
       if (result.error) {
-        alert(result.error.message || '领奖失败');
+        UI.addLog(result.error.message || '领奖失败', 'warning');
         return;
       }
       UI.addLog('领取了星流放送奖励', 'broadcast');
@@ -1346,6 +1516,28 @@ const GameClient = {
       UI.renderLeftPanel(player);
     } catch (e) {
       UI.addLog('领奖失败: ' + (e.message || e), 'warning');
+    }
+  },
+
+  async doSubmitBroadcastResource(eventId) {
+    var resourceType = prompt('提交资源类型 (storyFragments/coins):');
+    if (!resourceType) return;
+    var amount = parseInt(prompt('提交数量:'));
+    if (!amount || amount <= 0) return;
+    try {
+      var result = await API.request('POST', '/api/broadcast/' + eventId + '/submit-resource', {
+        playerId: this.playerId,
+        resourceType: resourceType,
+        amount: amount
+      });
+      if (result.error) {
+        UI.addLog(result.error.message || '提交失败', 'warning');
+        return;
+      }
+      UI.addLog('已提交 ' + resourceType + ' ×' + amount, 'broadcast');
+      this.loadBroadcast();
+    } catch (e) {
+      UI.addLog('提交资源失败: ' + (e.message || e), 'warning');
     }
   },
 
@@ -1363,6 +1555,273 @@ const GameClient = {
       const data = await API.getMyContribution(eventId, playerId);
       UI.renderMyContribution(data);
     } catch (e) { /* non-critical */ }
+  },
+
+  // ===== Faction (阵营) =====
+  async openFaction() {
+    UI.openDrawer('星座阵营', '<div id="factionContent"><p style="text-align:center;color:var(--text-secondary);padding:32px;">加载中...</p></div>');
+    try {
+      var myFaction = null;
+      if (this.playerId) {
+        var myRes = await API.getMyFaction(this.playerId);
+        myFaction = (myRes && myRes.data) || null;
+      }
+      var lbRes = await API.getFactionLeaderboard();
+      var factions = (lbRes && lbRes.data) || [];
+      var warRes = await API.getWeeklyWar();
+      var war = (warRes && warRes.data) || null;
+      var content = document.getElementById('factionContent');
+      if (content) {
+        content.innerHTML = UI.renderFactionPanel(this.playerId, myFaction, factions, war);
+      }
+    } catch (e) {
+      var content = document.getElementById('factionContent');
+      if (content) content.innerHTML = '<p style="text-align:center;color:var(--danger);padding:32px;">加载阵营数据失败: ' + (e.message || e) + '</p>';
+    }
+  },
+
+  // ===== Trade (交易市场) =====
+  async openTrade() {
+    UI.openDrawer('交易市场', '<div id="tradeContent"><p style="text-align:center;color:var(--text-secondary);padding:32px;">加载中...</p></div>');
+    try {
+      var listings = await API.getActiveListings();
+      var myListings = this.playerId ? await API.getMyListings(this.playerId) : { data: [] };
+      var content = document.getElementById('tradeContent');
+      if (content) {
+        content.innerHTML = UI.renderTradePanel(this.playerId, (listings && listings.data) || [], (myListings && myListings.data) || []);
+      }
+    } catch (e) {
+      var content = document.getElementById('tradeContent');
+      if (content) content.innerHTML = '<p style="text-align:center;color:var(--danger);padding:32px;">加载失败: ' + (e.message || e) + '</p>';
+    }
+  },
+
+  async createTradeListing(itemKey, itemType, quantity, price) {
+    try {
+      var result = await API.createListing(this.playerId, itemKey, itemType, quantity, price);
+      if (result.error) { UI.addLog(result.error.message, 'warning'); return; }
+      UI.addLog('挂单发布成功', 'system');
+      this.openTrade();
+    } catch (e) { UI.addLog('发布失败: ' + (e.message || e), 'warning'); }
+  },
+
+  async buyListing(listingId) {
+    try {
+      var result = await API.buyListing(listingId, this.playerId);
+      if (result.error) { UI.addLog(result.error.message, 'warning'); return; }
+      UI.addLog('购买成功！', 'system');
+      this.openTrade();
+    } catch (e) { UI.addLog('购买失败: ' + (e.message || e), 'warning'); }
+  },
+
+  async cancelListing(listingId) {
+    try {
+      await API.cancelListing(listingId, this.playerId);
+      UI.addLog('挂单已取消，物品已退回', 'system');
+      this.openTrade();
+    } catch (e) { UI.addLog('取消失败: ' + (e.message || e), 'warning'); }
+  },
+
+  // ===== Party (组队) =====
+  async openParty() {
+    UI.openDrawer('组队讨伐', '<div id="partyContent"><p style="text-align:center;color:var(--text-secondary);padding:32px;">加载中...</p></div>');
+    try {
+      var parties = await API.getActiveParties();
+      var myParty = this.playerId ? await API.getMyParty(this.playerId) : null;
+      var content = document.getElementById('partyContent');
+      if (content) {
+        content.innerHTML = UI.renderPartyPanel(this.playerId, myParty ? myParty.data : null, (parties && parties.data) || []);
+      }
+    } catch (e) {
+      var content = document.getElementById('partyContent');
+      if (content) content.innerHTML = '<p style="text-align:center;color:var(--danger);padding:32px;">加载失败: ' + (e.message || e) + '</p>';
+    }
+  },
+
+  async createParty(bossKey) {
+    try {
+      var result = await API.createParty(this.playerId, bossKey);
+      if (result.error) { UI.addLog(result.error.message, 'warning'); return; }
+      UI.addLog('队伍创建成功', 'system');
+      this.openParty();
+    } catch (e) { UI.addLog('创建失败: ' + (e.message || e), 'warning'); }
+  },
+
+  async joinParty(partyId) {
+    try {
+      var result = await API.joinParty(partyId, this.playerId);
+      if (result.error) { UI.addLog(result.error.message, 'warning'); return; }
+      UI.addLog('加入队伍成功', 'system');
+      this.openParty();
+    } catch (e) { UI.addLog('加入失败: ' + (e.message || e), 'warning'); }
+  },
+
+  async leaveParty(partyId) {
+    try {
+      await API.leaveParty(partyId, this.playerId);
+      UI.addLog('已离开队伍', 'system');
+      this.openParty();
+    } catch (e) { UI.addLog('离开失败: ' + (e.message || e), 'warning'); }
+  },
+
+  async startPartyBossBattle(partyId) {
+    try {
+      var result = await API.startPartyBossBattle(partyId, this.playerId);
+      if (result.error) { UI.addLog(result.error.message, 'warning'); return; }
+      var data = result.data || result;
+      if (data.bossDefeated) {
+        UI.addLog('讨伐成功！Boss被击破！', 'story');
+      } else {
+        UI.addLog('讨伐失败...重新整队', 'warning');
+      }
+      this.openParty();
+    } catch (e) { UI.addLog('讨伐失败: ' + (e.message || e), 'warning'); }
+  },
+
+  // ===== Chat (聊天频道) =====
+  _chatChannel: 'global',
+  _chatLastId: 0,
+  _chatTimer: null,
+
+  async openChat() {
+    this._chatChannel = 'global';
+    this._chatLastId = 0;
+    UI.openDrawer('聊天频道', '<div id="chatContent"><p style="text-align:center;color:var(--text-secondary);padding:32px;">加载中...</p></div>');
+    await this.loadChatMessages();
+    this._startChatPolling();
+  },
+
+  async loadChatMessages(silent) {
+    try {
+      var data = await API.getChatMessages(this._chatChannel, 50, this._chatLastId || null);
+      var messages = (data && data.data) || [];
+      if (messages.length > 0) {
+        this._chatLastId = messages[messages.length - 1].id;
+      }
+      if (!silent) {
+        var chatContent = document.getElementById('chatContent');
+        if (chatContent) {
+          chatContent.innerHTML = UI.renderChat(messages, this.playerId);
+          this._scrollChatToBottom();
+        }
+      } else {
+        // Append new messages only (skip ones we already have)
+        var chatMsgs = document.getElementById('chatMessages');
+        if (chatMsgs && messages.length > 0) {
+          for (var i = 0; i < messages.length; i++) {
+            var m = messages[i];
+            var isMine = this.playerId && m.player_id === this.playerId;
+            var div = document.createElement('div');
+            div.className = 'chat-msg' + (isMine ? ' chat-msg-mine' : '');
+            var html = '';
+            if (!isMine) html += '<span class="chat-msg-author">' + m.player_name + '</span>';
+            html += '<span class="chat-msg-text">' + m.message + '</span>';
+            html += '<span class="chat-msg-time">' + (m.created_at || '').substr(11, 5) + '</span>';
+            div.innerHTML = html;
+            chatMsgs.appendChild(div);
+          }
+          this._scrollChatToBottom();
+        }
+      }
+    } catch (e) { /* non-critical */ }
+  },
+
+  async sendChatMessage() {
+    var input = document.getElementById('chatInput');
+    if (!input) return;
+    var message = input.value.trim();
+    if (!message) return;
+    try {
+      await API.sendChatMessage(this.playerId, this._currentPlayer.player_name, message, this._chatChannel);
+      input.value = '';
+      await this.loadChatMessages();
+    } catch (e) {
+      UI.addLog('发送消息失败: ' + (e.message || e), 'warning');
+    }
+  },
+
+  _startChatPolling() {
+    var self = this;
+    if (this._chatTimer) clearInterval(this._chatTimer);
+    this._chatTimer = setInterval(function() {
+      // Check if drawer is still open
+      var overlay = document.getElementById('drawerOverlay');
+      if (!overlay || overlay.classList.contains('hidden')) {
+        clearInterval(self._chatTimer);
+        self._chatTimer = null;
+        return;
+      }
+      var chatMsgs = document.getElementById('chatMessages');
+      if (!chatMsgs) { clearInterval(self._chatTimer); self._chatTimer = null; return; }
+      self.loadChatMessages(true);
+    }, 3000);
+  },
+
+  _scrollChatToBottom() {
+    var el = document.getElementById('chatMessages');
+    if (el) el.scrollTop = el.scrollHeight;
+  },
+
+  // ===== Friends =====
+  async openFriends() {
+    await this.loadFriendData();
+  },
+
+  async loadFriendData() {
+    try {
+      var friendsData = await API.getFriendList(this.playerId);
+      var requestsData = await API.getFriendRequests(this.playerId);
+      var friends = (friendsData && friendsData.data) || [];
+      var requests = (requestsData && requestsData.data) || [];
+      var contentHTML = UI.renderFriendList(friends, requests);
+      UI.openDrawer('好友', contentHTML);
+    } catch (e) {
+      UI.addLog('加载好友失败: ' + (e.message || e), 'warning');
+    }
+  },
+
+  async addFriend() {
+    var input = document.getElementById('friendIdInput');
+    if (!input) return;
+    var friendId = parseInt(input.value);
+    if (!friendId) { UI.addLog('请输入有效的玩家 ID', 'warning'); return; }
+    try {
+      var result = await API.sendFriendRequest(this.playerId, friendId);
+      if (result.error) { UI.addLog(result.error.message || '发送失败', 'warning'); return; }
+      UI.addLog(result.data.message || '好友申请已发送', 'system');
+      input.value = '';
+      await this.loadFriendData();
+    } catch (e) {
+      UI.addLog('添加好友失败: ' + (e.message || e), 'warning');
+    }
+  },
+
+  async acceptFriend(requestId) {
+    try {
+      var result = await API.acceptFriendRequest(this.playerId, requestId);
+      if (result.error) { UI.addLog(result.error.message, 'warning'); return; }
+      UI.addLog('已接受好友申请', 'system');
+      await this.loadFriendData();
+    } catch (e) {
+      UI.addLog('操作失败: ' + (e.message || e), 'warning');
+    }
+  },
+
+  async declineFriend(requestId) {
+    try {
+      await API.declineFriendRequest(this.playerId, requestId);
+      await this.loadFriendData();
+    } catch (e) { /* non-critical */ }
+  },
+
+  async removeFriend(friendId) {
+    try {
+      await API.removeFriend(this.playerId, friendId);
+      UI.addLog('已删除好友', 'system');
+      await this.loadFriendData();
+    } catch (e) {
+      UI.addLog('操作失败: ' + (e.message || e), 'warning');
+    }
   },
 
   // ===== Popup Choice Handler =====
@@ -1457,9 +1916,14 @@ const GameClient = {
   async loadDetailedStats() {
     try {
       const { player } = await API.getPlayer(this.playerId);
-      const contentHTML = UI.renderDetailedStats(player);
+      let globalWLS = 0;
+      try {
+        const wlStatus = await API.getWorldlineStatus();
+        globalWLS = wlStatus.worldLineShift || 0;
+      } catch (e) { /* non-critical */ }
+      const contentHTML = UI.renderDetailedStats(player, globalWLS);
       UI.openDrawer('详细属性', contentHTML);
-      UI.renderLeftPanel(player);
+      UI.renderLeftPanel(player, globalWLS);
       UI.renderDescriptionPanel(player, 'stats');
     } catch (e) {
       UI.addLog('加载角色详情失败: ' + (e.message || e), 'warning');
@@ -1632,6 +2096,7 @@ const GameClient = {
   },
 
   async showChangelog() {
+    UI.closeAllOverlays();
     try {
       var resp = await fetch('/api/changelog');
       var data = await resp.json();
@@ -1651,6 +2116,7 @@ const GameClient = {
 
   // ===== Feedback =====
   openFeedback() {
+    UI.closeAllOverlays();
     var overlay = document.getElementById('feedbackOverlay');
     if (!overlay) return;
     overlay.classList.remove('hidden');
@@ -1660,6 +2126,138 @@ const GameClient = {
     }
     var resultEl = document.getElementById('fbResult');
     if (resultEl) { resultEl.style.display = 'none'; resultEl.textContent = ''; }
+  },
+
+  // ===== Friend Requests panel =====
+  openFriendRequests() {
+    var self = this;
+    UI.openDrawer('好友申请', '<p style="text-align:center;color:var(--text-secondary);padding:32px;">加载中...</p>');
+    API.getFriendRequests(this.playerId).then(function(data) {
+      var requests = (data && data.data) || [];
+      var html = '';
+      if (requests.length === 0) {
+        html = '<p style="text-align:center;color:var(--text-secondary);padding:32px;">暂无人申请加你为好友</p>';
+      } else {
+        html = '<div class="drawer-list">';
+        for (var i = 0; i < requests.length; i++) {
+          var r = requests[i];
+          html += '<div class="drawer-card">';
+          html += '<span style="font-weight:600;">' + (r.from_player_name || '未知玩家') + '</span>';
+          html += '<span style="color:var(--text-secondary);font-size:12px;"> 请求加为好友</span>';
+          html += '<div style="margin-top:8px;display:flex;gap:8px;">';
+          html += '<button class="btn-action" onclick="GameClient.acceptFriendRequest(' + r.id + ',\'' + (r.from_player_name || '') + '\')">接受</button>';
+          html += '<button class="btn-ma" onclick="GameClient.rejectFriendRequest(' + r.id + ')">拒绝</button>';
+          html += '</div></div>';
+        }
+        html += '</div>';
+      }
+      UI.openDrawer('好友申请', html);
+    }).catch(function(e) {
+      UI.openDrawer('好友申请', '<p style="text-align:center;color:var(--text-secondary);padding:32px;">加载失败</p>');
+    });
+  },
+
+  acceptFriendRequest(requestId, fromName) {
+    var self = this;
+    API.acceptFriendRequest(this.playerId, requestId).then(function() {
+      UI.addLog('已接受 ' + fromName + ' 的好友申请', 'system');
+      UI.closeDrawer();
+      self.openFriends();
+    }).catch(function(e) {
+      UI.addLog('操作失败: ' + (e.message || e), 'warning');
+    });
+  },
+
+  rejectFriendRequest(requestId) {
+    var self = this;
+    API.rejectFriendRequest(this.playerId, requestId).then(function() {
+      UI.addLog('已拒绝好友申请', 'system');
+      self.openFriendRequests();
+    }).catch(function(e) {
+      UI.addLog('操作失败: ' + (e.message || e), 'warning');
+    });
+  },
+
+  // ===== Gift panel =====
+  openGiftPanel() {
+    var self = this;
+    UI.openDrawer('赠送礼物', '<p style="text-align:center;color:var(--text-secondary);padding:32px;">加载中...</p>');
+    Promise.all([
+      API.getFriendList(this.playerId),
+      API.getInventory(this.playerId)
+    ]).then(function(results) {
+      var friends = (results[0] && results[0].data) || [];
+      var inventory = (results[1] && results[1].data) || [];
+      var html = '<div style="padding:8px;">';
+      if (friends.length === 0) {
+        html += '<p style="text-align:center;color:var(--text-secondary);padding:16px;">暂无好友可赠送，先加个好友吧</p>';
+      } else if (inventory.length === 0) {
+        html += '<p style="text-align:center;color:var(--text-secondary);padding:16px;">背包空空，无可赠送的物品</p>';
+      } else {
+        html += '<p style="margin-bottom:8px;">选择好友：</p>';
+        html += '<select id="giftTarget" style="width:100%;padding:8px;margin-bottom:16px;background:#1a1a2e;color:#ccc;border:1px solid #333;border-radius:4px;">';
+        for (var i = 0; i < friends.length; i++) {
+          html += '<option value="' + friends[i].id + '">' + friends[i].player_name + '</option>';
+        }
+        html += '</select>';
+        html += '<p style="margin-bottom:8px;">选择物品：</p>';
+        html += '<div style="max-height:200px;overflow-y:auto;">';
+        for (var j = 0; j < inventory.length; j++) {
+          var item = inventory[j];
+          html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid #222;cursor:pointer;" onclick="GameClient.sendGift(\'' + item.item_key + '\')">';
+          html += '<span>' + (item.item_name || item.item_key) + ' x' + (item.quantity || 1) + '</span>';
+          html += '<span style="color:var(--text-secondary);font-size:12px;">赠送</span>';
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+      html += '</div>';
+      UI.openDrawer('赠送礼物', html);
+    }).catch(function(e) {
+      UI.openDrawer('赠送礼物', '<p style="text-align:center;color:var(--text-secondary);padding:32px;">加载失败</p>');
+    });
+  },
+
+  sendGift(itemKey) {
+    var targetId = document.getElementById('giftTarget')?.value;
+    if (!targetId) return;
+    var self = this;
+    API.sendGift(this.playerId, targetId, itemKey).then(function(data) {
+      if (data && data.success) {
+        UI.addLog('礼物已送出！', 'system');
+        UI.closeDrawer();
+      } else {
+        UI.addLog('赠送失败: ' + ((data && data.error && data.error.message) || '未知错误'), 'warning');
+      }
+    }).catch(function(e) {
+      UI.addLog('赠送失败: ' + (e.message || e), 'warning');
+    });
+  },
+
+  // ===== Recent interactions =====
+  openRecentInteractions() {
+    var self = this;
+    UI.openDrawer('最近互动', '<p style="text-align:center;color:var(--text-secondary);padding:32px;">加载中...</p>');
+    API.getRecentInteractions(this.playerId).then(function(data) {
+      var interactions = (data && data.data) || [];
+      var html = '';
+      if (interactions.length === 0) {
+        html = '<p style="text-align:center;color:var(--text-secondary);padding:32px;">暂无最近互动记录</p>';
+      } else {
+        html = '<div class="drawer-list">';
+        for (var i = 0; i < interactions.length; i++) {
+          var ix = interactions[i];
+          html += '<div class="drawer-card" style="font-size:13px;">';
+          html += '<span>' + (ix.description || ix.type || '互动') + '</span>';
+          html += '<span style="float:right;color:var(--text-secondary);font-size:11px;">' + (ix.created_at || '').substr(0,16) + '</span>';
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+      UI.openDrawer('最近互动', html);
+    }).catch(function(e) {
+      UI.openDrawer('最近互动', '<p style="text-align:center;color:var(--text-secondary);padding:32px;">暂无最近互动记录</p>');
+    });
   },
 
   async submitFeedback() {

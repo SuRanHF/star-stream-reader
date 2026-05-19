@@ -17,9 +17,9 @@ const ALLOWED_CONTRIBUTION_TYPES = [
 const ALLOWED_STATUSES = ['draft', 'active', 'completed', 'failed', 'expired', 'rewarded', 'cancelled'];
 
 const REWARD_LIMITS = {
-  participation: { coins: 500, storyFragments: 10, scenarioProof: 2, rareItem: 1 },
-  completion:   { coins: 1000, storyFragments: 20, scenarioProof: 3, rareItem: 2 },
-  ranking:      { coins: 2000, storyFragments: 30, scenarioProof: 5, rareItem: 3 }
+  participation: { coins: 500, storyFragments: 10, rareItem: 1 },
+  completion:   { coins: 1000, storyFragments: 20, rareItem: 2 },
+  ranking:      { coins: 2000, storyFragments: 30, rareItem: 3 }
 };
 
 // ── 校验 ──
@@ -307,8 +307,8 @@ function claimReward(eventId, playerId) {
       granted.storyFragments = participationReward.storyFragments;
     }
     if (participationReward.scenarioProof) {
-      chapterService.awardResource(playerId, 'scenarioProof', participationReward.scenarioProof);
-      granted.scenarioProof = participationReward.scenarioProof;
+      chapterService.awardResource(playerId, 'storyFragments', participationReward.scenarioProof * 10);
+      granted.storyFragments = (granted.storyFragments || 0) + participationReward.scenarioProof * 10;
     }
     if (participationReward.item) {
       try { require('./inventoryService').addItem(playerId, participationReward.item, 1); granted.item = participationReward.item; }
@@ -411,6 +411,30 @@ function getContributionRanking(eventId, limit) {
   }));
 }
 
+// 全服星流放送贡献总榜（跨所有事件汇总）
+function getGlobalContributionLeaderboard(limit) {
+  var db = getDb();
+  var rows = db.prepare(
+    'SELECT bc.player_id, p.player_name, p.stats_json, COALESCE(SUM(bc.amount), 0) as total_contribution ' +
+    'FROM broadcast_contributions bc ' +
+    'JOIN players p ON bc.player_id = p.id ' +
+    'GROUP BY bc.player_id ' +
+    'ORDER BY total_contribution DESC ' +
+    'LIMIT ?'
+  ).all(limit || 50);
+
+  return rows.map(function(r, i) {
+    var stats = typeof r.stats_json === 'string' ? JSON.parse(r.stats_json) : (r.stats_json || {});
+    return {
+      rank: i + 1,
+      player_id: r.player_id,
+      player_name: r.player_name,
+      level: stats.level || 1,
+      total_contribution: r.total_contribution
+    };
+  });
+}
+
 // 获取当前激活的星流放送对 gameplay 的修正
 function getActiveModifiers(playerId) {
   const active = getActiveBroadcasts();
@@ -490,6 +514,6 @@ module.exports = {
   validateBroadcastDraft, createDraft, activateEvent,
   joinEvent, recordContribution, getEventProgress, getPlayerContribution,
   claimReward, resolveEvent,
-  getActiveBroadcasts, getHistoryBroadcasts, getContributionRanking, getActiveModifiers,
+  getActiveBroadcasts, getHistoryBroadcasts, getContributionRanking, getGlobalContributionLeaderboard, getActiveModifiers,
   tryRecordContributions
 };

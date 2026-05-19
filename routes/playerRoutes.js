@@ -45,6 +45,17 @@ router.post('/select-constellation', (req, res) => {
   }
 });
 
+// 冥界 - 获取已死亡玩家列表
+router.get('/dead-list', (req, res) => {
+  try {
+    const list = playerService.getDeadPlayers();
+    res.json({ success: true, data: list });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
+  }
+});
+
 router.get('/:id', (req, res) => {
   try {
     recoveryService.applyPassiveRecovery(Number(req.params.id));

@@ -1,0 +1,235 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - heading "灵界" [level=1] [ref=e5] [cursor=pointer]
+        - generic [ref=e6]: 大乘期中期
+        - generic "点击查看环境加成" [ref=e7] [cursor=pointer]: 灵历437年 夏 7月6日 巳时(昼)
+      - generic [ref=e9] [cursor=pointer]: 人民
+    - generic [ref=e11]:
+      - text: "QQ内测群: 1091701734 -- 欢迎加群反馈建议与BUG"
+      - button "x" [ref=e12] [cursor=pointer]
+    - generic [ref=e13]:
+      - complementary [ref=e14]:
+        - generic [ref=e15]:
+          - heading "角色信息" [level=3] [ref=e16]
+          - generic [ref=e17]:
+            - generic [ref=e18]: 姓名
+            - generic [ref=e19] [cursor=pointer]:
+              - generic [ref=e283]: 人民
+              - generic "性别已登记，可消耗仙缘重塑" [ref=e284]: 不拘
+              - generic "闭关冥想中，暂不可护道接单" [ref=e285]: 闭关冥想中
+          - generic [ref=e20]:
+            - generic [ref=e21]: 境界
+            - generic [ref=e22]: 大乘期中期 ⓘ
+          - generic [ref=e23]:
+            - generic [ref=e24]: 修为
+            - generic "点击查看修为加成详情" [ref=e25] [cursor=pointer]: 70,874,562 / 200,000,000
+          - generic [ref=e27]: 35.4%
+          - generic [ref=e286]: 突破天材 ⓘ
+        - generic [ref=e28]:
+          - heading "属性" [level=3] [ref=e29]
+          - generic [ref=e30]:
+            - generic [ref=e31]: 生命
+            - generic "460115 / 504522" [ref=e170] [cursor=pointer]: 46万 / 50.5万 ⓘ
+          - generic [ref=e33]:
+            - generic [ref=e34]: 灵力
+            - generic "78240 / 78240" [ref=e171] [cursor=pointer]: 7.82万 / 7.82万 ⓘ
+          - generic [ref=e36]:
+            - generic [ref=e37]: 攻击
+            - generic "31611" [ref=e172]: 31,611 ⓘ
+          - generic [ref=e39]:
+            - generic [ref=e40]: 防御
+            - generic "16631" [ref=e173]: 16,631 ⓘ
+          - generic [ref=e42]:
+            - generic [ref=e43]: 战力
+            - generic "1,146,437，点击查看战力口径" [ref=e174] [cursor=pointer]: 115万 ⓘ
+          - generic [ref=e45]:
+            - generic [ref=e46]: 神识
+            - generic "点击操作与详情" [ref=e47] [cursor=pointer]: 11,258/11,258 ⓘ
+          - generic [ref=e48]:
+            - generic [ref=e49]: 气运
+            - generic "点击操作与详情" [ref=e50] [cursor=pointer]: 4 ⓘ
+          - generic [ref=e175]:
+            - generic [ref=e176]: 灵兽
+            - generic [ref=e177] [cursor=pointer]: 春秋蝉 0% 灵100%
+          - generic [ref=e51]:
+            - generic [ref=e52]: 灵根
+            - generic "点击操作与详情" [ref=e53] [cursor=pointer]: 天灵根 ⓘ
+          - generic [ref=e54]:
+            - generic [ref=e55]: 寿元
+            - generic [ref=e56]: 56岁 / 4489岁
+          - generic [ref=e57]:
+            - generic [ref=e58]: 仙缘
+            - generic "点击查看仙缘详情" [ref=e59] [cursor=pointer]: 0 ⓘ
+        - generic [ref=e60]:
+          - heading "法相穿搭 一键换装" [level=3] [ref=e61]:
+            - generic [ref=e62]: 法相穿搭
+            - button "一键换装" [ref=e64] [cursor=pointer]:
+              - img [ref=e65]
+              - generic [ref=e67]: 换装
+          - generic [ref=e68]:
+            - generic [ref=e69] [cursor=pointer]:
+              - generic [ref=e287]: 主手
+              - generic [ref=e289]: 传说轮回判官笔
+            - generic [ref=e71] [cursor=pointer]:
+              - generic [ref=e290]: 服饰
+              - generic [ref=e292]: 传说天妖万重仙躯甲
+            - generic [ref=e73] [cursor=pointer]:
+              - generic [ref=e293]: 法器
+              - generic [ref=e295]: 传说道心珠
+            - generic [ref=e75] [cursor=pointer]:
+              - generic [ref=e296]: 须弥戒
+              - generic [ref=e298]: 传说储物戒
+            - generic [ref=e77] [cursor=pointer]:
+              - generic [ref=e299]: 炼丹炉
+              - generic [ref=e301]: 史诗天道熔炉
+        - generic [ref=e79]:
+          - heading "灵石" [level=3] [ref=e80]:
+            - generic [ref=e81]: 灵石
+          - generic [ref=e82]:
+            - generic [ref=e83]: 持有
+            - generic "5,001,548" [ref=e193]
+          - button "玄筹阁" [ref=e86] [cursor=pointer]:
+            - img [ref=e87]
+            - generic [ref=e89]: 玄筹阁
+        - generic [ref=e90]:
+          - heading "其他" [level=3] [ref=e91]
+          - generic [ref=e194]:
+            - generic [ref=e195]: 道号
+            - generic "点此立号或更号" [ref=e196] [cursor=pointer]: 虚假尊者
+          - generic [ref=e92]:
+            - generic [ref=e93]: 功法
+            - generic [ref=e94]: 大罗金仙真箓
+          - generic [ref=e95]:
+            - generic [ref=e96]: 位置
+            - generic [ref=e97]: 飞升劫台
+          - generic [ref=e98]:
+            - generic [ref=e99]: 今日求助
+            - generic [ref=e100]: 0/30
+          - generic [ref=e101]:
+            - generic [ref=e102]: 今日协助
+            - generic [ref=e103]: 0/30
+        - generic [ref=e104]:
+          - text: 服务器由
+          - link "极玩数据" [ref=e105] [cursor=pointer]:
+            - /url: https://idc.jiwanvip.com/
+          - text: 提供
+        - generic [ref=e106]:
+          - link [ref=e107] [cursor=pointer]:
+            - /url: https://hk.688hk.net/s/nNYeUys3
+            - img [ref=e108]
+          - img "微信加群" [ref=e109]
+      - main [ref=e110]:
+        - generic [ref=e111]:
+          - generic [ref=e113]:
+            - paragraph [ref=e197]: 击败天道刑罚化身获得 优良洗炼石 x1
+            - paragraph [ref=e198]: "[支出] 自动补灵: 774 灵石 (余额5633202)"
+            - paragraph [ref=e199]: 自动补灵：消耗 774 颗灵石，恢复灵力 +9675
+            - paragraph [ref=e200]: 自动运功：消耗灵力 42565，恢复气血 +85130
+            - paragraph [ref=e201]: "[支出] 自动补灵: 3406 灵石 (余额5629796)"
+            - paragraph [ref=e202]: 自动补灵：消耗 3406 颗灵石，恢复灵力 +42575
+            - paragraph [ref=e203]: "[收入] 击败渊界吞噬者: 20741 灵石 (余额5650537)"
+            - paragraph [ref=e204]: 在飞升劫台击败渊界吞噬者，吸收到修为86795，满载而归。
+            - paragraph [ref=e205]: "└ 修为加成: 基础 32743 × (1 + 宗门15% + 镇派28% + 灵根21% + 虚空淬体80% + 道韵20%)"
+            - paragraph [ref=e206]: 击败渊界吞噬者获得 天精矿碎片 x6
+            - paragraph [ref=e207]: "[支出] 自动补灵: 929 灵石 (余额5649608)"
+            - paragraph [ref=e208]: 自动补灵：消耗 929 颗灵石，恢复灵力 +11612
+            - paragraph [ref=e209]: "[收入] 击败渊界吞噬者: 9790 灵石 (余额5659398)"
+            - paragraph [ref=e210]: 在飞升劫台击败渊界吞噬者，吸收到修为107003，满载而归。
+            - paragraph [ref=e211]: "└ 修为加成: 基础 41215 × (1 + 宗门15% + 镇派28% + 灵根16% + 虚空淬体80% + 道韵20%)"
+            - paragraph [ref=e212]: 击败渊界吞噬者获得 混沌晶核碎片 x9
+            - paragraph [ref=e213]: "[支出] 自动补灵: 1165 灵石 (余额5658233)"
+            - paragraph [ref=e214]: 自动补灵：消耗 1165 颗灵石，恢复灵力 +14562
+            - paragraph [ref=e215]: "[收入] 击败渊界吞噬者: 13473 灵石 (余额5671706)"
+            - paragraph [ref=e216]: 在飞升劫台击败渊界吞噬者，吸收到修为71359，满载而归。
+            - paragraph [ref=e217]: "└ 修为加成: 基础 27988 × (1 + 宗门15% + 镇派28% + 灵根11% + 虚空淬体80% + 道韵20%)"
+            - paragraph [ref=e218]: 击败渊界吞噬者获得 高阶妖核碎片 x8
+            - paragraph [ref=e219]: "[支出] 自动补灵: 1754 灵石 (余额5669952)"
+            - paragraph [ref=e220]: 自动补灵：消耗 1754 颗灵石，恢复灵力 +21925
+            - paragraph [ref=e221]: 自动运功：消耗灵力 9895，恢复气血 +19790
+            - paragraph [ref=e222]: "[支出] 自动补灵: 792 灵石 (余额5669160)"
+            - paragraph [ref=e223]: 自动补灵：消耗 792 颗灵石，恢复灵力 +9900
+            - paragraph [ref=e224]: "[收入] 探索采集灵石: 7438 灵石 (余额5676598)"
+            - paragraph [ref=e225]: "探索灵石事件: 在飞升劫台炼化太古遗迹，获得 7438 灵石。"
+            - paragraph [ref=e226]: 你盘膝而坐，缓缓闭上双眼，灵气开始涌入体内...
+            - paragraph [ref=e227]: "[支出] 一键修复装备 x3: 675050 灵石 (余额5001548)"
+            - paragraph [ref=e228]: 一键修复装备 3 件，消耗 675050 灵石，全部破损清零。
+            - paragraph [ref=e229]: 徒弟 古月带派(#1412) 反哺修为（批量探索感悟）：+21825。
+            - paragraph [ref=e230]: 徒弟 古月带派(#1412) 反哺修为（击败荒漠沙虫）：+29030。
+            - paragraph [ref=e231]: 徒弟 古月带派(#1412) 反哺修为（击败渊野狂兽）：+46745。
+            - paragraph [ref=e232]: 徒弟 古月带派(#1412) 反哺修为（批量探索宝地）：+20016。
+            - paragraph [ref=e233]: 徒弟 古月带派(#1412) 反哺修为（批量探索宝地）：+11640。
+            - paragraph [ref=e234]: 徒弟 古月带派(#1412) 反哺修为（击败天妖星蛛）：+52313。
+            - paragraph [ref=e235]: 徒弟 古月带派(#1412) 反哺修为（击败坠渊散修）：+51483。
+            - paragraph [ref=e236]: 徒弟 古月带派(#1412) 反哺修为（击败渊海巨魔）：+94121。
+            - paragraph [ref=e237]: 徒弟 古月带派(#1412) 反哺修为（击败坠渊散修）：+43889。
+            - paragraph [ref=e238]: 徒弟 古月带派(#1412) 反哺修为（击败天妖星蛛）：+9624。
+            - paragraph [ref=e239]: 徒弟 古月带派(#1412) 反哺修为（击败天妖星蛛）：+54154。
+            - paragraph [ref=e240]: 徒弟 古月带派(#1412) 反哺修为（击败渊野狂兽）：+47426。
+            - paragraph [ref=e241]: 徒弟 古月带派(#1412) 反哺修为（击败天妖星蛛）：+45997。
+            - paragraph [ref=e242]: 徒弟 古月带派(#1412) 反哺修为（击败坠渊散修）：+45541。
+            - paragraph [ref=e243]: 徒弟 古月带派(#1412) 反哺修为（批量探索感悟）：+27283。
+            - paragraph [ref=e244]: 徒弟 古月带派(#1412) 反哺修为（批量探索宝地）：+30984。
+            - paragraph [ref=e245]: 徒弟 古月带派(#1412) 反哺修为（击败天妖星蛛）：+19914。
+            - paragraph [ref=e246]: 徒弟 古月带派(#1412) 反哺修为（击败天妖星蛛）：+11410。
+            - paragraph [ref=e302]: 【洞府·同心阵】你与sr同修 8时0分，重叠期间修为与恢复提升 22%。
+            - paragraph [ref=e303]: 【洞府·修炼室】闭关修为提升 16%。
+            - paragraph [ref=e304]: 你缓缓收功，结束了本次修炼。
+            - paragraph [ref=e305]: "修炼时长: 8时0分"
+            - paragraph [ref=e306]: "获得修为: 952103"
+            - paragraph [ref=e307]: "恢复神识: 11242"
+            - paragraph [ref=e308]: "恢复气血: 44407"
+          - generic [ref=e115]:
+            - button "地图" [ref=e309] [cursor=pointer]
+            - button "秘境" [ref=e310] [cursor=pointer]
+            - button "排行" [ref=e311] [cursor=pointer]
+            - button "历程" [ref=e312] [cursor=pointer]
+            - button "灵渊" [ref=e313] [cursor=pointer]: 灵渊
+            - button "聊天" [ref=e315] [cursor=pointer]
+            - button "坊市" [ref=e316] [cursor=pointer]
+            - button "拍卖" [ref=e317] [cursor=pointer]
+            - button "商铺" [ref=e318] [cursor=pointer]
+            - button "传功" [ref=e319] [cursor=pointer]
+            - button "宗门" [ref=e320] [cursor=pointer]
+            - button "武道" [ref=e321] [cursor=pointer]
+            - button "试炼" [ref=e322] [cursor=pointer]
+            - button "飞鸿" [ref=e323] [cursor=pointer]
+            - button "图鉴" [ref=e324] [cursor=pointer]
+            - button "说明" [ref=e325] [cursor=pointer]
+            - button "反馈" [ref=e326] [cursor=pointer]
+            - button "公告" [ref=e327] [cursor=pointer]
+            - button "打赏" [ref=e328] [cursor=pointer]
+            - button "设置" [ref=e329] [cursor=pointer]
+            - button "自定义" [ref=e330] [cursor=pointer]
+            - button "退出" [ref=e331] [cursor=pointer]
+        - generic [ref=e137]:
+          - generic [ref=e138]:
+            - button "冥想修炼" [ref=e139] [cursor=pointer]
+            - button "探索(-64神识)" [ref=e269] [cursor=pointer]:
+              - generic [ref=e141]: 探索(-64神识)
+            - generic "批量探索：一次事件按 N 次结算；不受招妖/避妖丹药加成；妖兽只打一场且不能合击/护道；商人/道友只消耗 1 次并退还剩余神识" [ref=e142]:
+              - button "×1" [ref=e143] [cursor=pointer]
+            - generic "开启后将触发AI奇遇链(与倍数互斥)" [ref=e144] [cursor=pointer]:
+              - checkbox "奇遇" [ref=e145]
+              - generic [ref=e146]: 奇遇
+            - generic "自动连续探索，遭遇妖兽/云游商人/奇遇/神识不足时自动停止" [ref=e147] [cursor=pointer]:
+              - checkbox "自动" [ref=e148]
+              - generic [ref=e149]: 自动
+            - generic "自动战斗设置" [ref=e150] [cursor=pointer]: ⓘ
+          - generic [ref=e152]:
+            - button "储物" [ref=e153] [cursor=pointer]
+            - button "炼造" [ref=e154] [cursor=pointer]
+            - button "洞府" [ref=e155] [cursor=pointer]
+            - button "功法" [ref=e156] [cursor=pointer]
+            - button "道友" [ref=e157] [cursor=pointer]
+            - button "师徒 1" [ref=e332] [cursor=pointer]:
+              - text: 师徒
+              - generic [ref=e333]: "1"
+            - button "接引" [ref=e159] [cursor=pointer]
+            - button "对战" [ref=e160] [cursor=pointer]
+            - button "灵兽" [ref=e161] [cursor=pointer]
+            - button "护道" [ref=e162] [cursor=pointer]
+            - button "称号" [ref=e163] [cursor=pointer]
+      - text: ▼ 暂无消息 + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + +
+  - text: +

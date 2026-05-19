@@ -109,13 +109,25 @@ router.post('/:eventId/claim', authRequired, requireOwnPlayer, (req, res) => {
   }
 });
 
-// 贡献排行
+// 贡献排行（按事件）
 router.get('/:eventId/ranking', (req, res) => {
   try {
     const eventId = parseInt(req.params.eventId);
     const limit = parseInt(req.query.limit) || 20;
     const ranking = broadcastService.getContributionRanking(eventId, limit);
     res.json({ success: true, data: ranking });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+  }
+});
+
+// 全服贡献总榜
+router.get('/leaderboard', (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    const rankings = broadcastService.getGlobalContributionLeaderboard(limit);
+    res.json({ success: true, data: rankings });
   } catch (e) {
     console.error(e);
     res.status(500).json({ code: 'SERVER_ERROR', message: e.message });

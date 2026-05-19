@@ -38,7 +38,7 @@ function seedExplorationEvents(db) {
     ['story_stage_01_settlement', 'story', 'main_ch01_paid_service', 'ruined_station',
       '最终结算：付费服务', '鬼怪重新出现在车厢中央。计时器清零。它的脸上是熟悉的笑容——"各位观众的硬币统计已完成。星座的赞助协议已锁定。"它看着你，蓝光在你头顶停顿。"这位化身——你的付费服务已经确认。欢迎来到灭亡的世界。你的生存之旅才刚刚开始。"',
       0, 0, '{}', // weight=0: not random, triggered only when objectives met
-      '{"coins":40,"story_fragments":5,"flags":{"stage_01_final_triggered":true},"scenarioProof":1}',
+      '{"coins":40,"story_fragments":15,"flags":{"stage_01_final_triggered":true}}',
       '{}',
       '{"storyEventsTriggered":"story_stage_01_settlement","completesStageEvents":true}'],
 
@@ -67,7 +67,7 @@ function seedExplorationEvents(db) {
     ['story_stage_02_settlement', 'story', 'main_ch02_meeting_protagonist', 'broken_market',
       '契约成立：星座的赌注', '星座的回应一个接一个出现了。你的频道观众数突破了一个又一个记录。但在繁荣背后，某个最古老的存在始终沉默——它还没开口。你觉得它在等待着什么。等待你做出第一个足够愚蠢的错误？或者等待你证明自己足够特别？你关掉了赞助界面，望向废弃商场尽头那扇通往下一章节的门。',
       0, 0, '{}',
-      '{"coins":60,"story_fragments":8,"flags":{"stage_02_final_triggered":true},"scenarioProof":1}',
+      '{"coins":60,"story_fragments":18,"flags":{"stage_02_final_triggered":true}}',
       '{}',
       '{"storyEventsTriggered":"story_stage_02_settlement","completesStageEvents":true}'],
 
@@ -83,14 +83,14 @@ function seedExplorationEvents(db) {
     ['story_throne_appears', 'story', 'main_ch03_constellation_sponsor', 'collapsed_bridge',
       '绝对王座降临', '天空中裂开一道金色的缝隙。一座巨大的王座从裂缝中缓缓降落——不是实体，而是纯粹的力量凝结而成的漩涡。每一个化身都感到它的召唤。星座们在频道中发出了你从未听过的尖叫——那是对力量的渴望。绝对王座。坐上它，你就是众王之王。坐上它，你将无法回头。',
       1.0, 0, '{}',
-      '{"coins":50,"story_fragments":5,"flags":{"throne_appeared":true},"kingToken":1}',
+      '{"coins":50,"story_fragments":5,"flags":{"throne_appeared":true},"abyssMark":1}',
       '{"channelHeat":5}',
       '{"storyEventsTriggered":"story_throne_appears"}'],
     // Stage 03 Final
     ['story_stage_03_settlement', 'story', 'main_ch03_constellation_sponsor', 'collapsed_bridge',
       '王座之争的终局', '王座的光开始消退。这场争夺已经落幕——无论胜者是谁，王座的存在已经永远改变了星之流的所有势力。你站在桥的断口处，脚下的黑水在空洞地翻涌。下一幕的舞台已经确定。王者们消耗了彼此的精力，而真正的威胁还没有开始行动。',
       0, 0, '{}',
-      '{"coins":80,"story_fragments":10,"flags":{"stage_03_final_triggered":true},"scenarioProof":1,"kingToken":1}',
+      '{"coins":80,"story_fragments":20,"flags":{"stage_03_final_triggered":true},"abyssMark":1}',
       '{}',
       '{"storyEventsTriggered":"story_stage_03_settlement","completesStageEvents":true}'],
 
@@ -113,7 +113,7 @@ function seedExplorationEvents(db) {
     ['story_stage_04_settlement', 'story', 'main_ch04_throne_war', 'silent_library',
       '没有王的世界的终局', '没有一个人坐上王座。但魔王候选的名单已经成形。冥界的通道在你身后悄然关闭——或者并未完全关闭。不管怎样，你在这个没有王的世界中找到了一条属于自己的路。现在，那个最古老的梦正在等待你。',
       0, 0, '{}',
-      '{"coins":100,"story_fragments":15,"flags":{"stage_04_final_triggered":true},"scenarioProof":1,"abyssMark":1}',
+      '{"coins":100,"story_fragments":25,"flags":{"stage_04_final_triggered":true},"abyssMark":1}',
       '{}',
       '{"storyEventsTriggered":"story_stage_04_settlement","completesStageEvents":true}'],
 
@@ -130,7 +130,7 @@ function seedExplorationEvents(db) {
     ['story_stage_05_settlement', 'story', 'main_ch04_throne_war', 'black_channel_zone',
       '星座盛宴的终局', '所有的频道同时静默了一瞬。然后，一个低沉的声音从每一个屏幕、每一个扬声器、每一个鬼怪的频道中响起——那是最古老的梦在说话。它没有威胁，也没有愤怒。它只是在陈述一个事实：「读者，你比我想象得要久。」',
       0, 0, '{}',
-      '{"coins":120,"story_fragments":20,"flags":{"stage_05_final_triggered":true},"scenarioProof":1,"constellationFavor":2}',
+      '{"coins":120,"story_fragments":30,"flags":{"stage_05_final_triggered":true},"constellationFavor":2}',
       '{}',
       '{"storyEventsTriggered":"story_stage_05_settlement","completesStageEvents":true}'],
 
@@ -147,7 +147,7 @@ function seedExplorationEvents(db) {
     ['story_stage_06_settlement', 'story', 'main_ch04_throne_war', 'final_scenario_gate',
       '暗城之门的终局', '暗城的大门彻底敞开。黑色的频道主持者消失了，只留下门口的两道符文——左边写着「进入」，右边写着「终章」。你手上的钥匙碎片在发光。它的温度在告诉你：你可以进去了。如果你还没准备好——也许就再也没机会了。',
       0, 0, '{}',
-      '{"coins":150,"story_fragments":25,"flags":{"stage_06_final_triggered":true},"scenarioProof":1,"finalPage":1}',
+      '{"coins":150,"story_fragments":35,"flags":{"stage_06_final_triggered":true}}',
       '{}',
       '{"storyEventsTriggered":"story_stage_06_settlement","completesStageEvents":true}'],
 
@@ -157,14 +157,14 @@ function seedExplorationEvents(db) {
     ['story_final_wall_visible', 'story', 'main_ch04_throne_war', 'final_scenario_gate',
       '最后的墙', '你站在了最后的墙面前。它不是物理的墙——它是所有故事和所有可能性的集合体。墙面上写满了3149章的内容。每一个化身的故事、每一次轮回的细节、每一个被遗忘的选择。而第3150章只有一片空白。那一章是关于你的——但还需要你亲自去书写。',
       1.0, 0, '{}',
-      '{"coins":80,"story_fragments":10,"flags":{"final_wall_visible":true},"finalPage":1}',
+      '{"coins":80,"story_fragments":10,"flags":{"final_wall_visible":true}}',
       '{"channelHeat":10}',
       '{"storyEventsTriggered":"story_final_wall_visible"}'],
     // Stage 07 Final
     ['story_stage_07_settlement', 'story', 'main_ch04_throne_war', 'final_scenario_gate',
       '魔王路线的终局', '魔王不再是你的称号——而是你走过的路。你理解了王者的孤独、魔王的重量、冥界的黑暗、以及读者视角的珍贵。第3150章的文字开始在你面前缓慢浮现，等待你的最后一笔。是时候去翻开那一页了——不是作为化身，不是作为角色，而是作为你一直以来应该是的那个人：读者。',
       0, 0, '{}',
-      '{"coins":200,"story_fragments":30,"flags":{"stage_07_final_triggered":true},"scenarioProof":1,"finalPage":1}',
+      '{"coins":200,"story_fragments":40,"flags":{"stage_07_final_triggered":true}}',
       '{}',
       '{"storyEventsTriggered":"story_stage_07_settlement","completesStageEvents":true}'],
 
@@ -238,7 +238,7 @@ function seedExplorationEvents(db) {
     ['opp_high_risk_gamble', 'opportunity', null, 'collapsed_bridge',
       '高风险机遇：黑水之约', '桥下的黑水突然停止了流动，一个声音从水面之下传来——不是鬼怪，不是星座。那是某种更古老的存在。它提出一个提议：一次性地给你巨大的力量，代价是在你最脆弱的时刻，它将在你耳边说一句话——你不能拒绝听这句话的权利。接受吗？',
       1.0, 0, '{}',
-      '{"coins":200,"story_fragments":15,"kingToken":2,"abyssMark":2,"stats":{"combat":5,"cruelty":3}}',
+      '{"coins":200,"story_fragments":15,"abyssMark":4,"stats":{"combat":5,"cruelty":3}}',
       '{"worldLineShift":5,"channelHeat":15,"hp_loss":30}',
       '{}'],
     ['opp_sponsor_attention', 'opportunity', null, 'black_channel_zone',
@@ -250,7 +250,7 @@ function seedExplorationEvents(db) {
     ['opp_rare_resource', 'opportunity', null, 'final_scenario_gate',
       '终极资源机遇：文字晶化', '在终章之门的基石缝隙中，一些结晶化的文字碎片正在微微发光。这些不是普通的物品——它们是此前每一个故事的凝结。收集到足够多的碎片，你就将拼出第3150章的第一段文字。',
       1.0, 0, '{}',
-      '{"coins":150,"story_fragments":12,"finalPage":1,"scenarioProof":2}',
+      '{"coins":150,"story_fragments":32}',
       '{"channelHeat":3}',
       '{}'],
 
@@ -266,7 +266,7 @@ function seedExplorationEvents(db) {
     ['hidden_true_ending_clue', 'hidden', null, 'final_scenario_gate',
       '隐藏事件：真结局线索', '你注意到终章之门上的文字不是固定的——它们在缓慢移动，重新排列。如果你仔细看，你能看到文字排列的模式。那是一段从未在任何频道中出现过的隐藏剧本：在第3150章，你必须拒绝所有结局选项。你必须坚持阅读——哪怕整本书都在试图合上自己。那段文字的最后一行写道：「全知读者视角：不仅知道故事如何结束，更知道故事为什么必须结束。」',
       1.0, 0, '{}',
-      '{"story_fragments":15,"stats":{"insight":5},"flags":{"true_ending_clue_found":true},"finalPage":2}',
+      '{"story_fragments":15,"stats":{"insight":5},"flags":{"true_ending_clue_found":true}}',
       '{"worldLineShift":8}',
       '{}'],
     ['hidden_oldest_dream', 'hidden', null, 'black_channel_zone',

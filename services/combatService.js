@@ -73,6 +73,23 @@ function simulateBattle(player, monsterKey, options) {
     }
   } catch (e) { /* broadcast not critical */ }
 
+  // 阵营领域修正 — 战斗伤害加成
+  let factionMods = {};
+  try {
+    const factionService = require('./factionService');
+    factionMods = factionService.getDomainModifiers(player.id);
+    if (factionMods.combatDamageBonus) {
+      playerPower.atk += Math.round(playerPower.atk * factionMods.combatDamageBonus);
+    }
+  } catch (e) { /* faction not critical */ }
+
+  // 世界线修正 — 怪物伤害倍率
+  let worldlineMods = { monsterDamageMult: 1.0 };
+  try {
+    const worldlineService = require('./worldlineService');
+    worldlineMods = worldlineService.getWorldlineGlobalModifiers();
+  } catch (e) { /* worldline not critical */ }
+
   let playerHp = playerPower.hp;
   let monsterHp = monsterDef.hp;
   const rounds = [];
@@ -80,6 +97,10 @@ function simulateBattle(player, monsterKey, options) {
 
   // 解析怪物技能
   const monsterSkills = JSON.parse(monsterDef.skills_json || '[]');
+
+  // 应用世界线怪物伤害倍率
+  const monsterAtkMult = worldlineMods.monsterDamageMult || 1.0;
+  const effectiveMonsterAtk = Math.round(effectiveMonsterAtk * monsterAtkMult);
 
   const attackerFirst = playerPower.spd >= monsterDef.speed;
   const MAX_ROUNDS = 30;
@@ -102,12 +123,12 @@ function simulateBattle(player, monsterKey, options) {
       // Monster attacks
       let mDmg;
       if (monsterSkill) {
-        mDmg = calcDamage(Math.round(monsterDef.attack * 1.3), playerPower.def, 0.05, 1.5);
+        mDmg = calcDamage(Math.round(effectiveMonsterAtk * 1.3), playerPower.def, 0.05, 1.5);
         mDmg.skill = monsterSkill;
         round.actions.push({ actor: 'monster', type: 'skill', skill: monsterSkill, damage: mDmg.damage, crit: mDmg.crit, playerHp: Math.max(0, playerHp - mDmg.damage) });
         playerHp -= mDmg.damage;
       } else {
-        mDmg = calcDamage(monsterDef.attack, playerPower.def, 0, 1);
+        mDmg = calcDamage(effectiveMonsterAtk, playerPower.def, 0, 1);
         round.actions.push({ actor: 'monster', type: 'attack', damage: mDmg.damage, crit: false, playerHp: Math.max(0, playerHp - mDmg.damage) });
         playerHp -= mDmg.damage;
       }
@@ -116,12 +137,12 @@ function simulateBattle(player, monsterKey, options) {
       // Monster attacks first
       let mDmg;
       if (monsterSkill) {
-        mDmg = calcDamage(Math.round(monsterDef.attack * 1.3), playerPower.def, 0.05, 1.5);
+        mDmg = calcDamage(Math.round(effectiveMonsterAtk * 1.3), playerPower.def, 0.05, 1.5);
         mDmg.skill = monsterSkill;
         round.actions.push({ actor: 'monster', type: 'skill', skill: monsterSkill, damage: mDmg.damage, crit: mDmg.crit, playerHp: Math.max(0, playerHp - mDmg.damage) });
         playerHp -= mDmg.damage;
       } else {
-        mDmg = calcDamage(monsterDef.attack, playerPower.def, 0, 1);
+        mDmg = calcDamage(effectiveMonsterAtk, playerPower.def, 0, 1);
         round.actions.push({ actor: 'monster', type: 'attack', damage: mDmg.damage, crit: false, playerHp: Math.max(0, playerHp - mDmg.damage) });
         playerHp -= mDmg.damage;
       }
@@ -150,7 +171,7 @@ function simulateBattle(player, monsterKey, options) {
     totalRounds: rounds.length,
     rounds,
     equipmentBonusHp: playerPower.equipmentBonusHp,
-    monster: { name: monsterDef.name, level: monsterDef.level, hp: monsterDef.hp, attack: monsterDef.attack, defense: monsterDef.defense, speed: monsterDef.speed },
+    monster: { name: monsterDef.name, level: monsterDef.level, hp: monsterDef.hp, attack: effectiveMonsterAtk, defense: monsterDef.defense, speed: monsterDef.speed },
     player: { name: player.player_name, level: playerPower.level, atk: playerPower.atk, def: playerPower.def, spd: playerPower.spd, hp: playerPower.hp }
   };
 }
@@ -226,23 +247,20 @@ function applyBattleRewards(playerId, monsterKey, battleResult, battleData) {
     // Boss kill: record and grant breakthrough resources
     if (monster.is_boss) {
       chapterService.recordBossKill(playerId, monsterKey);
-      // Bosses grant scenarioProof
-      const scenarioProofAmount = Math.max(1, Math.floor((monster.level || 1) / 5));
-      chapterService.awardResource(playerId, 'scenarioProof', scenarioProofAmount);
-      earned.scenario_proof = scenarioProofAmount;
-      // Bosses also grant storyFragments
-      const fragmentAmount = Math.max(1, Math.floor((monster.level || 1) / 3));
+      // Bosses grant storyFragments (merged from scenarioProof at 10x)
+      const fragmentAmount = Math.max(1, Math.floor((monster.level || 1) / 3)) + Math.max(1, Math.floor((monster.level || 1) / 5)) * 10;
       chapterService.awardResource(playerId, 'storyFragments', fragmentAmount);
       earned.story_fragments = fragmentAmount;
-      // Late-game bosses grant additional resources
-      if (monster.level >= 15) {
-        chapterService.awardResource(playerId, 'finalPage', 1);
-        earned.final_page = 1;
-      }
+      // Late-game bosses grant abyssMark
       if (monster.level >= 10) {
         chapterService.awardResource(playerId, 'abyssMark', 1);
         earned.abyss_mark = 1;
       }
+      // 世界线稳定化 — 击杀Boss减少偏移
+      try {
+        const worldlineService = require('./worldlineService');
+        worldlineService.contributeShift(-2, playerId);
+      } catch (e) { /* worldline not critical */ }
     }
 
     // Elite monsters (level >= 8 but not boss) grant storyFragments
@@ -260,6 +278,13 @@ function applyBattleRewards(playerId, monsterKey, battleResult, battleData) {
       if (monster.is_boss) contribs.push({ type: 'defeat_boss', amount: 1, metadata: { boss_key: monsterKey, boss_level: monster.level } });
       broadcastService.tryRecordContributions(playerId, contribs);
     } catch (e) { /* broadcast not critical */ }
+
+    // Phase 3: 阵营贡献记录
+    try {
+      const factionService = require('./factionService');
+      var combatContrib = monster.is_boss ? 5 : (monster.level >= 8 ? 2 : 1);
+      factionService.recordContribution(playerId, combatContrib, monster.is_boss ? 'defeat_boss' : 'kill_monster');
+    } catch (e) { /* faction not critical */ }
   } else {
     // Loss penalty
     const coinsLost = Math.min(player.coins, 10);

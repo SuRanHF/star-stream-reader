@@ -5,11 +5,8 @@ const playerService = require('./playerService');
 
 const defaultResources = {
   storyFragments: 0,
-  scenarioProof: 0,
   constellationFavor: 0,
-  kingToken: 0,
-  abyssMark: 0,
-  finalPage: 0
+  abyssMark: 0
 };
 
 // 获取玩家阶段推进资源
@@ -26,6 +23,16 @@ function getResources(playerId) {
 // 给予玩家阶段推进资源
 function awardResource(playerId, resourceType, amount) {
   if (!amount || amount <= 0) return;
+  // Redirect deprecated resource types
+  if (resourceType === 'scenarioProof') {
+    playerService.update(playerId, { story_fragments: (playerService.getRaw(playerId).story_fragments || 0) + (amount * 10) });
+    return;
+  }
+  if (resourceType === 'kingToken') {
+    resourceType = 'abyssMark';
+  }
+  if (resourceType === 'finalPage') return; // Removed currency
+
   const player = playerService.getRaw(playerId);
   if (!player) return;
   const resources = JSON.parse(player.breakthrough_resources_json || '{}');
@@ -443,7 +450,7 @@ function completeChapter(playerId) {
   if (rewards.story_fragments) {
     awardResource(playerId, 'storyFragments', rewards.story_fragments);
   }
-  awardResource(playerId, 'scenarioProof', 1);
+  awardResource(playerId, 'storyFragments', 10);
 
   // 自动设置下一阶段所需的关键 flag
   const storyFlags = JSON.parse(player.story_flags_json || '{}');
@@ -566,11 +573,8 @@ function checkCurrentStageObjectives(playerId, includeFinalEventCheck = true) {
 function getResourceLabel(res) {
   const labels = {
     storyFragments: '故事碎片',
-    scenarioProof: '剧本证明',
     constellationFavor: '星座垂青',
-    kingToken: '王者印记',
-    abyssMark: '深渊刻痕',
-    finalPage: '终章钥匙'
+    abyssMark: '深渊刻痕'
   };
   return labels[res] || res;
 }

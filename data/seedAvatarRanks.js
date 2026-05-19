@@ -86,7 +86,7 @@ const AVATAR_RANKS = [
     displayName: 'A级·故事承载者',
     description: '拥有完整故事路线，能够在星流中留下显著痕迹。',
     order: 6,
-    nextRankKey: null,
+    nextRankKey: 'S',
     requirements: [
       { type: 'level_min', value: 20, label: '等级达到 20' },
       { type: 'rare_title_required', label: '拥有至少一个稀有称号' },
@@ -97,6 +97,74 @@ const AVATAR_RANKS = [
       stats: { maxHp: 50, attack: 10, defense: 10 },
       storyGrade: 'notable',
       log: '你的故事终于拥有了足以被星流承认的重量。从此刻起，你是真正的故事承载者。'
+    }
+  },
+  {
+    rankKey: 'S',
+    rankName: '星流支配者',
+    displayName: 'S级·星流支配者',
+    description: '能够影响星流走向的存在，拥有改变故事分支的力量。',
+    order: 7,
+    nextRankKey: 'SS',
+    requirements: [
+      { type: 'level_min', value: 30, label: '等级达到 30' },
+      { type: 'channel_heat_min', value: 800, label: '频道热度 ≥ 800' },
+      { type: 'scenario_proof_min', value: 5, label: '剧本证明 ≥ 5' },
+      { type: 'titles_count_min', value: 5, label: '拥有至少 5 个称号' }
+    ],
+    resourceCost: { story_fragments: 30, constellationFavor: 2 },
+    breakthroughRate: 0.75,
+    rewards: {
+      stats: { maxHp: 80, attack: 15, defense: 15, willpower: 5, insight: 3 },
+      channelHeat: 100,
+      storyGrade: 'heroic',
+      log: '你已突破凡人的界限，成为星流的支配者。星座们开始以你为中心重新排列。'
+    }
+  },
+  {
+    rankKey: 'SS',
+    rankName: '终章铭刻者',
+    displayName: 'SS级·终章铭刻者',
+    description: '在星流终章中留下铭刻，成为无法被抹去的存在。',
+    order: 8,
+    nextRankKey: 'SSS',
+    requirements: [
+      { type: 'level_min', value: 40, label: '等级达到 40' },
+      { type: 'channel_heat_min', value: 1500, label: '频道热度 ≥ 1500' },
+      { type: 'scenario_proof_min', value: 10, label: '剧本证明 ≥ 10' },
+      { type: 'rare_title_required', label: '拥有至少一个稀有称号' },
+      { type: 'story_grade_min', value: 'heroic', label: '故事位格 ≥ 英雄故事' }
+    ],
+    resourceCost: { story_fragments: 50, constellationFavor: 5, abyssMark: 3 },
+    breakthroughRate: 0.55,
+    rewards: {
+      stats: { maxHp: 120, attack: 25, defense: 25, willpower: 10, insight: 5, leadership: 5 },
+      channelHeat: 200,
+      storyGrade: 'legendary',
+      log: '你的名字已铭刻于终章之上。即使世界线偏移，也无法抹去你的存在。'
+    }
+  },
+  {
+    rankKey: 'SSS',
+    rankName: '全知读者',
+    displayName: 'SSS级·全知读者',
+    description: '超越剧本的存在，成为所有世界线的观测者与记录者。',
+    order: 9,
+    nextRankKey: null,
+    requirements: [
+      { type: 'level_min', value: 50, label: '等级达到 50' },
+      { type: 'channel_heat_min', value: 3000, label: '频道热度 ≥ 3000' },
+      { type: 'scenario_proof_min', value: 20, label: '剧本证明 ≥ 20' },
+      { type: 'titles_count_min', value: 8, label: '拥有至少 8 个称号' },
+      { type: 'story_grade_min', value: 'legendary', label: '故事位格 ≥ 传说故事' }
+    ],
+    resourceCost: { story_fragments: 100, constellationFavor: 10, abyssMark: 8 },
+    breakthroughRate: 0.35,
+    rewards: {
+      stats: { maxHp: 200, attack: 40, defense: 40, willpower: 20, insight: 10, leadership: 10, luck: 5 },
+      channelHeat: 500,
+      storyGrade: 'mythic',
+      log: '你已超越所有已知的剧本，成为真正的全知读者。从此刻起，你不再只是故事的观测者——你是所有世界线的中心。'
     }
   }
 ];

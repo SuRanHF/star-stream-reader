@@ -503,6 +503,43 @@ CREATE INDEX IF NOT EXISTS idx_party_members_party ON party_members(party_id);
 CREATE INDEX IF NOT EXISTS idx_party_members_player ON party_members(player_id);
 
 -- ============================================================
+-- Phase 3 Round 2: 星座阵营技能树
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS faction_skills (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    constellation_key TEXT NOT NULL,
+    skill_key TEXT UNIQUE NOT NULL,
+    skill_name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    skill_type TEXT NOT NULL,
+    effect_json TEXT NOT NULL DEFAULT '{}',
+    required_faction_level INTEGER NOT NULL DEFAULT 1,
+    cost_faction_contribution INTEGER NOT NULL DEFAULT 0,
+    cooldown INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS player_faction_skills (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    skill_key TEXT NOT NULL,
+    unlocked_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    UNIQUE(player_id, skill_key)
+);
+
+-- ============================================================
+-- Phase 3 Round 2: 装备套装系统
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS equipment_sets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    set_key TEXT UNIQUE NOT NULL,
+    set_name TEXT NOT NULL,
+    pieces_json TEXT NOT NULL DEFAULT '[]',
+    bonuses_json TEXT NOT NULL DEFAULT '[]'
+);
+
+-- ============================================================
 -- Phase 5: 碎片化叙事系统
 -- ============================================================
 

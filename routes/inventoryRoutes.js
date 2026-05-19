@@ -31,6 +31,11 @@ router.post('/use', (req, res) => {
     }
     const result = inventoryService.useItem(Number(playerId), itemKey);
     if (result.error) return res.status(400).json(result.error);
+    // Quest progress tracking
+    try {
+      const questService = require('../services/questService');
+      questService.checkProgress(Number(playerId), 'use_item', { item_key: itemKey });
+    } catch (e) { /* quest not critical */ }
     res.json(result);
   } catch (e) {
     console.error(e);

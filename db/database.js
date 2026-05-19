@@ -263,6 +263,44 @@ function runMigrations(database) {
   database.run('CREATE INDEX IF NOT EXISTS idx_exploration_events_stage_type ON exploration_events(stage_key, event_type)');
   database.run('CREATE INDEX IF NOT EXISTS idx_chapters_main_order ON chapters(main_chapter_key, order_index)');
 
+  // Quest tables — daily and weekly quests
+  database.run(`
+    CREATE TABLE IF NOT EXISTS daily_quests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+      quest_key TEXT NOT NULL,
+      quest_type TEXT NOT NULL DEFAULT 'daily',
+      quest_name TEXT NOT NULL DEFAULT '',
+      description TEXT NOT NULL DEFAULT '',
+      event_type TEXT NOT NULL DEFAULT '',
+      progress INTEGER NOT NULL DEFAULT 0,
+      target INTEGER NOT NULL DEFAULT 0,
+      claimed INTEGER NOT NULL DEFAULT 0,
+      date_assigned TEXT NOT NULL DEFAULT '',
+      rewards_json TEXT NOT NULL DEFAULT '{}',
+      params_json TEXT DEFAULT NULL
+    )
+  `);
+  database.run(`
+    CREATE TABLE IF NOT EXISTS weekly_quests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+      quest_key TEXT NOT NULL,
+      quest_type TEXT NOT NULL DEFAULT 'weekly',
+      quest_name TEXT NOT NULL DEFAULT '',
+      description TEXT NOT NULL DEFAULT '',
+      event_type TEXT NOT NULL DEFAULT '',
+      progress INTEGER NOT NULL DEFAULT 0,
+      target INTEGER NOT NULL DEFAULT 0,
+      claimed INTEGER NOT NULL DEFAULT 0,
+      date_assigned TEXT NOT NULL DEFAULT '',
+      rewards_json TEXT NOT NULL DEFAULT '{}',
+      params_json TEXT DEFAULT NULL
+    )
+  `);
+  database.run('CREATE INDEX IF NOT EXISTS idx_daily_quests_player_date ON daily_quests(player_id, date_assigned)');
+  database.run('CREATE INDEX IF NOT EXISTS idx_weekly_quests_player_date ON weekly_quests(player_id, date_assigned)');
+
   // Phase 2: world_state singleton
   database.run(`
     CREATE TABLE IF NOT EXISTS world_state (

@@ -373,6 +373,18 @@ function resolveCombat(playerId, monsterKey, action) {
         JSON.stringify(rewards || {})
       );
 
+      // Quest progress tracking
+      try {
+        var qService = require('./questService');
+        if (battle.result === 'win') {
+          qService.checkProgress(playerId, 'defeat_monster', { monster_key: monsterKey });
+          if (monster.is_boss) {
+            qService.checkProgress(playerId, 'defeat_boss', { monster_key: monsterKey, is_boss: true });
+          }
+        }
+        qService.checkProgress(playerId, 'pk_encounter', { monster_key: monsterKey });
+      } catch (e) { /* quest not critical */ }
+
       return {
         action: 'support',
         success: true,
@@ -417,6 +429,18 @@ function resolveCombat(playerId, monsterKey, action) {
     JSON.stringify({ rounds: battle.totalRounds, playerHpRemaining: battle.playerHpRemaining }),
     JSON.stringify(rewards || {})
   );
+
+  // Quest progress tracking
+  try {
+    var questService = require('./questService');
+    if (battle.result === 'win') {
+      questService.checkProgress(playerId, 'defeat_monster', { monster_key: monsterKey });
+      if (monster.is_boss) {
+        questService.checkProgress(playerId, 'defeat_boss', { monster_key: monsterKey, is_boss: true });
+      }
+    }
+    questService.checkProgress(playerId, 'pk_encounter', { monster_key: monsterKey });
+  } catch (e) { /* quest not critical */ }
 
   return {
     action: 'fight',

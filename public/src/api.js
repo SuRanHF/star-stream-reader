@@ -120,6 +120,17 @@ const API = {
     return this.request('POST', '/api/skills/unlock', { playerId, skillKey });
   },
 
+  // Faction Skills
+  getFactionSkills(constellationKey) {
+    return this.request('GET', `/api/skills/faction-catalog/${constellationKey}`);
+  },
+  getPlayerFactionSkills(playerId) {
+    return this.request('GET', `/api/skills/faction/player/${playerId}`);
+  },
+  learnFactionSkill(playerId, skillKey) {
+    return this.request('POST', '/api/skills/faction/learn', { playerId, skillKey });
+  },
+
   // Heartbeat
   heartbeat(playerId) {
     return this.request('POST', '/api/heartbeat', { playerId });
@@ -368,5 +379,32 @@ const API = {
   // Recent interactions
   getRecentInteractions(playerId) {
     return this.request('GET', '/api/friends/recent/' + playerId);
+  },
+
+  // Quests (日常/周常任务)
+  getQuests(playerId) {
+    return this.request('GET', '/api/quests/all/' + playerId);
+  },
+  claimQuestReward(playerId, questId) {
+    return this.request('POST', '/api/quests/claim/' + playerId, { questId });
+  },
+
+  // Faction Skills (阵营技能)
+  getFactionSkills(constellationKey) {
+    return this.request('GET', '/api/skills/faction/' + constellationKey);
+  },
+  getMyFactionSkills(playerId) {
+    return this.request('GET', '/api/skills/faction/player/' + playerId);
+  },
+  learnFactionSkill(playerId, skillKey) {
+    return this.request('POST', '/api/skills/faction/learn', { playerId, skillKey });
+  },
+
+  // Equipment Sets (装备套装)
+  getEquipmentSets() {
+    return this.request('GET', '/api/equipment/sets');
+  },
+  getMySetBonuses(playerId) {
+    return this.request('GET', '/api/equipment/sets/my/' + playerId);
   },
 };

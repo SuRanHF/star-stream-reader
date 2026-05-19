@@ -86,6 +86,11 @@ router.post('/rest/start', (req, res) => {
     if (!playerId) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAMS', message: '缺少必要参数' } });
     const result = recoveryService.startRest(Number(playerId));
     if (result.error) return res.status(400).json({ success: false, error: result.error });
+    // Quest progress tracking
+    try {
+      const questService = require('../services/questService');
+      questService.checkProgress(Number(playerId), 'rest', {});
+    } catch (e) { /* quest not critical */ }
     res.json(result);
   } catch (e) {
     console.error(e);

@@ -103,6 +103,12 @@ function useItem(playerId, itemKey) {
   removeItem(playerId, itemKey, 1);
   playerService.addLog(playerId, `使用了: ${row.name}`);
 
+  // Quest progress
+  try {
+    var questService = require('./questService');
+    questService.checkProgress(playerId, 'use_item', { item_key: itemKey });
+  } catch (e) { /* quest not critical */ }
+
   return { success: true, ...result };
 }
 

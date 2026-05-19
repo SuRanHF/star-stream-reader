@@ -39,6 +39,8 @@ const { seedEquipment } = require('./data/seedEquipment');
 const { seedSkills } = require('./data/seedSkills');
 const { seedMainChapters } = require('./data/seedMainChapters');
 const { seedExplorationEvents } = require('./data/seedExplorationEvents');
+const { seedFactionSkills } = require('./data/seedFactionSkills');
+const { seedEquipmentSets } = require('./data/seedEquipmentSets');
 const { seedNarrative } = require('./data/seedNarrative');
 const { authRequired } = require('./middleware/authMiddleware');
 
@@ -78,6 +80,8 @@ async function start() {
     seedSkills(db);
     seedMainChapters(db);
     seedExplorationEvents(db);
+    seedFactionSkills(db);
+    seedEquipmentSets(db);
     console.log('Database seeded successfully.');
   } else {
     // Round 2: seed new tables if empty
@@ -109,6 +113,18 @@ async function start() {
       console.log('Seeding Phase 5 narrative data...');
       seedNarrative(db);
     }
+    // Phase 3 Round 2: seed faction skills if empty
+    var fsCount = db.prepare('SELECT COUNT(*) as c FROM faction_skills').get().c;
+    if (fsCount === 0) {
+      console.log('Seeding faction skills...');
+      seedFactionSkills(db);
+    }
+    // Phase 3 Round 2: seed equipment sets if empty
+    var esCount = db.prepare('SELECT COUNT(*) as c FROM equipment_sets').get().c;
+    if (esCount === 0) {
+      console.log('Seeding equipment sets...');
+      seedEquipmentSets(db);
+    }
     console.log(`Database contains ${chapterCount} chapters, skipping story seed.`);
   }
 
@@ -126,11 +142,26 @@ async function start() {
   // Round 3: main chapters / stage system
   app.use('/api/chapters', authRequired, require('./routes/chapterRoutes'));
 
+  // Quests (daily/weekly)
+  app.use('/api/quests', authRequired, require('./routes/questRoutes'));
+
   // Round 2: exploration, combat, inventory, equipment, skills, PK
   app.use('/api/explore', authRequired, require('./routes/exploreRoutes'));
   app.use('/api/combat', authRequired, require('./routes/combatRoutes'));
   app.use('/api/inventory', authRequired, require('./routes/inventoryRoutes'));
   app.use('/api/equipment', authRequired, require('./routes/equipmentRoutes'));
+  // Phase 3 Round 2: Public faction skill catalog (no auth required,
+  // must be before app.use('/api/skills', authRequired, ...) below)
+  app.get('/api/skills/faction-catalog/:constellationKey', (req, res) => {
+    try {
+      var skillService = require('./services/skillService');
+      var skills = skillService.getFactionSkills(req.params.constellationKey);
+      res.json({ skills });
+    } catch (e) {
+      res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    }
+  });
+
   app.use('/api/skills', authRequired, require('./routes/skillRoutes'));
   app.use('/api/pk', authRequired, require('./routes/pkRoutes'));
 

@@ -578,77 +578,153 @@ const UI = {
   },
 
   // ===== Drawer: Equipment =====
-  renderEquipment(equipped, available) {
-    const slotNames = { weapon: '武器', armor: '防具', accessory: '饰品', relic: '遗物' };
-    const slotOrder = ['weapon', 'armor', 'accessory', 'relic'];
-    const equippedMap = {};
-    const equippedKeys = new Set();
-    (equipped || []).forEach(e => { equippedMap[e.slot] = e; equippedKeys.add(e.equipment_key); });
+  renderEquipment(equipped, available, activeSets) {
+    var slotNames = { weapon: '武器', armor: '防具', accessory: '饰品', relic: '遗物' };
+    var slotOrder = ['weapon', 'armor', 'accessory', 'relic'];
+    var equippedMap = {};
+    var equippedKeys = new Set();
+    (equipped || []).forEach(function(e) { equippedMap[e.slot] = e; equippedKeys.add(e.equipment_key); });
 
-    let html = '<div class="drawer-section-label">已装备</div><div class="equip-slots-row">';
-    slotOrder.forEach(slot => {
-      const eq = equippedMap[slot];
+    var html = '<div class="drawer-section-label">已装备</div><div class="equip-slots-row">';
+    slotOrder.forEach(function(slot) {
+      var eq = equippedMap[slot];
       if (eq) {
-        html += `<div class="equip-slot equipped">
-          <div class="slot-name">${slotNames[slot]}</div>
-          <div class="item-name">${eq.name}</div>
-          <button class="btn-action btn-sm btn-cancel" onclick="GameClient.unequipItem('${slot}')" style="margin-top:4px;">卸下</button>
-        </div>`;
+        html += '<div class="equip-slot equipped">' +
+          '<div class="slot-name">' + slotNames[slot] + '</div>' +
+          '<div class="item-name">' + eq.name + '</div>' +
+          '<button class="btn-action btn-sm btn-cancel" onclick="GameClient.unequipItem(\'' + slot + '\')" style="margin-top:4px;">卸下</button>' +
+          '</div>';
       } else {
-        html += `<div class="equip-slot empty-slot">
-          <div class="slot-name">${slotNames[slot]}</div>
-          <span style="font-size:12px;color:var(--text-secondary);">空</span>
-        </div>`;
+        html += '<div class="equip-slot empty-slot">' +
+          '<div class="slot-name">' + slotNames[slot] + '</div>' +
+          '<span style="font-size:12px;color:var(--text-secondary);">空</span>' +
+          '</div>';
       }
     });
     html += '</div>';
+
+    // Show active set bonuses
+    if (activeSets && activeSets.length > 0) {
+      html += '<div class="drawer-section-label" style="margin-top:12px;">套装加成</div><div class="equip-sets-row">';
+      activeSets.forEach(function(set) {
+        var isFull = set.matched_pieces === set.total_pieces;
+        html += '<div class="drawer-card set-card' + (isFull ? ' set-full' : '') + '" style="border-color:' + (isFull ? 'var(--gold)' : 'var(--teal)') + ';">';
+        html += '<div class="drawer-card-title" style="color:' + (isFull ? 'var(--gold)' : 'var(--teal)') + ';">' + set.set_name + ' (' + set.matched_pieces + '/' + set.total_pieces + ')</div>';
+        if (set.active_bonuses && set.active_bonuses.length > 0) {
+          html += '<div class="drawer-card-stats" style="color:var(--green);">';
+          set.active_bonuses.forEach(function(b) {
+            var bonusStr = Object.entries(b.bonus).map(function(entry) {
+              var k = entry[0], v = entry[1];
+              return UI._labelStat(k) + ': +' + v;
+            }).join(' | ');
+            html += '<span>' + b.pieces_required + '件: ' + bonusStr + '</span><br>';
+          });
+          html += '</div>';
+        } else {
+          html += '<div class="drawer-card-stats"><span style="color:var(--text-secondary);">再装备 ' + (2 - set.matched_pieces) + ' 件解锁加成</span></div>';
+        }
+        html += '</div>';
+      });
+      html += '</div>';
+    }
 
     html += '<div class="drawer-section-label" style="margin-top:16px;">可用装备</div>';
     if (!available || available.length === 0) {
       html += '<p style="color:var(--text-secondary);padding:8px;">没有可用装备。</p>';
     } else {
-      html += available.map(eq => {
-        const stats = eq.stats || {};
-        const statsStr = Object.entries(stats).map(([k, v]) => `${UI._labelStat(k)}: ${v > 0 ? '+' : ''}${v}`).join(' | ');
-        const isEquipped = equippedKeys.has(eq.equipment_key);
-        return `<div class="drawer-card">
-          <div class="drawer-card-title rarity-${eq.rarity || 'common'}">${eq.name}</div>
-          <div class="drawer-card-desc">${eq.description}</div>
-          <div class="drawer-card-stats">
-            <span>${UI._labelSlot(eq.slot)} | Lv.${eq.required_level}+</span>
-            <span>${statsStr}</span>
-          </div>
-          <div class="drawer-card-actions">
-            ${isEquipped ? '<span style="font-size:12px;color:var(--green)">已装备</span>' : `<span style="font-size:12px;color:${eq.can_equip ? 'var(--green)' : 'var(--red)'}">${eq.can_equip ? '可装备' : '等级不足'}</span>`}
-            ${eq.owned && eq.can_equip && !isEquipped ? `<button class="btn-action btn-sm" onclick="GameClient.equipItem('${eq.equipment_key}')">装备</button>` : ''}
-          </div>
-        </div>`;
+      html += available.map(function(eq) {
+        var stats = eq.stats || {};
+        var statsStr = Object.entries(stats).map(function(entry) {
+          var k = entry[0], v = entry[1];
+          return UI._labelStat(k) + ': ' + (v > 0 ? '+' : '') + v;
+        }).join(' | ');
+        var isEquipped = equippedKeys.has(eq.equipment_key);
+        return '<div class="drawer-card">' +
+          '<div class="drawer-card-title rarity-' + (eq.rarity || 'common') + '">' + eq.name + '</div>' +
+          '<div class="drawer-card-desc">' + eq.description + '</div>' +
+          '<div class="drawer-card-stats">' +
+            '<span>' + UI._labelSlot(eq.slot) + ' | Lv.' + eq.required_level + '+</span>' +
+            '<span>' + statsStr + '</span>' +
+          '</div>' +
+          '<div class="drawer-card-actions">' +
+            (isEquipped ? '<span style="font-size:12px;color:var(--green)">已装备</span>' : '<span style="font-size:12px;color:' + (eq.can_equip ? 'var(--green)' : 'var(--red)') + '">' + (eq.can_equip ? '可装备' : '等级不足') + '</span>') +
+            (eq.owned && eq.can_equip && !isEquipped ? '<button class="btn-action btn-sm" onclick="GameClient.equipItem(\'' + eq.equipment_key + '\')">装备</button>' : '') +
+          '</div>' +
+        '</div>';
       }).join('');
     }
     return html;
   },
 
   // ===== Drawer: Skills =====
-  renderSkills(skills) {
-    if (!skills || skills.length === 0) {
-      return '<p style="text-align:center;color:var(--text-secondary);padding:32px">暂未掌握任何技能。</p>';
+  renderSkills(skills, factionSkills) {
+    var typeLabels = { attack: '攻击', passive: '被动', defense: '防御', exploration: '探索', pk: 'PK', story: '剧情', buff: '增益', debuff: '减益' };
+    var html = '';
+
+    // Tab bar
+    html += '<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">' +
+      '<button class="ma-btn ' + (UI._skillsTab === 'normal' ? 'primary' : '') + '" onclick="GameClient.switchSkillsTab(\'normal\')">通用技能</button>' +
+      '<button class="ma-btn ' + (UI._skillsTab === 'faction' ? 'primary' : '') + '" onclick="GameClient.switchSkillsTab(\'faction\')">阵营技能</button>' +
+      '</div>';
+
+    if (UI._skillsTab === 'faction') {
+      // Faction skills tab
+      if (!factionSkills || factionSkills.length === 0) {
+        html += '<p style="text-align:center;color:var(--text-secondary);padding:32px">尚未选择背后星，或该阵营暂无可用技能。</p>';
+        return html;
+      }
+      html += factionSkills.map(function(sk) {
+        var effectsStr = '';
+        var eff = sk.effects || {};
+        if (eff && Object.keys(eff).length > 0) {
+          effectsStr = Object.entries(eff).map(function(entry) {
+            var k = entry[0], v = entry[1];
+            if (typeof v === 'boolean') {
+              return UI._labelEffect(k) + ': ' + (v ? '是' : '否');
+            }
+            return UI._labelEffect(k) + ': ' + (typeof v === 'number' ? (v > 0 ? '+' : '') + v : v);
+          }).join(' | ');
+        }
+        return '<div class="drawer-card" style="' + (sk.unlocked ? '' : 'opacity:0.6;') + '">' +
+          '<div class="drawer-card-title rarity-' + (sk.skill_type === 'passive' ? 'legendary' : 'rare') + '">' + sk.skill_name + '</div>' +
+          '<div class="drawer-card-desc">' + sk.description + '</div>' +
+          '<div class="drawer-card-stats">' +
+            '<span>类型: ' + (typeLabels[sk.skill_type] || sk.skill_type) + ' | Lv.' + sk.required_faction_level + '+</span>' +
+            (sk.cooldown > 0 ? '<span>冷却: ' + sk.cooldown + '回合</span>' : '<span>被动</span>') +
+            '<span>消耗: ' + sk.cost_faction_contribution + ' 贡献</span>' +
+          '</div>' +
+          (effectsStr ? '<div class="drawer-card-stats"><span style="font-size:11px;">' + effectsStr + '</span></div>' : '') +
+          '<div class="drawer-card-actions">' +
+            '<span style="font-size:12px;color:' + (sk.unlocked ? 'var(--green)' : sk.can_unlock ? 'var(--teal)' : 'var(--text-secondary)') + '">' +
+              (sk.unlocked ? '已习得' : sk.can_unlock ? '可学习' : '条件不足') + '</span>' +
+            (sk.can_unlock && !sk.unlocked ? '<button class="btn-action btn-sm" onclick="GameClient.learnFactionSkill(\'' + sk.skill_key + '\')">学习</button>' : '') +
+          '</div>' +
+        '</div>';
+      }).join('');
+    } else {
+      // Normal skills tab
+      if (!skills || skills.length === 0) {
+        html += '<p style="text-align:center;color:var(--text-secondary);padding:32px">暂未掌握任何技能。</p>';
+        return html;
+      }
+      html += skills.map(function(sk) {
+        return '<div class="drawer-card" style="' + (sk.unlocked ? '' : 'opacity:0.6;') + '">' +
+          '<div class="drawer-card-title rarity-' + (sk.rarity || 'common') + '">' + sk.name + '</div>' +
+          '<div class="drawer-card-desc">' + sk.description + '</div>' +
+          '<div class="drawer-card-stats">' +
+            '<span>类型: ' + (typeLabels[sk.skill_type] || sk.skill_type) + '</span>' +
+            '<span>冷却: ' + sk.cooldown + '回合</span>' +
+            '<span>碎片: ' + sk.required_fragments + '</span>' +
+          '</div>' +
+          '<div class="drawer-card-actions">' +
+            '<span style="font-size:12px;color:' + (sk.unlocked ? 'var(--green)' : sk.can_unlock ? 'var(--teal)' : 'var(--text-secondary)') + '">' +
+              (sk.unlocked ? '已解锁' : sk.can_unlock ? '可解锁' : '未满足条件') + '</span>' +
+            (sk.can_unlock && !sk.unlocked ? '<button class="btn-action btn-sm" onclick="GameClient.unlockSkill(\'' + sk.skill_key + '\')">解锁</button>' : '') +
+          '</div>' +
+        '</div>';
+      }).join('');
     }
-    const typeLabels = { attack: '攻击', passive: '被动', defense: '防御', exploration: '探索', pk: 'PK', story: '剧情' };
-    return skills.map(sk => `
-      <div class="drawer-card" style="${sk.unlocked ? '' : 'opacity:0.6;'}">
-        <div class="drawer-card-title rarity-${sk.rarity || 'common'}">${sk.name}</div>
-        <div class="drawer-card-desc">${sk.description}</div>
-        <div class="drawer-card-stats">
-          <span>类型: ${typeLabels[sk.skill_type] || sk.skill_type}</span>
-          <span>冷却: ${sk.cooldown}回合</span>
-          <span>碎片: ${sk.required_fragments}</span>
-        </div>
-        <div class="drawer-card-actions">
-          <span style="font-size:12px;color:${sk.unlocked ? 'var(--green)' : 'var(--text-secondary)'}">${sk.unlocked ? '已解锁' : sk.can_unlock ? '可解锁' : '未满足条件'}</span>
-          ${sk.can_unlock && !sk.unlocked ? `<button class="btn-action btn-sm" onclick="GameClient.unlockSkill('${sk.skill_key}')">解锁</button>` : ''}
-        </div>
-      </div>
-    `).join('');
+    return html;
   },
 
   // ===== Drawer: Titles =====
@@ -1767,9 +1843,36 @@ const UI = {
   },
 
   // ===== Label Helpers =====
+  _skillsTab: 'normal',
   _labelStat(k) { return LABELS.stat[k] || k; },
   _labelRarity(k) { return LABELS.rarity[k] || k; },
   _labelSlot(k) { return LABELS.slot[k] || k; },
+  _labelEffect(k) {
+    var labels = {
+      atk_mult: '攻击倍率', atk_bonus: '攻击加成', def_bonus: '防御加成', spd_bonus: '速度加成',
+      crit_rate_bonus: '暴击率', crit_dmg_bonus: '暴击伤害', crit_dmg_taken_bonus: '暴击受伤',
+      heal_hp_pct: '生命恢复', heal_pct: '生命恢复', hp_regen_pct: '每回合恢复',
+      burn_duration: '灼烧回合', burn_damage: '灼烧伤害', def_reduce: '防御降低',
+      def_ignore_pct: '无视防御', speed_mult: '速度倍率', shield_mult: '护盾倍率',
+      shield_pct: '护盾比例', dmg_reflect_pct: '伤害反弹',
+      stun_chance: '眩晕概率', guaranteed_dodge: '必定闪避', next_atk_bonus: '下次攻击加成',
+      lifesteal_pct: '吸血比例', execute_mult: '斩杀倍率', execute_threshold: '斩杀阈值',
+      coin_bonus_pct: '硬币加成', all_stats_bonus: '全属性加成',
+      duration: '持续回合', cooldown: '冷却', priority: '先手',
+      aoe: '范围攻击', always_hit: '必定命中', ignore_block: '无视格挡',
+      remove_buffs: '清除增益', cleanse_debuff: '清除减益',
+      death_save_chance: '免死概率', death_save_hp: '免死HP', undying_duration: '不死回合',
+      once_per_battle: '每场一次', reorder_turn: '重排序',
+      coin_scaling_dmg: '硬币增伤', coin_per_100: '每百硬币', coin_cap: '增伤上限',
+      coin_bonus_passive: '被动硬币', set_bonus_3: '3件套效果',
+      crit_lifesteal: '暴击吸血', hidden_weakpoint_chance: '弱点发现',
+      weakpoint_dmg_bonus: '弱点增伤', hp_below_20: '低血(20%)', hp_below_30: '低血(30%)',
+      hp_below_50: '低血(50%)', crit_resist_reduce: '暴击抗性降低',
+      debuff_chance: '减益概率', debuff_effect: '减益效果',
+      luck: '幸运', dropRate: '掉落率', insight: '洞察'
+    };
+    return labels[k] || k;
+  },
   _labelEventType(k) { return LABELS.eventType[k] || k; },
   _labelBroadcastStatus(k) { return LABELS.broadcastStatus[k] || k; },
   _labelBroadcastEventType(k) { return LABELS.broadcastEventType[k] || k; },
@@ -2798,6 +2901,7 @@ const UI = {
         }
         html += '</div>';
       }
+      html += '<button class="btn-ma" style="margin-top:8px;width:100%;font-size:11px;" onclick="GameClient.openFactionSkills()">查看阵营技能树</button>';
       html += '</div>';
     } else {
       html += '<div style="background:var(--panel-bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;text-align:center;color:var(--text-secondary);">';
@@ -2840,6 +2944,121 @@ const UI = {
         html += '<div style="font-size:14px;font-weight:bold;color:var(--accent);">' + Math.floor(f.totalContributionScore) + '</div>';
         html += '<div style="font-size:10px;color:var(--text-secondary);">分</div>';
         html += '</div>';
+        html += '</div>';
+      }
+    }
+
+    return html;
+  },
+
+  // ===== Quests Panel (日常/周常任务) =====
+  renderQuestPanel(data, activeTab, playerId) {
+    activeTab = activeTab || 'daily';
+    var daily = data.daily || [];
+    var weekly = data.weekly || [];
+
+    // Count completed
+    var dailyDone = daily.filter(function(q) { return q.claimed; }).length;
+    var dailyTotal = daily.filter(function(q) { return q.progress >= q.target; }).length;
+    var weeklyDone = weekly.filter(function(q) { return q.claimed; }).length;
+    var weeklyTotal = weekly.filter(function(q) { return q.progress >= q.target; }).length;
+
+    var html = '';
+
+    // Tab bar
+    html += '<div style="display:flex;gap:8px;margin-bottom:12px;">';
+    html += '<button class="btn-ma" style="flex:1;' + (activeTab === 'daily' ? 'background:var(--accent);color:#111;' : '') + '" onclick="GameClient.loadQuestsTab(\'daily\')">每日任务 (' + dailyDone + '/' + daily.length + ')</button>';
+    html += '<button class="btn-ma" style="flex:1;' + (activeTab === 'weekly' ? 'background:var(--accent);color:#111;' : '') + '" onclick="GameClient.loadQuestsTab(\'weekly\')">每周任务 (' + weeklyDone + '/' + weekly.length + ')</button>';
+    html += '</div>';
+
+    var quests = activeTab === 'daily' ? daily : weekly;
+
+    if (quests.length === 0) {
+      html += '<p style="text-align:center;color:var(--text-secondary);padding:24px;">暂无' + (activeTab === 'daily' ? '每日' : '每周') + '任务</p>';
+    } else {
+      for (var i = 0; i < quests.length; i++) {
+        var q = quests[i];
+        var pct = q.target > 0 ? Math.round((q.progress / q.target) * 100) : 0;
+        var done = q.progress >= q.target;
+        var claimed = q.claimed;
+
+        html += '<div style="background:var(--panel-bg);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;' + (claimed ? 'opacity:0.5;' : '') + '">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">';
+        html += '<span style="font-weight:bold;font-size:13px;">' + q.quest_name + '</span>';
+        html += '<span style="font-size:11px;color:var(--text-secondary);">' + q.progress + '/' + q.target + '</span>';
+        html += '</div>';
+        html += '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;">' + q.description + '</div>';
+
+        // Progress bar
+        html += '<div style="background:var(--bg);border-radius:4px;height:6px;overflow:hidden;margin-bottom:6px;">';
+        var barColor = done ? 'var(--accent)' : 'var(--primary)';
+        html += '<div style="background:' + barColor + ';height:100%;width:' + pct + '%;transition:width 0.3s;"></div>';
+        html += '</div>';
+
+        // Rewards preview
+        var r = q.rewards || {};
+        var rewardText = [];
+        if (r.coins) rewardText.push('🪙 +' + r.coins);
+        if (r.story_fragments) rewardText.push('📜 +' + r.story_fragments);
+        if (r.constellationFavor) rewardText.push('⭐ +' + r.constellationFavor);
+        if (r.items && r.items.length > 0) rewardText.push('📦 ' + r.items.join(', '));
+        html += '<div style="font-size:10px;color:var(--text-secondary);margin-bottom:6px;">奖励: ' + (rewardText.length > 0 ? rewardText.join(' · ') : '无') + '</div>';
+
+        if (claimed) {
+          html += '<span style="font-size:11px;color:var(--accent);">✓ 已领取</span>';
+        } else if (done) {
+          html += '<button class="btn-action" style="font-size:11px;padding:4px 12px;" onclick="GameClient.claimQuestReward(' + q.id + ')">领取奖励</button>';
+        }
+
+        html += '</div>';
+      }
+    }
+
+    return html;
+  },
+
+  // ===== Faction Skills Panel (阵营技能) =====
+  renderFactionSkillsPanel(playerId, skills, constellationKey) {
+    var CONST_NAMES = {
+      golden_sun: '金乌神教', black_flame_dragon: '黑焰龙渊',
+      demon_judge_of_fire: '火之审判庭', abyss_eye: '深渊凝视者',
+      wheel_of_fate: '命运编织会', queen_of_underworld: '冥界女王府',
+      maritime_war_god: '海上战神盟', star_stream_watcher: '星流守望塔'
+    };
+    var TYPE_LABELS = { attack: '攻击', buff: '增益', defense: '防御', debuff: '减益', passive: '被动' };
+    var TYPE_COLORS = { attack: '#e74c3c', buff: '#2ecc71', defense: '#3498db', debuff: '#e67e22', passive: '#9b59b6' };
+
+    var html = '<div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">';
+    html += CONST_NAMES[constellationKey] + ' 阵营专属技能树</div>';
+
+    if (!skills || skills.length === 0) {
+      html += '<p style="text-align:center;color:var(--text-secondary);padding:24px;">暂无阵营技能</p>';
+    } else {
+      for (var i = 0; i < skills.length; i++) {
+        var s = skills[i];
+        var unlocked = s.unlocked;
+        var canUnlock = s.can_unlock;
+        var typeColor = TYPE_COLORS[s.skill_type] || '#888';
+
+        html += '<div style="background:var(--panel-bg);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;' + (unlocked ? 'border-color:var(--accent);' : '') + '">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">';
+        html += '<span style="font-weight:bold;font-size:13px;">' + (unlocked ? '✓ ' : '') + s.skill_name + '</span>';
+        html += '<span style="font-size:10px;padding:2px 6px;border-radius:3px;background:' + typeColor + '22;color:' + typeColor + ';">' + (TYPE_LABELS[s.skill_type] || s.skill_type) + '</span>';
+        html += '</div>';
+        html += '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">' + s.description + '</div>';
+        html += '<div style="font-size:10px;color:var(--text-secondary);">';
+        html += '需要阵营 Lv.' + s.required_faction_level + ' · 消耗 ' + s.cost_faction_contribution + ' 星座好感';
+        if (s.cooldown > 0) html += ' · 冷却 ' + s.cooldown + ' 回合';
+        html += '</div>';
+
+        if (unlocked) {
+          html += '<span style="font-size:11px;color:var(--accent);">✓ 已习得</span>';
+        } else if (canUnlock) {
+          html += '<button class="btn-action" style="font-size:11px;padding:4px 12px;margin-top:4px;" onclick="GameClient.learnFactionSkill(\'' + s.skill_key + '\')">学习技能</button>';
+        } else {
+          html += '<span style="font-size:11px;color:var(--danger);">条件不足</span>';
+        }
+
         html += '</div>';
       }
     }

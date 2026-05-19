@@ -18,6 +18,12 @@ function sendMessage(playerId, playerName, message, channel) {
     'INSERT INTO chat_messages (player_id, player_name, message, channel) VALUES (?, ?, ?, ?)'
   ).run(playerId, playerName, String(message).trim(), channel);
 
+  // Quest progress tracking
+  try {
+    var questService = require('./questService');
+    questService.checkProgress(playerId, 'chat', { channel: channel });
+  } catch (e) { /* quest not critical */ }
+
   return {
     success: true,
     data: {

@@ -40,8 +40,14 @@ router.post('/create', function(req, res) {
 // 加入队伍
 router.post('/:id/join', function(req, res) {
   try {
-    var result = partyService.joinParty(parseInt(req.params.id), req.body.playerId);
+    var playerId = req.body.playerId;
+    var result = partyService.joinParty(parseInt(req.params.id), playerId);
     if (result.error) return res.status(400).json({ success: false, error: result.error });
+    // Quest progress tracking
+    try {
+      var questService = require('../services/questService');
+      questService.checkProgress(playerId, 'join_party', { party_id: parseInt(req.params.id) });
+    } catch (e) { /* quest not critical */ }
     res.json({ success: true, data: result });
   } catch (e) {
     console.error(e);
@@ -75,8 +81,20 @@ router.post('/:id/ready', function(req, res) {
 // 发起讨伐
 router.post('/:id/start-battle', function(req, res) {
   try {
-    var result = partyService.startPartyBossBattle(parseInt(req.params.id), req.body.playerId);
+    var partyId = parseInt(req.params.id);
+    var playerId = req.body.playerId;
+    var result = partyService.startPartyBossBattle(partyId, playerId);
     if (result.error) return res.status(400).json({ success: false, error: result.error });
+    // Quest progress tracking for all members
+    try {
+      var questService = require('../services/questService');
+      if (result.results) {
+        for (var k = 0; k < result.results.length; k++) {
+          var memberId = result.results[k].playerId;
+          questService.checkProgress(memberId, 'party_boss', { party_id: partyId });
+        }
+      }
+    } catch (e) { /* quest not critical */ }
     res.json({ success: true, data: result });
   } catch (e) {
     console.error(e);

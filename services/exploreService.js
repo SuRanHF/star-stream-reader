@@ -288,6 +288,16 @@ function startExploration(playerId, locationKey, opts) {
 
   const updatedPlayer = playerService.get(playerId);
 
+  // Quest progress tracking
+  try {
+    const questService = require('./questService');
+    questService.checkProgress(playerId, 'explore', { location_key: locationKey });
+    questService.checkProgress(playerId, 'explore_location', { location_key: locationKey });
+    if (resultType === 'story') {
+      questService.checkProgress(playerId, 'story_event', { location_key: locationKey });
+    }
+  } catch (e) { /* quest not critical */ }
+
   return {
     location: { location_key: location.location_key, name: location.name, danger_level: location.danger_level },
     stamina_cost: staminaCost,

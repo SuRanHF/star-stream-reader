@@ -87,6 +87,13 @@ function buyListing(listingId, buyerId) {
   playerService.addLog(buyerId, '从市场购买了 ' + listing.item_key + ' ×' + listing.quantity + '，花费 ' + listing.price + ' 金币');
   playerService.addLog(listing.seller_id, '挂单售出: ' + listing.item_key + ' ×' + listing.quantity + '，收入 ' + listing.price + ' 金币');
 
+  // Quest progress tracking (trade for both buyer and seller)
+  try {
+    var questService = require('./questService');
+    questService.checkProgress(buyerId, 'trade', { item_key: listing.item_key });
+    questService.checkProgress(listing.seller_id, 'trade', { item_key: listing.item_key });
+  } catch (e) { /* quest not critical */ }
+
   return { success: true, listing: getListing(listingId) };
 }
 

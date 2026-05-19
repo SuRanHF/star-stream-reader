@@ -252,6 +252,18 @@ function challenge(attackerId, defenderId) {
     } catch (e) { /* faction not critical */ }
   }
 
+  // Quest progress tracking — both participants registered
+  try {
+    var questService = require('./questService');
+    questService.checkProgress(attackerId, 'pk_encounter', { opponent_id: defenderId });
+    questService.checkProgress(defenderId, 'pk_encounter', { opponent_id: attackerId });
+    if (attackerWins) {
+      questService.checkProgress(attackerId, 'win_pk', { opponent_id: defenderId });
+    } else {
+      questService.checkProgress(defenderId, 'win_pk', { opponent_id: attackerId });
+    }
+  } catch (e) { /* quest not critical */ }
+
   return {
     winner_id: winner.id,
     winner_name: winner.player_name,

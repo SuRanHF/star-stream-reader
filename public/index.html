@@ -178,6 +178,7 @@
           <button class="mobile-more-item" onclick="GameClient.openFeature('faction');UI.closeMobileMoreMenu()"><span class="mm-icon">⬡</span>阵营</button>
           <button class="mobile-more-item" onclick="GameClient.openFeature('trade');UI.closeMobileMoreMenu()"><span class="mm-icon">◎</span>交易</button>
           <button class="mobile-more-item" onclick="GameClient.openFeature('party');UI.closeMobileMoreMenu()"><span class="mm-icon">👥</span>组队</button>
+          <button class="mobile-more-item" onclick="GameClient.openFeature('quests');UI.closeMobileMoreMenu()"><span class="mm-icon">☐</span>任务</button>
           <button class="mobile-more-item" onclick="GameClient.openFeature('archive');UI.closeMobileMoreMenu()"><span class="mm-icon">◈</span>档案</button>
           <button class="mobile-more-item" onclick="GameClient.openFeature('underworld');UI.closeMobileMoreMenu()"><span class="mm-icon">💀</span>冥界</button>
           <button class="mobile-more-item" onclick="GameClient.openFeature('changelog');UI.closeMobileMoreMenu()"><span class="mm-icon">📋</span>更新</button>
@@ -217,6 +218,7 @@
         <button class="db-fab-item" onclick="GameClient.openFeature('faction');UI.closeFabMenu()"><span class="db-fab-icon">⬡</span><span>阵营</span></button>
         <button class="db-fab-item" onclick="GameClient.openFeature('trade');UI.closeFabMenu()"><span class="db-fab-icon">◎</span><span>交易</span></button>
         <button class="db-fab-item" onclick="GameClient.openFeature('party');UI.closeFabMenu()"><span class="db-fab-icon">👥</span><span>组队</span></button>
+        <button class="db-fab-item" onclick="GameClient.openFeature('quests');UI.closeFabMenu()"><span class="db-fab-icon">☐</span><span>任务</span></button>
         <button class="db-fab-item" onclick="GameClient.openFeature('broadcast');UI.closeFabMenu()"><span class="db-fab-icon">★</span><span>放送</span></button>
         <button class="db-fab-item" onclick="GameClient.openFeature('archive');UI.closeFabMenu()"><span class="db-fab-icon">◈</span><span>档案</span></button>
         <button class="db-fab-item" onclick="GameClient.openFeature('underworld');UI.closeFabMenu()"><span class="db-fab-icon">💀</span><span>冥界</span></button>
@@ -250,6 +252,7 @@
           <button class="db-right-item" onclick="GameClient.openFeature('faction');UI.closeDbRightMenu()"><span class="db-right-icon">⬡</span><span class="db-right-label">阵营</span><span class="db-right-badge">--</span></button>
           <button class="db-right-item" onclick="GameClient.openFeature('trade');UI.closeDbRightMenu()"><span class="db-right-icon">◎</span><span class="db-right-label">交易</span><span class="db-right-badge">--</span></button>
           <button class="db-right-item" onclick="GameClient.openFeature('party');UI.closeDbRightMenu()"><span class="db-right-icon">👥</span><span class="db-right-label">组队</span><span class="db-right-badge">--</span></button>
+          <button class="db-right-item" onclick="GameClient.openFeature('quests');UI.closeDbRightMenu()"><span class="db-right-icon">☐</span><span class="db-right-label">任务</span><span class="db-right-badge">--</span></button>
           <button class="db-right-item" onclick="GameClient.openFeature('broadcast');UI.closeDbRightMenu()"><span class="db-right-icon">★</span><span class="db-right-label">放送</span><span class="db-right-badge">--</span></button>
           <button class="db-right-item" onclick="GameClient.openFeature('archive');UI.closeDbRightMenu()"><span class="db-right-icon">◈</span><span class="db-right-label">档案</span><span class="db-right-badge">--</span></button>
           <button class="db-right-item" onclick="GameClient.openFeature('underworld');UI.closeDbRightMenu()"><span class="db-right-icon">💀</span><span class="db-right-label">冥界</span><span class="db-right-badge">--</span></button>
@@ -295,6 +298,7 @@
           <button class="ir-more-item" onclick="GameClient.openFeature('faction');UI.closeIrMoreMenu()"><span>⬡</span>阵营</button>
           <button class="ir-more-item" onclick="GameClient.openFeature('trade');UI.closeIrMoreMenu()"><span>◎</span>交易</button>
           <button class="ir-more-item" onclick="GameClient.openFeature('party');UI.closeIrMoreMenu()"><span>👥</span>组队</button>
+          <button class="ir-more-item" onclick="GameClient.openFeature('quests');UI.closeIrMoreMenu()"><span>☐</span>任务</button>
           <button class="ir-more-item" onclick="GameClient.openFeature('broadcast');UI.closeIrMoreMenu()"><span>★</span>放送</button>
           <button class="ir-more-item" onclick="GameClient.openFeature('archive');UI.closeIrMoreMenu()"><span>◈</span>档案</button>
           <button class="ir-more-item" onclick="GameClient.openFeature('underworld');UI.closeIrMoreMenu()"><span>💀</span>冥界</button>
@@ -431,6 +435,7 @@
           <button class="sw-more-item" onclick="GameClient.openFeature('pk');UI.closeSwMoreMenu()"><span>⚔</span>PK</button>
           <button class="sw-more-item" onclick="GameClient.openFeature('rankings');UI.closeSwMoreMenu()"><span>☰</span>排行</button>
           <button class="sw-more-item" onclick="GameClient.openFeature('broadcast');UI.closeSwMoreMenu()"><span>★</span>放送</button>
+          <button class="sw-more-item" onclick="GameClient.openFeature('quests');UI.closeSwMoreMenu()"><span>☐</span>任务</button>
           <button class="sw-more-item" onclick="GameClient.openFeature('archive');UI.closeSwMoreMenu()"><span>◈</span>档案</button>
         </div>
       </div>
@@ -594,6 +599,9 @@
         </button>
         <button class="nav-item" data-feature="party" title="组队">
           <span class="nav-icon">👥</span><span class="nav-text">组队</span>
+        </button>
+        <button class="nav-item" data-feature="quests" title="任务">
+          <span class="nav-icon">☐</span><span class="nav-text">任务</span>
         </button>
         <div class="nav-divider"></div>
         <button class="nav-item" data-feature="settings" title="设置">

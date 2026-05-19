@@ -63,6 +63,11 @@ function joinParty(partyId, playerId) {
   playerService.addLog(playerId, '加入了讨伐队伍');
   playerService.addLog(party.leader_id, (joiner ? joiner.player_name : '一位玩家') + ' 加入了队伍');
 
+  try {
+    var questService = require('./questService');
+    questService.checkProgress(playerId, 'join_party', { party_id: partyId });
+  } catch (e) { /* quest not critical */ }
+
   return { party: getParty(partyId) };
 }
 
@@ -184,6 +189,13 @@ function startPartyBossBattle(partyId, playerId) {
         var chapterService = require('./chapterService');
         chapterService.awardResource(members[j].player_id, 'constellationFavor', 1);
       } catch (e) { /* non-critical */ }
+    }
+    // Quest progress
+    for (var k = 0; k < members.length; k++) {
+      try {
+        var qs = require('./questService');
+        qs.checkProgress(members[k].player_id, 'party_boss', { party_id: partyId, boss_key: party.boss_key });
+      } catch (e) { /* quest not critical */ }
     }
     db.prepare("UPDATE parties SET status = 'disbanded', updated_at = datetime('now','localtime') WHERE id = ?").run(partyId);
     playerService.addLog(party.leader_id, '队伍成功讨伐了 ' + party.boss_key + '！');

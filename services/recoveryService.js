@@ -67,6 +67,12 @@ function startRest(playerId) {
   playerService.update(playerId, { stats_json: stats });
   playerService.addLog(playerId, '你进入休息状态，生命与体力恢复速度提升。');
 
+  // Quest progress
+  try {
+    var questService = require('./questService');
+    questService.checkProgress(playerId, 'rest', {});
+  } catch (e) { /* quest not critical */ }
+
   return { player: playerService.get(playerId), isResting: true };
 }
 

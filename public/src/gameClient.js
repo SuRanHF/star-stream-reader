@@ -421,6 +421,9 @@ const GameClient = {
       case 'underworld':
         this.openUnderworld();
         break;
+      case 'quests':
+        this.loadQuests();
+        break;
       case 'changelog':
         this.showChangelog();
         break;
@@ -1139,12 +1142,13 @@ const GameClient = {
   // ===== Equipment =====
   async loadEquipment() {
     try {
-      const data = await API.getEquipment(this.playerId);
-      const contentHTML = UI.renderEquipment(data.equipped, data.available);
+      var data = await API.getEquipment(this.playerId);
+      var activeSets = data.active_sets || [];
+      var contentHTML = UI.renderEquipment(data.equipped, data.available, activeSets);
       UI.openDrawer('装备', contentHTML);
-      const { player } = await API.getPlayer(this.playerId);
-      UI.renderLeftPanel(player);
-      UI.renderDescriptionPanel(player, 'equipment');
+      var playerResp = await API.getPlayer(this.playerId);
+      UI.renderLeftPanel(playerResp.player);
+      UI.renderDescriptionPanel(playerResp.player, 'equipment');
     } catch (e) {
       UI.addLog('加载装备失败: ' + (e.message || e), 'warning');
     }
@@ -1182,28 +1186,57 @@ const GameClient = {
   // ===== Skills =====
   async loadSkills() {
     try {
-      const { skills } = await API.getSkills(this.playerId);
-      const contentHTML = UI.renderSkills(skills);
+      var skillsResp = await API.getSkills(this.playerId);
+      var skills = skillsResp.skills || [];
+
+      // Also fetch faction skills for faction tab
+      var factionSkills = [];
+      try {
+        var fsResp = await API.getPlayerFactionSkills(this.playerId);
+        factionSkills = fsResp.skills || [];
+      } catch (e) { /* faction skills not critical */ }
+
+      var contentHTML = UI.renderSkills(skills, factionSkills);
       UI.openDrawer('技能', contentHTML);
-      const { player } = await API.getPlayer(this.playerId);
-      UI.renderLeftPanel(player);
+      var playerResp = await API.getPlayer(this.playerId);
+      UI.renderLeftPanel(playerResp.player);
     } catch (e) {
       UI.addLog('加载技能失败: ' + (e.message || e), 'warning');
     }
   },
 
+  async switchSkillsTab(tab) {
+    UI._skillsTab = tab;
+    await this.loadSkills();
+  },
+
   async unlockSkill(skillKey) {
     try {
-      const result = await API.unlockSkill(this.playerId, skillKey);
+      var result = await API.unlockSkill(this.playerId, skillKey);
       if (result.error) {
         alert(result.error.message || '解锁失败');
         return;
       }
-      const skName = result.skill?.name || skillKey;
-      UI.addLog(`解锁技能: ${skName}`, 'reward');
+      var skName = result.skill && result.skill.name || skillKey;
+      UI.addLog('解锁技能: ' + skName, 'reward');
       this.loadSkills();
     } catch (e) {
       UI.addLog('解锁技能失败: ' + (e.message || e), 'warning');
+    }
+  },
+
+  async learnFactionSkill(skillKey) {
+    try {
+      var result = await API.learnFactionSkill(this.playerId, skillKey);
+      if (result.error) {
+        alert(result.error.message || '学习失败');
+        return;
+      }
+      var skName = result.skill && result.skill.skill_name || skillKey;
+      UI.addLog('习得阵营技能: ' + skName, 'reward');
+      this.loadSkills();
+    } catch (e) {
+      UI.addLog('学习阵营技能失败: ' + (e.message || e), 'warning');
     }
   },
 
@@ -2108,6 +2141,71 @@ const GameClient = {
     }
   },
 
+  // ===== Quests (日常/周常任务) =====
+  _questTab: 'daily',
+
+  async loadQuests() {
+    var self = this;
+    UI.openDrawer('任务', '<div id="questContent"><p style="text-align:center;color:var(--text-secondary);padding:32px;">加载中...</p></div>');
+    try {
+      var resp = await API.getQuests(this.playerId);
+      var data = (resp && resp.data) ? resp.data : null;
+      if (data) {
+        var content = document.getElementById('questContent');
+        if (content) {
+          content.innerHTML = UI.renderQuestPanel(data, self._questTab, this.playerId);
+        }
+      }
+    } catch (e) {
+      var content = document.getElementById('questContent');
+      if (content) content.innerHTML = '<p style="text-align:center;color:var(--danger);padding:32px;">加载任务失败: ' + (e.message || e) + '</p>';
+    }
+  },
+
+  async loadQuestsTab(tab) {
+    this._questTab = tab;
+    await this.loadQuests();
+  },
+
+  async claimQuestReward(questId) {
+    var self = this;
+    try {
+      var result = await API.claimQuestReward(this.playerId, questId);
+      if (result.error) {
+        UI.addLog(result.error.message || '领取失败', 'warning');
+        return;
+      }
+      if (result.data && result.data.data) {
+        var d = result.data.data;
+        var earned = d.earned;
+        var rewardParts = [];
+        if (earned.coins) rewardParts.push('金币 +' + earned.coins);
+        if (earned.story_fragments) rewardParts.push('故事碎片 +' + earned.story_fragments);
+        if (earned.constellationFavor) rewardParts.push('星座好感 +' + earned.constellationFavor);
+        if (earned.items && earned.items.length > 0) rewardParts.push('物品: ' + earned.items.join(', '));
+        UI.addLog('完成任务「' + d.quest_name + '」，获得: ' + rewardParts.join(', '), 'reward');
+      } else if (result.success && result.data) {
+        // Direct data path
+        var d = result.data;
+        var earned = d.earned;
+        var rewardParts = [];
+        if (earned.coins) rewardParts.push('金币 +' + earned.coins);
+        if (earned.story_fragments) rewardParts.push('故事碎片 +' + earned.story_fragments);
+        if (earned.constellationFavor) rewardParts.push('星座好感 +' + earned.constellationFavor);
+        if (earned.items && earned.items.length > 0) rewardParts.push('物品: ' + earned.items.join(', '));
+        UI.addLog('完成任务「' + d.quest_name + '」，获得: ' + rewardParts.join(', '), 'reward');
+      }
+      // Refresh quest panel and player stats
+      await this.loadQuests();
+      var resp = await API.getPlayer(this.playerId);
+      if (resp && resp.data && resp.data.player) {
+        UI.renderLeftPanel(resp.data.player);
+      }
+    } catch (e) {
+      UI.addLog('领取奖励失败: ' + (e.message || e), 'warning');
+    }
+  },
+
   // ===== Settings =====
   showSettings() {
     const contentHTML = UI.renderSettings();
@@ -2439,5 +2537,36 @@ const GameClient = {
         localStorage.setItem('changelog_seen', this._latestChangelogVersion);
       }, 300);
     }
+  },
+
+  // ===== Faction Skills (阵营技能) =====
+  async openFactionSkills() {
+    var self = this;
+    UI.openDrawer('阵营技能', '<div id="factionSkillsContent"><p style="text-align:center;color:var(--text-secondary);padding:32px;">加载中...</p></div>');
+    try {
+      var skills = await API.getMyFactionSkills(this.playerId);
+      var data = (skills && skills.skills) || [];
+      var playerRes = await API.getPlayer(this.playerId);
+      var constellationKey = '';
+      if (playerRes && playerRes.data && playerRes.data.player) {
+        constellationKey = playerRes.data.player.stats.constellation || '';
+      }
+      var content = document.getElementById('factionSkillsContent');
+      if (content) {
+        content.innerHTML = UI.renderFactionSkillsPanel(this.playerId, data, constellationKey);
+      }
+    } catch (e) {
+      var content = document.getElementById('factionSkillsContent');
+      if (content) content.innerHTML = '<p style="text-align:center;color:var(--danger);padding:32px;">加载阵营技能失败: ' + (e.message || e) + '</p>';
+    }
+  },
+
+  async learnFactionSkill(skillKey) {
+    try {
+      var result = await API.learnFactionSkill(this.playerId, skillKey);
+      if (result.error) { UI.addLog(result.error.message || '学习失败', 'warning'); return; }
+      UI.addLog('成功习得阵营技能！', 'system');
+      this.openFactionSkills();
+    } catch (e) { UI.addLog('学习技能失败: ' + (e.message || e), 'warning'); }
   }
 };

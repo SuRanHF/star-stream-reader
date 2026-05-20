@@ -361,43 +361,6 @@ function runMigrations(database) {
     console.log('Phase 3: 8 constellation factions initialized.');
   }
 
-  // Round 11: Migrate help_bounties table + pk_challenges mode column + player daily help limits
-  database.run(`
-    CREATE TABLE IF NOT EXISTS help_bounties (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      owner_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-      monster_key TEXT NOT NULL,
-      location_key TEXT NOT NULL DEFAULT '',
-      monster_name TEXT NOT NULL DEFAULT '',
-      share_percent INTEGER NOT NULL DEFAULT 50 CHECK(share_percent >= 10 AND share_percent <= 90),
-      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','accepted','resolved','expired','cancelled')),
-      helper_id INTEGER REFERENCES players(id) ON DELETE SET NULL,
-      bounty_rewards_json TEXT NOT NULL DEFAULT '{}',
-      created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
-      resolved_at TEXT
-    )
-  `);
-  database.run('CREATE INDEX IF NOT EXISTS idx_help_bounties_status ON help_bounties(status)');
-  database.run('CREATE INDEX IF NOT EXISTS idx_help_bounties_owner ON help_bounties(owner_id)');
-
-  if (!columnExists('pk_challenges', 'mode')) {
-    database.run("ALTER TABLE pk_challenges ADD COLUMN mode TEXT NOT NULL DEFAULT 'spar'");
-  }
-
-  if (!columnExists('chat_messages', 'msg_type')) {
-    database.run("ALTER TABLE chat_messages ADD COLUMN msg_type TEXT NOT NULL DEFAULT 'chat'");
-  }
-
-  if (!columnExists('players', 'daily_help_count')) {
-    database.run("ALTER TABLE players ADD COLUMN daily_help_count INTEGER NOT NULL DEFAULT 0");
-  }
-  if (!columnExists('players', 'daily_assist_count')) {
-    database.run("ALTER TABLE players ADD COLUMN daily_assist_count INTEGER NOT NULL DEFAULT 0");
-  }
-  if (!columnExists('players', 'help_date')) {
-    database.run("ALTER TABLE players ADD COLUMN help_date TEXT NOT NULL DEFAULT ''");
-  }
-
   // Phase 1: Currency merge migration (scenarioProof→story_fragments, kingToken→abyssMark, delete finalPage)
   try {
     var players = database.prepare('SELECT id, story_fragments, breakthrough_resources_json FROM players').all();

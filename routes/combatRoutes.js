@@ -23,21 +23,14 @@ router.post('/simulate', (req, res) => {
 
 router.post('/resolve', (req, res) => {
   try {
-    const { playerId, monsterKey, action, helperId } = req.body;
+    const { playerId, monsterKey, action } = req.body;
     if (!playerId || !monsterKey || !action) {
       return res.status(400).json({ success: false, error: { code: 'MISSING_PARAMS', message: '缺少必要参数' } });
     }
     if (!['fight', 'flee', 'support'].includes(action)) {
       return res.status(400).json({ success: false, error: { code: 'INVALID_ACTION', message: '无效的战斗行动' } });
     }
-    // Verify helper is online if specified
-    if (helperId && action === 'support') {
-      var playerService = require('../services/playerService');
-      if (!playerService.isPlayerOnline(helperId)) {
-        return res.status(400).json({ success: false, error: { code: 'HELPER_OFFLINE', message: '求助的玩家已离线' } });
-      }
-    }
-    const result = combatService.resolveCombat(Number(playerId), monsterKey, action, helperId ? Number(helperId) : null);
+    const result = combatService.resolveCombat(Number(playerId), monsterKey, action);
     if (result.error) {
       return res.status(400).json({ success: false, error: result.error });
     }

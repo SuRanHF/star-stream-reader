@@ -7,22 +7,6 @@ router.use(requireOwnPlayer);
 const playerService = require('../services/playerService');
 const recoveryService = require('../services/recoveryService');
 
-// GET /api/player/online — list online players (for support/help requests)
-router.get('/online', (req, res) => {
-  try {
-    var onlineIds = playerService.getOnlinePlayers();
-    if (onlineIds.length === 0) return res.json({ players: [] });
-    var placeholders = onlineIds.map(function() { return '?'; }).join(',');
-    var db = require('../db/database').getDb();
-    var stmt = db.prepare('SELECT id, player_name FROM players WHERE id IN (' + placeholders + ') LIMIT 50');
-    var rows = stmt.all.apply(stmt, onlineIds);
-    res.json({ players: rows });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
-  }
-});
-
 router.post('/create', (req, res) => {
   try {
     const { playerName } = req.body;

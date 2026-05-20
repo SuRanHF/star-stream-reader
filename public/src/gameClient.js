@@ -1285,16 +1285,8 @@ const GameClient = {
   },
 
   async doPK(defenderId) {
-    var self = this;
-    var mode = (self['_pkMode_' + defenderId]) || 'spar';
-
-    if (mode === 'deathmatch') {
-      var confirmed = confirm('[ 生死对决 ] 败者将失去全部储物（物品、装备）和一半硬币！确认发起？');
-      if (!confirmed) return;
-    }
-
     try {
-      var result = await API.challengePlayer(this.playerId, defenderId, mode);
+      var result = await API.challengePlayer(this.playerId, defenderId);
       if (result.error) {
         alert(result.error.message || '挑战失败');
         return;
@@ -1751,18 +1743,14 @@ const GameClient = {
         if (chatMsgs && messages.length > 0) {
           for (var i = 0; i < messages.length; i++) {
             var m = messages[i];
+            var isMine = this.playerId && m.player_id === this.playerId;
             var div = document.createElement('div');
-            if (m.msg_type === 'assist_invite') {
-              div.innerHTML = UI._renderAssistCard(m, self.playerId);
-            } else {
-              var isMine = self.playerId && m.player_id === self.playerId;
-              div.className = 'chat-msg' + (isMine ? ' chat-msg-mine' : '');
-              var html = '';
-              if (!isMine) html += '<span class="chat-msg-author">' + m.player_name + '</span>';
-              html += '<span class="chat-msg-text">' + m.message + '</span>';
-              html += '<span class="chat-msg-time">' + (m.created_at || '').substr(11, 5) + '</span>';
-              div.innerHTML = html;
-            }
+            div.className = 'chat-msg' + (isMine ? ' chat-msg-mine' : '');
+            var html = '';
+            if (!isMine) html += '<span class="chat-msg-author">' + m.player_name + '</span>';
+            html += '<span class="chat-msg-text">' + m.message + '</span>';
+            html += '<span class="chat-msg-time">' + (m.created_at || '').substr(11, 5) + '</span>';
+            div.innerHTML = html;
             chatMsgs.appendChild(div);
           }
           this._scrollChatToBottom();
@@ -1976,10 +1964,9 @@ const GameClient = {
   },
 
   // ===== Combat Actions =====
-  async doCombatAction(monsterKey, action, helperId) {
+  async doCombatAction(monsterKey, action) {
     try {
-      UI.hideSupportList();
-      const res = await API.resolveCombat(this.playerId, monsterKey, action, helperId);
+      const res = await API.resolveCombat(this.playerId, monsterKey, action);
       if (!res.success) {
         alert((res.error && res.error.message) || '战斗操作失败');
         return;
@@ -1999,42 +1986,6 @@ const GameClient = {
       }
     } catch (e) {
       UI.addLog('战斗操作失败: ' + (e.message || e), 'battle');
-    }
-  },
-
-  async publishBounty(monsterKey, locationKey, monsterName) {
-    var sharePercent = UI._bountySharePercent || 50;
-    try {
-      var overlay = document.getElementById('bountyDialogOverlay');
-      if (overlay) overlay.classList.add('hidden');
-      var result = await API.publishBounty(this.playerId, monsterKey, locationKey, monsterName, sharePercent, {});
-      if (result.error) {
-        UI.addLog(result.error.message || '发布悬赏失败', 'warning');
-        return;
-      }
-      UI.addLog(result.data.message || '悬赏已发布到世界频道！', 'system');
-    } catch (e) {
-      UI.addLog('发布悬赏失败: ' + (e.message || e), 'warning');
-    }
-  },
-
-  async acceptBounty(bountyId) {
-    try {
-      var result = await API.acceptBounty(bountyId, this.playerId);
-      if (result.error) {
-        UI.addLog(result.error.message || '响应悬赏失败', 'warning');
-        return;
-      }
-      var data = result.data || result;
-      UI.addLog(data.message || '悬赏已解决！', 'system');
-      // Refresh player
-      var resp = await API.getPlayer(this.playerId);
-      if (resp && resp.data && resp.data.player) {
-        UI.renderLeftPanel(resp.data.player);
-        this.updateMainActionBar(resp.data.player);
-      }
-    } catch (e) {
-      UI.addLog('响应悬赏失败: ' + (e.message || e), 'warning');
     }
   },
 
@@ -2528,121 +2479,19 @@ const GameClient = {
   },
 
   // Heartbeat every 30s to mark online + poll for PK challenges
-  startWebSocket() {
-    var self = this;
-    if (self._wsReconnectTimer) { clearTimeout(self._wsReconnectTimer); self._wsReconnectTimer = null; }
-    if (self._ws && self._ws.readyState <= 1) return;
-
-    var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    var wsUrl = proto + '//' + location.host + '/ws';
-
-    try {
-      self._ws = new WebSocket(wsUrl);
-    } catch (e) {
-      self._wsReconnectTimer = setTimeout(function() { self.startWebSocket(); }, 5000);
-      return;
-    }
-
-    self._ws.onopen = function() {
-      self._ws.send(JSON.stringify({
-        type: 'auth',
-        token: Storage.getToken(),
-        playerId: self.playerId,
-        playerName: self._currentPlayer ? self._currentPlayer.player_name : ''
-      }));
-    };
-
-    self._ws.onmessage = function(event) {
-      try {
-        var msg = JSON.parse(event.data);
-      } catch (e) { return; }
-
-      switch (msg.type) {
-        case 'auth_ok':
-          if (self._wsPingInterval) clearInterval(self._wsPingInterval);
-          self._wsPingInterval = setInterval(function() {
-            if (self._ws && self._ws.readyState === 1) {
-              try { self._ws.send(JSON.stringify({ type: 'ping' })); } catch (e) { /* */ }
-            }
-          }, 20000);
-          break;
-
-        case 'pong':
-          break;
-
-        case 'pk_challenge':
-          UI.showChallengePopup([{
-            id: msg.challengeId,
-            attacker_id: msg.attackerId,
-            attacker_name: msg.attackerName,
-            mode: msg.mode || 'spar'
-          }], self.playerId);
-          break;
-
-        case 'pk_result':
-          if (msg.accepted) {
-            UI.renderPKResult(msg.battle);
-          } else {
-            UI.addLog(msg.message || '对方拒绝了挑战', 'system');
-          }
-          break;
-
-        case 'pk_timeout':
-          UI.addLog(msg.message || '挑战已超时', 'system');
-          break;
-
-        case 'pk_challenge_expired':
-          UI.dismissChallengePopup();
-          break;
-
-        case 'assist_invite':
-          // Append bounty card to chat if chat is open
-          (function() {
-            var chatMsgs = document.getElementById('chatMessages');
-            if (chatMsgs) {
-              var cardHtml = UI._renderAssistCard({
-                player_name: msg.ownerName || '',
-                message: '【' + (msg.ownerName || '') + '】遭遇了可怕的 ' + (msg.monsterName || '') + '，不敌求助\n悬赏 ' + (msg.sharePercent || 50) + '% 的修为与掉落',
-                created_at: new Date().toISOString(),
-                msg_type: 'assist_invite',
-                player_id: msg.ownerId,
-                metadata: { bountyId: msg.bountyId, ownerId: msg.ownerId, sharePercent: msg.sharePercent }
-              }, self.playerId);
-              var div = document.createElement('div');
-              div.innerHTML = cardHtml;
-              chatMsgs.appendChild(div.firstElementChild);
-              var container = document.getElementById('chatMessages');
-              if (container) container.scrollTop = container.scrollHeight;
-            }
-          })();
-          break;
-
-        case 'assist_resolved':
-          UI.addLog(msg.content || '悬赏已被响应', 'system');
-          break;
-      }
-    };
-
-    self._ws.onclose = function() {
-      if (self._wsPingInterval) { clearInterval(self._wsPingInterval); self._wsPingInterval = null; }
-      self._wsReconnectTimer = setTimeout(function() { self.startWebSocket(); }, 3000);
-    };
-
-    self._ws.onerror = function() {};
-  },
-
   startHeartbeat() {
     var self = this;
-    this.startWebSocket();
-
     if (this._heartbeatInterval) return;
     this._heartbeatInterval = setInterval(async function() {
       try {
         if (!self.playerId) return;
-        await API.heartbeat(self.playerId);
+        var resp = await API.heartbeat(self.playerId);
+        if (resp && resp.pendingChallenges && resp.pendingChallenges.length > 0) {
+          UI.showChallengePopup(resp.pendingChallenges, self.playerId);
+        }
       } catch (e) { /* silent */ }
-    }, 60000);
-
+    }, 30000);
+    // Immediate first beat
     setTimeout(async function() {
       try {
         if (!self.playerId) return;

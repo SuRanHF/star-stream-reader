@@ -140,8 +140,8 @@ const API = {
   getPKOpponents(playerId) {
     return this.request('GET', `/api/pk/opponents/${playerId}`);
   },
-  challengePlayer(attackerId, defenderId, mode) {
-    return this.request('POST', '/api/pk/challenge', { attackerId, defenderId, mode: mode || 'spar' });
+  challengePlayer(attackerId, defenderId) {
+    return this.request('POST', '/api/pk/challenge', { attackerId, defenderId });
   },
   resolveChallenge(challengeId, playerId, accept) {
     return this.request('POST', '/api/pk/challenge/resolve', { challengeId, playerId, accept });
@@ -202,8 +202,8 @@ const API = {
     return this.request('GET', '/api/broadcast/history');
   },
   // Combat
-  resolveCombat(playerId, monsterKey, action, helperId) {
-    return this.request('POST', '/api/combat/resolve', { playerId, monsterKey, action, helperId: helperId || null });
+  resolveCombat(playerId, monsterKey, action) {
+    return this.request('POST', '/api/combat/resolve', { playerId, monsterKey, action });
   },
 
   // Attribute allocation
@@ -221,11 +221,6 @@ const API = {
   },
   selectConstellation(playerId, constellationKey) {
     return this.request('POST', '/api/player/select-constellation', { playerId, constellationKey });
-  },
-
-  // Online players
-  getOnlinePlayers() {
-    return this.request('GET', '/api/player/online');
   },
 
   // Revival
@@ -411,25 +406,5 @@ const API = {
   },
   getMySetBonuses(playerId) {
     return this.request('GET', '/api/equipment/sets/my/' + playerId);
-  },
-
-  // Help Bounty (悬赏求助)
-  publishBounty(playerId, monsterKey, locationKey, monsterName, sharePercent, combatRewards) {
-    return this.request('POST', '/api/bounty/publish', { playerId, monsterKey, locationKey, monsterName, sharePercent, combatRewards });
-  },
-  acceptBounty(bountyId, playerId) {
-    return this.request('POST', '/api/bounty/accept/' + bountyId, { playerId });
-  },
-  getPendingBounties() {
-    return this.request('GET', '/api/bounty/pending');
-  },
-  getMyActiveBounty(playerId) {
-    return this.request('GET', '/api/bounty/my/' + playerId);
-  },
-  cancelBounty(playerId) {
-    return this.request('POST', '/api/bounty/cancel', { playerId });
-  },
-  getBountyDailyLimits(playerId) {
-    return this.request('GET', '/api/bounty/daily-limits/' + playerId);
   },
 };

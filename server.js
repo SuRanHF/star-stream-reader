@@ -24,7 +24,6 @@ if (!process.env.ADMIN_KEY || process.env.ADMIN_KEY.length < 8) {
   console.warn('============================================================');
 }
 
-const http = require('http');
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const fs = require('fs');
@@ -185,7 +184,6 @@ app.use('/api/trade', authRequired, require('./routes/tradeRoutes'));
 app.use('/api/party', authRequired, require('./routes/partyRoutes'));
 app.use('/api/narrative', require('./routes/narrativeRoutes'));
 app.use('/api/ai-director', require('./routes/aiDirectorRoutes'));
-app.use('/api/bounty', require('./routes/helpBountyRoutes'));
 
   // Health check
   app.get('/api/health', (req, res) => {
@@ -229,12 +227,10 @@ app.use('/api/bounty', require('./routes/helpBountyRoutes'));
   app.post('/api/heartbeat', authRequired, (req, res) => {
     try {
       const playerService = require('./services/playerService');
-      const pkService = require('./services/pkService');
       playerService.updateHeartbeat(req.body.playerId);
-      // Return pending PK challenges (as defender) + resolved challenges (as attacker)
-      const pendingChallenges = pkService.getPendingChallenges(req.body.playerId);
-      const resolvedChallenges = pkService.getAttackerResolvedChallenges(req.body.playerId);
-      res.json({ success: true, pendingChallenges: pendingChallenges || [], resolvedChallenges: resolvedChallenges || [] });
+      // Return pending PK challenges for this player
+      const pendingChallenges = require('./services/pkService').getPendingChallenges(req.body.playerId);
+      res.json({ success: true, pendingChallenges: pendingChallenges || [] });
     } catch (e) {
       res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
     }
@@ -293,16 +289,7 @@ app.use('/api/bounty', require('./routes/helpBountyRoutes'));
     res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: '服务器内部错误' } });
   });
 
-  const httpServer = http.createServer(app);
-
-  // WebSocket 实时通信
-  try {
-    require('./services/wsService').init(httpServer);
-  } catch (e) {
-    console.error('Failed to start WebSocket:', e.message);
-  }
-
-  httpServer.listen(PORT, () => {
+  app.listen(PORT, () => {
     console.log(`全知读者视角 游戏服务器已启动 (Round 11): http://localhost:${PORT}`);
     // 启动全服调度引擎
     try {

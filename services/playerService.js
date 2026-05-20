@@ -391,11 +391,6 @@ function updateHeartbeat(playerId) {
 }
 
 function isPlayerOnline(playerId) {
-  // 优先用 WebSocket 连接状态
-  try {
-    var wsService = require('./wsService');
-    return wsService.isOnline(Number(playerId));
-  } catch (e) { /* fall through to heartbeat */ }
   var db = getDb();
   var row = db.prepare("SELECT last_heartbeat FROM players WHERE id = ?").get(playerId);
   if (!row || !row.last_heartbeat) return false;
@@ -405,12 +400,6 @@ function isPlayerOnline(playerId) {
 }
 
 function getOnlinePlayers() {
-  // 优先用 WebSocket 在线列表
-  try {
-    var wsService = require('./wsService');
-    var wsIds = wsService.getOnlinePlayerIds();
-    if (wsIds.length > 0) return wsIds;
-  } catch (e) { /* fall through to heartbeat */ }
   var db = getDb();
   var cutoff = new Date(Date.now() - 90000).toISOString().replace('T', ' ').slice(0, 19);
   return db.prepare("SELECT id FROM players WHERE last_heartbeat >= ?").all(cutoff).map(function(r) { return r.id; });

@@ -15,8 +15,8 @@ function sendMessage(playerId, playerName, message, channel) {
 
   var db = getDb();
   var result = db.prepare(
-    'INSERT INTO chat_messages (player_id, player_name, message, channel, msg_type) VALUES (?, ?, ?, ?, ?)'
-  ).run(playerId, playerName, String(message).trim(), channel, 'chat');
+    'INSERT INTO chat_messages (player_id, player_name, message, channel) VALUES (?, ?, ?, ?)'
+  ).run(playerId, playerName, String(message).trim(), channel);
 
   // Quest progress tracking
   try {
@@ -32,35 +32,9 @@ function sendMessage(playerId, playerName, message, channel) {
       player_name: playerName,
       message: String(message).trim(),
       channel: channel,
-      msg_type: 'chat',
       created_at: new Date().toISOString()
     }
   };
-}
-
-// Send a system message (bounty, announcement, etc.) — stored in DB and broadcast via WS
-function sendSystemMessage(msgType, message, playerId, playerName, metadata) {
-  var db = getDb();
-  var result = db.prepare(
-    'INSERT INTO chat_messages (player_id, player_name, message, channel, msg_type) VALUES (?, ?, ?, ?, ?)'
-  ).run(playerId || 0, playerName || '', String(message).trim(), 'global', msgType || 'system');
-
-  try {
-    var wsService = require('./wsService');
-    wsService.broadcast({
-      type: msgType || 'system',
-      id: result.lastInsertRowid,
-      player_id: playerId || 0,
-      player_name: playerName || '',
-      message: String(message).trim(),
-      channel: 'global',
-      msg_type: msgType || 'system',
-      created_at: new Date().toISOString(),
-      metadata: metadata || {}
-    });
-  } catch (e) { /* ws not critical */ }
-
-  return { success: true, data: { id: result.lastInsertRowid } };
 }
 
 function getRecentMessages(channel, limit, sinceId) {
@@ -91,7 +65,6 @@ function getRecentMessages(channel, limit, sinceId) {
         player_name: r.player_name,
         message: r.message,
         channel: r.channel,
-        msg_type: r.msg_type || 'chat',
         created_at: r.created_at
       };
     })
@@ -109,4 +82,4 @@ function getActiveChatters(channel, minutes) {
   return { success: true, data: rows };
 }
 
-module.exports = { sendMessage, sendSystemMessage, getRecentMessages, getActiveChatters, MAX_MESSAGE_LENGTH };
+module.exports = { sendMessage, getRecentMessages, getActiveChatters, MAX_MESSAGE_LENGTH };

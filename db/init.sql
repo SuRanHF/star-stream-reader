@@ -391,7 +391,6 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     player_name TEXT NOT NULL,
     message TEXT NOT NULL,
     channel TEXT NOT NULL DEFAULT 'global',
-    msg_type TEXT NOT NULL DEFAULT 'chat',
     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
 );
 
@@ -583,24 +582,3 @@ CREATE TABLE IF NOT EXISTS player_npc_encounters (
 CREATE INDEX IF NOT EXISTS idx_item_memories_item ON item_memories(item_key);
 CREATE INDEX IF NOT EXISTS idx_location_echoes_location ON location_echoes(location_key);
 CREATE INDEX IF NOT EXISTS idx_player_npc_encounters_player ON player_npc_encounters(player_id);
-
--- ============================================================
--- Round 11: 悬赏求助系统 (Help Bounty)
--- ============================================================
-
-CREATE TABLE IF NOT EXISTS help_bounties (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    owner_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-    monster_key TEXT NOT NULL,
-    location_key TEXT NOT NULL DEFAULT '',
-    monster_name TEXT NOT NULL DEFAULT '',
-    share_percent INTEGER NOT NULL DEFAULT 50 CHECK(share_percent >= 10 AND share_percent <= 90),
-    status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','accepted','resolved','expired','cancelled')),
-    helper_id INTEGER REFERENCES players(id) ON DELETE SET NULL,
-    bounty_rewards_json TEXT NOT NULL DEFAULT '{}',
-    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
-    resolved_at TEXT
-);
-
-CREATE INDEX IF NOT EXISTS idx_help_bounties_status ON help_bounties(status);
-CREATE INDEX IF NOT EXISTS idx_help_bounties_owner ON help_bounties(owner_id);

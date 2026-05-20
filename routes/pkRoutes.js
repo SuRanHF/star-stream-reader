@@ -22,11 +22,7 @@ router.post('/challenge', (req, res) => {
   try {
     var attackerId = Number(req.body.attackerId);
     var defenderId = Number(req.body.defenderId);
-    var mode = req.body.mode || 'spar';
     if (!attackerId || !defenderId) return res.status(400).json({ code: 'MISSING_PARAMS', message: '缺少必要参数' });
-    if (['spar', 'deathmatch'].indexOf(mode) === -1) {
-      return res.status(400).json({ code: 'INVALID_MODE', message: '无效的PK模式，可选: spar, deathmatch' });
-    }
     try {
       playerService.assertNotResting(attackerId, '世界PK');
     } catch (e) {
@@ -36,7 +32,7 @@ router.post('/challenge', (req, res) => {
     if (!playerService.isPlayerOnline(defenderId)) {
       return res.status(400).json({ code: 'PLAYER_OFFLINE', message: '对方不在线，无法挑战' });
     }
-    var result = pkService.createChallenge(attackerId, defenderId, mode);
+    var result = pkService.createChallenge(attackerId, defenderId);
     if (result.error) return res.status(400).json(result.error);
     res.json(result);
   } catch (e) {

@@ -13,7 +13,6 @@ const LABELS = {
 };
 
 const UI = {
-  _drawerTimeout: null,
   // ===== Left Panel (精简版) =====
   renderLeftPanel(player, globalWLS) {
     if (!player) return;
@@ -374,6 +373,7 @@ const UI = {
         el.classList.remove('closing');
       }
     }
+    UI.closeDrawer();
   },
 
   showSocialPlaceholder(featureName) {
@@ -490,8 +490,6 @@ const UI = {
   openDrawer(title, contentHTML) {
     const drawer = document.getElementById('rightDrawer');
     if (!drawer) return;
-    // Cancel any pending close timeout
-    if (UI._drawerTimeout) { clearTimeout(UI._drawerTimeout); UI._drawerTimeout = null; }
     UI.closeAllOverlays();
     UI.setText('drawerTitle', title);
     const body = document.getElementById('drawerBody');
@@ -526,11 +524,9 @@ const UI = {
     if (descPanel) {
       descPanel.classList.remove('shifted');
     }
-    // Cancel any previous hide timeout before setting a new one
-    if (UI._drawerTimeout) clearTimeout(UI._drawerTimeout);
-    UI._drawerTimeout = setTimeout(() => {
+    // Hide after transition
+    setTimeout(() => {
       drawer.classList.add('hidden');
-      UI._drawerTimeout = null;
     }, 300);
     this.clearDescriptionPanel();
   },
@@ -758,30 +754,20 @@ const UI = {
     if (!opponents || opponents.length === 0) {
       return '<p style="text-align:center;color:var(--text-secondary);padding:32px">暂无可挑战的对手。</p>';
     }
-    return opponents.map(function(o) {
-      return '<div class="drawer-card">' +
-        '<div class="drawer-card-title">' + o.player_name + '</div>' +
-        '<div class="drawer-card-stats">' +
-          '<span>Lv.' + o.level + '</span>' +
-          '<span>评分: ' + o.rating + '</span>' +
-          '<span>战力: ' + o.combat_power + '</span>' +
-          '<span>胜/负: ' + o.wins + '/' + o.losses + '</span>' +
-        '</div>' +
-        '<div class="pk-mode-select" style="margin:8px 0;display:flex;gap:12px;font-size:12px;">' +
-          '<label style="cursor:pointer;display:flex;align-items:center;gap:4px;">' +
-            '<input type="radio" name="pkMode_' + o.id + '" value="spar" checked onchange="GameClient._pkMode_' + o.id + '=\'spar\'">' +
-            '<span style="color:#4caf50;">切磋</span><span style="color:var(--text-secondary);">(无损失)</span>' +
-          '</label>' +
-          '<label style="cursor:pointer;display:flex;align-items:center;gap:4px;">' +
-            '<input type="radio" name="pkMode_' + o.id + '" value="deathmatch" onchange="GameClient._pkMode_' + o.id + '=\'deathmatch\'">' +
-            '<span style="color:#f44336;">死斗</span><span style="color:var(--text-secondary);">(败者全失)</span>' +
-          '</label>' +
-        '</div>' +
-        '<div class="drawer-card-actions">' +
-          '<button class="btn-action btn-sm" onclick="GameClient.doPK(' + o.id + ')">挑战</button>' +
-        '</div>' +
-      '</div>';
-    }).join('');
+    return opponents.map(o => `
+      <div class="drawer-card">
+        <div class="drawer-card-title">${o.player_name}</div>
+        <div class="drawer-card-stats">
+          <span>Lv.${o.level}</span>
+          <span>评分: ${o.rating}</span>
+          <span>战力: ${o.combat_power}</span>
+          <span>胜/负: ${o.wins}/${o.losses}</span>
+        </div>
+        <div class="drawer-card-actions">
+          <button class="btn-action btn-sm" onclick="GameClient.doPK(${o.id})">挑战</button>
+        </div>
+      </div>
+    `).join('');
   },
 
   renderPKRecords(records) {
@@ -1249,16 +1235,12 @@ const UI = {
     } else {
       for (var i = 0; i < messages.length; i++) {
         var m = messages[i];
-        if (m.msg_type === 'assist_invite') {
-          html += this._renderAssistCard(m, playerId);
-        } else {
-          var isMine = playerId && m.player_id === playerId;
-          html += '<div class="chat-msg' + (isMine ? ' chat-msg-mine' : '') + '">';
-          if (!isMine) html += '<span class="chat-msg-author">' + m.player_name + '</span>';
-          html += '<span class="chat-msg-text">' + m.message + '</span>';
-          html += '<span class="chat-msg-time">' + (m.created_at || '').substr(11, 5) + '</span>';
-          html += '</div>';
-        }
+        var isMine = playerId && m.player_id === playerId;
+        html += '<div class="chat-msg' + (isMine ? ' chat-msg-mine' : '') + '">';
+        if (!isMine) html += '<span class="chat-msg-author">' + m.player_name + '</span>';
+        html += '<span class="chat-msg-text">' + m.message + '</span>';
+        html += '<span class="chat-msg-time">' + (m.created_at || '').substr(11, 5) + '</span>';
+        html += '</div>';
       }
     }
     html += '</div>';
@@ -1267,35 +1249,6 @@ const UI = {
     html += '<button class="ma-btn primary" onclick="GameClient.sendChatMessage()" style="padding:8px 16px;">发送</button>';
     html += '</div>';
     html += '</div>';
-    return html;
-  },
-
-  _renderAssistCard(m, playerId) {
-    var meta = m.metadata || {};
-    var bountyId = meta.bountyId || 0;
-    var ownerId = meta.ownerId || m.player_id;
-    var monsterName = meta.monsterName || (m.message || '').split('\n')[0] || '未知怪物';
-    var sharePercent = meta.sharePercent || 50;
-    var isMine = playerId && ownerId === playerId;
-    var timeStr = (m.created_at || '').substr(11, 5);
-
-    var html = '<div class="chat-msg chat-msg-recruit">';
-    html += '<span class="chat-msg-time">' + timeStr + '</span>';
-    html += '<div class="chat-recruit-card chat-assist-card" style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px;margin:4px 0;">';
-    html += '<div class="chat-recruit-header" style="margin-bottom:4px;">';
-    html += '<span class="chat-recruit-label" style="color:var(--danger);font-weight:bold;">[悬赏求助]</span> ';
-    html += '<span class="chat-recruit-name">' + this.escapeHtml(m.player_name) + '</span>';
-    html += '</div>';
-    html += '<div class="chat-recruit-body" style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">';
-    html += '<span>' + this.escapeHtml(m.message || '') + '</span>';
-    html += '</div>';
-    html += '<div class="chat-recruit-action">';
-    if (isMine) {
-      html += '<span style="color:var(--text-secondary);font-size:12px;">[等待道友接令]</span>';
-    } else {
-      html += '<button class="ma-btn primary" style="font-size:12px;padding:4px 12px;" onclick="GameClient.acceptBounty(' + bountyId + ')">前往相助</button>';
-    }
-    html += '</div></div></div>';
     return html;
   },
 
@@ -1644,10 +1597,10 @@ const UI = {
           <span>逃跑</span>
           <span class="combat-rate">${Math.round(Math.min(90, Math.max(10, 30 + spdDiff * 5)))}%</span>
         </button>
-        <button class="combat-action-btn support-btn" id="combatBountyBtn" onclick="UI.showBountyDialog('${r.monster_key}', '${(m.name || '').replace(/'/g, "\\'")}', '${r.location_key || ''}')">
-          <span class="combat-btn-icon">📢</span>
-          <span>悬赏求助</span>
-          <span class="combat-rate" id="combatBountyInfo"></span>
+        <button class="combat-action-btn support-btn" onclick="GameClient.doCombatAction('${r.monster_key}', 'support')">
+          <span class="combat-btn-icon">🤝</span>
+          <span>请求支援</span>
+          <span class="combat-rate">${Math.round(Math.min(80, Math.max(20, (GameClient._bond || 0) * 8)))}%</span>
         </button>
       </div>
     `;
@@ -1658,94 +1611,6 @@ const UI = {
     // Store coinMultiplier for elite bonus
     this._combatCoinMultiplier = r.coinMultiplier || 1;
     this._combatIsElite = !!isElite;
-
-    // Store monster info for bounty
-    this._combatMonsterKey = r.monster_key;
-    this._combatMonsterName = m.name || '';
-    this._combatLocationKey = r.location_key || '';
-
-    // Load daily limits for bounty button
-    this._loadBountyInfo();
-  },
-
-  _combatMonsterKey: '',
-  _combatMonsterName: '',
-  _combatLocationKey: '',
-
-  async _loadBountyInfo() {
-    var info = document.getElementById('combatBountyInfo');
-    try {
-      var resp = await API.getBountyDailyLimits(GameClient.playerId);
-      var data = (resp && resp.data) ? resp.data : {};
-      var remaining = Math.max(0, (data.maxHelp || 30) - (data.helpCount || 0));
-      if (info) info.textContent = '今日剩余' + remaining + '次';
-    } catch (e) {
-      if (info) info.textContent = '';
-    }
-  },
-
-  showBountyDialog(monsterKey, monsterName, locationKey) {
-    var overlay = document.getElementById('bountyDialogOverlay');
-    if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.id = 'bountyDialogOverlay';
-      overlay.className = 'modal-overlay';
-      overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;';
-      overlay.onclick = function(e) { if (e.target === overlay) overlay.classList.add('hidden'); };
-      document.body.appendChild(overlay);
-    }
-
-    var self = this;
-    var sharePercent = 50;
-    overlay.innerHTML =
-      '<div class="modal-content" style="background:var(--panel-bg);border:1px solid var(--border);border-radius:12px;padding:20px;max-width:380px;width:90%;">' +
-        '<h3 style="margin:0 0 12px;color:var(--text-primary);">悬赏求助</h3>' +
-        '<p style="color:var(--text-secondary);font-size:14px;margin:0 0 8px;">目标: <strong style="color:var(--danger);">' + this.escapeHtml(monsterName || monsterKey) + '</strong></p>' +
-        '<p style="color:var(--text-secondary);font-size:14px;margin:0 0 16px;">悬赏将发布到世界频道，其他玩家可前往相助。</p>' +
-        '<div style="margin-bottom:12px;">' +
-          '<label style="display:flex;justify-content:space-between;align-items:center;">' +
-            '<span style="font-size:14px;">分享比例</span>' +
-            '<span id="bountyShareVal" style="color:var(--gold);font-weight:bold;">50%</span>' +
-          '</label>' +
-          '<input type="range" id="bountyShareRange" min="10" max="90" value="50" step="10" style="width:100%;margin-top:8px;" oninput="UI.updateBountyShare(this.value)">' +
-          '<p id="bountyShareNote" style="font-size:12px;color:var(--text-secondary);margin:4px 0 0;">协助者获得 50%，你保留 50% 的掉落。</p>' +
-        '</div>' +
-        '<div id="bountyDailyCounts" style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">加载中...</div>' +
-        '<div style="display:flex;gap:8px;">' +
-          '<button class="ma-btn primary" onclick="GameClient.publishBounty(\'' + monsterKey + '\', \'' + locationKey + '\', \'' + (monsterName || '').replace(/'/g, "\\'") + '\')" style="flex:1;">发布悬赏</button>' +
-          '<button class="ma-btn" onclick="document.getElementById(\'bountyDialogOverlay\').classList.add(\'hidden\')" style="flex:1;">取消</button>' +
-        '</div>' +
-      '</div>';
-    overlay.classList.remove('hidden');
-
-    // Load daily counts
-    API.getBountyDailyLimits(GameClient.playerId).then(function(resp) {
-      var data = (resp && resp.data) ? resp.data : {};
-      var el = document.getElementById('bountyDailyCounts');
-      if (el) el.innerHTML = '今日求助: <span style="color:var(--gold);">' + (data.helpCount || 0) + '/' + (data.maxHelp || 30) + '</span> | 今日助力: ' + (data.assistCount || 0) + '/' + (data.maxAssist || 30);
-    }).catch(function() {});
-  },
-
-  updateBountyShare(value) {
-    var share = parseInt(value) || 50;
-    var valEl = document.getElementById('bountyShareVal');
-    var noteEl = document.getElementById('bountyShareNote');
-    if (valEl) valEl.textContent = share + '%';
-    if (noteEl) noteEl.textContent = '协助者获得 ' + share + '%，你保留 ' + (100 - share) + '% 的掉落。';
-    // Store for publish
-    UI._bountySharePercent = share;
-  },
-
-  _bountySharePercent: 50,
-
-  toggleSupportList(monsterKey) {
-    // DEPRECATED: kept for backward compat, now uses bounty system
-    this.showBountyDialog(monsterKey, '', '');
-  },
-
-  hideSupportList() {
-    var list = document.getElementById('combatSupportList');
-    if (list) list.style.display = 'none';
   },
 
   showCombatResult(data) {
@@ -2207,74 +2072,24 @@ const UI = {
   },
 
   // PK Challenge notification popup
-  _challengeTimers: {},
   showChallengePopup(challenges, playerId) {
     var overlay = document.getElementById('challengePopupOverlay');
     if (!overlay) return;
     var body = document.getElementById('challengePopupBody');
     if (!body) return;
-    var self = this;
     var html = '<div style="padding:8px;">';
     for (var i = 0; i < challenges.length; i++) {
       var c = challenges[i];
-      var isDeathmatch = c.mode === 'deathmatch';
-      var modeLabel = isDeathmatch ? '生死对决' : '切磋';
-      var modeColor = isDeathmatch ? '#f44336' : '#4caf50';
-      var warningHtml = isDeathmatch ? '<div style="color:#f44336;font-size:12px;margin:4px 0;">⚠ 败者将失去全部储物和一半硬币！</div>' : '';
       html += '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;">';
-      html += '<div style="font-weight:bold;margin-bottom:2px;">' + this.escapeHtml(c.attacker_name) + ' 向你发起PK挑战</div>';
-      html += '<div style="color:' + modeColor + ';font-size:13px;margin-bottom:4px;">模式: ' + modeLabel + '</div>';
-      html += warningHtml;
-      html += '<div class="pk-challenge-timer" id="pkTimer_' + c.id + '" style="font-size:20px;font-weight:bold;color:var(--gold);text-align:center;margin:8px 0;">60</div>';
-      html += '<div style="text-align:center;font-size:11px;color:var(--text-secondary);margin-bottom:8px;">秒内决断</div>';
+      html += '<div style="font-weight:bold;margin-bottom:4px;">' + this.escapeHtml(c.attacker_name) + ' 向你发起PK挑战！</div>';
       html += '<div style="display:flex;gap:8px;margin-top:8px;">';
-      html += '<button class="ma-btn primary" id="pkAccept_' + c.id + '" onclick="GameClient.doPKResolve(' + c.id + ', true)" style="flex:1;">接受</button>';
+      html += '<button class="ma-btn primary" onclick="GameClient.doPKResolve(' + c.id + ', true)" style="flex:1;">接受</button>';
       html += '<button class="ma-btn" onclick="GameClient.doPKResolve(' + c.id + ', false)" style="flex:1;">拒绝</button>';
       html += '</div></div>';
     }
     html += '</div>';
     body.innerHTML = html;
     overlay.classList.remove('hidden');
-
-    // Start 60s countdown timers
-    for (var j = 0; j < challenges.length; j++) {
-      var ch = challenges[j];
-      this._startChallengeTimer(ch.id);
-      // Store mode info for deathmatch confirmation
-      if (ch.mode === 'deathmatch') {
-        var acceptBtn = document.getElementById('pkAccept_' + ch.id);
-        if (acceptBtn) {
-          acceptBtn.onclick = (function(challengeId) {
-            return function() {
-              var confirmed = confirm('[ 生死对决 ] 败者储物归胜者所有！确认接受？');
-              if (confirmed) {
-                GameClient.doPKResolve(challengeId, true);
-              }
-            };
-          })(ch.id);
-        }
-      }
-    }
-  },
-
-  _startChallengeTimer(challengeId) {
-    var self = this;
-    if (self._challengeTimers[challengeId]) clearInterval(self._challengeTimers[challengeId]);
-    var seconds = 60;
-    var timerEl = document.getElementById('pkTimer_' + challengeId);
-    self._challengeTimers[challengeId] = setInterval(function() {
-      seconds--;
-      if (timerEl) {
-        timerEl.textContent = seconds;
-        if (seconds <= 10) timerEl.style.color = '#f44336';
-      }
-      if (seconds <= 0) {
-        clearInterval(self._challengeTimers[challengeId]);
-        delete self._challengeTimers[challengeId];
-        // Auto-reject on timeout
-        GameClient.doPKResolve(challengeId, false);
-      }
-    }, 1000);
   },
 
   dismissChallengePopup() {

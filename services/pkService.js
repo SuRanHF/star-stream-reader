@@ -35,17 +35,33 @@ function getOpponents(playerId) {
 }
 
 // Create a pending PK challenge (attacker clicks "挑战", defender sees popup)
-function createChallenge(attackerId, defenderId) {
+function createChallenge(attackerId, defenderId, mode) {
   if (attackerId === defenderId) return { error: { code: 'SELF_CHALLENGE', message: '不能挑战自己' } };
   var db = getDb();
   var existing = db.prepare(
     "SELECT id FROM pk_challenges WHERE attacker_id=? AND defender_id=? AND status='pending'"
   ).get(attackerId, defenderId);
   if (existing) return { error: { code: 'DUPLICATE_CHALLENGE', message: '已有待处理的挑战' } };
-  db.prepare(
-    "INSERT INTO pk_challenges (attacker_id, defender_id, status) VALUES (?, ?, 'pending')"
-  ).run(attackerId, defenderId);
-  return { success: true, data: { message: '挑战已发出，等待对方回应' } };
+  var info = db.prepare(
+    "INSERT INTO pk_challenges (attacker_id, defender_id, status, mode) VALUES (?, ?, 'pending', ?)"
+  ).run(attackerId, defenderId, mode || 'spar');
+  var challengeId = info.lastInsertRowid;
+
+  var attacker = playerService.get(attackerId);
+
+  // WebSocket 实时推送给防御方
+  try {
+    var wsService = require('./wsService');
+    wsService.send(defenderId, {
+      type: 'pk_challenge',
+      challengeId: challengeId,
+      attackerId: attackerId,
+      attackerName: attacker ? attacker.player_name : '未知玩家',
+      mode: mode || 'spar'
+    });
+  } catch (e) { /* ws not critical */ }
+
+  return { success: true, data: { challengeId: challengeId, message: '挑战已发出，等待对方回应' } };
 }
 
 function getPendingChallenges(playerId) {
@@ -60,24 +76,91 @@ function getPendingChallenges(playerId) {
   });
 }
 
+// Get challenges initiated by player that have been resolved (for attacker notification)
+function getAttackerResolvedChallenges(playerId) {
+  var db = getDb();
+  var rows = db.prepare(
+    "SELECT c.id, c.attacker_id, c.defender_id, c.status, c.created_at, c.resolved_at, p.player_name " +
+    "FROM pk_challenges c JOIN players p ON c.defender_id = p.id " +
+    "WHERE c.attacker_id = ? AND c.status IN ('accepted', 'rejected') AND c.resolved_at IS NOT NULL " +
+    "ORDER BY c.resolved_at DESC LIMIT 10"
+  ).all(playerId);
+  // Mark as notified so they're not shown again
+  for (var i = 0; i < rows.length; i++) {
+    db.prepare("UPDATE pk_challenges SET status = 'notified' WHERE id = ? AND status IN ('accepted', 'rejected')").run(rows[i].id);
+  }
+  return rows.map(function(r) {
+    return {
+      id: r.id,
+      defender_id: r.defender_id,
+      defender_name: r.player_name,
+      status: r.status,
+      created_at: r.created_at,
+      resolved_at: r.resolved_at
+    };
+  });
+}
+
 function resolveChallenge(challengeId, accept, playerId) {
   var db = getDb();
   var ch = db.prepare("SELECT * FROM pk_challenges WHERE id = ? AND status = 'pending'").get(challengeId);
   if (!ch) return { error: { code: 'CHALLENGE_NOT_FOUND', message: '挑战不存在或已过期' } };
   if (ch.defender_id !== playerId) return { error: { code: 'NOT_YOUR_CHALLENGE', message: '这不是发给你的挑战' } };
+
+  var defender = playerService.get(playerId);
+  var defenderName = defender ? defender.player_name : '未知';
+
   if (!accept) {
     db.prepare("UPDATE pk_challenges SET status='rejected', resolved_at=datetime('now','localtime') WHERE id=?").run(challengeId);
+
+    // WS 通知攻击者：被拒绝
+    try {
+      var wsService = require('./wsService');
+      wsService.send(ch.attacker_id, {
+        type: 'pk_result',
+        challengeId: challengeId,
+        accepted: false,
+        message: defenderName + ' 拒绝了你的挑战'
+      });
+    } catch (e) { /* ws not critical */ }
+
     return { success: true, data: { accepted: false, message: '已拒绝挑战' } };
   }
   db.prepare("UPDATE pk_challenges SET status='accepted', resolved_at=datetime('now','localtime') WHERE id=?").run(challengeId);
-  var result = challenge(ch.attacker_id, ch.defender_id);
+  var result = challenge(ch.attacker_id, ch.defender_id, ch.mode || 'spar');
+
+  // WS 通知攻击者：已接受并附带战斗结果
+  try {
+    var wsService2 = require('./wsService');
+    wsService2.send(ch.attacker_id, {
+      type: 'pk_result',
+      challengeId: challengeId,
+      accepted: true,
+      battle: result
+    });
+  } catch (e) { /* ws not critical */ }
+
   return { success: true, data: { accepted: true, battle: result } };
 }
 
-// Expire old challenges (>5 min)
+// Expire old challenges (>60 seconds)
 function expireOldChallenges() {
   var db = getDb();
-  db.prepare("UPDATE pk_challenges SET status='expired', resolved_at=datetime('now','localtime') WHERE status='pending' AND datetime(created_at, '+5 minutes') < datetime('now','localtime')").run();
+  var expired = db.prepare(
+    "SELECT id, attacker_id, defender_id FROM pk_challenges WHERE status='pending' AND datetime(created_at, '+60 seconds') < datetime('now','localtime')"
+  ).all();
+  if (expired.length > 0) {
+    db.prepare("UPDATE pk_challenges SET status='expired', resolved_at=datetime('now','localtime') WHERE status='pending' AND datetime(created_at, '+60 seconds') < datetime('now','localtime')").run();
+    // WS notify both sides of timeout
+    try {
+      var wsService = require('./wsService');
+      for (var i = 0; i < expired.length; i++) {
+        var ch = expired[i];
+        wsService.send(ch.attacker_id, { type: 'pk_timeout', challengeId: ch.id, message: '挑战已超时' });
+        wsService.send(ch.defender_id, { type: 'pk_challenge_expired', challengeId: ch.id });
+      }
+    } catch (e) { /* ws not critical */ }
+  }
 }
 
 function estimateCombatPower(playerRow) {
@@ -91,8 +174,9 @@ function estimateCombatPower(playerRow) {
   );
 }
 
-// 发起 PK 挑战
-function challenge(attackerId, defenderId) {
+// 发起 PK 战斗
+function challenge(attackerId, defenderId, mode) {
+  mode = mode || 'spar';
   const db = getDb();
   if (attackerId === defenderId) return { error: { code: 'SELF_CHALLENGE', message: '不能挑战自己' } };
 
@@ -198,6 +282,52 @@ function challenge(attackerId, defenderId) {
   loserStats.isDead = true;
   playerService.update(loser.id, { stats_json: loserStats });
   playerService.addLog(loser.id, '你在PK中战败了...意识沉入冥界。');
+
+  // 生死对决模式：败者损失物品/装备/硬币，胜者获得
+  if (mode === 'deathmatch') {
+    var deathmatchRewards = [];
+    try {
+      var inventoryService = require('./inventoryService');
+      var equipmentService = require('./equipmentService');
+
+      // 转移败者全部储物物品给胜者
+      var loserInv = inventoryService.getInventory(loser.id);
+      if (loserInv && loserInv.items && loserInv.items.length > 0) {
+        for (var di = 0; di < loserInv.items.length; di++) {
+          var item = loserInv.items[di];
+          inventoryService.removeItem(loser.id, item.item_key, item.quantity || 1);
+          inventoryService.addItem(winner.id, item.item_key, item.quantity || 1);
+          deathmatchRewards.push(item.item_key + 'x' + (item.quantity || 1));
+        }
+      }
+
+      // 胜者获得败者50%硬币
+      var loserCoins = loser.coins || 0;
+      if (loserCoins > 0) {
+        var stolenCoins = Math.floor(loserCoins * 0.5);
+        playerService.update(loser.id, { coins: Math.max(0, loserCoins - stolenCoins) });
+        var winnerPlayer = playerService.get(winner.id);
+        playerService.update(winner.id, { coins: (winnerPlayer.coins || 0) + stolenCoins });
+        deathmatchRewards.push('硬币x' + stolenCoins);
+      }
+
+      playerService.addLog(loser.id, '【生死对决】你战败了，失去了所有储物物品和一半硬币...');
+      playerService.addLog(winner.id, '【生死对决】你击败了' + loser.player_name + '，获得了其全部储物！');
+    } catch (e) { /* deathmatch transfer not critical */ }
+
+    // 返回死亡对决额外信息
+    return {
+      winner_id: winner.id,
+      winner_name: winner.player_name,
+      loser_id: loser.id,
+      loser_name: loser.player_name,
+      attacker_wins: attackerWins,
+      mode: 'deathmatch',
+      deathmatch_rewards: deathmatchRewards,
+      rating_change: { attacker: atkChange, defender: defChange },
+      battle_log: { rounds: rounds, total_rounds: rounds.length }
+    };
+  }
 
   // 世界线偏移 — PK死亡增加世界线偏移
   try {
@@ -347,4 +477,4 @@ function getPKRecords(playerId) {
   }));
 }
 
-module.exports = { getOpponents, challenge, createChallenge, getPendingChallenges, resolveChallenge, expireOldChallenges, getRankings, getPKRecords };
+module.exports = { getOpponents, challenge, createChallenge, getPendingChallenges, getAttackerResolvedChallenges, resolveChallenge, expireOldChallenges, getRankings, getPKRecords };

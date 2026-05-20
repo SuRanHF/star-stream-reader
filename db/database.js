@@ -13,12 +13,9 @@ function createPrepared(sql) {
   return {
     run(...params) {
       const stmt = _origPrepare(sql);
-      try {
-        stmt.bind(params);
-        stmt.step();
-      } finally {
-        stmt.free();
-      }
+      stmt.bind(params);
+      stmt.step();
+      stmt.free();
       const idStmt = _origPrepare('SELECT last_insert_rowid() as id');
       let lastId = 0;
       if (idStmt.step()) lastId = idStmt.get()[0];
@@ -28,36 +25,30 @@ function createPrepared(sql) {
     },
     get(...params) {
       const stmt = _origPrepare(sql);
-      try {
-        if (params.length > 0) stmt.bind(params);
-        let row = null;
-        if (stmt.step()) {
-          const cols = stmt.getColumnNames();
-          const vals = stmt.get();
-          row = {};
-          cols.forEach((c, i) => { row[c] = vals[i]; });
-        }
-        return row;
-      } finally {
-        stmt.free();
+      if (params.length > 0) stmt.bind(params);
+      let row = null;
+      if (stmt.step()) {
+        const cols = stmt.getColumnNames();
+        const vals = stmt.get();
+        row = {};
+        cols.forEach((c, i) => { row[c] = vals[i]; });
       }
+      stmt.free();
+      return row;
     },
     all(...params) {
       const stmt = _origPrepare(sql);
-      try {
-        if (params.length > 0) stmt.bind(params);
-        const cols = stmt.getColumnNames();
-        const rows = [];
-        while (stmt.step()) {
-          const vals = stmt.get();
-          const row = {};
-          cols.forEach((c, i) => { row[c] = vals[i]; });
-          rows.push(row);
-        }
-        return rows;
-      } finally {
-        stmt.free();
+      if (params.length > 0) stmt.bind(params);
+      const cols = stmt.getColumnNames();
+      const rows = [];
+      while (stmt.step()) {
+        const vals = stmt.get();
+        const row = {};
+        cols.forEach((c, i) => { row[c] = vals[i]; });
+        rows.push(row);
       }
+      stmt.free();
+      return rows;
     }
   };
 }
@@ -68,46 +59,42 @@ function scheduleSave() {
   if (_saveTimer) clearTimeout(_saveTimer);
   _saveTimer = setTimeout(() => {
     _saveDb();
+    _savePending = false;
   }, 50);
 }
 
 async function initDb() {
   if (db) return db;
 
-  try {
-    const SQL = await require('sql.js')({
-      locateFile: file => path.join(__dirname, '..', 'node_modules', 'sql.js', 'dist', file)
-    });
+  const SQL = await require('sql.js')({
+    locateFile: file => path.join(__dirname, '..', 'node_modules', 'sql.js', 'dist', file)
+  });
 
-    const dir = path.dirname(DB_PATH);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const dir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
-    if (fs.existsSync(DB_PATH)) {
-      const buffer = fs.readFileSync(DB_PATH);
-      db = new SQL.Database(buffer);
-    } else {
-      db = new SQL.Database();
-    }
-
-    _origPrepare = db.prepare.bind(db);
-    db.prepare = createPrepared;
-
-    // Initialize schema
-    db.run('PRAGMA foreign_keys = ON');
-    const sqlText = fs.readFileSync(path.join(__dirname, 'init.sql'), 'utf-8');
-    db.run(sqlText);
-
-    // Run migrations
-    runMigrations(db);
-
-    _saveDb();
-
-    console.log('Database initialized at', DB_PATH);
-    return db;
-  } catch (err) {
-    console.error('Failed to initialize database:', err);
-    throw new Error(`Database initialization failed: ${err.message}`);
+  if (fs.existsSync(DB_PATH)) {
+    const buffer = fs.readFileSync(DB_PATH);
+    db = new SQL.Database(buffer);
+  } else {
+    db = new SQL.Database();
   }
+
+  _origPrepare = db.prepare.bind(db);
+  db.prepare = createPrepared;
+
+  // Initialize schema
+  db.run('PRAGMA foreign_keys = ON');
+  const sqlText = fs.readFileSync(path.join(__dirname, 'init.sql'), 'utf-8');
+  db.run(sqlText);
+
+  // Run migrations
+  runMigrations(db);
+
+  _saveDb();
+
+  console.log('Database initialized at', DB_PATH);
+  return db;
 }
 
 function getDb() {
@@ -117,20 +104,13 @@ function getDb() {
 
 function _saveDb() {
   if (!db) return;
-  try {
-    const data = db.export();
-    const buf = Buffer.from(data);
-    const dir = path.dirname(DB_PATH);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    const tmpPath = DB_PATH + '.tmp';
-    fs.writeFileSync(tmpPath, buf);
-    fs.renameSync(tmpPath, DB_PATH);
-  } catch (err) {
-    console.error('Failed to save database:', err);
-    try { if (fs.existsSync(DB_PATH + '.tmp')) fs.unlinkSync(DB_PATH + '.tmp'); } catch (_) {}
-  } finally {
-    _savePending = false;
-  }
+  const data = db.export();
+  const buf = Buffer.from(data);
+  const dir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const tmpPath = DB_PATH + '.tmp';
+  fs.writeFileSync(tmpPath, buf);
+  fs.renameSync(tmpPath, DB_PATH);
 }
 
 function saveDb() {
@@ -418,13 +398,6 @@ function runMigrations(database) {
     database.run("ALTER TABLE players ADD COLUMN help_date TEXT NOT NULL DEFAULT ''");
   }
 
-  // Equipment durability columns
-  if (!columnExists('player_equipment', 'durability')) {
-    database.run("ALTER TABLE player_equipment ADD COLUMN durability INTEGER NOT NULL DEFAULT 100");
-  }
-  if (!columnExists('player_equipment', 'max_durability')) {
-    database.run("ALTER TABLE player_equipment ADD COLUMN max_durability INTEGER NOT NULL DEFAULT 100");
-  }
   // Phase 1: Currency merge migration (scenarioProof→story_fragments, kingToken→abyssMark, delete finalPage)
   try {
     var players = database.prepare('SELECT id, story_fragments, breakthrough_resources_json FROM players').all();

@@ -15,12 +15,7 @@ const API = {
       opts.headers['Authorization'] = 'Bearer ' + token;
     }
     if (body) opts.body = JSON.stringify(body);
-    let res;
-    try {
-      res = await fetch(url, opts);
-    } catch (e) {
-      throw { status: 0, error: { code: 'NETWORK_ERROR', message: '网络连接失败，请检查网络后重试' } };
-    }
+    const res = await fetch(url, opts);
     let data;
     try {
       data = await res.json();
@@ -55,10 +50,10 @@ const API = {
 
   // Player
   createPlayer(playerName) {
-    return this.request('POST', '/api/player/create', { playerName });
+    return this.request('POST', '/api/player/create', { playerName }).then(r => r.data);
   },
   getPlayer(playerId) {
-    return this.request('GET', `/api/player/${playerId}`);
+    return this.request('GET', `/api/player/${playerId}`).then(r => r.data);
   },
   resetPlayer(playerId) {
     return this.request('POST', `/api/player/reset/${playerId}`);
@@ -66,10 +61,10 @@ const API = {
 
   // Worldline
   getWorldlineStatus() {
-    return this.request('GET', '/api/worldline/status');
+    return this.request('GET', '/api/worldline/status').then(r => r.data);
   },
   getWorldlineHistory(limit) {
-    return this.request('GET', `/api/worldline/history?limit=${limit || 20}`);
+    return this.request('GET', `/api/worldline/history?limit=${limit || 20}`).then(r => r.data);
   },
 
   // Story
@@ -105,21 +100,6 @@ const API = {
   useItem(playerId, itemKey) {
     return this.request('POST', '/api/inventory/use', { playerId, itemKey });
   },
-  sellBatch(playerId, items) {
-    return this.request('POST', '/api/inventory/sell-batch', { playerId, items });
-  },
-  useBatch(playerId, itemKey, quantity) {
-    return this.request('POST', '/api/inventory/use-batch', { playerId, itemKey, quantity });
-  },
-  getSynthesisRecipes() {
-    return this.request('GET', '/api/inventory/synthesis/recipes');
-  },
-  synthesize(playerId, recipeKey) {
-    return this.request('POST', '/api/inventory/synthesis', { playerId, recipeKey });
-  },
-  synthesizeAll(playerId, recipeKey) {
-    return this.request('POST', '/api/inventory/synthesis-all', { playerId, recipeKey });
-  },
 
   // Equipment
   getEquipment(playerId) {
@@ -130,12 +110,6 @@ const API = {
   },
   unequipItem(playerId, slot) {
     return this.request('POST', '/api/equipment/unequip', { playerId, slot });
-  },
-  repairItem(playerId, slot) {
-    return this.request('POST', '/api/equipment/repair', { playerId, slot });
-  },
-  repairAll(playerId) {
-    return this.request('POST', '/api/equipment/repair-all', { playerId });
   },
 
   // Skills
@@ -166,8 +140,8 @@ const API = {
   getPKOpponents(playerId) {
     return this.request('GET', `/api/pk/opponents/${playerId}`);
   },
-  challengePlayer(attackerId, defenderId) {
-    return this.request('POST', '/api/pk/challenge', { attackerId, defenderId });
+  challengePlayer(attackerId, defenderId, mode) {
+    return this.request('POST', '/api/pk/challenge', { attackerId, defenderId, mode: mode || 'spar' });
   },
   resolveChallenge(challengeId, playerId, accept) {
     return this.request('POST', '/api/pk/challenge/resolve', { challengeId, playerId, accept });
@@ -227,12 +201,9 @@ const API = {
   getBroadcastHistory() {
     return this.request('GET', '/api/broadcast/history');
   },
-  submitBroadcastResource(eventId, body) {
-    return this.request('POST', `/api/broadcast/${eventId}/submit-resource`, body);
-  },
   // Combat
-  resolveCombat(playerId, monsterKey, action) {
-    return this.request('POST', '/api/combat/resolve', { playerId, monsterKey, action });
+  resolveCombat(playerId, monsterKey, action, helperId) {
+    return this.request('POST', '/api/combat/resolve', { playerId, monsterKey, action, helperId: helperId || null });
   },
 
   // Attribute allocation
@@ -250,6 +221,11 @@ const API = {
   },
   selectConstellation(playerId, constellationKey) {
     return this.request('POST', '/api/player/select-constellation', { playerId, constellationKey });
+  },
+
+  // Online players
+  getOnlinePlayers() {
+    return this.request('GET', '/api/player/online');
   },
 
   // Revival
@@ -418,6 +394,17 @@ const API = {
     return this.request('POST', '/api/quests/claim/' + playerId, { questId });
   },
 
+  // Faction Skills (阵营技能)
+  getFactionSkills(constellationKey) {
+    return this.request('GET', '/api/skills/faction/' + constellationKey);
+  },
+  getMyFactionSkills(playerId) {
+    return this.request('GET', '/api/skills/faction/player/' + playerId);
+  },
+  learnFactionSkill(playerId, skillKey) {
+    return this.request('POST', '/api/skills/faction/learn', { playerId, skillKey });
+  },
+
   // Equipment Sets (装备套装)
   getEquipmentSets() {
     return this.request('GET', '/api/equipment/sets');
@@ -444,19 +431,5 @@ const API = {
   },
   getBountyDailyLimits(playerId) {
     return this.request('GET', '/api/bounty/daily-limits/' + playerId);
-  },
-
-  // World Boss
-  getWorldBossStatus() {
-    return this.request('GET', '/api/world-boss/status');
-  },
-  fightWorldBoss(playerId, action) {
-    return this.request('POST', '/api/world-boss/fight', { playerId, action });
-  },
-  getWorldBossRanking(bossId) {
-    return this.request('GET', '/api/world-boss/ranking/' + bossId);
-  },
-  getWorldBossHistory() {
-    return this.request('GET', '/api/world-boss/history');
   },
 };

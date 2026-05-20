@@ -182,6 +182,8 @@ CREATE TABLE IF NOT EXISTS player_equipment (
     player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
     slot TEXT NOT NULL,
     equipment_key TEXT NOT NULL,
+    durability INTEGER NOT NULL DEFAULT 100,
+    max_durability INTEGER NOT NULL DEFAULT 100,
     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
     UNIQUE(player_id, slot)
@@ -604,3 +606,37 @@ CREATE TABLE IF NOT EXISTS help_bounties (
 
 CREATE INDEX IF NOT EXISTS idx_help_bounties_status ON help_bounties(status);
 CREATE INDEX IF NOT EXISTS idx_help_bounties_owner ON help_bounties(owner_id);
+
+-- World Boss system
+CREATE TABLE IF NOT EXISTS world_bosses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    boss_key TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    hp INTEGER NOT NULL DEFAULT 5000,
+    max_hp INTEGER NOT NULL DEFAULT 5000,
+    attack INTEGER NOT NULL DEFAULT 30,
+    defense INTEGER NOT NULL DEFAULT 20,
+    speed INTEGER NOT NULL DEFAULT 8,
+    level INTEGER NOT NULL DEFAULT 10,
+    rewards_json TEXT NOT NULL DEFAULT '{}',
+    status TEXT NOT NULL DEFAULT 'active',
+    spawn_time TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    defeat_time TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+
+CREATE TABLE IF NOT EXISTS world_boss_participation (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    boss_id INTEGER NOT NULL REFERENCES world_bosses(id) ON DELETE CASCADE,
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    damage_dealt INTEGER NOT NULL DEFAULT 0,
+    contribution_score INTEGER NOT NULL DEFAULT 0,
+    rewards_claimed INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    UNIQUE(boss_id, player_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_world_bosses_status ON world_bosses(status);
+CREATE INDEX IF NOT EXISTS idx_world_boss_participation_boss ON world_boss_participation(boss_id);

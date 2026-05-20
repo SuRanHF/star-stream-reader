@@ -2,10 +2,14 @@
 const { getDb } = require('../db/database');
 const playerService = require('./playerService');
 
+var RARITY_MAX_DURABILITY = { common: 50, uncommon: 75, rare: 100, epic: 150, legendary: 200 };
+var RARITY_REPAIR_COST = { common: 2, uncommon: 4, rare: 8, epic: 15, legendary: 25 };
+
 function getEquipment(playerId) {
   var db = getDb();
   var equipped = db.prepare(`
-    SELECT pe.slot, pe.equipment_key, e.name, e.description, e.rarity, e.stats_json, e.effects_json, e.required_level
+    SELECT pe.slot, pe.equipment_key, pe.durability, pe.max_durability,
+           e.name, e.description, e.rarity, e.stats_json, e.effects_json, e.required_level
     FROM player_equipment pe
     JOIN equipment e ON pe.equipment_key = e.equipment_key
     WHERE pe.player_id = ?
@@ -22,7 +26,9 @@ function getEquipment(playerId) {
       rarity: e.rarity,
       stats: JSON.parse(e.stats_json),
       effects: JSON.parse(e.effects_json),
-      required_level: e.required_level
+      required_level: e.required_level,
+      durability: e.durability,
+      max_durability: e.max_durability
     };
   });
 }
@@ -30,7 +36,8 @@ function getEquipment(playerId) {
 function getEquipmentWithSets(playerId) {
   var db = getDb();
   var equipped = db.prepare(`
-    SELECT pe.slot, pe.equipment_key, e.name, e.description, e.rarity, e.stats_json, e.effects_json, e.required_level
+    SELECT pe.slot, pe.equipment_key, pe.durability, pe.max_durability,
+           e.name, e.description, e.rarity, e.stats_json, e.effects_json, e.required_level
     FROM player_equipment pe
     JOIN equipment e ON pe.equipment_key = e.equipment_key
     WHERE pe.player_id = ?
@@ -49,7 +56,9 @@ function getEquipmentWithSets(playerId) {
         rarity: e.rarity,
         stats: JSON.parse(e.stats_json),
         effects: JSON.parse(e.effects_json),
-        required_level: e.required_level
+        required_level: e.required_level,
+        durability: e.durability,
+        max_durability: e.max_durability
       };
     }),
     set_bonuses: setBonuses,
@@ -96,12 +105,14 @@ function equipItem(playerId, equipmentKey, slot) {
 
   var targetSlot = slot || equipDef.slot;
 
+  var maxDura = RARITY_MAX_DURABILITY[equipDef.rarity] || 100;
+
   // Remove existing equipment in same slot
   db.prepare('DELETE FROM player_equipment WHERE player_id = ? AND slot = ?').run(playerId, targetSlot);
 
-  // Equip new
-  db.prepare(`INSERT INTO player_equipment (player_id, slot, equipment_key)
-    VALUES (?, ?, ?)`).run(playerId, targetSlot, equipmentKey);
+  // Equip new with durability
+  db.prepare(`INSERT INTO player_equipment (player_id, slot, equipment_key, durability, max_durability)
+    VALUES (?, ?, ?, ?, ?)`).run(playerId, targetSlot, equipmentKey, maxDura, maxDura);
 
   playerService.addLog(playerId, '装备了: ' + equipDef.name);
 
@@ -134,10 +145,10 @@ function unequipItem(playerId, slot) {
   return { success: true };
 }
 
-// 计算装备提供的总属性加成
+// 计算装备提供的总属性加成 (跳过耐久为0的损坏装备)
 function computeEquipmentStats(playerId) {
   var db = getDb();
-  var equips = db.prepare('SELECT equipment_key FROM player_equipment WHERE player_id = ?').all(playerId);
+  var equips = db.prepare('SELECT equipment_key, durability FROM player_equipment WHERE player_id = ? AND durability > 0').all(playerId);
   var stats = { attack: 0, defense: 0, speed: 0, hp: 0 };
 
   for (var i = 0; i < equips.length; i++) {
@@ -163,8 +174,8 @@ function computeEquipmentStats(playerId) {
 function getEquippedMap(playerId) {
   var db = getDb();
   var rows = db.prepare(`
-    SELECT pe.slot, pe.equipment_key, e.name, e.rarity,
-           e.stats_json, e.effects_json
+    SELECT pe.slot, pe.equipment_key, pe.durability, pe.max_durability,
+           e.name, e.rarity, e.stats_json, e.effects_json
     FROM player_equipment pe
     JOIN equipment e ON pe.equipment_key = e.equipment_key
     WHERE pe.player_id = ?
@@ -178,10 +189,87 @@ function getEquippedMap(playerId) {
       equipment_key: r.equipment_key,
       stats: JSON.parse(r.stats_json),
       effects: JSON.parse(r.effects_json),
-      rarity: r.rarity
+      rarity: r.rarity,
+      durability: r.durability,
+      max_durability: r.max_durability
     };
   }
   return map;
+}
+
+// Decrease durability of all equipped items (called after combat/exploration)
+function degradeDurability(playerId, amount) {
+  var db = getDb();
+  var degrade = amount || 1;
+  db.prepare(
+    "UPDATE player_equipment SET durability = MAX(0, durability - ?), updated_at = datetime('now','localtime') WHERE player_id = ? AND durability > 0"
+  ).run(degrade, playerId);
+}
+
+// Repair a single equipped item
+function repairItem(playerId, slot) {
+  var db = getDb();
+  var row = db.prepare(`
+    SELECT pe.durability, pe.max_durability, e.rarity, e.name
+    FROM player_equipment pe
+    JOIN equipment e ON pe.equipment_key = e.equipment_key
+    WHERE pe.player_id = ? AND pe.slot = ?
+  `).get(playerId, slot);
+
+  if (!row) return { error: { code: 'NOT_EQUIPPED', message: '该栏位没有装备' } };
+  if (row.durability >= row.max_durability) return { error: { code: 'ALREADY_FULL', message: '装备耐久已满' } };
+
+  var missing = row.max_durability - row.durability;
+  var costPerPoint = RARITY_REPAIR_COST[row.rarity] || 5;
+  var totalCost = missing * costPerPoint;
+
+  var player = playerService.getRaw(playerId);
+  if (!player || (player.coins || 0) < totalCost) {
+    return { error: { code: 'NOT_ENOUGH_COINS', message: '修理需要 ' + totalCost + ' 硬币，余额不足' } };
+  }
+
+  db.prepare("UPDATE player_equipment SET durability = max_durability, updated_at = datetime('now','localtime') WHERE player_id = ? AND slot = ?")
+    .run(playerId, slot);
+
+  playerService.update(playerId, { coins: player.coins - totalCost });
+  playerService.addLog(playerId, '修理了 ' + row.name + '（花费 ' + totalCost + ' 硬币）');
+
+  return { success: true, cost: totalCost, slot: slot, item: row.name };
+}
+
+// Repair all equipped items
+function repairAll(playerId) {
+  var db = getDb();
+  var rows = db.prepare(`
+    SELECT pe.slot, pe.durability, pe.max_durability, e.rarity, e.name
+    FROM player_equipment pe
+    JOIN equipment e ON pe.equipment_key = e.equipment_key
+    WHERE pe.player_id = ? AND pe.durability < pe.max_durability
+  `).all(playerId);
+
+  if (rows.length === 0) return { error: { code: 'NOTHING_TO_REPAIR', message: '没有需要修理的装备' } };
+
+  var totalCost = 0;
+  for (var i = 0; i < rows.length; i++) {
+    var missing = rows[i].max_durability - rows[i].durability;
+    var costPerPoint = RARITY_REPAIR_COST[rows[i].rarity] || 5;
+    totalCost += missing * costPerPoint;
+  }
+
+  var player = playerService.getRaw(playerId);
+  if (!player || (player.coins || 0) < totalCost) {
+    return { error: { code: 'NOT_ENOUGH_COINS', message: '全部修理需要 ' + totalCost + ' 硬币，余额不足' } };
+  }
+
+  for (var j = 0; j < rows.length; j++) {
+    db.prepare("UPDATE player_equipment SET durability = max_durability, updated_at = datetime('now','localtime') WHERE player_id = ? AND slot = ?")
+      .run(playerId, rows[j].slot);
+  }
+
+  playerService.update(playerId, { coins: player.coins - totalCost });
+  playerService.addLog(playerId, '修理了全部装备（花费 ' + totalCost + ' 硬币）');
+
+  return { success: true, cost: totalCost, repaired: rows.length };
 }
 
 // ===== 套装系统 =====
@@ -273,4 +361,4 @@ function getActiveSetInfo(playerId) {
   return activeSets;
 }
 
-module.exports = { getEquipment, getEquipmentWithSets, getAvailableEquipment, equipItem, unequipItem, computeEquipmentStats, getEquippedMap, getActiveSetBonuses, getActiveSetInfo, getAllSets };
+module.exports = { getEquipment, getEquipmentWithSets, getAvailableEquipment, equipItem, unequipItem, computeEquipmentStats, getEquippedMap, getActiveSetBonuses, getActiveSetInfo, getAllSets, degradeDurability, repairItem, repairAll, RARITY_MAX_DURABILITY, RARITY_REPAIR_COST };

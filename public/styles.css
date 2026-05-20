@@ -1156,6 +1156,19 @@ a { color: var(--teal); text-decoration: none; }
   font-family: var(--font-body);
 }
 .btn-action:hover { background: var(--gold); box-shadow: var(--glow-gold); }
+.btn-tab {
+  padding: 6px 16px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: var(--font-body);
+}
+.btn-tab.active { background: var(--gold-dim); color: var(--bg-canvas); font-weight: bold; border-color: var(--gold-dim); }
+.btn-tab:hover:not(.active) { border-color: var(--gold-dim); color: var(--text-primary); }
 .btn-panel {
   padding: 6px 14px;
   background: var(--bg-card);

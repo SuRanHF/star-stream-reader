@@ -558,27 +558,86 @@ const UI = {
   },
 
   // ===== Drawer: Inventory =====
+  renderInventoryWithSynthesis(items, recipes) {
+    var html = '<div style="display:flex;gap:8px;margin-bottom:12px;">' +
+      '<button class="btn-tab active" onclick="UI._switchInvTab(\'items\')" id="invTabItems">物品</button>' +
+      '<button class="btn-tab" onclick="UI._switchInvTab(\'synth\')" id="invTabSynth">合成</button>' +
+      '</div>' +
+      '<div id="invTabContent">' + UI.renderInventory(items) + '</div>' +
+      '<div id="invSynthContent" style="display:none;">' + UI._renderSynthesisPanel(recipes) + '</div>';
+    return html;
+  },
+
+  _switchInvTab(tab) {
+    document.getElementById('invTabItems').className = 'btn-tab' + (tab === 'items' ? ' active' : '');
+    document.getElementById('invTabSynth').className = 'btn-tab' + (tab === 'synth' ? ' active' : '');
+    document.getElementById('invTabContent').style.display = tab === 'items' ? '' : 'none';
+    var synthEl = document.getElementById('invSynthContent');
+    if (synthEl) synthEl.style.display = tab === 'synth' ? '' : 'none';
+  },
+
+  _renderSynthesisPanel(recipes) {
+    if (!recipes || recipes.length === 0) {
+      return '<p style="text-align:center;color:var(--text-secondary);padding:32px;">暂无可用合成配方。</p>';
+    }
+    return recipes.map(function(r) {
+      var inputStr = r.inputs.map(function(i) { return i.itemKey + ' x' + i.quantity; }).join(' + ');
+      var outputStr = r.outputs.map(function(o) { return o.itemKey + ' x' + o.quantity; }).join(' + ');
+      var costStr = r.cost > 0 ? ' | 费用: ' + r.cost + ' 硬币' : '';
+      if (r.bonusCoins) costStr += ' | 奖励: +' + r.bonusCoins + ' 硬币';
+      return '<div class="drawer-card">' +
+        '<div class="drawer-card-title" style="color:var(--teal);">' + r.name + '</div>' +
+        '<div class="drawer-card-desc">' + inputStr + ' → ' + outputStr + costStr + '</div>' +
+        '<div class="drawer-card-actions">' +
+          (r.canSynthesize
+            ? '<button class="btn-action btn-sm" onclick="GameClient.synthesize(\'' + r.recipeKey + '\')">合成1次</button>' +
+              '<button class="btn-action btn-sm" onclick="GameClient.synthesizeAll(\'' + r.recipeKey + '\')" style="background:var(--gold);color:#000;">全部合成</button>'
+            : '<span style="font-size:12px;color:var(--red);">材料不足</span>') +
+        '</div>' +
+      '</div>';
+    }).join('');
+  },
+
   renderInventory(items) {
     if (!items || items.length === 0) {
       return '<p style="text-align:center;color:var(--text-secondary);padding:32px">背包是空的，去探索获取道具吧。</p>';
     }
-    return items.map(item => `
-      <div class="drawer-card">
-        <div class="drawer-card-title">
-          <span class="rarity-${item.rarity || 'common'}">${item.name}</span>
-          <span style="font-size:11px;color:var(--text-secondary);margin-left:8px;">x${item.quantity}</span>
-        </div>
-        <div class="drawer-card-desc">${item.description}</div>
-        <div class="drawer-card-stats">
-          <span>类型: ${UI._labelItemType(item.type)}</span>
-          <span>稀有度: ${UI._labelRarity(item.rarity)}</span>
-        </div>
-        <div class="drawer-card-actions">
-          <span style="font-size:12px;color:var(--text-secondary)">售价: ${item.sell_price || 0}</span>
-          ${item.type === 'consumable' ? `<button class="btn-action btn-sm" onclick="GameClient.useItem('${item.item_key}')">使用</button>` : ''}
-        </div>
-      </div>
-    `).join('');
+    var sellable = items.filter(function(it) { return it.sell_price > 0; });
+    var html = '';
+    // Batch action bar
+    if (sellable.length > 0) {
+      html += '<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">' +
+        '<label style="cursor:pointer;font-size:13px;color:var(--text-secondary);display:flex;align-items:center;gap:4px;">' +
+          '<input type="checkbox" onchange="GameClient._toggleSelectAll(this.checked)" id="invSelectAll" style="cursor:pointer;"> 全选</label>' +
+        '<button class="btn-action btn-sm" onclick="GameClient._invertSelection()" style="background:rgba(255,255,255,0.1);">反选</button>' +
+        '<button class="btn-action btn-sm" onclick="GameClient.sellBatch()" style="background:var(--gold);color:#000;">批量出售</button>' +
+        '</div>';
+    }
+    html += items.map(function(item, idx) {
+      var canSell = item.sell_price > 0;
+      var canUse = item.type === 'consumable' && item.quantity > 0;
+      var hasMulti = item.quantity > 1;
+      return '<div class="drawer-card">' +
+        '<div class="drawer-card-title" style="display:flex;align-items:center;gap:8px;">' +
+          (canSell ? '<input type="checkbox" class="inv-item-check" data-item-key="' + item.item_key + '" data-qty="' + item.quantity + '" data-price="' + item.sell_price + '" style="cursor:pointer;">' : '') +
+          '<span class="rarity-' + (item.rarity || 'common') + '">' + item.name + '</span>' +
+          '<span style="font-size:11px;color:var(--text-secondary);">x' + item.quantity + '</span>' +
+        '</div>' +
+        '<div class="drawer-card-desc">' + item.description + '</div>' +
+        '<div class="drawer-card-stats">' +
+          '<span>类型: ' + UI._labelItemType(item.type) + '</span>' +
+          '<span>稀有度: ' + UI._labelRarity(item.rarity) + '</span>' +
+        '</div>' +
+        '<div class="drawer-card-actions">' +
+          '<span style="font-size:12px;color:var(--text-secondary)">售价: ' + (item.sell_price || 0) + '</span>' +
+          (canUse && hasMulti
+            ? '<button class="btn-action btn-sm" onclick="GameClient.useItem(\'' + item.item_key + '\')">使用1个</button>' +
+              '<button class="btn-action btn-sm" onclick="GameClient.useBatch(\'' + item.item_key + '\',' + item.quantity + ')">批量使用</button>'
+            : (canUse ? '<button class="btn-action btn-sm" onclick="GameClient.useItem(\'' + item.item_key + '\')">使用</button>' : '')) +
+        '</div>' +
+      '</div>';
+    }).join('');
+    return html;
   },
 
   // ===== Drawer: Equipment =====
@@ -590,12 +649,23 @@ const UI = {
     (equipped || []).forEach(function(e) { equippedMap[e.slot] = e; equippedKeys.add(e.equipment_key); });
 
     var html = '<div class="drawer-section-label">已装备</div><div class="equip-slots-row">';
+    var anyBroken = false;
     slotOrder.forEach(function(slot) {
       var eq = equippedMap[slot];
       if (eq) {
+        var dura = eq.durability !== undefined ? eq.durability : 100;
+        var maxDura = eq.max_durability !== undefined ? eq.max_durability : 100;
+        var duraPct = Math.max(0, Math.round(dura / maxDura * 100));
+        var duraColor = duraPct > 50 ? 'var(--green)' : (duraPct > 20 ? 'var(--gold)' : 'var(--red)');
+        if (dura <= 0) anyBroken = true;
         html += '<div class="equip-slot equipped">' +
           '<div class="slot-name">' + slotNames[slot] + '</div>' +
           '<div class="item-name">' + eq.name + '</div>' +
+          '<div style="margin:4px 0;font-size:11px;color:' + duraColor + ';">耐久: ' + dura + '/' + maxDura + '</div>' +
+          '<div style="background:rgba(255,255,255,0.1);border-radius:4px;height:4px;margin-bottom:4px;">' +
+            '<div style="background:' + duraColor + ';height:100%;width:' + duraPct + '%;border-radius:4px;"></div>' +
+          '</div>' +
+          (dura < maxDura ? '<button class="btn-action btn-sm" onclick="GameClient.repairItem(\'' + slot + '\')" style="background:var(--teal);margin-top:2px;">修理</button>' : '') +
           '<button class="btn-action btn-sm btn-cancel" onclick="GameClient.unequipItem(\'' + slot + '\')" style="margin-top:4px;">卸下</button>' +
           '</div>';
       } else {
@@ -606,6 +676,10 @@ const UI = {
       }
     });
     html += '</div>';
+    // Repair All button
+    if (anyBroken || equipped.some(function(e) { return (e.durability || 100) < (e.max_durability || 100); })) {
+      html += '<div style="margin-top:4px;"><button class="btn-action" onclick="GameClient.repairAll()" style="background:var(--gold);color:#000;width:100%;">全部修理</button></div>';
+    }
 
     // Show active set bonuses
     if (activeSets && activeSets.length > 0) {
@@ -1241,14 +1315,28 @@ const UI = {
   },
 
   // ===== Chat =====
-  renderChat(messages, playerId) {
+  renderChat(messages, playerId, currentChannel) {
+    currentChannel = currentChannel || 'global';
+    var self = this;
+    var channels = [
+      { key: 'global', label: '世界' },
+      { key: 'sect_' + (GameClient._playerConstellation || ''), label: '阵营' }
+    ];
     var html = '<div class="chat-container">';
+    // Channel tabs
+    html += '<div class="chat-tabs" style="display:flex;gap:4px;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:8px;">';
+    for (var i = 0; i < channels.length; i++) {
+      var ch = channels[i];
+      var active = currentChannel === ch.key ? ' primary' : '';
+      html += '<button class="ma-btn' + active + '" style="padding:4px 12px;font-size:12px;" onclick="GameClient.switchChatChannel(\'' + ch.key + '\')">' + ch.label + '</button>';
+    }
+    html += '</div>';
     html += '<div class="chat-messages" id="chatMessages">';
     if (!messages || messages.length === 0) {
       html += '<p style="text-align:center;color:var(--text-secondary);padding:32px;">暂无消息。发送第一条消息吧！</p>';
     } else {
-      for (var i = 0; i < messages.length; i++) {
-        var m = messages[i];
+      for (var j = 0; j < messages.length; j++) {
+        var m = messages[j];
         if (m.msg_type === 'assist_invite') {
           html += this._renderAssistCard(m, playerId);
         } else {
@@ -2338,6 +2426,64 @@ const UI = {
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+  },
+
+  // ===== World Boss Panel =====
+  renderWorldBossPanel(boss, ranking, playerId) {
+    if (!boss) {
+      return '<div style="text-align:center;padding:32px;">' +
+        '<p style="color:var(--text-secondary);font-size:16px;">当前没有活跃的世界Boss</p>' +
+        '<p style="color:var(--text-secondary);font-size:13px;margin-top:8px;">Boss将在不久后出现，请耐心等待...</p>' +
+        '<button class="btn-action" onclick="GameClient.openWorldBoss()" style="margin-top:16px;">刷新状态</button>' +
+        '</div>';
+    }
+    var hpPct = Math.max(0, Math.round(boss.hp / boss.max_hp * 100));
+    var hpColor = hpPct > 50 ? 'var(--green)' : (hpPct > 20 ? 'var(--gold)' : 'var(--red)');
+    var html = '<div class="drawer-card" style="border:2px solid var(--danger);background:rgba(200,30,30,0.08);">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;">' +
+        '<div class="drawer-card-title" style="color:var(--danger);font-size:18px;">' + boss.name + '</div>' +
+        '<span style="font-size:12px;color:var(--text-secondary);">Lv.' + boss.level + '</span>' +
+      '</div>' +
+      '<div class="drawer-card-desc">' + boss.description + '</div>' +
+      // HP bar
+      '<div style="margin:8px 0;">' +
+        '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">' +
+          '<span>HP</span><span>' + boss.hp + ' / ' + boss.max_hp + '</span></div>' +
+        '<div style="background:rgba(255,255,255,0.1);border-radius:6px;height:12px;overflow:hidden;">' +
+          '<div style="background:' + hpColor + ';height:100%;width:' + hpPct + '%;border-radius:6px;transition:width 0.3s;"></div>' +
+        '</div>' +
+      '</div>' +
+      // Stats
+      '<div class="drawer-card-stats" style="justify-content:space-around;">' +
+        '<span>攻击: ' + boss.attack + '</span>' +
+        '<span>防御: ' + boss.defense + '</span>' +
+        '<span>速度: ' + boss.speed + '</span>' +
+      '</div>' +
+      // Fight button (big)
+      '<div style="text-align:center;margin-top:12px;">' +
+        '<button class="btn-action" onclick="GameClient.fightWorldBoss()" style="font-size:16px;padding:12px 40px;background:var(--danger);color:#fff;">⚔ 攻击世界Boss <span style="font-size:11px;">(-10体力)</span></button>' +
+        '<div style="margin-top:8px;"><button class="btn-action btn-sm" onclick="GameClient.openWorldBoss()" style="background:rgba(255,255,255,0.1);">刷新</button></div>' +
+      '</div>' +
+    '</div>';
+
+    // Ranking table
+    if (ranking && ranking.length > 0) {
+      html += '<div class="drawer-section-label" style="margin-top:16px;">贡献排行</div>';
+      html += '<div style="max-height:300px;overflow-y:auto;">';
+      html += ranking.map(function(r) {
+        var isMe = r.playerId === playerId;
+        var tierIcon = r.rank <= 3 ? ['🥇','🥈','🥉'][r.rank-1] : '#' + r.rank;
+        return '<div class="drawer-card" style="' + (isMe ? 'border-left:3px solid var(--gold);' : '') + '">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+            '<span style="font-weight:bold;">' + tierIcon + ' ' + r.playerName + '</span>' +
+            '<span style="font-size:12px;color:var(--text-secondary);">伤害: ' + r.damage + '</span>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+      html += '</div>';
+    }
+
+    return html;
   },
 
   // ===== Settings Panel =====

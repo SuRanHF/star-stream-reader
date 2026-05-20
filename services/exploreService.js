@@ -298,6 +298,14 @@ function startExploration(playerId, locationKey, opts) {
     }
   } catch (e) { /* quest not critical */ }
 
+  // Durability degradation from exploration (combat types only)
+  if (resultType === 'battle' || resultType === 'elite_battle') {
+    try {
+      var equipmentService = require('./equipmentService');
+      equipmentService.degradeDurability(playerId, 1);
+    } catch (e) { /* not critical */ }
+  }
+
   return {
     location: { location_key: location.location_key, name: location.name, danger_level: location.danger_level },
     stamina_cost: staminaCost,

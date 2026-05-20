@@ -498,9 +498,8 @@ const UI = {
     const wasOpen = drawer.classList.contains('open');
     if (body) {
       body.innerHTML = contentHTML;
-      // Only animate content entrance when drawer is first opening (not already open)
       body.classList.remove('entering');
-      if (!wasOpen) {
+      if (wasOpen) {
         void body.offsetHeight;
         body.classList.add('entering');
       }
@@ -508,12 +507,10 @@ const UI = {
     drawer.classList.remove('hidden');
     // Force reflow so browser registers initial translateX(100%) state before adding 'open'
     void drawer.offsetWidth;
-    if (!wasOpen) {
-      // Shift description panel left when drawer opens (composited, no layout)
-      var descPanel = document.getElementById('descriptionPanel');
-      if (descPanel && descPanel.classList.contains('visible')) {
-        descPanel.classList.add('shifted');
-      }
+    // Shift description panel left when drawer opens (composited, no layout)
+    var descPanel = document.getElementById('descriptionPanel');
+    if (descPanel && descPanel.classList.contains('visible')) {
+      descPanel.classList.add('shifted');
     }
     drawer.classList.add('open');
   },

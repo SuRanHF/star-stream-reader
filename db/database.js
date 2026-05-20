@@ -398,14 +398,6 @@ function runMigrations(database) {
     database.run("ALTER TABLE players ADD COLUMN help_date TEXT NOT NULL DEFAULT ''");
   }
 
-  // Equipment durability columns
-  if (!columnExists('player_equipment', 'durability')) {
-    database.run("ALTER TABLE player_equipment ADD COLUMN durability INTEGER NOT NULL DEFAULT 100");
-  }
-  if (!columnExists('player_equipment', 'max_durability')) {
-    database.run("ALTER TABLE player_equipment ADD COLUMN max_durability INTEGER NOT NULL DEFAULT 100");
-  }
-
   // Phase 1: Currency merge migration (scenarioProof→story_fragments, kingToken→abyssMark, delete finalPage)
   try {
     var players = database.prepare('SELECT id, story_fragments, breakthrough_resources_json FROM players').all();

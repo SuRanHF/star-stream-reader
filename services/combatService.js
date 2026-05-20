@@ -311,12 +311,6 @@ function resolveCombat(playerId, monsterKey, action, helperId) {
   const monster = db.prepare('SELECT * FROM monsters WHERE monster_key = ?').get(monsterKey);
   if (!monster) return { error: { code: 'MONSTER_NOT_FOUND', message: '怪物不存在' } };
 
-  // Durability degradation on any combat action
-  try {
-    var equipmentService = require('./equipmentService');
-    equipmentService.degradeDurability(playerId, 1 + Math.floor(Math.random() * 2));
-  } catch (e) { /* not critical */ }
-
   const playerPower = calculateCombatPower(player);
   const stats = player.stats;
   const bond = stats.bond || 0;

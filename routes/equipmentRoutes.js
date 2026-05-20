@@ -99,32 +99,4 @@ router.post('/unequip', (req, res) => {
   }
 });
 
-// POST /api/equipment/repair — repair a single slot
-router.post('/repair', (req, res) => {
-  try {
-    var { playerId, slot } = req.body;
-    if (!playerId || !slot) return res.status(400).json({ code: 'MISSING_PARAMS', message: '缺少必要参数' });
-    var result = equipmentService.repairItem(Number(playerId), slot);
-    if (result.error) return res.status(400).json(result.error);
-    res.json(result);
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
-  }
-});
-
-// POST /api/equipment/repair-all — repair all equipped items
-router.post('/repair-all', (req, res) => {
-  try {
-    var { playerId } = req.body;
-    if (!playerId) return res.status(400).json({ code: 'MISSING_PARAMS', message: '缺少必要参数' });
-    var result = equipmentService.repairAll(Number(playerId));
-    if (result.error) return res.status(400).json(result.error);
-    res.json(result);
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
-  }
-});
-
 module.exports = router;

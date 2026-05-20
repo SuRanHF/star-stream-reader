@@ -412,9 +412,6 @@ const GameClient = {
       case 'party':
         this.openParty();
         break;
-      case 'world-boss':
-        this.openWorldBoss();
-        break;
       case 'settings':
         this.showSettings();
         break;
@@ -1110,42 +1107,12 @@ const GameClient = {
   async loadInventory() {
     try {
       const { items } = await API.getInventory(this.playerId);
-      var recipesResp = await API.getSynthesisRecipes();
-      var recipes = recipesResp.recipes || [];
-      // Compute available counts per recipe
-      var itemMap = {};
-      (items || []).forEach(function(it) { itemMap[it.item_key] = it.quantity; });
-      recipes.forEach(function(r) {
-        r.canSynthesize = r.inputs.every(function(inp) { return (itemMap[inp.itemKey] || 0) >= inp.quantity; });
-      });
-      const contentHTML = UI.renderInventoryWithSynthesis(items, recipes);
+      const contentHTML = UI.renderInventory(items);
       UI.openDrawer('背包', contentHTML);
       const { player } = await API.getPlayer(this.playerId);
       UI.renderLeftPanel(player);
     } catch (e) {
       UI.addLog('加载背包失败: ' + (e.message || e), 'warning');
-    }
-  },
-
-  async synthesize(recipeKey) {
-    try {
-      var result = await API.synthesize(this.playerId, recipeKey);
-      if (result.error) { alert(result.error.message || '合成失败'); return; }
-      UI.addLog('合成成功: ' + result.recipe, 'reward');
-      this.loadInventory();
-    } catch (e) {
-      UI.addLog('合成失败: ' + (e.message || e), 'warning');
-    }
-  },
-
-  async synthesizeAll(recipeKey) {
-    try {
-      var result = await API.synthesizeAll(this.playerId, recipeKey);
-      if (result.error) { alert(result.error.message || '合成失败'); return; }
-      UI.addLog('批量合成: ' + result.times + ' 次', 'reward');
-      this.loadInventory();
-    } catch (e) {
-      UI.addLog('批量合成失败: ' + (e.message || e), 'warning');
     }
   },
 
@@ -1163,51 +1130,6 @@ const GameClient = {
       this.loadInventory();
     } catch (e) {
       UI.addLog('使用道具失败: ' + (e.message || e), 'warning');
-    }
-  },
-
-  async useBatch(itemKey, maxQty) {
-    var qty = prompt('要使用多少个？（最大: ' + maxQty + '）', Math.min(maxQty, 10));
-    if (!qty) return;
-    var n = parseInt(qty);
-    if (isNaN(n) || n <= 0 || n > maxQty) { alert('数量无效'); return; }
-    try {
-      var result = await API.useBatch(this.playerId, itemKey, n);
-      if (result.error) { alert(result.error.message || '使用失败'); return; }
-      UI.addLog('批量使用: ' + result.used + ' 次', 'reward');
-      this.loadInventory();
-    } catch (e) {
-      UI.addLog('批量使用失败: ' + (e.message || e), 'warning');
-    }
-  },
-
-  _toggleSelectAll(checked) {
-    var checks = document.querySelectorAll('.inv-item-check');
-    checks.forEach(function(c) { c.checked = checked; });
-  },
-
-  _invertSelection() {
-    var checks = document.querySelectorAll('.inv-item-check');
-    checks.forEach(function(c) { c.checked = !c.checked; });
-  },
-
-  async sellBatch() {
-    var checks = document.querySelectorAll('.inv-item-check:checked');
-    if (checks.length === 0) { alert('请先勾选要出售的物品'); return; }
-    var items = [];
-    checks.forEach(function(c) {
-      items.push({ itemKey: c.dataset.itemKey, quantity: parseInt(c.dataset.qty) });
-    });
-    var totalPrice = 0;
-    checks.forEach(function(c) { totalPrice += parseInt(c.dataset.price) * parseInt(c.dataset.qty); });
-    if (!confirm('确定出售 ' + items.length + ' 种物品，获得 ' + totalPrice + ' 硬币？')) return;
-    try {
-      var result = await API.sellBatch(this.playerId, items);
-      if (result.error) { alert(result.error.message || '出售失败'); return; }
-      UI.addLog('批量出售获得 ' + result.coins + ' 硬币', 'reward');
-      this.loadInventory();
-    } catch (e) {
-      UI.addLog('批量出售失败: ' + (e.message || e), 'warning');
     }
   },
 
@@ -1258,28 +1180,6 @@ const GameClient = {
       this.loadEquipment();
     } catch (e) {
       UI.addLog('卸下装备失败: ' + (e.message || e), 'warning');
-    }
-  },
-
-  async repairItem(slot) {
-    try {
-      var result = await API.repairItem(this.playerId, slot);
-      if (result.error) { alert(result.error.message || '修理失败'); return; }
-      UI.addLog('修理了 ' + result.item + '（花费 ' + result.cost + ' 硬币）', 'system');
-      this.loadEquipment();
-    } catch (e) {
-      UI.addLog('修理失败: ' + (e.message || e), 'warning');
-    }
-  },
-
-  async repairAll() {
-    try {
-      var result = await API.repairAll(this.playerId);
-      if (result.error) { alert(result.error.message || '修理失败'); return; }
-      UI.addLog('全部装备已修理（花费 ' + result.cost + ' 硬币）', 'system');
-      this.loadEquipment();
-    } catch (e) {
-      UI.addLog('全部修理失败: ' + (e.message || e), 'warning');
     }
   },
 
@@ -1819,58 +1719,17 @@ const GameClient = {
     } catch (e) { UI.addLog('讨伐失败: ' + (e.message || e), 'warning'); }
   },
 
-  // ===== World Boss (世界Boss) =====
-  async openWorldBoss() {
-    UI.openDrawer('世界Boss', '<div id="worldBossContent"><p style="text-align:center;color:var(--text-secondary);padding:32px;">加载中...</p></div>');
-    try {
-      var status = await API.getWorldBossStatus();
-      var boss = status.active;
-      var ranking = status.ranking || [];
-      var content = document.getElementById('worldBossContent');
-      if (content) content.innerHTML = UI.renderWorldBossPanel(boss, ranking, this.playerId);
-    } catch (e) {
-      var content = document.getElementById('worldBossContent');
-      if (content) content.innerHTML = '<p style="text-align:center;color:var(--danger);padding:32px;">加载失败: ' + (e.message || e) + '</p>';
-    }
-  },
-
-  async fightWorldBoss() {
-    try {
-      var result = await API.fightWorldBoss(this.playerId, 'fight');
-      if (result.error) { UI.addLog(result.error.message, 'warning'); return; }
-      if (result.damage) {
-        UI.addLog((result.crit ? '暴击！' : '') + '对世界Boss造成 ' + result.damage + ' 点伤害', 'combat');
-        if (result.defeated) {
-          UI.addLog('世界Boss被击破了！', 'story');
-        }
-      }
-      this.openWorldBoss();
-    } catch (e) { UI.addLog('战斗失败: ' + (e.message || e), 'warning'); }
-  },
-
   // ===== Chat (聊天频道) =====
   _chatChannel: 'global',
   _chatLastId: 0,
   _chatTimer: null,
-  _playerConstellation: '',
 
   async openChat() {
-    // Read player constellation for sect channel
-    try {
-      var resp = await API.getPlayer(this.playerId);
-      var player = (resp && resp.data && resp.data.player) ? resp.data.player : resp;
-      this._playerConstellation = (player && player.stats && player.stats.constellation) || '';
-    } catch (e) { /* */ }
+    this._chatChannel = 'global';
     this._chatLastId = 0;
     UI.openDrawer('聊天频道', '<div id="chatContent"><p style="text-align:center;color:var(--text-secondary);padding:32px;">加载中...</p></div>');
     await this.loadChatMessages();
     this._startChatPolling();
-  },
-
-  async switchChatChannel(channel) {
-    this._chatChannel = channel;
-    this._chatLastId = 0;
-    await this.loadChatMessages();
   },
 
   async loadChatMessages(silent) {
@@ -1883,7 +1742,7 @@ const GameClient = {
       if (!silent) {
         var chatContent = document.getElementById('chatContent');
         if (chatContent) {
-          chatContent.innerHTML = UI.renderChat(messages, this.playerId, self._chatChannel);
+          chatContent.innerHTML = UI.renderChat(messages, this.playerId);
           this._scrollChatToBottom();
         }
       } else {

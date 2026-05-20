@@ -100,21 +100,6 @@ const API = {
   useItem(playerId, itemKey) {
     return this.request('POST', '/api/inventory/use', { playerId, itemKey });
   },
-  sellBatch(playerId, items) {
-    return this.request('POST', '/api/inventory/sell-batch', { playerId, items });
-  },
-  useBatch(playerId, itemKey, quantity) {
-    return this.request('POST', '/api/inventory/use-batch', { playerId, itemKey, quantity });
-  },
-  getSynthesisRecipes() {
-    return this.request('GET', '/api/inventory/synthesis/recipes');
-  },
-  synthesize(playerId, recipeKey) {
-    return this.request('POST', '/api/inventory/synthesis', { playerId, recipeKey });
-  },
-  synthesizeAll(playerId, recipeKey) {
-    return this.request('POST', '/api/inventory/synthesis-all', { playerId, recipeKey });
-  },
 
   // Equipment
   getEquipment(playerId) {
@@ -125,12 +110,6 @@ const API = {
   },
   unequipItem(playerId, slot) {
     return this.request('POST', '/api/equipment/unequip', { playerId, slot });
-  },
-  repairItem(playerId, slot) {
-    return this.request('POST', '/api/equipment/repair', { playerId, slot });
-  },
-  repairAll(playerId) {
-    return this.request('POST', '/api/equipment/repair-all', { playerId });
   },
 
   // Skills
@@ -452,19 +431,5 @@ const API = {
   },
   getBountyDailyLimits(playerId) {
     return this.request('GET', '/api/bounty/daily-limits/' + playerId);
-  },
-
-  // World Boss
-  getWorldBossStatus() {
-    return this.request('GET', '/api/world-boss/status');
-  },
-  fightWorldBoss(playerId, action) {
-    return this.request('POST', '/api/world-boss/fight', { playerId, action });
-  },
-  getWorldBossRanking(bossId) {
-    return this.request('GET', '/api/world-boss/ranking/' + bossId);
-  },
-  getWorldBossHistory() {
-    return this.request('GET', '/api/world-boss/history');
   },
 };

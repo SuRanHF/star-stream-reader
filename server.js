@@ -149,14 +149,6 @@ async function start() {
   // Round 2: exploration, combat, inventory, equipment, skills, PK
   app.use('/api/explore', authRequired, require('./routes/exploreRoutes'));
   app.use('/api/combat', authRequired, require('./routes/combatRoutes'));
-  // Public synthesis recipe list (no auth needed)
-  app.get('/api/inventory/synthesis/recipes', (req, res) => {
-    try {
-      var inventoryService = require('./services/inventoryService');
-      var recipes = inventoryService.getSynthesisRecipes();
-      res.json({ recipes });
-    } catch (e) { console.error(e); res.status(500).json({ code: 'SERVER_ERROR', message: e.message }); }
-  });
   app.use('/api/inventory', authRequired, require('./routes/inventoryRoutes'));
   app.use('/api/equipment', authRequired, require('./routes/equipmentRoutes'));
   // Phase 3 Round 2: Public faction skill catalog (no auth required,
@@ -194,7 +186,6 @@ app.use('/api/party', authRequired, require('./routes/partyRoutes'));
 app.use('/api/narrative', require('./routes/narrativeRoutes'));
 app.use('/api/ai-director', require('./routes/aiDirectorRoutes'));
 app.use('/api/bounty', require('./routes/helpBountyRoutes'));
-app.use('/api/world-boss', require('./routes/worldBossRoutes'));
 
   // Health check
   app.get('/api/health', (req, res) => {

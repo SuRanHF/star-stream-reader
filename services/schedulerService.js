@@ -47,9 +47,6 @@ function tick() {
       require('./worldlineService').migrateWorldlineAnomaly();
     }
   } catch (e) { console.error('[Scheduler] anomaly migrate:', e.message); }
-
-  // 7. 世界Boss同步 (spawn new boss if none active)
-  try { require('./worldBossService').tickSpawn(); } catch (e) {}
 }
 
 function autoResolveBroadcasts() {

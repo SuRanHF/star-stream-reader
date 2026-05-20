@@ -1,3 +1,8 @@
+// ⚠️ UI 保护文件 — 非经确认不得擅自修改
+// ⚠️ 禁止：修改已有渲染方法的输出结构/class/内联样式
+// ⚠️ 禁止：修改 openDrawer/closeDrawer/dismissPopup/setupModals
+// ⚠️ 允许：新增渲染方法、修改文本内容
+
 // UI module - DOM rendering (dark immersive RPG layout)
 
 const LABELS = {
@@ -13,7 +18,8 @@ const LABELS = {
 };
 
 const UI = {
-  _drawerTimeout: null,
+  DRAWER_TRANSITION_MS: 300,
+  POPUP_TRANSITION_MS: 280,
   // ===== Left Panel (精简版) =====
   renderLeftPanel(player, globalWLS) {
     if (!player) return;
@@ -240,7 +246,7 @@ const UI = {
 
         // Card header with tag + title
         let html = `<div class="event-card-header"><span class="choice-tag ${cfg.tagClass}">${cfg.label}</span>`;
-        html += `<span class="event-title">${ch.is_irreversible ? '⚠ ' + ch.text : ch.text}</span>`;
+        html += `<span class="event-title">${ch.is_irreversible ? '⚠ ' : ''}${UI.escapeHtml(ch.text || '')}</span>`;
         html += `<span class="event-arrow">▶</span></div>`;
 
         // Effect preview
@@ -248,7 +254,7 @@ const UI = {
 
         // Description if available
         if (ch.description || ch.summary) {
-          html += `<div class="event-desc">${ch.description || ch.summary || ''}</div>`;
+          html += `<div class="event-desc">${UI.escapeHtml(ch.description || ch.summary || '')}</div>`;
         }
 
         // Action button
@@ -278,9 +284,9 @@ const UI = {
         card.className = 'event-card event-locked';
 
         let html = `<div class="event-card-header"><span class="choice-tag ${cfg.tagClass}">${cfg.label}</span>`;
-        html += `<span class="event-title">${ch.text}</span></div>`;
+        html += `<span class="event-title">${UI.escapeHtml(ch.text || '')}</span></div>`;
         if (ch.locked_reason) {
-          html += `<div class="event-locked-reason">${ch.locked_reason}</div>`;
+          html += `<div class="event-locked-reason">${UI.escapeHtml(ch.locked_reason)}</div>`;
         }
         html += '<div class="event-actions"><button class="btn-event" disabled>未解锁</button></div>';
 
@@ -320,7 +326,7 @@ const UI = {
     // Explore button label (shows stamina cost)
     const exploreBtn = document.getElementById('btnContinueExplore');
     if (exploreBtn) {
-      const cost = GameClient._lastExploreCost || 5;
+      const cost = GameClient._lastExploreCost ?? 5;
       exploreBtn.textContent = `继续探索(-${cost})`;
     }
 
@@ -374,6 +380,7 @@ const UI = {
         el.classList.remove('closing');
       }
     }
+    UI.closeDrawer();
   },
 
   showSocialPlaceholder(featureName) {
@@ -427,7 +434,7 @@ const UI = {
     const rt = result.result_type || 'nothing';
     const tc = typeConfig[rt] || { label: rt, cls: '' };
 
-    let html = '<div class="event-card event-special" style="max-width:100%;">';
+    let html = '<div class="event-card event-special">';
     html += `<div class="event-card-header"><span class="choice-tag tag-action">${tc.label}</span>`;
     html += `<span class="event-title">${r.event_name || '探索结果'}</span></div>`;
 
@@ -447,18 +454,18 @@ const UI = {
 
     // Rewards
     if (r.rewards && Object.keys(r.rewards).length > 0) {
-      html += '<div class="event-actions" style="flex-wrap:wrap;">';
+      html += '<div class="event-actions flex-row-wrap">';
       const rewards = r.rewards;
-      if (rewards.coins) html += `<span style="font-size:12px;color:var(--green);">+${rewards.coins}硬币</span>`;
-      if (rewards.story_fragments) html += `<span style="font-size:12px;color:var(--green);">+${rewards.story_fragments}碎片</span>`;
-      if (rewards.constellationFavor) html += `<span style="font-size:12px;color:var(--green);">星座垂青 +${rewards.constellationFavor}</span>`;
-      if (rewards.abyssMark) html += `<span style="font-size:12px;color:var(--green);">深渊刻痕 +${rewards.abyssMark}</span>`;
-      if (rewards.equipment) html += `<span style="font-size:12px;color:var(--green);">装备: ${rewards.equipment}</span>`;
-      if (rewards.items) html += `<span style="font-size:12px;color:var(--green);">道具: ${rewards.items.join(', ')}</span>`;
-      if (rewards.exp) html += `<span style="font-size:12px;color:var(--green);">EXP +${rewards.exp}</span>`;
+      if (rewards.coins) html += `<span class="fs-12 text-green">+${rewards.coins}硬币</span>`;
+      if (rewards.story_fragments) html += `<span class="fs-12 text-green">+${rewards.story_fragments}碎片</span>`;
+      if (rewards.constellationFavor) html += `<span class="fs-12 text-green">星座垂青 +${rewards.constellationFavor}</span>`;
+      if (rewards.abyssMark) html += `<span class="fs-12 text-green">深渊刻痕 +${rewards.abyssMark}</span>`;
+      if (rewards.equipment) html += `<span class="fs-12 text-green">装备: ${rewards.equipment}</span>`;
+      if (rewards.items) html += `<span class="fs-12 text-green">道具: ${rewards.items.join(', ')}</span>`;
+      if (rewards.exp) html += `<span class="fs-12 text-green">EXP +${rewards.exp}</span>`;
       if (rewards.stats) {
         for (const [k, v] of Object.entries(rewards.stats)) {
-          if (v > 0) html += `<span style="font-size:12px;color:var(--green);">${UI._labelStat(k)} +${v}</span>`;
+          if (v > 0) html += `<span class="fs-12 text-green">${UI._labelStat(k)} +${v}</span>`;
         }
       }
       html += '</div>';
@@ -466,19 +473,19 @@ const UI = {
 
     // Risks
     if (r.risks && Object.keys(r.risks).length > 0) {
-      html += '<div class="event-actions" style="flex-wrap:wrap;">';
+      html += '<div class="event-actions flex-row-wrap">';
       const risks = r.risks;
-      if (risks.hp_loss) html += `<span style="font-size:12px;color:var(--red);">HP -${risks.hp_loss}</span>`;
-      if (risks.worldLineShift) html += `<span style="font-size:12px;color:var(--red);">世界线偏移 +${risks.worldLineShift}</span>`;
-      if (risks.channelHeat) html += `<span style="font-size:12px;color:var(--red);">频道热度 +${risks.channelHeat}</span>`;
+      if (risks.hp_loss) html += `<span class="fs-12 text-red">HP -${risks.hp_loss}</span>`;
+      if (risks.worldLineShift) html += `<span class="fs-12 text-red">世界线偏移 +${risks.worldLineShift}</span>`;
+      if (risks.channelHeat) html += `<span class="fs-12 text-red">频道热度 +${risks.channelHeat}</span>`;
       html += '</div>';
     }
 
     if (r.is_final) {
-      html += '<div class="event-desc" style="color:var(--gold);">阶段最终剧情已触发！现在可以完成阶段最终选择了。</div>';
+      html += '<div class="event-desc text-gold">阶段最终剧情已触发！现在可以完成阶段最终选择了。</div>';
     }
 
-    html += `<div class="event-desc" style="font-size:11px;color:var(--text-dim);">剩余体力: ${result.remaining_stamina}</div>`;
+    html += `<div class="event-desc text-dim">剩余体力: ${result.remaining_stamina}</div>`;
     html += '</div>';
 
     // Prepend to panel so explore result appears first
@@ -490,16 +497,18 @@ const UI = {
   openDrawer(title, contentHTML) {
     const drawer = document.getElementById('rightDrawer');
     if (!drawer) return;
-    // Cancel any pending close timeout
-    if (UI._drawerTimeout) { clearTimeout(UI._drawerTimeout); UI._drawerTimeout = null; }
-    UI.closeAllOverlays();
+    if (drawer._closeTimer) {
+      clearTimeout(drawer._closeTimer);
+      drawer._closeTimer = null;
+    }
     UI.setText('drawerTitle', title);
     const body = document.getElementById('drawerBody');
     const wasOpen = drawer.classList.contains('open');
     if (body) {
       body.innerHTML = contentHTML;
+      // Only animate content entrance when drawer is first opening (not already open)
       body.classList.remove('entering');
-      if (wasOpen) {
+      if (!wasOpen) {
         void body.offsetHeight;
         body.classList.add('entering');
       }
@@ -507,10 +516,12 @@ const UI = {
     drawer.classList.remove('hidden');
     // Force reflow so browser registers initial translateX(100%) state before adding 'open'
     void drawer.offsetWidth;
-    // Shift description panel left when drawer opens (composited, no layout)
-    var descPanel = document.getElementById('descriptionPanel');
-    if (descPanel && descPanel.classList.contains('visible')) {
-      descPanel.classList.add('shifted');
+    if (!wasOpen) {
+      // Shift description panel left when drawer opens (composited, no layout)
+      var descPanel = document.getElementById('descriptionPanel');
+      if (descPanel && descPanel.classList.contains('visible')) {
+        descPanel.classList.add('shifted');
+      }
     }
     drawer.classList.add('open');
   },
@@ -526,19 +537,25 @@ const UI = {
     if (descPanel) {
       descPanel.classList.remove('shifted');
     }
-    // Cancel any previous hide timeout before setting a new one
-    if (UI._drawerTimeout) clearTimeout(UI._drawerTimeout);
-    UI._drawerTimeout = setTimeout(() => {
+    // Clear description panel content that was drawer-linked
+    if (descPanel) {
+      var ctx = UI._currentPanelContext;
+      if (ctx === 'stats' || ctx === 'equipment' || ctx === 'combat') {
+        UI.clearDescriptionPanel();
+      }
+    }
+    // Hide after transition (clear previous timer to avoid race)
+    if (drawer._closeTimer) clearTimeout(drawer._closeTimer);
+    drawer._closeTimer = setTimeout(() => {
       drawer.classList.add('hidden');
-      UI._drawerTimeout = null;
-    }, 300);
-    this.clearDescriptionPanel();
+      drawer._closeTimer = null;
+    }, UI.DRAWER_TRANSITION_MS);
   },
 
   // ===== Drawer: Locations (Explore) =====
   renderLocations(locations) {
     if (!locations || locations.length === 0) {
-      return '<p style="text-align:center;color:var(--text-secondary);padding:32px">暂无可探索的地图，请先推进剧情解锁。</p>';
+      return '<p class="empty-state">暂无可探索的地图，请先推进剧情解锁。</p>';
     }
     return locations.map(loc => `
       <div class="drawer-card location-card">
@@ -550,7 +567,7 @@ const UI = {
           <span>掉率 ${Math.round((loc.drop_rate_modifier || 1) * 100)}%</span>
         </div>
         <div class="drawer-card-actions">
-          <span style="font-size:12px;color:var(--text-secondary)">体力 -5</span>
+          <span class="fs-12 text-secondary">体力 -5</span>
           <button class="btn-action btn-sm" onclick="GameClient.doExplore('${loc.location_key}')">探索</button>
         </div>
       </div>
@@ -558,27 +575,86 @@ const UI = {
   },
 
   // ===== Drawer: Inventory =====
+  renderInventoryWithSynthesis(items, recipes) {
+    var html = '<div style="display:flex;gap:8px;margin-bottom:12px;">' +
+      '<button class="btn-tab active" onclick="UI._switchInvTab(\'items\')" id="invTabItems">物品</button>' +
+      '<button class="btn-tab" onclick="UI._switchInvTab(\'synth\')" id="invTabSynth">合成</button>' +
+      '</div>' +
+      '<div id="invTabContent">' + UI.renderInventory(items) + '</div>' +
+      '<div id="invSynthContent" style="display:none;">' + UI._renderSynthesisPanel(recipes) + '</div>';
+    return html;
+  },
+
+  _switchInvTab(tab) {
+    document.getElementById('invTabItems').className = 'btn-tab' + (tab === 'items' ? ' active' : '');
+    document.getElementById('invTabSynth').className = 'btn-tab' + (tab === 'synth' ? ' active' : '');
+    document.getElementById('invTabContent').style.display = tab === 'items' ? '' : 'none';
+    var synthEl = document.getElementById('invSynthContent');
+    if (synthEl) synthEl.style.display = tab === 'synth' ? '' : 'none';
+  },
+
+  _renderSynthesisPanel(recipes) {
+    if (!recipes || recipes.length === 0) {
+      return '<p style="text-align:center;color:var(--text-secondary);padding:32px;">暂无可用合成配方。</p>';
+    }
+    return recipes.map(function(r) {
+      var inputStr = r.inputs.map(function(i) { return i.itemKey + ' x' + i.quantity; }).join(' + ');
+      var outputStr = r.outputs.map(function(o) { return o.itemKey + ' x' + o.quantity; }).join(' + ');
+      var costStr = r.cost > 0 ? ' | 费用: ' + r.cost + ' 硬币' : '';
+      if (r.bonusCoins) costStr += ' | 奖励: +' + r.bonusCoins + ' 硬币';
+      return '<div class="drawer-card">' +
+        '<div class="drawer-card-title" style="color:var(--teal);">' + r.name + '</div>' +
+        '<div class="drawer-card-desc">' + inputStr + ' → ' + outputStr + costStr + '</div>' +
+        '<div class="drawer-card-actions">' +
+          (r.canSynthesize
+            ? '<button class="btn-action btn-sm" onclick="GameClient.synthesize(\'' + r.recipeKey + '\')">合成1次</button>' +
+              '<button class="btn-action btn-sm" onclick="GameClient.synthesizeAll(\'' + r.recipeKey + '\')" style="background:var(--gold);color:#000;">全部合成</button>'
+            : '<span style="font-size:12px;color:var(--red);">材料不足</span>') +
+        '</div>' +
+      '</div>';
+    }).join('');
+  },
+
   renderInventory(items) {
     if (!items || items.length === 0) {
-      return '<p style="text-align:center;color:var(--text-secondary);padding:32px">背包是空的，去探索获取道具吧。</p>';
+      return '<p class="empty-state">背包是空的，去探索获取道具吧。</p>';
     }
-    return items.map(item => `
-      <div class="drawer-card">
-        <div class="drawer-card-title">
-          <span class="rarity-${item.rarity || 'common'}">${item.name}</span>
-          <span style="font-size:11px;color:var(--text-secondary);margin-left:8px;">x${item.quantity}</span>
-        </div>
-        <div class="drawer-card-desc">${item.description}</div>
-        <div class="drawer-card-stats">
-          <span>类型: ${UI._labelItemType(item.type)}</span>
-          <span>稀有度: ${UI._labelRarity(item.rarity)}</span>
-        </div>
-        <div class="drawer-card-actions">
-          <span style="font-size:12px;color:var(--text-secondary)">售价: ${item.sell_price || 0}</span>
-          ${item.type === 'consumable' ? `<button class="btn-action btn-sm" onclick="GameClient.useItem('${item.item_key}')">使用</button>` : ''}
-        </div>
-      </div>
-    `).join('');
+    var sellable = items.filter(function(it) { return it.sell_price > 0; });
+    var html = '';
+    // Batch action bar
+    if (sellable.length > 0) {
+      html += '<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">' +
+        '<label style="cursor:pointer;font-size:13px;color:var(--text-secondary);display:flex;align-items:center;gap:4px;">' +
+          '<input type="checkbox" onchange="GameClient._toggleSelectAll(this.checked)" id="invSelectAll" style="cursor:pointer;"> 全选</label>' +
+        '<button class="btn-action btn-sm" onclick="GameClient._invertSelection()" style="background:rgba(255,255,255,0.1);">反选</button>' +
+        '<button class="btn-action btn-sm" onclick="GameClient.sellBatch()" style="background:var(--gold);color:#000;">批量出售</button>' +
+        '</div>';
+    }
+    html += items.map(function(item, idx) {
+      var canSell = item.sell_price > 0;
+      var canUse = item.type === 'consumable' && item.quantity > 0;
+      var hasMulti = item.quantity > 1;
+      return '<div class="drawer-card">' +
+        '<div class="drawer-card-title" style="display:flex;align-items:center;gap:8px;">' +
+          (canSell ? '<input type="checkbox" class="inv-item-check" data-item-key="' + item.item_key + '" data-qty="' + item.quantity + '" data-price="' + item.sell_price + '" style="cursor:pointer;">' : '') +
+          '<span class="rarity-' + (item.rarity || 'common') + '">' + item.name + '</span>' +
+          '<span style="font-size:11px;color:var(--text-secondary);">x' + item.quantity + '</span>' +
+        '</div>' +
+        '<div class="drawer-card-desc">' + item.description + '</div>' +
+        '<div class="drawer-card-stats">' +
+          '<span>类型: ' + UI._labelItemType(item.type) + '</span>' +
+          '<span>稀有度: ' + UI._labelRarity(item.rarity) + '</span>' +
+        '</div>' +
+        '<div class="drawer-card-actions">' +
+          '<span style="font-size:12px;color:var(--text-secondary)">售价: ' + (item.sell_price || 0) + '</span>' +
+          (canUse && hasMulti
+            ? '<button class="btn-action btn-sm" onclick="GameClient.useItem(\'' + item.item_key + '\')">使用1个</button>' +
+              '<button class="btn-action btn-sm" onclick="GameClient.useBatch(\'' + item.item_key + '\',' + item.quantity + ')">批量使用</button>'
+            : (canUse ? '<button class="btn-action btn-sm" onclick="GameClient.useItem(\'' + item.item_key + '\')">使用</button>' : '')) +
+        '</div>' +
+      '</div>';
+    }).join('');
+    return html;
   },
 
   // ===== Drawer: Equipment =====
@@ -590,32 +666,47 @@ const UI = {
     (equipped || []).forEach(function(e) { equippedMap[e.slot] = e; equippedKeys.add(e.equipment_key); });
 
     var html = '<div class="drawer-section-label">已装备</div><div class="equip-slots-row">';
+    var anyBroken = false;
     slotOrder.forEach(function(slot) {
       var eq = equippedMap[slot];
       if (eq) {
+        var dura = eq.durability !== undefined ? eq.durability : 100;
+        var maxDura = eq.max_durability !== undefined ? eq.max_durability : 100;
+        var duraPct = Math.max(0, Math.round(dura / maxDura * 100));
+        var duraColor = duraPct > 50 ? 'var(--green)' : (duraPct > 20 ? 'var(--gold)' : 'var(--red)');
+        if (dura <= 0) anyBroken = true;
         html += '<div class="equip-slot equipped">' +
           '<div class="slot-name">' + slotNames[slot] + '</div>' +
           '<div class="item-name">' + eq.name + '</div>' +
+          '<div style="margin:4px 0;font-size:11px;color:' + duraColor + ';">耐久: ' + dura + '/' + maxDura + '</div>' +
+          '<div style="background:rgba(255,255,255,0.1);border-radius:4px;height:4px;margin-bottom:4px;">' +
+            '<div style="background:' + duraColor + ';height:100%;width:' + duraPct + '%;border-radius:4px;"></div>' +
+          '</div>' +
+          (dura < maxDura ? '<button class="btn-action btn-sm" onclick="GameClient.repairItem(\'' + slot + '\')" style="background:var(--teal);margin-top:2px;">修理</button>' : '') +
           '<button class="btn-action btn-sm btn-cancel" onclick="GameClient.unequipItem(\'' + slot + '\')" style="margin-top:4px;">卸下</button>' +
           '</div>';
       } else {
         html += '<div class="equip-slot empty-slot">' +
           '<div class="slot-name">' + slotNames[slot] + '</div>' +
-          '<span style="font-size:12px;color:var(--text-secondary);">空</span>' +
+          '<span class="fs-12 text-secondary">空</span>' +
           '</div>';
       }
     });
     html += '</div>';
+    // Repair All button
+    if (anyBroken || equipped.some(function(e) { return (e.durability || 100) < (e.max_durability || 100); })) {
+      html += '<div style="margin-top:4px;"><button class="btn-action" onclick="GameClient.repairAll()" style="background:var(--gold);color:#000;width:100%;">全部修理</button></div>';
+    }
 
     // Show active set bonuses
     if (activeSets && activeSets.length > 0) {
-      html += '<div class="drawer-section-label" style="margin-top:12px;">套装加成</div><div class="equip-sets-row">';
+      html += '<div class="drawer-section-label mt-12">套装加成</div><div class="equip-sets-row">';
       activeSets.forEach(function(set) {
         var isFull = set.matched_pieces === set.total_pieces;
         html += '<div class="drawer-card set-card' + (isFull ? ' set-full' : '') + '" style="border-color:' + (isFull ? 'var(--gold)' : 'var(--teal)') + ';">';
         html += '<div class="drawer-card-title" style="color:' + (isFull ? 'var(--gold)' : 'var(--teal)') + ';">' + set.set_name + ' (' + set.matched_pieces + '/' + set.total_pieces + ')</div>';
         if (set.active_bonuses && set.active_bonuses.length > 0) {
-          html += '<div class="drawer-card-stats" style="color:var(--green);">';
+          html += '<div class="drawer-card-stats text-green">';
           set.active_bonuses.forEach(function(b) {
             var bonusStr = Object.entries(b.bonus).map(function(entry) {
               var k = entry[0], v = entry[1];
@@ -625,16 +716,16 @@ const UI = {
           });
           html += '</div>';
         } else {
-          html += '<div class="drawer-card-stats"><span style="color:var(--text-secondary);">再装备 ' + (2 - set.matched_pieces) + ' 件解锁加成</span></div>';
+          html += '<div class="drawer-card-stats"><span class="text-secondary">再装备 ' + (2 - set.matched_pieces) + ' 件解锁加成</span></div>';
         }
         html += '</div>';
       });
       html += '</div>';
     }
 
-    html += '<div class="drawer-section-label" style="margin-top:16px;">可用装备</div>';
+    html += '<div class="drawer-section-label mt-16">可用装备</div>';
     if (!available || available.length === 0) {
-      html += '<p style="color:var(--text-secondary);padding:8px;">没有可用装备。</p>';
+      html += '<p class="text-secondary p-8">没有可用装备。</p>';
     } else {
       html += available.map(function(eq) {
         var stats = eq.stats || {};
@@ -651,7 +742,7 @@ const UI = {
             '<span>' + statsStr + '</span>' +
           '</div>' +
           '<div class="drawer-card-actions">' +
-            (isEquipped ? '<span style="font-size:12px;color:var(--green)">已装备</span>' : '<span style="font-size:12px;color:' + (eq.can_equip ? 'var(--green)' : 'var(--red)') + '">' + (eq.can_equip ? '可装备' : '等级不足') + '</span>') +
+            (isEquipped ? '<span class="fs-12 text-green">已装备</span>' : '<span style="font-size:12px;color:' + (eq.can_equip ? 'var(--green)' : 'var(--red)') + '">' + (eq.can_equip ? '可装备' : '等级不足') + '</span>') +
             (eq.owned && eq.can_equip && !isEquipped ? '<button class="btn-action btn-sm" onclick="GameClient.equipItem(\'' + eq.equipment_key + '\')">装备</button>' : '') +
           '</div>' +
         '</div>';
@@ -666,7 +757,7 @@ const UI = {
     var html = '';
 
     // Tab bar
-    html += '<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">' +
+    html += '<div class="flex-row-wrap mb-12">' +
       '<button class="ma-btn ' + (UI._skillsTab === 'normal' ? 'primary' : '') + '" onclick="GameClient.switchSkillsTab(\'normal\')">通用技能</button>' +
       '<button class="ma-btn ' + (UI._skillsTab === 'faction' ? 'primary' : '') + '" onclick="GameClient.switchSkillsTab(\'faction\')">阵营技能</button>' +
       '</div>';
@@ -674,7 +765,7 @@ const UI = {
     if (UI._skillsTab === 'faction') {
       // Faction skills tab
       if (!factionSkills || factionSkills.length === 0) {
-        html += '<p style="text-align:center;color:var(--text-secondary);padding:32px">尚未选择背后星，或该阵营暂无可用技能。</p>';
+        html += '<p class="empty-state">尚未选择背后星，或该阵营暂无可用技能。</p>';
         return html;
       }
       html += factionSkills.map(function(sk) {
@@ -697,7 +788,7 @@ const UI = {
             (sk.cooldown > 0 ? '<span>冷却: ' + sk.cooldown + '回合</span>' : '<span>被动</span>') +
             '<span>消耗: ' + sk.cost_faction_contribution + ' 贡献</span>' +
           '</div>' +
-          (effectsStr ? '<div class="drawer-card-stats"><span style="font-size:11px;">' + effectsStr + '</span></div>' : '') +
+          (effectsStr ? '<div class="drawer-card-stats"><span class="fs-11">' + effectsStr + '</span></div>' : '') +
           '<div class="drawer-card-actions">' +
             '<span style="font-size:12px;color:' + (sk.unlocked ? 'var(--green)' : sk.can_unlock ? 'var(--teal)' : 'var(--text-secondary)') + '">' +
               (sk.unlocked ? '已习得' : sk.can_unlock ? '可学习' : '条件不足') + '</span>' +
@@ -708,7 +799,7 @@ const UI = {
     } else {
       // Normal skills tab
       if (!skills || skills.length === 0) {
-        html += '<p style="text-align:center;color:var(--text-secondary);padding:32px">暂未掌握任何技能。</p>';
+        html += '<p class="empty-state">暂未掌握任何技能。</p>';
         return html;
       }
       html += skills.map(function(sk) {
@@ -734,7 +825,7 @@ const UI = {
   // ===== Drawer: Titles =====
   renderAllTitles(titles) {
     if (!titles || titles.length === 0) {
-      return '<p style="text-align:center;color:var(--text-secondary);padding:32px">暂无称号。</p>';
+      return '<p class="empty-state">暂无称号。</p>';
     }
     return titles.map(t => {
       const effects = t.effects || {};
@@ -748,7 +839,7 @@ const UI = {
         <div class="drawer-card-title rarity-${t.rarity || 'common'}">${t.name}</div>
         <div class="drawer-card-desc">${t.description}</div>
         <div class="drawer-card-stats">${effStr || '无额外效果'}</div>
-        <div class="drawer-card-actions"><span style="font-size:12px;">${UI._labelRarity(t.rarity)}</span></div>
+        <div class="drawer-card-actions"><span class="fs-12">${UI._labelRarity(t.rarity)}</span></div>
       </div>`;
     }).join('');
   },
@@ -756,44 +847,34 @@ const UI = {
   // ===== Drawer: PK =====
   renderPKOpponents(opponents) {
     if (!opponents || opponents.length === 0) {
-      return '<p style="text-align:center;color:var(--text-secondary);padding:32px">暂无可挑战的对手。</p>';
+      return '<p class="empty-state">暂无可挑战的对手。</p>';
     }
-    return opponents.map(function(o) {
-      return '<div class="drawer-card">' +
-        '<div class="drawer-card-title">' + o.player_name + '</div>' +
-        '<div class="drawer-card-stats">' +
-          '<span>Lv.' + o.level + '</span>' +
-          '<span>评分: ' + o.rating + '</span>' +
-          '<span>战力: ' + o.combat_power + '</span>' +
-          '<span>胜/负: ' + o.wins + '/' + o.losses + '</span>' +
-        '</div>' +
-        '<div class="pk-mode-select" style="margin:8px 0;display:flex;gap:12px;font-size:12px;">' +
-          '<label style="cursor:pointer;display:flex;align-items:center;gap:4px;">' +
-            '<input type="radio" name="pkMode_' + o.id + '" value="spar" checked onchange="GameClient._pkMode_' + o.id + '=\'spar\'">' +
-            '<span style="color:#4caf50;">切磋</span><span style="color:var(--text-secondary);">(无损失)</span>' +
-          '</label>' +
-          '<label style="cursor:pointer;display:flex;align-items:center;gap:4px;">' +
-            '<input type="radio" name="pkMode_' + o.id + '" value="deathmatch" onchange="GameClient._pkMode_' + o.id + '=\'deathmatch\'">' +
-            '<span style="color:#f44336;">死斗</span><span style="color:var(--text-secondary);">(败者全失)</span>' +
-          '</label>' +
-        '</div>' +
-        '<div class="drawer-card-actions">' +
-          '<button class="btn-action btn-sm" onclick="GameClient.doPK(' + o.id + ')">挑战</button>' +
-        '</div>' +
-      '</div>';
-    }).join('');
+    return opponents.map(o => `
+      <div class="drawer-card">
+        <div class="drawer-card-title">${o.player_name}</div>
+        <div class="drawer-card-stats">
+          <span>Lv.${o.level}</span>
+          <span>评分: ${o.rating}</span>
+          <span>战力: ${o.combat_power}</span>
+          <span>胜/负: ${o.wins}/${o.losses}</span>
+        </div>
+        <div class="drawer-card-actions">
+          <button class="btn-action btn-sm" onclick="GameClient.doPK(${o.id})">挑战</button>
+        </div>
+      </div>
+    `).join('');
   },
 
   renderPKRecords(records) {
     if (!records || records.length === 0) {
-      return '<p style="color:var(--text-secondary);padding:8px;">暂无PK记录。</p>';
+      return '<p class="text-secondary p-8">暂无PK记录。</p>';
     }
     return records.map(r => {
       const change = r.rating_change || {};
       return `<div class="drawer-record">
         ${r.attacker_name} vs ${r.defender_name} | 胜者ID: ${r.winner_id}
-        <span style="font-size:11px;color:var(--text-secondary);"> (评分: 攻${change.attacker_change || 0}/防${change.defender_change || 0})</span>
-        <span style="font-size:11px;color:var(--text-secondary);float:right;">${r.created_at}</span>
+        <span class="fs-11 text-secondary"> (评分: 攻${change.attacker_change || 0}/防${change.defender_change || 0})</span>
+        <span class="fs-11 text-secondary float-right">${r.created_at}</span>
       </div>`;
     }).join('');
   },
@@ -805,7 +886,7 @@ const UI = {
     content.innerHTML = `
       <h3 class="modal-title">PK 结果</h3>
       <div class="modal-body">
-        <p>胜者: <strong style="color:var(--gold)">${result.winner_name}</strong></p>
+        <p>胜者: <strong class="text-gold">${result.winner_name}</strong></p>
         <p>败者: <strong>${result.loser_name}</strong></p>
         <p>评分变化: 攻击方 ${result.rating_change?.attacker || 0} | 防御方 ${result.rating_change?.defender || 0}</p>
         <p>回合数: ${result.battle_log?.total_rounds || 0}</p>
@@ -820,7 +901,7 @@ const UI = {
   // ===== Drawer: Rankings =====
   renderRankings(rankings) {
     if (!rankings || rankings.length === 0) {
-      return '<p style="text-align:center;color:var(--text-secondary);padding:32px">暂无排行数据。</p>';
+      return '<p class="empty-state">暂无排行数据。</p>';
     }
     let html = '<table class="drawer-table"><thead><tr><th>#</th><th>玩家</th><th>Lv</th><th>评分</th><th>胜</th><th>负</th></tr></thead><tbody>';
     html += rankings.map((r, i) => `
@@ -840,30 +921,30 @@ const UI = {
   // ===== Drawer: Avatar Rank Panel =====
   renderAvatarRankPanel(data, playerId) {
     if (!data || data.error) {
-      return '<p style="text-align:center;color:var(--text-secondary);padding:32px">无法加载位阶信息。</p>';
+      return '<p class="empty-state">无法加载位阶信息。</p>';
     }
     var html = '<div class="drawer-card">';
     // Current rank
     html += '<div class="drawer-section-label">当前化身位阶</div>';
-    html += '<div class="rank-display-big" style="font-size:1.3em;color:var(--gold);margin:4px 0;">' + data.currentRank.displayName + '</div>';
-    html += '<div style="color:var(--text-secondary);font-size:0.85em;margin-bottom:8px;">' + data.currentRank.description + '</div>';
+    html += '<div class="rank-display-big text-gold" style="font-size:1.3em;margin:4px 0;">' + data.currentRank.displayName + '</div>';
+    html += '<div class="text-secondary mb-8" style="font-size:0.85em;">' + data.currentRank.description + '</div>';
 
     // Story grade + Starstream tier
     html += '<div style="display:flex;gap:16px;margin-bottom:12px;">';
-    html += '<div><span class="section-label">故事位格</span><br><span style="color:var(--teal);">' + data.storyGrade.label + '</span></div>';
-    html += '<div><span class="section-label">星流段位</span><br><span style="color:var(--purple);">' + data.starstreamTier.label + '</span></div>';
+    html += '<div><span class="section-label">故事位格</span><br><span class="text-teal">' + data.storyGrade.label + '</span></div>';
+    html += '<div><span class="section-label">星流段位</span><br><span class="text-purple">' + data.starstreamTier.label + '</span></div>';
     html += '</div>';
 
     if (data.isMaxRank) {
-      html += '<div style="text-align:center;color:var(--gold);padding:16px;">已到达当前测试服开放的最高位阶。</div>';
+      html += '<div class="text-center text-gold p-16">已到达当前测试服开放的最高位阶。</div>';
       html += '</div>';
       return html;
     }
 
     // Next rank
-    html += '<div class="drawer-section-label" style="margin-top:8px;">下一位阶</div>';
-    html += '<div style="font-size:1.1em;color:var(--text-primary);margin:4px 0;">' + data.nextRank.displayName + '</div>';
-    html += '<div style="color:var(--text-secondary);font-size:0.8em;margin-bottom:8px;">' + data.nextRank.description + '</div>';
+    html += '<div class="drawer-section-label mt-8">下一位阶</div>';
+    html += '<div class="text-bright" style="font-size:1.1em;margin:4px 0;">' + data.nextRank.displayName + '</div>';
+    html += '<div class="text-secondary mb-8" style="font-size:0.8em;">' + data.nextRank.description + '</div>';
 
     // Requirements
     var doneCount = data.requirements.filter(function(r) { return r.completed; }).length;
@@ -874,10 +955,10 @@ const UI = {
       var req = data.requirements[i];
       var pct = req.required > 0 ? Math.min(100, Math.round(req.current / req.required * 100)) : 100;
       var fillColor = req.completed ? 'var(--teal)' : 'var(--gold)';
-      html += '<div style="margin:6px 0;">';
-      html += '<div style="display:flex;justify-content:space-between;font-size:0.85em;margin-bottom:2px;">';
-      html += '<span>' + (req.completed ? '✓ ' : '') + req.label + '</span>';
-      html += '<span style="color:var(--text-secondary);">' + req.current + ' / ' + req.required + '</span>';
+      html += '<div class="my-6">';
+      html += '<div class="drawer-record-flex" style="font-size:0.85em;margin-bottom:2px;">';
+      html += '<span class="dr-text">' + (req.completed ? '✓ ' : '') + req.label + '</span>';
+      html += '<span class="text-secondary flex-shrink-0">' + req.current + ' / ' + req.required + '</span>';
       html += '</div>';
       html += '<div class="stat-bar-track" style="height:4px;background:var(--bg-canvas);border-radius:2px;">';
       html += '<div style="width:' + pct + '%;height:100%;background:' + fillColor + ';border-radius:2px;"></div>';
@@ -885,8 +966,8 @@ const UI = {
     }
 
     // Rewards preview
-    html += '<div class="drawer-section-label" style="margin-top:8px;">晋升奖励</div>';
-    html += '<div style="font-size:0.85em;color:var(--text-secondary);">';
+    html += '<div class="drawer-section-label mt-8">晋升奖励</div>';
+    html += '<div class="text-secondary" style="font-size:0.85em;">';
     if (data.rewards && data.rewards.stats) {
       var rewardItems = [];
       var statKeys = Object.keys(data.rewards.stats);
@@ -904,14 +985,14 @@ const UI = {
 
     // Resource cost (for S+ ranks)
     if (data.nextRank && data.nextRank.resourceCost) {
-      html += '<div class="drawer-section-label" style="margin-top:8px;">突破消耗</div>';
-      html += '<div style="font-size:0.85em;color:var(--text-secondary);display:flex;flex-wrap:wrap;gap:8px;">';
+      html += '<div class="drawer-section-label mt-8">突破消耗</div>';
+      html += '<div class="flex-row-wrap text-secondary" style="font-size:0.85em;">';
       var rcLabels = { story_fragments: '故事碎片', constellationFavor: '星座恩惠', abyssMark: '深渊印记' };
       var rcKeys = Object.keys(data.nextRank.resourceCost);
       for (var ri = 0; ri < rcKeys.length; ri++) {
         var rk = rcKeys[ri];
         var rcVal = data.nextRank.resourceCost[rk];
-        html += '<span style="white-space:nowrap;">' + (rcLabels[rk] || rk) + ' ×' + rcVal + '</span>';
+        html += '<span class="ws-nowrap">' + (rcLabels[rk] || rk) + ' ×' + rcVal + '</span>';
       }
       html += '</div>';
     }
@@ -920,7 +1001,7 @@ const UI = {
     if (data.nextRank && data.nextRank.breakthroughRate !== null && data.nextRank.breakthroughRate !== undefined) {
       var ratePct = Math.round(data.nextRank.breakthroughRate * 100);
       var rateColor = ratePct >= 70 ? 'var(--green)' : ratePct >= 40 ? 'var(--gold)' : 'var(--red)';
-      html += '<div class="drawer-section-label" style="margin-top:6px;">突破成功率</div>';
+      html += '<div class="drawer-section-label mt-6">突破成功率</div>';
       html += '<div style="font-size:0.85em;color:' + rateColor + ';">' + ratePct + '%（失败不消耗条件材料，但资源会消耗）</div>';
     }
 
@@ -930,9 +1011,9 @@ const UI = {
       if (data.nextRank && data.nextRank.breakthroughRate !== null && data.nextRank.breakthroughRate !== undefined) {
         btnLabel += ' (' + Math.round(data.nextRank.breakthroughRate * 100) + '% 成功率)';
       }
-      html += '<button class="ma-btn primary" onclick="GameClient.doRankUp(' + playerId + ')" style="width:100%;margin-top:12px;padding:10px;">' + btnLabel + '</button>';
+      html += '<button class="ma-btn primary w-full mt-12 p-10" onclick="GameClient.doRankUp(' + playerId + ')">' + btnLabel + '</button>';
     } else {
-      html += '<button class="ma-btn" disabled style="width:100%;margin-top:12px;padding:10px;opacity:0.4;">条件未满足</button>';
+      html += '<button class="ma-btn w-full mt-12 p-10" disabled>条件未满足</button>';
     }
 
     html += '</div>';
@@ -942,7 +1023,7 @@ const UI = {
   // ===== Drawer: Avatar Rank Leaderboard =====
   renderAvatarRankLeaderboard(rankings) {
     if (!rankings || rankings.length === 0) {
-      return '<p style="text-align:center;color:var(--text-secondary);padding:32px">暂无位阶排行数据。</p>';
+      return '<p class="empty-state">暂无位阶排行数据。</p>';
     }
     var html = '<table class="drawer-table"><thead><tr><th>#</th><th>玩家</th><th>化身位阶</th><th>Lv</th><th>故事位格</th><th>星流段位</th></tr></thead><tbody>';
     for (var i = 0; i < rankings.length; i++) {
@@ -950,10 +1031,10 @@ const UI = {
       html += '<tr>';
       html += '<td class="' + (i < 3 ? 'rank-top' : '') + '">' + (r.rank || i + 1) + '</td>';
       html += '<td>' + r.player_name + '</td>';
-      html += '<td style="color:var(--gold);">' + r.avatarRank + '级·' + r.avatarRankName + '</td>';
+      html += '<td class="text-gold">' + r.avatarRank + '级·' + r.avatarRankName + '</td>';
       html += '<td>' + r.level + '</td>';
       html += '<td>' + r.storyGradeLabel + '</td>';
-      html += '<td style="color:var(--purple);">' + r.starstreamTierLabel + '</td>';
+      html += '<td class="text-purple">' + r.starstreamTierLabel + '</td>';
       html += '</tr>';
     }
     html += '</tbody></table>';
@@ -963,7 +1044,7 @@ const UI = {
   // ===== Drawer: Broadcast Contribution Leaderboard =====
   renderBroadcastLeaderboard(rankings) {
     if (!rankings || rankings.length === 0) {
-      return '<p style="text-align:center;color:var(--text-secondary);padding:32px">暂无贡献排行数据。</p>';
+      return '<p class="empty-state">暂无贡献排行数据。</p>';
     }
     var html = '<table class="drawer-table"><thead><tr><th>#</th><th>玩家</th><th>Lv</th><th>总贡献值</th></tr></thead><tbody>';
     for (var i = 0; i < rankings.length; i++) {
@@ -972,7 +1053,7 @@ const UI = {
       html += '<td class="' + (i < 3 ? 'rank-top' : '') + '">' + (r.rank || i + 1) + '</td>';
       html += '<td>' + r.player_name + '</td>';
       html += '<td>' + r.level + '</td>';
-      html += '<td style="color:var(--teal);">' + r.total_contribution + '</td>';
+      html += '<td class="text-teal">' + r.total_contribution + '</td>';
       html += '</tr>';
     }
     html += '</tbody></table>';
@@ -982,7 +1063,7 @@ const UI = {
   // ===== Drawer: Stage Panel =====
   renderStagePanel(status) {
     if (!status || !status.chapters || status.chapters.length === 0) {
-      return '<p style="text-align:center;color:var(--text-secondary);padding:32px">暂无阶段信息。</p>';
+      return '<p class="empty-state">暂无阶段信息。</p>';
     }
 
     const currentChapter = status.chapters.find(c => c.status === 'current');
@@ -1003,13 +1084,13 @@ const UI = {
     }
 
     if (nextChapter) {
-      html += `<div class="drawer-section-label" style="margin-top:16px;">下一阶段</div>`;
+      html += `<div class="drawer-section-label mt-16">下一阶段</div>`;
       if (nextChapter.status === 'ready_to_advance') {
         html += `<div class="drawer-card advance-ready">
           <div class="drawer-card-title">${nextChapter.chapter_name}</div>
           <div class="drawer-card-desc">${nextChapter.description}</div>
-          <p style="color:var(--green);margin-top:4px;">所有条件已满足！</p>
-          ${nextChapter.advance_text ? `<p style="font-style:italic;color:var(--gold);">"${nextChapter.advance_text}"</p>` : ''}
+          <p class="text-green mt-4">所有条件已满足！</p>
+          ${nextChapter.advance_text ? `<p class="text-gold" style="font-style:italic;">"${nextChapter.advance_text}"</p>` : ''}
           <div class="drawer-card-actions">
             <button class="btn-action" onclick="GameClient.doStageAdvance('${nextChapter.chapter_key}')">进入下一阶段</button>
           </div>
@@ -1027,7 +1108,7 @@ const UI = {
         html += `<div class="drawer-card advance-locked">
           <div class="drawer-card-title">${nextChapter.chapter_name}</div>
           <div class="drawer-card-desc">${nextChapter.description}</div>
-          <p style="color:var(--red);margin-top:4px;">缺少: ${reqLines || '未知条件'}</p>
+          <p class="text-red mt-4">缺少: ${reqLines || '未知条件'}</p>
         </div>`;
       }
     }
@@ -1035,7 +1116,7 @@ const UI = {
     // Exploration progress
     if (status.exploration_progress) {
       const ep = status.exploration_progress;
-      html += `<div class="drawer-section-label" style="margin-top:16px;">探索进度</div>`;
+      html += `<div class="drawer-section-label mt-16">探索进度</div>`;
       html += `<div class="stage-resources">
         <span>主线剧情: ${(ep.storyEventsTriggered || []).length}</span>
         <span>Boss线索: ${Object.keys(ep.bossClues || {}).length}</span>
@@ -1048,7 +1129,7 @@ const UI = {
     if (status.resources) {
       const res = status.resources;
       const labels = { storyFragments: '碎片', constellationFavor: '垂青', abyssMark: '深渊' };
-      html += `<div class="drawer-section-label" style="margin-top:16px;">持有资源</div>`;
+      html += `<div class="drawer-section-label mt-16">持有资源</div>`;
       html += '<div class="stage-resources">';
       html += Object.entries(labels).map(([k, label]) =>
         `<span>${label}: ${res[k] || 0}</span>`
@@ -1066,7 +1147,7 @@ const UI = {
     // Active events
     html += '<div class="drawer-section-label">当前放送</div>';
     if (!activeEvents || activeEvents.length === 0) {
-      html += '<p style="color:var(--text-secondary);padding:8px;">当前星流安静，暂无临时剧本。</p>';
+      html += '<p class="text-secondary p-8">当前星流安静，暂无临时剧本。</p>';
     } else {
       var isParticipating = false;
       for (var ei = 0; ei < activeEvents.length; ei++) {
@@ -1080,13 +1161,13 @@ const UI = {
           // We'll let GameClient check individually
         }
 
-        html += '<div class="drawer-card broadcast-active" style="margin-bottom:12px;">';
+        html += '<div class="drawer-card broadcast-active mb-12">';
         html += '<div class="broadcast-header">';
         html += '<span class="broadcast-type-tag broadcast-type-' + event.event_type + '">' + typeLabel + '</span>';
         html += '<span class="broadcast-title">' + event.title + '</span>';
-        html += '<span style="font-size:12px;color:var(--text-secondary);">剩余 ' + timeLeft + ' 分钟</span>';
+        html += '<span class="fs-12 text-secondary">剩余 ' + timeLeft + ' 分钟</span>';
         html += '</div>';
-        html += '<p style="margin-top:8px;">' + (event.description || '') + '</p>';
+        html += '<p class="mt-8">' + (event.description || '') + '</p>';
 
         for (var oi = 0; oi < objectives.length; oi++) {
           var o = objectives[oi];
@@ -1098,10 +1179,10 @@ const UI = {
         }
 
         if (event.progress) {
-          html += '<p style="font-size:12px;color:var(--text-secondary);">参与: ' + (event.progress.totalParticipants || 0) + ' 人</p>';
+          html += '<p class="fs-12 text-secondary">参与: ' + (event.progress.totalParticipants || 0) + ' 人</p>';
         }
 
-        html += '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">';
+        html += '<div class="mt-12 flex-row-wrap">';
         html += '<button class="btn-action btn-sm" onclick="GameClient.doJoinBroadcast(' + event.id + ')">参加</button>';
         html += '<button class="btn-action btn-sm" onclick="GameClient.doClaimBroadcastReward(' + event.id + ')">领奖</button>';
         if (playerId) {
@@ -1120,9 +1201,9 @@ const UI = {
     }
 
     // History
-    html += '<div class="drawer-section-label" style="margin-top:16px;">历史放送</div>';
+    html += '<div class="drawer-section-label mt-16">历史放送</div>';
     if (!history || history.length === 0) {
-      html += '<p style="color:var(--text-secondary);padding:8px;">暂无历史记录。</p>';
+      html += '<p class="text-secondary p-8">暂无历史记录。</p>';
     } else {
       var statusLabels = { completed: '已完成', failed: '失败', expired: '已过期', rewarded: '已发奖', cancelled: '已取消' };
       var typeLabels = { world_boss: '世界Boss', exploration_drive: '探索驱动', story_hunt: '剧情狩猎', pk_tournament: 'PK锦标赛', faction_conflict: '阵营冲突', disaster: '灾厄', opportunity_rain: '机遇放送', stage_support: '阶段支援' };
@@ -1131,7 +1212,7 @@ const UI = {
         html += '<div class="drawer-record">';
         html += '<span class="broadcast-type-tag broadcast-type-' + e.event_type + '">' + (typeLabels[e.event_type] || e.event_type) + '</span>';
         html += '<strong>' + e.title + '</strong>';
-        html += '<span style="color:var(--text-secondary);float:right;">' + (statusLabels[e.status] || e.status) + '</span>';
+        html += '<span class="text-secondary float-right">' + (statusLabels[e.status] || e.status) + '</span>';
         html += '</div>';
       }
     }
@@ -1153,7 +1234,7 @@ const UI = {
           <span>${o.current || 0} / ${o.target}</span>
         </div>
       `).join('')}
-      <p style="font-size:12px;color:var(--text-secondary);">参与: ${data.totalParticipants || 0} | ${data.allObjectivesMet ? '目标已达成' : '进行中'}</p>
+      <p class="fs-12 text-secondary">参与: ${data.totalParticipants || 0} | ${data.allObjectivesMet ? '目标已达成' : '进行中'}</p>
     `;
   },
 
@@ -1165,9 +1246,9 @@ const UI = {
       <div class="drawer-section-label">贡献排行</div>
       ${ranking.data.map(r => `
         <div class="ranking-row">
-          <span style="font-weight:bold;width:30px;">#${r.rank}</span>
-          <span style="flex:1;">${r.playerName}</span>
-          <span style="color:var(--gold);">${r.score} 分</span>
+          <span class="fw-bold" style="width:30px;">#${r.rank}</span>
+          <span class="flex-1">${r.playerName}</span>
+          <span class="text-gold">${r.score} 分</span>
         </div>
       `).join('')}
     `;
@@ -1183,8 +1264,8 @@ const UI = {
     const d = data.data;
     container.innerHTML = `
       <div class="drawer-section-label">我的贡献</div>
-      <p>贡献分: <span style="color:var(--gold);">${d.score || 0}</span></p>
-      <p style="font-size:12px;color:var(--text-secondary);">奖励: ${d.claimedReward === 'none' ? '未领取' : '已领取: ' + d.claimedReward}</p>
+      <p>贡献分: <span class="text-gold">${d.score || 0}</span></p>
+      <p class="fs-12 text-secondary">奖励: ${d.claimedReward === 'none' ? '未领取' : '已领取: ' + d.claimedReward}</p>
     `;
   },
 
@@ -1195,27 +1276,27 @@ const UI = {
     // Pending requests
     html += '<div class="drawer-section-label">好友申请';
     if (requests && requests.length > 0) {
-      html += ' <span style="color:var(--gold);">(' + requests.length + ')</span>';
+      html += ' <span class="text-gold">(' + requests.length + ')</span>';
     }
     html += '</div>';
     if (!requests || requests.length === 0) {
-      html += '<p style="color:var(--text-secondary);padding:4px 0;font-size:0.85em;">暂无待处理的申请。</p>';
+      html += '<p class="text-secondary py-4" style="font-size:0.85em;">暂无待处理的申请。</p>';
     } else {
       for (var ri = 0; ri < requests.length; ri++) {
         var req = requests[ri];
-        html += '<div class="drawer-record" style="display:flex;align-items:center;justify-content:space-between;">';
-        html += '<span>' + req.from_player_name + '</span>';
-        html += '<span style="display:flex;gap:6px;">';
-        html += '<button class="ma-btn" style="padding:2px 10px;font-size:11px;" onclick="GameClient.acceptFriend(' + req.id + ')">接受</button>';
-        html += '<button class="ma-btn" style="padding:2px 10px;font-size:11px;background:var(--bg-card);" onclick="GameClient.declineFriend(' + req.id + ')">拒绝</button>';
+        html += '<div class="drawer-record drawer-record-flex">';
+        html += '<span class="dr-text">' + req.from_player_name + '</span>';
+        html += '<span class="dr-actions flex-row gap-4 flex-shrink-0">';
+        html += '<button class="ma-btn fs-11" style="padding:2px 10px;" onclick="GameClient.acceptFriend(' + req.id + ')">接受</button>';
+        html += '<button class="ma-btn fs-11" style="padding:2px 10px;background:var(--bg-card);" onclick="GameClient.declineFriend(' + req.id + ')">拒绝</button>';
         html += '</span></div>';
       }
     }
 
     // Add friend by ID
-    html += '<div class="drawer-section-label" style="margin-top:12px;">添加好友</div>';
-    html += '<div style="display:flex;gap:8px;margin-bottom:12px;">';
-    html += '<input type="number" id="friendIdInput" class="chat-input" placeholder="输入玩家 ID..." style="flex:1;">';
+    html += '<div class="drawer-section-label mt-12">添加好友</div>';
+    html += '<div class="flex-row mb-12">';
+    html += '<input type="number" id="friendIdInput" class="chat-input" placeholder="输入玩家 ID..." class="flex-1">';
     html += '<button class="ma-btn primary" onclick="GameClient.addFriend()" style="padding:8px 14px;">添加</button>';
     html += '</div>';
 
@@ -1225,14 +1306,14 @@ const UI = {
     html += '</div>';
 
     if (!friends || friends.length === 0) {
-      html += '<p style="color:var(--text-secondary);padding:4px 0;font-size:0.85em;">暂无好友。可以通过玩家 ID 添加。</p>';
+      html += '<p class="text-secondary py-4" style="font-size:0.85em;">暂无好友。可以通过玩家 ID 添加。</p>';
     } else {
       for (var fi = 0; fi < friends.length; fi++) {
         var f = friends[fi];
-        var onlineDot = f.isOnline ? '<span style="color:var(--green);">●</span>' : '<span style="color:var(--text-dim);">○</span>';
-        html += '<div class="drawer-record" style="display:flex;align-items:center;justify-content:space-between;">';
-        html += '<span>' + onlineDot + ' ' + f.player_name + ' <span style="color:var(--text-dim);font-size:0.75em;">Lv.' + f.level + ' | ' + f.avatarRank + '级·' + f.avatarRankName + '</span></span>';
-        html += '<button class="ma-btn" style="padding:2px 8px;font-size:10px;background:var(--bg-card);" onclick="GameClient.removeFriend(' + f.player_id + ')">删除</button>';
+        var onlineDot = f.isOnline ? '<span class="text-green">●</span>' : '<span class="text-dim">○</span>';
+        html += '<div class="drawer-record drawer-record-flex">';
+        html += '<span class="dr-text">' + onlineDot + ' ' + f.player_name + ' <span class="text-dim" style="font-size:0.75em;">Lv.' + f.level + ' | ' + f.avatarRank + '级·' + f.avatarRankName + '</span></span>';
+        html += '<button class="ma-btn flex-shrink-0" style="padding:2px 8px;font-size:10px;background:var(--bg-card);" onclick="GameClient.removeFriend(' + f.player_id + ',\'' + (f.player_name || '').replace(/'/g, "\\'") + '\')">删除</button>';
         html += '</div>';
       }
     }
@@ -1241,22 +1322,36 @@ const UI = {
   },
 
   // ===== Chat =====
-  renderChat(messages, playerId) {
+  renderChat(messages, playerId, currentChannel) {
+    currentChannel = currentChannel || 'global';
+    var self = this;
+    var channels = [
+      { key: 'global', label: '世界' },
+      { key: 'sect_' + (GameClient._playerConstellation || ''), label: '阵营' }
+    ];
     var html = '<div class="chat-container">';
+    // Channel tabs
+    html += '<div class="chat-tabs" style="display:flex;gap:4px;margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:8px;">';
+    for (var i = 0; i < channels.length; i++) {
+      var ch = channels[i];
+      var active = currentChannel === ch.key ? ' primary' : '';
+      html += '<button class="ma-btn' + active + '" style="padding:4px 12px;font-size:12px;" onclick="GameClient.switchChatChannel(\'' + ch.key + '\')">' + ch.label + '</button>';
+    }
+    html += '</div>';
     html += '<div class="chat-messages" id="chatMessages">';
     if (!messages || messages.length === 0) {
-      html += '<p style="text-align:center;color:var(--text-secondary);padding:32px;">暂无消息。发送第一条消息吧！</p>';
+      html += '<p class="empty-state">暂无消息。发送第一条消息吧！</p>';
     } else {
-      for (var i = 0; i < messages.length; i++) {
-        var m = messages[i];
+      for (var j = 0; j < messages.length; j++) {
+        var m = messages[j];
         if (m.msg_type === 'assist_invite') {
           html += this._renderAssistCard(m, playerId);
         } else {
           var isMine = playerId && m.player_id === playerId;
           html += '<div class="chat-msg' + (isMine ? ' chat-msg-mine' : '') + '">';
-          if (!isMine) html += '<span class="chat-msg-author">' + m.player_name + '</span>';
-          html += '<span class="chat-msg-text">' + m.message + '</span>';
-          html += '<span class="chat-msg-time">' + (m.created_at || '').substr(11, 5) + '</span>';
+          if (!isMine) html += '<span class="chat-msg-author">' + UI.escapeHtml(m.player_name || '') + '</span>';
+          html += '<span class="chat-msg-text">' + UI.escapeHtml(m.message || '') + '</span>';
+          html += '<span class="chat-msg-time text-dim">' + (m.created_at || '').substr(11, 5) + '</span>';
           html += '</div>';
         }
       }
@@ -1264,45 +1359,17 @@ const UI = {
     html += '</div>';
     html += '<div class="chat-input-row">';
     html += '<input type="text" class="chat-input" id="chatInput" placeholder="输入消息..." maxlength="500" onkeydown="if(event.key===\'Enter\')GameClient.sendChatMessage()">';
-    html += '<button class="ma-btn primary" onclick="GameClient.sendChatMessage()" style="padding:8px 16px;">发送</button>';
+    html += '<button class="ma-btn primary py-8 px-16" onclick="GameClient.sendChatMessage()">发送</button>';
     html += '</div>';
     html += '</div>';
-    return html;
-  },
-
-  _renderAssistCard(m, playerId) {
-    var meta = m.metadata || {};
-    var bountyId = meta.bountyId || 0;
-    var ownerId = meta.ownerId || m.player_id;
-    var monsterName = meta.monsterName || (m.message || '').split('\n')[0] || '未知怪物';
-    var sharePercent = meta.sharePercent || 50;
-    var isMine = playerId && ownerId === playerId;
-    var timeStr = (m.created_at || '').substr(11, 5);
-
-    var html = '<div class="chat-msg chat-msg-recruit">';
-    html += '<span class="chat-msg-time">' + timeStr + '</span>';
-    html += '<div class="chat-recruit-card chat-assist-card" style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px;margin:4px 0;">';
-    html += '<div class="chat-recruit-header" style="margin-bottom:4px;">';
-    html += '<span class="chat-recruit-label" style="color:var(--danger);font-weight:bold;">[悬赏求助]</span> ';
-    html += '<span class="chat-recruit-name">' + this.escapeHtml(m.player_name) + '</span>';
-    html += '</div>';
-    html += '<div class="chat-recruit-body" style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">';
-    html += '<span>' + this.escapeHtml(m.message || '') + '</span>';
-    html += '</div>';
-    html += '<div class="chat-recruit-action">';
-    if (isMine) {
-      html += '<span style="color:var(--text-secondary);font-size:12px;">[等待道友接令]</span>';
-    } else {
-      html += '<button class="ma-btn primary" style="font-size:12px;padding:4px 12px;" onclick="GameClient.acceptBounty(' + bountyId + ')">前往相助</button>';
-    }
-    html += '</div></div></div>';
     return html;
   },
 
   // ===== Nav Highlight =====
   highlightNav(featureName) {
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    const item = document.querySelector(`.nav-item[data-feature="${featureName}"]`);
+    var safe = UI._sanitizeFeature(featureName);
+    const item = document.querySelector(`.nav-item[data-feature="${safe}"]`);
     if (item) item.classList.add('active');
     this._highlightMobileNav(featureName);
   },
@@ -1324,7 +1391,7 @@ const UI = {
     UI.addLog(message, 'warning');
     const panel = document.getElementById('currentEventPanel');
     if (panel) {
-      panel.innerHTML = `<div class="event-card event-special" style="max-width:100%;"><div class="event-desc" style="color:var(--red);text-align:center;">${message}</div></div>`;
+      panel.innerHTML = `<div class="event-card event-special max-w-full"><div class="event-desc text-red text-center">${UI.escapeHtml(message)}</div></div>`;
     }
   },
 
@@ -1351,11 +1418,16 @@ const UI = {
     const overlay = document.getElementById(overlayId);
     if (!overlay || overlay.classList.contains('closing')) return;
     overlay.classList.add('closing');
+    overlay.style.pointerEvents = 'none';
     setTimeout(() => {
       overlay.classList.add('hidden');
       overlay.classList.remove('closing');
+      overlay.style.pointerEvents = '';
+      // Restore body scroll if no other overlays are visible
+      var anyVisible = document.querySelectorAll('.popup-overlay:not(.hidden), .mobile-more-overlay:not(.hidden)').length > 0;
+      if (!anyVisible) document.body.style.overflow = '';
       if (typeof onDone === 'function') onDone();
-    }, 280);
+    }, UI.POPUP_TRANSITION_MS);
   },
 
   hideModal() {
@@ -1374,7 +1446,7 @@ const UI = {
     const narrative = document.getElementById('popupNarrative');
     if (narrative) {
       const text = chapter.summary || chapter.content || '';
-      narrative.innerHTML = text ? text.replace(/\n/g, '<br>') : '<em style="color:var(--text-dim);">...</em>';
+      narrative.innerHTML = text ? UI.escapeHtml(text).replace(/\n/g, '<br>') : '<em class="text-dim">...</em>';
     }
 
     this._renderPopupChoices(choices, lockedChoices, chapter.chapter_consumed);
@@ -1421,7 +1493,7 @@ const UI = {
 
         card.innerHTML = `
           <span class="choice-tag ${tag.cls}">${tag.label}</span>
-          <span class="choice-text">${ch.is_irreversible ? '⚠ ' + ch.text : ch.text}</span>
+          <span class="choice-text">${ch.is_irreversible ? '⚠ ' : ''}${UI.escapeHtml(ch.text || '')}</span>
           <span class="choice-arrow">▶</span>
         `;
         container.appendChild(card);
@@ -1437,9 +1509,9 @@ const UI = {
         const card = document.createElement('div');
         card.className = 'popup-choice-card locked';
         let html = `<span class="choice-tag ${tag.cls}">${tag.label}</span>`;
-        html += `<span class="choice-text">${ch.text}`;
+        html += `<span class="choice-text">${UI.escapeHtml(ch.text || '')}`;
         if (ch.locked_reason) {
-          html += `<div class="choice-desc">${ch.locked_reason}</div>`;
+          html += `<div class="choice-desc">${UI.escapeHtml(ch.locked_reason)}</div>`;
         }
         html += '</span>';
         card.innerHTML = html;
@@ -1512,7 +1584,7 @@ const UI = {
     }
     if (narrative) {
       const text = chapter.summary || chapter.content || '';
-      narrative.innerHTML = text ? text.replace(/\n/g, '<br>') : '<em style="color:var(--text-dim);">...</em>';
+      narrative.innerHTML = text ? UI.escapeHtml(text).replace(/\n/g, '<br>') : '<em class="text-dim">...</em>';
     }
     this._renderPopupChoices(choices, lockedChoices, chapter.chapter_consumed);
   },
@@ -1559,7 +1631,7 @@ const UI = {
 
     // Rewards
     if (r.rewards && Object.keys(r.rewards).length > 0) {
-      html += '<div class="popup-stat-gains" style="display:flex;">';
+      html += '<div class="popup-stat-gains flex-row-wrap">';
       const rewards = r.rewards;
       if (rewards.coins) html += `<span class="stat-gain-item coin-gain">◎ 硬币 +${rewards.coins}</span>`;
       if (rewards.story_fragments) html += `<span class="stat-gain-item fragment-gain">◆ 碎片 +${rewards.story_fragments}</span>`;
@@ -1576,21 +1648,21 @@ const UI = {
 
     // Risks
     if (r.risks && Object.keys(r.risks).length > 0) {
-      html += '<div class="popup-stat-gains" style="display:flex;">';
-      if (r.risks.hp_loss) html += `<span style="font-size:12px;color:var(--red);">HP -${r.risks.hp_loss}</span>`;
-      if (r.risks.worldLineShift) html += `<span style="font-size:12px;color:var(--red);">世界线偏移 +${r.risks.worldLineShift}</span>`;
-      if (r.risks.channelHeat) html += `<span style="font-size:12px;color:var(--red);">频道热度 +${r.risks.channelHeat}</span>`;
+      html += '<div class="popup-stat-gains flex-row-wrap">';
+      if (r.risks.hp_loss) html += `<span class="fs-12 text-red">HP -${r.risks.hp_loss}</span>`;
+      if (r.risks.worldLineShift) html += `<span class="fs-12 text-red">世界线偏移 +${r.risks.worldLineShift}</span>`;
+      if (r.risks.channelHeat) html += `<span class="fs-12 text-red">频道热度 +${r.risks.channelHeat}</span>`;
       html += '</div>';
     }
 
     if (r.is_final) {
-      html += '<p style="text-align:center;color:var(--gold);margin-top:8px;">阶段最终剧情已触发！</p>';
+      html += '<p class="text-center text-gold mt-8">阶段最终剧情已触发！</p>';
     }
     if (result.chapter_advanced && result.new_chapter_key) {
-      html += `<p style="text-align:center;color:var(--gold);margin-top:8px;">剧情推进至: ${result.new_chapter_name || result.new_chapter_key}</p>`;
+      html += `<p class="text-center text-gold mt-8">剧情推进至: ${result.new_chapter_name || result.new_chapter_key}</p>`;
     }
 
-    html += `<p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:8px;">剩余体力: ${result.remaining_stamina}</p>`;
+    html += `<p class="text-center fs-11 text-dim mt-8">剩余体力: ${result.remaining_stamina}</p>`;
     body.innerHTML = html;
     overlay.classList.remove('hidden');
   },
@@ -1640,14 +1712,14 @@ const UI = {
           <span>战斗</span>
         </button>
         <button class="combat-action-btn flee-btn" onclick="GameClient.doCombatAction('${r.monster_key}', 'flee')">
-          <span class="combat-btn-icon">🏃</span>
+          <span class="combat-btn-icon">▷</span>
           <span>逃跑</span>
           <span class="combat-rate">${Math.round(Math.min(90, Math.max(10, 30 + spdDiff * 5)))}%</span>
         </button>
-        <button class="combat-action-btn support-btn" id="combatBountyBtn" onclick="UI.showBountyDialog('${r.monster_key}', '${(m.name || '').replace(/'/g, "\\'")}', '${r.location_key || ''}')">
-          <span class="combat-btn-icon">📢</span>
-          <span>悬赏求助</span>
-          <span class="combat-rate" id="combatBountyInfo"></span>
+        <button class="combat-action-btn support-btn" onclick="GameClient.doCombatAction('${r.monster_key}', 'support')">
+          <span class="combat-btn-icon">⊕</span>
+          <span>请求支援</span>
+          <span class="combat-rate">${Math.round(Math.min(80, Math.max(20, (GameClient._bond || 0) * 8)))}%</span>
         </button>
       </div>
     `;
@@ -1658,94 +1730,6 @@ const UI = {
     // Store coinMultiplier for elite bonus
     this._combatCoinMultiplier = r.coinMultiplier || 1;
     this._combatIsElite = !!isElite;
-
-    // Store monster info for bounty
-    this._combatMonsterKey = r.monster_key;
-    this._combatMonsterName = m.name || '';
-    this._combatLocationKey = r.location_key || '';
-
-    // Load daily limits for bounty button
-    this._loadBountyInfo();
-  },
-
-  _combatMonsterKey: '',
-  _combatMonsterName: '',
-  _combatLocationKey: '',
-
-  async _loadBountyInfo() {
-    var info = document.getElementById('combatBountyInfo');
-    try {
-      var resp = await API.getBountyDailyLimits(GameClient.playerId);
-      var data = (resp && resp.data) ? resp.data : {};
-      var remaining = Math.max(0, (data.maxHelp || 30) - (data.helpCount || 0));
-      if (info) info.textContent = '今日剩余' + remaining + '次';
-    } catch (e) {
-      if (info) info.textContent = '';
-    }
-  },
-
-  showBountyDialog(monsterKey, monsterName, locationKey) {
-    var overlay = document.getElementById('bountyDialogOverlay');
-    if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.id = 'bountyDialogOverlay';
-      overlay.className = 'modal-overlay';
-      overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;';
-      overlay.onclick = function(e) { if (e.target === overlay) overlay.classList.add('hidden'); };
-      document.body.appendChild(overlay);
-    }
-
-    var self = this;
-    var sharePercent = 50;
-    overlay.innerHTML =
-      '<div class="modal-content" style="background:var(--panel-bg);border:1px solid var(--border);border-radius:12px;padding:20px;max-width:380px;width:90%;">' +
-        '<h3 style="margin:0 0 12px;color:var(--text-primary);">悬赏求助</h3>' +
-        '<p style="color:var(--text-secondary);font-size:14px;margin:0 0 8px;">目标: <strong style="color:var(--danger);">' + this.escapeHtml(monsterName || monsterKey) + '</strong></p>' +
-        '<p style="color:var(--text-secondary);font-size:14px;margin:0 0 16px;">悬赏将发布到世界频道，其他玩家可前往相助。</p>' +
-        '<div style="margin-bottom:12px;">' +
-          '<label style="display:flex;justify-content:space-between;align-items:center;">' +
-            '<span style="font-size:14px;">分享比例</span>' +
-            '<span id="bountyShareVal" style="color:var(--gold);font-weight:bold;">50%</span>' +
-          '</label>' +
-          '<input type="range" id="bountyShareRange" min="10" max="90" value="50" step="10" style="width:100%;margin-top:8px;" oninput="UI.updateBountyShare(this.value)">' +
-          '<p id="bountyShareNote" style="font-size:12px;color:var(--text-secondary);margin:4px 0 0;">协助者获得 50%，你保留 50% 的掉落。</p>' +
-        '</div>' +
-        '<div id="bountyDailyCounts" style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;">加载中...</div>' +
-        '<div style="display:flex;gap:8px;">' +
-          '<button class="ma-btn primary" onclick="GameClient.publishBounty(\'' + monsterKey + '\', \'' + locationKey + '\', \'' + (monsterName || '').replace(/'/g, "\\'") + '\')" style="flex:1;">发布悬赏</button>' +
-          '<button class="ma-btn" onclick="document.getElementById(\'bountyDialogOverlay\').classList.add(\'hidden\')" style="flex:1;">取消</button>' +
-        '</div>' +
-      '</div>';
-    overlay.classList.remove('hidden');
-
-    // Load daily counts
-    API.getBountyDailyLimits(GameClient.playerId).then(function(resp) {
-      var data = (resp && resp.data) ? resp.data : {};
-      var el = document.getElementById('bountyDailyCounts');
-      if (el) el.innerHTML = '今日求助: <span style="color:var(--gold);">' + (data.helpCount || 0) + '/' + (data.maxHelp || 30) + '</span> | 今日助力: ' + (data.assistCount || 0) + '/' + (data.maxAssist || 30);
-    }).catch(function() {});
-  },
-
-  updateBountyShare(value) {
-    var share = parseInt(value) || 50;
-    var valEl = document.getElementById('bountyShareVal');
-    var noteEl = document.getElementById('bountyShareNote');
-    if (valEl) valEl.textContent = share + '%';
-    if (noteEl) noteEl.textContent = '协助者获得 ' + share + '%，你保留 ' + (100 - share) + '% 的掉落。';
-    // Store for publish
-    UI._bountySharePercent = share;
-  },
-
-  _bountySharePercent: 50,
-
-  toggleSupportList(monsterKey) {
-    // DEPRECATED: kept for backward compat, now uses bounty system
-    this.showBountyDialog(monsterKey, '', '');
-  },
-
-  hideSupportList() {
-    var list = document.getElementById('combatSupportList');
-    if (list) list.style.display = 'none';
   },
 
   showCombatResult(data) {
@@ -1760,21 +1744,21 @@ const UI = {
       ? '<span class="choice-tag tag-action">成功</span>'
       : '<span class="choice-tag tag-locked">失败</span>';
 
-    let html = `<div style="text-align:center;padding:16px 0;">${badge}<p style="margin-top:8px;font-size:15px;">${data.message || ''}</p>`;
+    let html = `<div class="text-center" style="padding:16px 0;">${badge}<p class="mt-8" style="font-size:15px;">${data.message || ''}</p>`;
 
     if (data.damage_taken) {
-      html += `<p style="color:var(--red);margin-top:4px;">受到 ${data.damage_taken} 点伤害</p>`;
+      html += `<p class="text-red mt-4">受到 ${data.damage_taken} 点伤害</p>`;
     }
 
     // Battle results
     if (data.battle) {
       const b = data.battle;
       const won = b.result === 'win';
-      html += `<div class="combat-compare" style="margin-top:12px;">
+      html += `<div class="combat-compare mt-12">
         <div class="combat-col"><div class="combat-col-title">结果</div>
           <div style="font-size:18px;color:${won ? 'var(--green)' : 'var(--red)'};margin-top:8px;">${won ? '胜利' : '失败'}</div>
-          <div style="font-size:12px;color:var(--text-dim);">回合: ${b.totalRounds || 0}</div>
-          <div style="font-size:12px;">剩余HP: ${b.playerHpRemaining || 0}</div>
+          <div class="fs-12 text-dim">回合: ${b.totalRounds || 0}</div>
+          <div class="fs-12">剩余HP: ${b.playerHpRemaining || 0}</div>
         </div>
       </div>`;
 
@@ -1787,12 +1771,12 @@ const UI = {
         if (rw.items && rw.items.length > 0) html += `<span class="stat-gain-item attr-gain">道具: ${rw.items.join(', ')}</span>`;
         html += '</div>';
       } else if (b.rewards && b.rewards.coins < 0) {
-        html += `<p style="color:var(--red);margin-top:8px;">硬币 ${b.rewards.coins}</p>`;
+        html += `<p class="text-red mt-8">硬币 ${b.rewards.coins}</p>`;
       }
     }
 
     html += '</div>';
-    html += '<div style="text-align:center;margin-top:12px;"><button class="popup-continue-btn" onclick="GameClient.finishCombat()">继续</button></div>';
+    html += '<div class="text-center mt-12"><button class="popup-continue-btn" onclick="GameClient.finishCombat()">继续</button></div>';
 
     body.innerHTML = html;
   },
@@ -1811,7 +1795,7 @@ const UI = {
     }
 
     if (!locations || locations.length === 0) {
-      body.innerHTML = '<p style="text-align:center;color:var(--text-dim);padding:32px;">暂无可用的地图节点。推进剧情以解锁更多区域。</p>';
+      body.innerHTML = '<p class="text-center text-dim p-16">暂无可用的地图节点。推进剧情以解锁更多区域。</p>';
     } else {
       body.innerHTML = locations.map(loc => {
         const isCurrent = loc.location_key === this._currentMapLocation;
@@ -1841,7 +1825,7 @@ const UI = {
 
   // ===== Detailed Stats in Drawer =====
   renderDetailedStats(player, globalWLS) {
-    if (!player) return '<p style="text-align:center;color:var(--text-dim);padding:32px;">暂无角色数据。</p>';
+    if (!player) return '<p class="text-center text-dim p-16">暂无角色数据。</p>';
     const s = player.stats || {};
     let html = '';
 
@@ -1869,19 +1853,19 @@ const UI = {
 
     // Show locked (already allocated) stats
     if (allocatedAtk > 0 || allocatedDef > 0 || allocatedSpd > 0 || allocatedCrit > 0) {
-      html += '<div class="ds-section-label" style="margin-top:12px;color:var(--gold);">◆ 已锁定分配</div>';
+      html += '<div class="ds-section-label mt-12 text-gold">◆ 已锁定分配</div>';
       html += '<div class="alloc-locked-grid">';
-      if (allocatedAtk > 0) html += `<div class="alloc-locked-item">攻击 <span style="color:var(--gold);">+${allocatedAtk}</span></div>`;
-      if (allocatedDef > 0) html += `<div class="alloc-locked-item">防御 <span style="color:var(--gold);">+${allocatedDef}</span></div>`;
-      if (allocatedSpd > 0) html += `<div class="alloc-locked-item">速度 <span style="color:var(--gold);">+${allocatedSpd}</span></div>`;
-      if (allocatedCrit > 0) html += `<div class="alloc-locked-item">暴击 <span style="color:var(--gold);">+${allocatedCrit * 2}%</span></div>`;
+      if (allocatedAtk > 0) html += `<div class="alloc-locked-item">攻击 <span class="text-gold">+${allocatedAtk}</span></div>`;
+      if (allocatedDef > 0) html += `<div class="alloc-locked-item">防御 <span class="text-gold">+${allocatedDef}</span></div>`;
+      if (allocatedSpd > 0) html += `<div class="alloc-locked-item">速度 <span class="text-gold">+${allocatedSpd}</span></div>`;
+      if (allocatedCrit > 0) html += `<div class="alloc-locked-item">暴击 <span class="text-gold">+${allocatedCrit * 2}%</span></div>`;
       html += '</div>';
-      html += '<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">已锁定属性不可撤回。如需重新分配，请支付代价重置。</div>';
-      html += `<button class="btn-action btn-reset-alloc" onclick="GameClient.resetAllocation()" style="margin-top:8px;width:100%;background:var(--red-dim);color:var(--text-bright);">重置全部分配 (${this._resetAllocCost(s)} 硬币)</button>`;
+      html += '<div class="fs-11 text-muted mt-4">已锁定属性不可撤回。如需重新分配，请支付代价重置。</div>';
+      html += `<button class="btn-action btn-reset-alloc mt-8 w-full" onclick="GameClient.resetAllocation()" style="background:var(--red-dim);color:var(--text-bright);">重置全部分配 (${this._resetAllocCost(s)} 硬币)</button>`;
     }
 
     // Free attribute points allocation
-    html += `<div class="ds-section-label" style="margin-top:12px;">自由属性 <span style="color:var(--gold);" id="freePointsLabel" data-total="${freePoints}">剩余: ${freePoints}</span></div>`;
+    html += `<div class="ds-section-label mt-12">自由属性 <span class="text-gold" id="freePointsLabel" data-total="${freePoints}">剩余: ${freePoints}</span></div>`;
     if (freePoints > 0) {
       html += '<div class="alloc-grid">';
       const allocRow = (label, id, key) => `
@@ -1896,9 +1880,9 @@ const UI = {
       html += allocRow('速度', 'allocSpd', 'spd');
       html += allocRow('暴击(2%)', 'allocCrit', 'crit');
       html += '</div>';
-      html += `<button class="btn-action" onclick="GameClient.allocatePoints()" style="margin-top:8px;width:100%;">确认分配</button>`;
+      html += `<button class="btn-action mt-8 w-full" onclick="GameClient.allocatePoints()">确认分配</button>`;
     } else if (!allocatedAtk && !allocatedDef && !allocatedSpd && !allocatedCrit) {
-      html += '<div style="font-size:12px;color:var(--text-muted);padding:8px;">暂无自由属性点。升级可获得属性点。</div>';
+      html += '<div class="fs-12 text-muted p-8">暂无自由属性点。升级可获得属性点。</div>';
     }
     html += '</div>';
 
@@ -2014,6 +1998,9 @@ const UI = {
   _labelSkillType(k) { return LABELS.skillType[k] || k; },
   _labelItemType(k) { return LABELS.itemType[k] || k; },
   _labelChoiceType(k) { return LABELS.choiceType[k] || k; },
+  _sanitizeFeature(name) {
+    return ('' + name).replace(/["\\\]]/g, '');
+  },
 
   _adjustAlloc(inputId, delta) {
     const input = document.getElementById(inputId);
@@ -2127,7 +2114,7 @@ const UI = {
     };
 
     body.innerHTML = `
-      <p style="text-align:center;color:var(--text-dim);margin-bottom:12px;">
+      <p class="text-center text-dim mb-12">
         在灭亡的世界中，背后星（星座）是你唯一的赞助者。<br>选择一位背后星，获得它的庇佑。<strong>此选择不可更改。</strong>
       </p>
       <div class="constellation-grid">
@@ -2173,23 +2160,23 @@ const UI = {
         <p class="underworld-narrative">
           你的意识沉入无尽的黑暗之中...<br><br>
           当你再次睁开眼，发现自己站在一片灰暗的平原上。远处，一座巍峨的宫殿矗立于冥河之畔。<br><br>
-          一位身披黑袍、头戴冠冕的女性身影缓缓降下——<strong style="color:var(--purple);">冥界女王·珀耳塞福涅</strong>。<br><br>
+          一位身披黑袍、头戴冠冕的女性身影缓缓降下——<strong class="text-purple">冥界女王·珀耳塞福涅</strong>。<br><br>
           <em>"读者，你的故事尚未完结。但死亡已为你敞开了冥界之门。"</em><br>
           <em>"若你想重返人间，需付出相应的代价。这是冥界的法则。"</em>
         </p>
 
         <div class="underworld-options">
           <div class="underworld-option-card" onclick="GameClient.doRevive('coins')">
-            <div class="uo-title">💰 支付金币</div>
+            <div class="uo-title">◎ 支付金币</div>
             <div class="uo-cost">${coinCost} 枚金币</div>
-            <div class="uo-desc">向冥界女王支付金币，赎回你的灵魂。${isQueen ? '<br><span style="color:var(--gold);">（冥界女王的眷顾：费用减半）</span>' : ''}</div>
+            <div class="uo-desc">向冥界女王支付金币，赎回你的灵魂。${isQueen ? '<br><span class="text-gold">（冥界女王的眷顾：费用减半）</span>' : ''}</div>
             <div class="uo-availability ${player.coins >= coinCost ? 'uo-can-afford' : 'uo-cannot-afford'}">
               ${player.coins >= coinCost ? `持有: ${player.coins} 金币 ✓` : `持有: ${player.coins} 金币 ✗`}
             </div>
           </div>
 
           <div class="underworld-option-card ${!hasTitles ? 'uo-disabled' : ''}" onclick="${hasTitles ? `GameClient.doRevive('title')` : ''}">
-            <div class="uo-title">🏆 献祭称号</div>
+            <div class="uo-title">☆ 献祭称号</div>
             <div class="uo-cost">献祭称号「${hasTitles ? lastTitle : '无称号可献祭'}」</div>
             <div class="uo-desc">献祭一个传说级称号作为回归的代价，冥界女王将放回你的灵魂。</div>
             <div class="uo-availability ${hasTitles ? 'uo-can-afford' : 'uo-cannot-afford'}">
@@ -2207,74 +2194,24 @@ const UI = {
   },
 
   // PK Challenge notification popup
-  _challengeTimers: {},
   showChallengePopup(challenges, playerId) {
     var overlay = document.getElementById('challengePopupOverlay');
     if (!overlay) return;
     var body = document.getElementById('challengePopupBody');
     if (!body) return;
-    var self = this;
-    var html = '<div style="padding:8px;">';
+    var html = '<div class="p-8">';
     for (var i = 0; i < challenges.length; i++) {
       var c = challenges[i];
-      var isDeathmatch = c.mode === 'deathmatch';
-      var modeLabel = isDeathmatch ? '生死对决' : '切磋';
-      var modeColor = isDeathmatch ? '#f44336' : '#4caf50';
-      var warningHtml = isDeathmatch ? '<div style="color:#f44336;font-size:12px;margin:4px 0;">⚠ 败者将失去全部储物和一半硬币！</div>' : '';
       html += '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;">';
-      html += '<div style="font-weight:bold;margin-bottom:2px;">' + this.escapeHtml(c.attacker_name) + ' 向你发起PK挑战</div>';
-      html += '<div style="color:' + modeColor + ';font-size:13px;margin-bottom:4px;">模式: ' + modeLabel + '</div>';
-      html += warningHtml;
-      html += '<div class="pk-challenge-timer" id="pkTimer_' + c.id + '" style="font-size:20px;font-weight:bold;color:var(--gold);text-align:center;margin:8px 0;">60</div>';
-      html += '<div style="text-align:center;font-size:11px;color:var(--text-secondary);margin-bottom:8px;">秒内决断</div>';
-      html += '<div style="display:flex;gap:8px;margin-top:8px;">';
-      html += '<button class="ma-btn primary" id="pkAccept_' + c.id + '" onclick="GameClient.doPKResolve(' + c.id + ', true)" style="flex:1;">接受</button>';
-      html += '<button class="ma-btn" onclick="GameClient.doPKResolve(' + c.id + ', false)" style="flex:1;">拒绝</button>';
+      html += '<div class="fw-bold mb-4">' + this.escapeHtml(c.attacker_name) + ' 向你发起PK挑战！</div>';
+      html += '<div class="flex-row mt-8">';
+      html += '<button class="ma-btn primary" onclick="GameClient.doPKResolve(' + c.id + ', true)">接受</button>';
+      html += '<button class="ma-btn" onclick="GameClient.doPKResolve(' + c.id + ', false)">拒绝</button>';
       html += '</div></div>';
     }
     html += '</div>';
     body.innerHTML = html;
     overlay.classList.remove('hidden');
-
-    // Start 60s countdown timers
-    for (var j = 0; j < challenges.length; j++) {
-      var ch = challenges[j];
-      this._startChallengeTimer(ch.id);
-      // Store mode info for deathmatch confirmation
-      if (ch.mode === 'deathmatch') {
-        var acceptBtn = document.getElementById('pkAccept_' + ch.id);
-        if (acceptBtn) {
-          acceptBtn.onclick = (function(challengeId) {
-            return function() {
-              var confirmed = confirm('[ 生死对决 ] 败者储物归胜者所有！确认接受？');
-              if (confirmed) {
-                GameClient.doPKResolve(challengeId, true);
-              }
-            };
-          })(ch.id);
-        }
-      }
-    }
-  },
-
-  _startChallengeTimer(challengeId) {
-    var self = this;
-    if (self._challengeTimers[challengeId]) clearInterval(self._challengeTimers[challengeId]);
-    var seconds = 60;
-    var timerEl = document.getElementById('pkTimer_' + challengeId);
-    self._challengeTimers[challengeId] = setInterval(function() {
-      seconds--;
-      if (timerEl) {
-        timerEl.textContent = seconds;
-        if (seconds <= 10) timerEl.style.color = '#f44336';
-      }
-      if (seconds <= 0) {
-        clearInterval(self._challengeTimers[challengeId]);
-        delete self._challengeTimers[challengeId];
-        // Auto-reject on timeout
-        GameClient.doPKResolve(challengeId, false);
-      }
-    }, 1000);
   },
 
   dismissChallengePopup() {
@@ -2287,23 +2224,23 @@ const UI = {
   // Underworld panel — dead players list
   renderUnderworldPanel(deadList, currentPlayerId) {
     if (!deadList || deadList.length === 0) {
-      return '<p style="text-align:center;color:var(--text-secondary);padding:32px;">冥界空无一人。当前没有玩家在冥界徘徊。</p>';
+      return '<p class="empty-state">冥界空无一人。当前没有玩家在冥界徘徊。</p>';
     }
-    var html = '<div style="color:var(--text-secondary);margin-bottom:12px;font-size:0.85em;">以下玩家在冥界中等待复活，你可以献祭付出代价将他们拉回人间：</div>';
+    var html = '<div class="text-secondary mb-12" style="font-size:0.85em;">以下玩家在冥界中等待复活，你可以献祭付出代价将他们拉回人间：</div>';
     for (var i = 0; i < deadList.length; i++) {
       var d = deadList[i];
       var isSelf = d.id === currentPlayerId;
       var level = d.level || 1;
       var coinCost = Math.round(100 * level * (d.constellation === 'queen_of_underworld' ? 0.5 : 1));
-      html += '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">';
-      html += '<div><div style="font-weight:bold;">' + this.escapeHtml(d.player_name) + '</div>';
-      html += '<div style="font-size:0.8em;color:var(--text-secondary);">Lv.' + level + (d.constellation ? ' · ' + d.constellation : '') + '</div></div>';
+      html += '<div class="mb-8 items-center" style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;justify-content:space-between;">';
+      html += '<div><div class="fw-bold">' + this.escapeHtml(d.player_name) + '</div>';
+      html += '<div class="text-secondary" style="font-size:0.8em;">Lv.' + level + (d.constellation ? ' · ' + d.constellation : '') + '</div></div>';
       if (isSelf) {
-        html += '<span style="color:var(--gold);">等待复活中...</span>';
+        html += '<span class="text-gold">等待复活中...</span>';
       } else {
-        html += '<div style="text-align:right;">';
-        html += '<button class="ma-btn primary" style="font-size:0.8em;margin-bottom:4px;" onclick="GameClient.peerRevive(' + d.id + ',\'coins\')">💰 支付' + coinCost + '金币复活</button><br>';
-        html += '<button class="ma-btn" style="font-size:0.8em;" onclick="GameClient.peerRevive(' + d.id + ',\'title\')">🏆 献祭称号复活</button>';
+        html += '<div class="text-right">';
+        html += '<button class="ma-btn primary mb-4" style="font-size:0.8em;" onclick="GameClient.peerRevive(' + d.id + ',\'coins\')">◎ 支付' + coinCost + '金币复活</button><br>';
+        html += '<button class="ma-btn" style="font-size:0.8em;background:var(--bg-hover);border-color:var(--border);" onclick="GameClient.peerRevive(' + d.id + ',\'title\')">☆ 献祭称号复活</button>';
         html += '</div>';
       }
       html += '</div>';
@@ -2314,15 +2251,15 @@ const UI = {
   // Changelog panel
   renderChangelog(changelog) {
     if (!changelog || changelog.length === 0) {
-      return '<p style="text-align:center;color:var(--text-secondary);padding:32px;">暂无更新记录。</p>';
+      return '<p class="empty-state">暂无更新记录。</p>';
     }
     var html = '';
     for (var i = 0; i < changelog.length; i++) {
       var item = changelog[i];
       html += '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;">';
-      html += '<div style="display:flex;justify-content:space-between;margin-bottom:6px;">';
-      html += '<span style="font-weight:bold;color:var(--gold);">v' + this.escapeHtml(item.version) + '</span>';
-      html += '<span style="font-size:0.8em;color:var(--text-secondary);">' + this.escapeHtml(item.date || '') + '</span>';
+      html += '<div class="justify-between mb-6" style="display:flex;">';
+      html += '<span class="fw-600 text-gold">v' + this.escapeHtml(item.version) + '</span>';
+      html += '<span class="text-secondary" style="font-size:0.8em;">' + this.escapeHtml(item.date || '') + '</span>';
       html += '</div>';
       html += '<ul style="margin:0;padding-left:18px;color:var(--text-primary);font-size:0.9em;">';
       for (var j = 0; j < item.changes.length; j++) {
@@ -2338,6 +2275,64 @@ const UI = {
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+  },
+
+  // ===== World Boss Panel =====
+  renderWorldBossPanel(boss, ranking, playerId) {
+    if (!boss) {
+      return '<div style="text-align:center;padding:32px;">' +
+        '<p style="color:var(--text-secondary);font-size:16px;">当前没有活跃的世界Boss</p>' +
+        '<p style="color:var(--text-secondary);font-size:13px;margin-top:8px;">Boss将在不久后出现，请耐心等待...</p>' +
+        '<button class="btn-action" onclick="GameClient.openWorldBoss()" style="margin-top:16px;">刷新状态</button>' +
+        '</div>';
+    }
+    var hpPct = Math.max(0, Math.round(boss.hp / boss.max_hp * 100));
+    var hpColor = hpPct > 50 ? 'var(--green)' : (hpPct > 20 ? 'var(--gold)' : 'var(--red)');
+    var html = '<div class="drawer-card" style="border:2px solid var(--danger);background:rgba(200,30,30,0.08);">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;">' +
+        '<div class="drawer-card-title" style="color:var(--danger);font-size:18px;">' + boss.name + '</div>' +
+        '<span style="font-size:12px;color:var(--text-secondary);">Lv.' + boss.level + '</span>' +
+      '</div>' +
+      '<div class="drawer-card-desc">' + boss.description + '</div>' +
+      // HP bar
+      '<div style="margin:8px 0;">' +
+        '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-secondary);margin-bottom:4px;">' +
+          '<span>HP</span><span>' + boss.hp + ' / ' + boss.max_hp + '</span></div>' +
+        '<div style="background:rgba(255,255,255,0.1);border-radius:6px;height:12px;overflow:hidden;">' +
+          '<div style="background:' + hpColor + ';height:100%;width:' + hpPct + '%;border-radius:6px;transition:width 0.3s;"></div>' +
+        '</div>' +
+      '</div>' +
+      // Stats
+      '<div class="drawer-card-stats" style="justify-content:space-around;">' +
+        '<span>攻击: ' + boss.attack + '</span>' +
+        '<span>防御: ' + boss.defense + '</span>' +
+        '<span>速度: ' + boss.speed + '</span>' +
+      '</div>' +
+      // Fight button (big)
+      '<div style="text-align:center;margin-top:12px;">' +
+        '<button class="btn-action" onclick="GameClient.fightWorldBoss()" style="font-size:16px;padding:12px 40px;background:var(--danger);color:#fff;">⚔ 攻击世界Boss <span style="font-size:11px;">(-10体力)</span></button>' +
+        '<div style="margin-top:8px;"><button class="btn-action btn-sm" onclick="GameClient.openWorldBoss()" style="background:rgba(255,255,255,0.1);">刷新</button></div>' +
+      '</div>' +
+    '</div>';
+
+    // Ranking table
+    if (ranking && ranking.length > 0) {
+      html += '<div class="drawer-section-label" style="margin-top:16px;">贡献排行</div>';
+      html += '<div style="max-height:300px;overflow-y:auto;">';
+      html += ranking.map(function(r) {
+        var isMe = r.playerId === playerId;
+        var tierIcon = r.rank <= 3 ? ['🥇','🥈','🥉'][r.rank-1] : '#' + r.rank;
+        return '<div class="drawer-card" style="' + (isMe ? 'border-left:3px solid var(--gold);' : '') + '">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+            '<span style="font-weight:bold;">' + tierIcon + ' ' + r.playerName + '</span>' +
+            '<span style="font-size:12px;color:var(--text-secondary);">伤害: ' + r.damage + '</span>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+      html += '</div>';
+    }
+
+    return html;
   },
 
   // ===== Settings Panel =====
@@ -2357,8 +2352,8 @@ const UI = {
     html += '<div class="settings-group">';
     html += '<span class="settings-label">文字亮度</span>';
     html += '<span class="settings-desc">调整剧情文字的显示亮度（50%-150%）</span>';
-    html += '<div style="display:flex;align-items:center;gap:8px;">';
-    html += '<input type="range" class="settings-range" id="settingBrightness" min="50" max="150" value="' + currentSettings.textBrightness + '" oninput="UI._onSettingChange(\'textBrightness\', this.value)" style="flex:1;">';
+    html += '<div class="flex-row">';
+    html += '<input type="range" class="settings-range flex-1" id="settingBrightness" min="50" max="150" value="' + currentSettings.textBrightness + '" oninput="UI._onSettingChange(\'textBrightness\', this.value)">';
     html += '<span class="settings-range-value" id="settingBrightnessVal">' + currentSettings.textBrightness + '%</span>';
     html += '</div></div>';
 
@@ -2366,8 +2361,8 @@ const UI = {
     html += '<div class="settings-group">';
     html += '<span class="settings-label">字体粗细</span>';
     html += '<span class="settings-desc">调整全局文字粗细（300-700）</span>';
-    html += '<div style="display:flex;align-items:center;gap:8px;">';
-    html += '<input type="range" class="settings-range" id="settingFontWeight" min="300" max="700" step="100" value="' + (parseInt(currentSettings.fontWeight) || 400) + '" oninput="UI._onSettingChange(\'fontWeight\', this.value)" style="flex:1;">';
+    html += '<div class="flex-row">';
+    html += '<input type="range" class="settings-range flex-1" id="settingFontWeight" min="300" max="700" step="100" value="' + (parseInt(currentSettings.fontWeight) || 400) + '" oninput="UI._onSettingChange(\'fontWeight\', this.value)">';
     html += '<span class="settings-range-value" id="settingFontWeightVal">' + (parseInt(currentSettings.fontWeight) || 400) + '</span>';
     html += '</div></div>';
 
@@ -2375,7 +2370,7 @@ const UI = {
     html += '<div class="settings-group">';
     html += '<span class="settings-label">字体选择</span>';
     html += '<span class="settings-desc">仅影响剧情文字显示</span>';
-    html += '<select class="settings-select" id="settingFontFamily" onchange="UI._onSettingChange(\'fontFamily\', this.value)" style="width:100%;">';
+    html += '<select class="settings-select w-full" id="settingFontFamily" onchange="UI._onSettingChange(\'fontFamily\', this.value)">';
     var fonts = [
       { value: 'default', label: '思源宋体（默认）' },
       { value: 'kai', label: '楷体' },
@@ -2390,7 +2385,7 @@ const UI = {
     html += '<div class="settings-group">';
     html += '<span class="settings-label">昼夜切换</span>';
     html += '<div class="settings-row">';
-    html += '<span class="settings-desc" style="margin:0;">切换白天/夜晚模式</span>';
+    html += '<span class="settings-desc my-0">切换白天/夜晚模式</span>';
     html += '<label class="settings-toggle">';
     html += '<input type="checkbox" id="settingDayMode" ' + (currentSettings.dayMode ? 'checked' : '') + ' onchange="UI._onSettingChange(\'dayMode\', this.checked)">';
     html += '<span class="settings-toggle-slider"></span>';
@@ -2401,12 +2396,12 @@ const UI = {
     html += '<div class="settings-group">';
     html += '<span class="settings-label">手机端布局</span>';
     html += '<span class="settings-desc">切换手机版界面样式（仅移动端生效）</span>';
-    html += '<div class="layout-picker-grid" style="margin-top:8px;">';
+    html += '<div class="layout-picker-grid mt-8">';
     var layouts = [
-      { value: 'default', icon: '📱', name: '默认布局', desc: '经典底栏导航' },
-      { value: 'dashboard', icon: '📊', name: '星流仪表盘', desc: '数据面板总览' },
-      { value: 'reader', icon: '📖', name: '沉浸式阅读器', desc: '全屏故事体验' },
-      { value: 'wheel', icon: '🎡', name: '故事轮盘', desc: '快捷轮盘操作' }
+      { value: 'default', icon: '◈', name: '默认布局', desc: '经典底栏导航' },
+      { value: 'dashboard', icon: '▣', name: '星流仪表盘', desc: '数据面板总览' },
+      { value: 'reader', icon: '▸', name: '沉浸式阅读器', desc: '全屏故事体验' },
+      { value: 'wheel', icon: '◎', name: '故事轮盘', desc: '快捷轮盘操作' }
     ];
     var currentLayout = Storage.get('mobileUIMode') || 'default';
     layouts.forEach(function(l) {
@@ -2427,7 +2422,7 @@ const UI = {
     html += '<span class="settings-label">探索后跳过剧情弹窗</span>';
     html += '<span class="settings-desc">探索后如无可用选项，不弹出剧情窗口，改用阶段指示器显示进度</span>';
     html += '<div class="settings-row">';
-    html += '<span class="settings-desc" style="margin:0;">默认开启</span>';
+    html += '<span class="settings-desc my-0">默认开启</span>';
     html += '<label class="settings-toggle">';
     html += '<input type="checkbox" id="settingSkipStoryPopup" ' + (currentSettings.skipStoryPopup !== false ? 'checked' : '') + ' onchange="UI._onSettingChange(\'skipStoryPopup\', this.checked)">';
     html += '<span class="settings-toggle-slider"></span>';
@@ -2437,8 +2432,8 @@ const UI = {
     // Account
     html += '<div class="drawer-section-label">账号设置</div>';
     html += '<div style="padding:0;">';
-    html += '<div style="margin-bottom:12px;font-size:14px;">当前账号：<strong>' + UI.escapeHtml(GameClient._currentUser ? GameClient._currentUser.username : '未知') + '</strong></div>';
-    html += '<button class="btn-action" onclick="GameClient.doLogout()" style="background:#a33;">退出登录</button>';
+    html += '<div class="mb-12 fs-14">当前账号：<strong>' + UI.escapeHtml(GameClient._currentUser ? GameClient._currentUser.username : '未知') + '</strong></div>';
+    html += '<button class="btn-action" onclick="GameClient.doLogout()" style="background:var(--red-dim);">退出登录</button>';
     html += '</div>';
 
     return html;
@@ -2733,9 +2728,9 @@ const UI = {
 
     var constellations = [
       { key: 'golden_sun', name: '最古之金乌', icon: '☀', story: '自天地初开便以三足乌鸦之姿存在的古老神话。在远古的星座战争中，金乌焚尽了入侵星流的异界军团。如今它已沉默数千年，只在极少数值得"燃烧"的读者面前显露光芒。金乌不关心正义或邪恶——它只关心你的名字能燃烧得多明亮。', trait: '擅攻 · 暴击取向 · 灼热贯穿' },
-      { key: 'black_flame_dragon', name: '深渊的黑炎龙', icon: '🐉', story: '栖息于星之深渊最底层的黑焰巨龙。15岁的黑焰皇帝。它的龙息能焚尽万物，它的鳞片比任何金属都要坚硬。在无数世界线中，黑炎龙只眷顾那些敢于孤身面对毁灭的化身。毁灭即是新生——这是它唯一的信条。', trait: '纯攻取向 · 速度抢先 · 防御偏低' },
-      { key: 'demon_judge_of_fire', name: '恶魔般的火之审判者', icon: '🔥', story: '燃烧地狱烈焰的大天使，星流中最炽热的正义化身。她爱着世间一切故事与美好，对所有化身都怀有赤诚的关心。但面对邪恶时，她从不手软。被她的火焰燃烧的不仅是敌人，还有你自己——你是否配得上这份炽热的信任？', trait: '攻速均衡 · 暴击加成 · 正义之焰' },
-      { key: 'abyss_eye', name: '深渊的凝视者', icon: '👁', story: '悬挂在世界线缝隙中的远古意识。它注视一切，洞察一切。传说深渊之眼是一位陨落的古神遗留的最后感官，它寻找着能够"看穿故事真相"的读者。被它眷顾的人，能够看到敌人最脆弱的瞬间。', trait: '暴击取向 · 弱点洞察 · 精确命中' },
+      { key: 'black_flame_dragon', name: '深渊的黑炎龙', icon: '◆', story: '栖息于星之深渊最底层的黑焰巨龙。15岁的黑焰皇帝。它的龙息能焚尽万物，它的鳞片比任何金属都要坚硬。在无数世界线中，黑炎龙只眷顾那些敢于孤身面对毁灭的化身。毁灭即是新生——这是它唯一的信条。', trait: '纯攻取向 · 速度抢先 · 防御偏低' },
+      { key: 'demon_judge_of_fire', name: '恶魔般的火之审判者', icon: '♨', story: '燃烧地狱烈焰的大天使，星流中最炽热的正义化身。她爱着世间一切故事与美好，对所有化身都怀有赤诚的关心。但面对邪恶时，她从不手软。被她的火焰燃烧的不仅是敌人，还有你自己——你是否配得上这份炽热的信任？', trait: '攻速均衡 · 暴击加成 · 正义之焰' },
+      { key: 'abyss_eye', name: '深渊的凝视者', icon: '◈', story: '悬挂在世界线缝隙中的远古意识。它注视一切，洞察一切。传说深渊之眼是一位陨落的古神遗留的最后感官，它寻找着能够"看穿故事真相"的读者。被它眷顾的人，能够看到敌人最脆弱的瞬间。', trait: '暴击取向 · 弱点洞察 · 精确命中' },
       { key: 'wheel_of_fate', name: '因果的编织者', icon: '⚙', story: '在因果之线中编织命运的远古存在。命运之轮没有意志，只有规律。它眷顾那些理解"概率"的人——在正确的时间出现在正确的地点，这就是最强的能力。', trait: '速度取向 · 幸运提升 · 先手优势' },
       { key: 'queen_of_underworld', name: '冥界的女王', icon: '♛', story: '掌管冥界暗之权力的女王，万千亡魂的主宰。她并非冷酷无情——恰恰相反，她深知生命的价值。在她的眷顾下，死亡的边界变得模糊。冥界女王庇佑那些愿意为他人牺牲的灵魂。', trait: '防御取向 · 持久战 · 死亡抗性' },
       { key: 'maritime_war_god', name: '海上不败战神', icon: '⚔', story: '大海上从未败过的战争之神。忠诚、正义，永远守护自己所信之物。他的旗帜在每一个战场上飘扬，他的名号让敌人闻风丧胆。被这位战神眷顾者，当于星流中竖起不败的旗帜。', trait: '防御取向 · 速度加成 · 坚不可摧' },
@@ -2808,18 +2803,18 @@ const UI = {
   },
 
   _highlightMobileNav(feature) {
-    document.querySelectorAll('.mbn-item').forEach(item => {
-      const feat = item.dataset.mobileFeature;
-      if (!feat) return;
-      if (feat === feature || (feature === 'explore' && feat === 'explore') || (feature === 'story' && feat === 'story')) {
-        item.classList.add('mbn-active');
-      } else {
-        item.classList.remove('mbn-active');
-      }
+    document.querySelectorAll('.mbn-item').forEach(function(item) {
+      item.classList.toggle('mbn-active', item.dataset.mobileFeature === feature);
     });
-    document.querySelectorAll('.db-nav-item').forEach(item => { item.classList.remove('db-nav-active'); });
-    document.querySelectorAll('.ir-nav-item').forEach(item => { item.classList.remove('ir-nav-active'); });
-    document.querySelectorAll('.sw-nav-item').forEach(item => { item.classList.remove('sw-nav-active'); });
+    document.querySelectorAll('.db-nav-item').forEach(function(item) {
+      item.classList.toggle('db-nav-active', item.dataset.mobileFeature === feature);
+    });
+    document.querySelectorAll('.ir-nav-item').forEach(function(item) {
+      item.classList.toggle('ir-nav-active', item.dataset.mobileFeature === feature);
+    });
+    document.querySelectorAll('.sw-nav-item').forEach(function(item) {
+      item.classList.toggle('sw-nav-active', item.dataset.mobileFeature === feature);
+    });
   },
 
   // ===== Design A: Dashboard FAB & Right Menu =====
@@ -2912,20 +2907,20 @@ const UI = {
     var html = '';
 
     // My listings section
-    html += '<div style="margin-bottom:12px;">';
-    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
-    html += '<span style="font-size:14px;font-weight:bold;color:var(--text-primary);">我的挂单</span>';
-    html += '<button class="ma-btn primary" style="padding:4px 12px;font-size:12px;" onclick="UI.showCreateListingForm()">发布新挂单</button>';
+    html += '<div class="mb-12">';
+    html += '<div class="justify-between items-center mb-8" style="display:flex;">';
+    html += '<span class="fs-14 fw-bold text-bright">我的挂单</span>';
+    html += '<button class="ma-btn primary fs-12 py-4 px-12" onclick="UI.showCreateListingForm()">发布新挂单</button>';
     html += '</div>';
     if (myListings.length === 0) {
-      html += '<p style="color:var(--text-secondary);font-size:12px;text-align:center;padding:8px;">暂无挂单</p>';
+      html += '<p class="text-secondary fs-12 text-center p-8">暂无挂单</p>';
     } else {
       for (var i = 0; i < myListings.length; i++) {
         var ml = myListings[i];
         html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid var(--border);font-size:12px;">';
-        html += '<span style="flex:1;">' + ml.itemName + ' ×' + ml.quantity + '</span>';
-        html += '<span style="color:var(--accent);">◎' + ml.price + '</span>';
-        html += '<span style="color:' + (ml.listingStatus === 'active' ? '#4caf50' : 'var(--text-dim)') + ';">' + ml.listingStatus + '</span>';
+        html += '<span class="flex-1">' + ml.itemName + ' ×' + ml.quantity + '</span>';
+        html += '<span class="text-accent">◎' + ml.price + '</span>';
+        html += '<span style="color:' + (ml.listingStatus === 'active' ? 'var(--success)' : 'var(--text-dim)') + ';">' + ml.listingStatus + '</span>';
         if (ml.listingStatus === 'active') {
           html += '<button class="ma-btn" style="padding:2px 8px;font-size:11px;" onclick="GameClient.cancelListing(' + ml.id + ')">取消</button>';
         }
@@ -2936,33 +2931,33 @@ const UI = {
 
     // Create listing form (hidden by default)
     html += '<div id="createListingForm" style="display:none;background:var(--bg-card);border:1px solid var(--border-gold);border-radius:8px;padding:12px;margin-bottom:12px;">';
-    html += '<div style="font-size:14px;font-weight:bold;color:var(--accent);margin-bottom:8px;">发布挂单</div>';
-    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+    html += '<div class="fs-14 fw-bold text-accent mb-8">发布挂单</div>';
+    html += '<div class="flex-row-wrap">';
     html += '<input class="app-input" id="listingItemKey" placeholder="物品Key" style="flex:1;min-width:100px;">';
     html += '<select class="app-input" id="listingItemType" style="width:80px;"><option value="item">道具</option><option value="equipment">装备</option></select>';
     html += '<input class="app-input" id="listingQuantity" type="number" value="1" min="1" style="width:60px;" placeholder="数量">';
     html += '<input class="app-input" id="listingPrice" type="number" value="10" min="1" style="width:80px;" placeholder="单价">';
     html += '</div>';
     html += '<div style="margin-top:8px;display:flex;gap:8px;">';
-    html += '<button class="ma-btn primary" style="font-size:12px;" onclick="GameClient.createTradeListing(document.getElementById(\'listingItemKey\').value,document.getElementById(\'listingItemType\').value,parseInt(document.getElementById(\'listingQuantity\').value)||1,parseInt(document.getElementById(\'listingPrice\').value)||10)">发布</button>';
-    html += '<button class="ma-btn" style="font-size:12px;" onclick="document.getElementById(\'createListingForm\').style.display=\'none\'">取消</button>';
+    html += '<button class="ma-btn primary fs-12" onclick="GameClient.createTradeListing(document.getElementById(\'listingItemKey\').value,document.getElementById(\'listingItemType\').value,parseInt(document.getElementById(\'listingQuantity\').value)||1,parseInt(document.getElementById(\'listingPrice\').value)||10)">发布</button>';
+    html += '<button class="ma-btn fs-12" onclick="document.getElementById(\'createListingForm\').style.display=\'none\'">取消</button>';
     html += '</div>';
     html += '</div>';
 
     // Market listings
-    html += '<div style="font-size:14px;font-weight:bold;color:var(--text-primary);margin-bottom:8px;">交易市场</div>';
+    html += '<div class="fs-14 fw-bold text-bright mb-8">交易市场</div>';
     if (listings.length === 0) {
-      html += '<p style="text-align:center;color:var(--text-secondary);padding:16px;">市场上暂无挂单</p>';
+      html += '<p class="text-center text-secondary p-16">市场上暂无挂单</p>';
     } else {
       for (var j = 0; j < listings.length; j++) {
         var l = listings[j];
         html += '<div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--border);">';
-        html += '<span style="font-size:11px;color:var(--text-dim);min-width:40px;">' + (l.itemType === 'equipment' ? '装备' : '道具') + '</span>';
-        html += '<div style="flex:1;min-width:0;">';
-        html += '<div style="font-size:13px;">' + l.itemName + ' ×' + l.quantity + '</div>';
-        html += '<div style="font-size:11px;color:var(--text-dim);">卖家: ' + l.sellerName + '</div>';
+        html += '<span class="fs-11 text-dim" style="min-width:40px;">' + (l.itemType === 'equipment' ? '装备' : '道具') + '</span>';
+        html += '<div class="flex-1-min">';
+        html += '<div class="fs-13">' + l.itemName + ' ×' + l.quantity + '</div>';
+        html += '<div class="text-dim">卖家: ' + l.sellerName + '</div>';
         html += '</div>';
-        html += '<span style="font-size:14px;font-weight:bold;color:var(--accent);">◎' + l.price + '</span>';
+        html += '<span class="fs-14 fw-bold text-accent">◎' + l.price + '</span>';
         html += '<button class="ma-btn primary" style="padding:2px 10px;font-size:11px;" onclick="GameClient.buyListing(' + l.id + ')">购买</button>';
         html += '</div>';
       }
@@ -2982,20 +2977,20 @@ const UI = {
     // My party section
     if (myParty) {
       html += '<div style="background:var(--panel-bg);border:1px solid var(--border-gold);border-radius:8px;padding:12px;margin-bottom:12px;">';
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
-      html += '<span style="font-size:14px;font-weight:bold;color:var(--accent);">我的队伍</span>';
-      html += '<span style="font-size:11px;color:' + (myParty.status === 'in_combat' ? 'var(--red)' : '#4caf50') + ';">' + myParty.status + '</span>';
+      html += '<div class="justify-between items-center mb-8" style="display:flex;">';
+      html += '<span class="fs-14 fw-bold text-accent">我的队伍</span>';
+      html += '<span style="font-size:11px;color:' + (myParty.status === 'in_combat' ? 'var(--red)' : 'var(--success)') + ';">' + myParty.status + '</span>';
       html += '</div>';
-      html += '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">队长: ' + myParty.leaderName + '</div>';
+      html += '<div class="fs-12 text-secondary mb-4">队长: ' + myParty.leaderName + '</div>';
       if (myParty.bossKey) {
-        html += '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;">讨伐目标: ' + myParty.bossKey + '</div>';
+        html += '<div class="fs-12 text-secondary mb-4">讨伐目标: ' + myParty.bossKey + '</div>';
       }
-      html += '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">成员 (' + myParty.members.length + '/3):</div>';
+      html += '<div class="fs-12 text-secondary mb-8">成员 (' + myParty.members.length + '/3):</div>';
       for (var i = 0; i < myParty.members.length; i++) {
         var m = myParty.members[i];
         html += '<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px;">';
         html += '<span>' + m.playerName + ' Lv.' + m.level + '</span>';
-        html += '<span style="color:' + (m.ready ? '#4caf50' : 'var(--text-dim)') + ';">' + (m.ready ? '✓就绪' : '未准备') + '</span>';
+        html += '<span style="color:' + (m.ready ? 'var(--success)' : 'var(--text-dim)') + ';">' + (m.ready ? '✓就绪' : '未准备') + '</span>';
         if (m.playerId === myParty.leaderId) html += '<span style="color:var(--accent);font-size:10px;">[队长]</span>';
         html += '</div>';
       }
@@ -3009,32 +3004,32 @@ const UI = {
     } else {
       html += '<div style="background:var(--panel-bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;text-align:center;color:var(--text-secondary);">';
       html += '<p>你不在任何队伍中</p>';
-      html += '<button class="ma-btn primary" style="font-size:12px;margin-top:4px;" onclick="UI.showCreatePartyForm()">创建讨伐队伍</button>';
+      html += '<button class="ma-btn primary fs-12 mt-4" onclick="UI.showCreatePartyForm()">创建讨伐队伍</button>';
       html += '</div>';
 
       // Create party form (hidden)
       html += '<div id="createPartyForm" style="display:none;background:var(--bg-card);border:1px solid var(--border-gold);border-radius:8px;padding:12px;margin-bottom:12px;">';
-      html += '<div style="font-size:14px;font-weight:bold;color:var(--accent);margin-bottom:8px;">创建讨伐队伍</div>';
-      html += '<input class="app-input" id="partyBossKey" placeholder="Boss Key（可选，留空则为自由组队）" style="width:100%;margin-bottom:8px;">';
+      html += '<div class="fs-14 fw-bold text-accent mb-8">创建讨伐队伍</div>';
+      html += '<input class="app-input w-full mb-8" id="partyBossKey" placeholder="Boss Key（可选，留空则为自由组队）">';
       html += '<div style="display:flex;gap:8px;">';
-      html += '<button class="ma-btn primary" style="font-size:12px;" onclick="GameClient.createParty(document.getElementById(\'partyBossKey\').value||null)">创建</button>';
-      html += '<button class="ma-btn" style="font-size:12px;" onclick="document.getElementById(\'createPartyForm\').style.display=\'none\'">取消</button>';
+      html += '<button class="ma-btn primary fs-12" onclick="GameClient.createParty(document.getElementById(\'partyBossKey\').value||null)">创建</button>';
+      html += '<button class="ma-btn fs-12" onclick="document.getElementById(\'createPartyForm\').style.display=\'none\'">取消</button>';
       html += '</div>';
       html += '</div>';
     }
 
     // Active parties list
-    html += '<div style="font-size:14px;font-weight:bold;color:var(--text-primary);margin-bottom:8px;">招募中的队伍</div>';
+    html += '<div class="fs-14 fw-bold text-bright mb-8">招募中的队伍</div>';
     if (parties.length === 0) {
-      html += '<p style="text-align:center;color:var(--text-secondary);padding:16px;">暂无招募中的队伍</p>';
+      html += '<p class="text-center text-secondary p-16">暂无招募中的队伍</p>';
     } else {
       for (var j = 0; j < parties.length; j++) {
         var p = parties[j];
         if (myParty && p.id === myParty.id) continue; // Skip own party
         html += '<div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--border);">';
-        html += '<div style="flex:1;min-width:0;">';
-        html += '<div style="font-size:13px;">' + p.leaderName + ' 的队伍</div>';
-        html += '<div style="font-size:11px;color:var(--text-dim);">' + p.members.length + '/3 人' + (p.bossKey ? ' · ' + p.bossKey : '') + '</div>';
+        html += '<div class="flex-1-min">';
+        html += '<div class="fs-13">' + p.leaderName + ' 的队伍</div>';
+        html += '<div class="text-dim">' + p.members.length + '/3 人' + (p.bossKey ? ' · ' + p.bossKey : '') + '</div>';
         html += '</div>';
         html += '<button class="ma-btn primary" style="padding:2px 12px;font-size:11px;" onclick="GameClient.joinParty(' + p.id + ')">加入</button>';
         html += '</div>';
@@ -3057,9 +3052,9 @@ const UI = {
       maritime_war_god: '海上战神盟', star_stream_watcher: '星流守望塔'
     };
     var CONST_ICONS = {
-      golden_sun: '☀', black_flame_dragon: '🐉',
-      demon_judge_of_fire: '🔥', abyss_eye: '👁',
-      wheel_of_fate: '⚙', queen_of_underworld: '👑',
+      golden_sun: '☀', black_flame_dragon: '◆',
+      demon_judge_of_fire: '♨', abyss_eye: '◈',
+      wheel_of_fate: '⚙', queen_of_underworld: '♛',
       maritime_war_god: '⚓', star_stream_watcher: '⭐'
     };
 
@@ -3068,65 +3063,65 @@ const UI = {
     // My faction section
     if (myFaction) {
       html += '<div style="background:var(--panel-bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;">';
-      html += '<div style="font-size:14px;font-weight:bold;color:var(--accent);margin-bottom:8px;">' + CONST_ICONS[myFaction.constellationKey] + ' 我的阵营</div>';
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;">';
+      html += '<div class="fs-14 fw-bold text-accent mb-8">' + CONST_ICONS[myFaction.constellationKey] + ' 我的阵营</div>';
+      html += '<div class="justify-between items-center" style="display:flex;">';
       html += '<div>';
-      html += '<div style="font-size:16px;font-weight:bold;">' + myFaction.factionName + '</div>';
-      html += '<div style="font-size:12px;color:var(--text-secondary);">Lv.' + myFaction.factionLevel + ' · ' + myFaction.activeMembers + ' 名成员</div>';
+      html += '<div class="fs-16 fw-bold">' + myFaction.factionName + '</div>';
+      html += '<div class="fs-12 text-secondary">Lv.' + myFaction.factionLevel + ' · ' + myFaction.activeMembers + ' 名成员</div>';
       html += '</div>';
-      html += '<div style="text-align:right;">';
+      html += '<div class="text-right">';
       html += '<div style="font-size:18px;font-weight:bold;color:var(--accent);">' + Math.floor(myFaction.totalContributionScore) + '</div>';
-      html += '<div style="font-size:11px;color:var(--text-secondary);">贡献分数</div>';
+      html += '<div class="fs-11 text-secondary">贡献分数</div>';
       html += '</div>';
       html += '</div>';
       if (myFaction.factionSkills && myFaction.factionSkills.length > 0) {
-        html += '<div style="margin-top:8px;font-size:12px;color:var(--text-secondary);">阵营技能: ';
+        html += '<div class="mt-8 fs-12 text-secondary">阵营技能: ';
         for (var si = 0; si < myFaction.factionSkills.length; si++) {
-          html += '<span style="color:var(--accent);">' + myFaction.factionSkills[si] + '</span> ';
+          html += '<span class="text-accent">' + myFaction.factionSkills[si] + '</span> ';
         }
         html += '</div>';
       }
-      html += '<button class="btn-ma" style="margin-top:8px;width:100%;font-size:11px;" onclick="GameClient.openFactionSkills()">查看阵营技能树</button>';
+      html += '<button class="btn-ma mt-8 w-full fs-11" onclick="GameClient.openFactionSkills()">查看阵营技能树</button>';
       html += '</div>';
     } else {
       html += '<div style="background:var(--panel-bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;text-align:center;color:var(--text-secondary);">';
-      html += '<p>你尚未选择背后星（星座）。</p><p style="font-size:12px;">选择星座后将自动加入对应阵营。</p>';
+      html += '<p>你尚未选择背后星（星座）。</p><p class="fs-12">选择星座后将自动加入对应阵营。</p>';
       html += '</div>';
     }
 
     // Weekly War
     if (war) {
       html += '<div style="background:var(--panel-bg);border:1px solid var(--accent);border-radius:8px;padding:12px;margin-bottom:12px;">';
-      html += '<div style="font-size:14px;font-weight:bold;color:var(--accent);margin-bottom:8px;">⚔ 本周阵营战</div>';
-      html += '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">' + (war.weekStart || '').substr(0, 10) + ' ~ ' + (war.weekEnd || '').substr(0, 10) + '</div>';
+      html += '<div class="fs-14 fw-bold text-accent mb-8">⚔ 本周阵营战</div>';
+      html += '<div class="fs-11 text-secondary mb-4">' + (war.weekStart || '').substr(0, 10) + ' ~ ' + (war.weekEnd || '').substr(0, 10) + '</div>';
       if (war.status === 'active') {
-        html += '<div style="font-size:12px;color:#4caf50;">进行中...</div>';
+        html += '<div class="fs-12 text-green">进行中...</div>';
       } else if (war.winnerConstellation) {
-        html += '<div style="font-size:13px;font-weight:bold;color:var(--accent);">';
-        html += '🏆 本周冠军: ' + (CONST_NAMES[war.winnerConstellation] || war.winnerConstellation);
+        html += '<div class="fs-13 fw-bold text-accent">';
+        html += '☆ 本周冠军: ' + (CONST_NAMES[war.winnerConstellation] || war.winnerConstellation);
         html += '</div>';
       }
       html += '</div>';
     }
 
     // Leaderboard
-    html += '<div style="font-size:14px;font-weight:bold;color:var(--text-primary);margin-bottom:8px;">阵营排行榜</div>';
+    html += '<div class="fs-14 fw-bold text-bright mb-8">阵营排行榜</div>';
     if (factions.length === 0) {
-      html += '<p style="text-align:center;color:var(--text-secondary);padding:16px;">暂无阵营数据</p>';
+      html += '<p class="text-center text-secondary p-16">暂无阵营数据</p>';
     } else {
       for (var i = 0; i < factions.length; i++) {
         var f = factions[i];
         var isMyFaction = myFaction && f.constellationKey === myFaction.constellationKey;
-        var rankIcon = i === 0 ? '🥇' : (i === 1 ? '🥈' : (i === 2 ? '🥉' : (i + 1)));
-        html += '<div style="display:flex;align-items:center;gap:8px;padding:8px;' + (isMyFaction ? 'background:rgba(212,160,80,0.08);border-radius:6px;' : '') + 'border-bottom:1px solid var(--border);">';
-        html += '<span style="width:24px;text-align:center;font-size:14px;">' + rankIcon + '</span>';
-        html += '<span style="font-size:16px;">' + (CONST_ICONS[f.constellationKey] || '◆') + '</span>';
-        html += '<div style="flex:1;min-width:0;">';
-        html += '<div style="font-size:13px;font-weight:bold;">' + f.factionName + '</div>';
-        html += '<div style="font-size:11px;color:var(--text-secondary);">Lv.' + f.factionLevel + ' · ' + f.activeMembers + ' 人</div>';
+        var rankIcon = i === 0 ? '#1' : (i === 1 ? '#2' : (i === 2 ? '#3' : (i + 1)));
+        html += '<div style="display:flex;align-items:center;gap:8px;padding:8px;' + (isMyFaction ? 'background:var(--bg-hover);border-radius:6px;' : '') + 'border-bottom:1px solid var(--border);">';
+        html += '<span class="text-center fs-14" style="width:24px;">' + rankIcon + '</span>';
+        html += '<span class="fs-16">' + (CONST_ICONS[f.constellationKey] || '◆') + '</span>';
+        html += '<div class="flex-1-min">';
+        html += '<div class="fs-13 fw-bold">' + f.factionName + '</div>';
+        html += '<div class="fs-11 text-secondary">Lv.' + f.factionLevel + ' · ' + f.activeMembers + ' 人</div>';
         html += '</div>';
-        html += '<div style="text-align:right;">';
-        html += '<div style="font-size:14px;font-weight:bold;color:var(--accent);">' + Math.floor(f.totalContributionScore) + '</div>';
+        html += '<div class="text-right">';
+        html += '<div class="fs-14 fw-bold text-accent">' + Math.floor(f.totalContributionScore) + '</div>';
         html += '<div style="font-size:10px;color:var(--text-secondary);">分</div>';
         html += '</div>';
         html += '</div>';
@@ -3151,9 +3146,9 @@ const UI = {
     var html = '';
 
     // Tab bar
-    html += '<div style="display:flex;gap:8px;margin-bottom:12px;">';
-    html += '<button class="btn-ma" style="flex:1;' + (activeTab === 'daily' ? 'background:var(--accent);color:#111;' : '') + '" onclick="GameClient.loadQuestsTab(\'daily\')">每日任务 (' + dailyDone + '/' + daily.length + ')</button>';
-    html += '<button class="btn-ma" style="flex:1;' + (activeTab === 'weekly' ? 'background:var(--accent);color:#111;' : '') + '" onclick="GameClient.loadQuestsTab(\'weekly\')">每周任务 (' + weeklyDone + '/' + weekly.length + ')</button>';
+    html += '<div class="flex-row mb-12">';
+    html += '<button class="btn-ma' + (activeTab === 'daily' ? ' primary' : '') + ' flex-1" onclick="GameClient.loadQuestsTab(\'daily\')">每日任务 (' + dailyDone + '/' + daily.length + ')</button>';
+    html += '<button class="btn-ma' + (activeTab === 'weekly' ? ' primary' : '') + ' flex-1" onclick="GameClient.loadQuestsTab(\'weekly\')">每周任务 (' + weeklyDone + '/' + weekly.length + ')</button>';
     html += '</div>';
 
     var quests = activeTab === 'daily' ? daily : weekly;
@@ -3168,11 +3163,11 @@ const UI = {
         var claimed = q.claimed;
 
         html += '<div style="background:var(--panel-bg);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;' + (claimed ? 'opacity:0.5;' : '') + '">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">';
-        html += '<span style="font-weight:bold;font-size:13px;">' + q.quest_name + '</span>';
-        html += '<span style="font-size:11px;color:var(--text-secondary);">' + q.progress + '/' + q.target + '</span>';
+        html += '<div class="drawer-record-flex mb-4">';
+        html += '<span class="dr-text fw-bold fs-13">' + q.quest_name + '</span>';
+        html += '<span class="fs-11 text-secondary flex-shrink-0">' + q.progress + '/' + q.target + '</span>';
         html += '</div>';
-        html += '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;">' + q.description + '</div>';
+        html += '<div class="fs-11 text-secondary mb-6">' + q.description + '</div>';
 
         // Progress bar
         html += '<div style="background:var(--bg);border-radius:4px;height:6px;overflow:hidden;margin-bottom:6px;">';
@@ -3183,16 +3178,16 @@ const UI = {
         // Rewards preview
         var r = q.rewards || {};
         var rewardText = [];
-        if (r.coins) rewardText.push('🪙 +' + r.coins);
-        if (r.story_fragments) rewardText.push('📜 +' + r.story_fragments);
+        if (r.coins) rewardText.push('◎ +' + r.coins);
+        if (r.story_fragments) rewardText.push('◆ +' + r.story_fragments);
         if (r.constellationFavor) rewardText.push('⭐ +' + r.constellationFavor);
-        if (r.items && r.items.length > 0) rewardText.push('📦 ' + r.items.join(', '));
+        if (r.items && r.items.length > 0) rewardText.push('⊡ ' + r.items.join(', '));
         html += '<div style="font-size:10px;color:var(--text-secondary);margin-bottom:6px;">奖励: ' + (rewardText.length > 0 ? rewardText.join(' · ') : '无') + '</div>';
 
         if (claimed) {
-          html += '<span style="font-size:11px;color:var(--accent);">✓ 已领取</span>';
+          html += '<span class="fs-11 text-accent">✓ 已领取</span>';
         } else if (done) {
-          html += '<button class="btn-action" style="font-size:11px;padding:4px 12px;" onclick="GameClient.claimQuestReward(' + q.id + ')">领取奖励</button>';
+          html += '<button class="btn-action fs-11 py-4 px-12" onclick="GameClient.claimQuestReward(' + q.id + ')">领取奖励</button>';
         }
 
         html += '</div>';
@@ -3213,7 +3208,7 @@ const UI = {
     var TYPE_LABELS = { attack: '攻击', buff: '增益', defense: '防御', debuff: '减益', passive: '被动' };
     var TYPE_COLORS = { attack: '#e74c3c', buff: '#2ecc71', defense: '#3498db', debuff: '#e67e22', passive: '#9b59b6' };
 
-    var html = '<div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">';
+    var html = '<div class="fs-13 text-secondary mb-12">';
     html += CONST_NAMES[constellationKey] + ' 阵营专属技能树</div>';
 
     if (!skills || skills.length === 0) {
@@ -3226,22 +3221,22 @@ const UI = {
         var typeColor = TYPE_COLORS[s.skill_type] || '#888';
 
         html += '<div style="background:var(--panel-bg);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px;' + (unlocked ? 'border-color:var(--accent);' : '') + '">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">';
-        html += '<span style="font-weight:bold;font-size:13px;">' + (unlocked ? '✓ ' : '') + s.skill_name + '</span>';
-        html += '<span style="font-size:10px;padding:2px 6px;border-radius:3px;background:' + typeColor + '22;color:' + typeColor + ';">' + (TYPE_LABELS[s.skill_type] || s.skill_type) + '</span>';
+        html += '<div class="drawer-record-flex mb-4">';
+        html += '<span class="dr-text fw-bold fs-13">' + (unlocked ? '✓ ' : '') + s.skill_name + '</span>';
+        html += '<span style="font-size:10px;padding:2px 6px;border-radius:3px;background:' + typeColor + '22;color:' + typeColor + ';flex-shrink:0;">' + (TYPE_LABELS[s.skill_type] || s.skill_type) + '</span>';
         html += '</div>';
-        html += '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px;">' + s.description + '</div>';
+        html += '<div class="fs-11 text-secondary mb-4">' + s.description + '</div>';
         html += '<div style="font-size:10px;color:var(--text-secondary);">';
         html += '需要阵营 Lv.' + s.required_faction_level + ' · 消耗 ' + s.cost_faction_contribution + ' 星座好感';
         if (s.cooldown > 0) html += ' · 冷却 ' + s.cooldown + ' 回合';
         html += '</div>';
 
         if (unlocked) {
-          html += '<span style="font-size:11px;color:var(--accent);">✓ 已习得</span>';
+          html += '<span class="fs-11 text-accent">✓ 已习得</span>';
         } else if (canUnlock) {
-          html += '<button class="btn-action" style="font-size:11px;padding:4px 12px;margin-top:4px;" onclick="GameClient.learnFactionSkill(\'' + s.skill_key + '\')">学习技能</button>';
+          html += '<button class="btn-action fs-11 py-4 px-12 mt-4" onclick="GameClient.learnFactionSkill(\'' + s.skill_key + '\')">学习技能</button>';
         } else {
-          html += '<span style="font-size:11px;color:var(--danger);">条件不足</span>';
+          html += '<span class="fs-11 text-red">条件不足</span>';
         }
 
         html += '</div>';

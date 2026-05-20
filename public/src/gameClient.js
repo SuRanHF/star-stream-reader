@@ -1,3 +1,8 @@
+// ⚠️ UI 保护文件 — 非经确认不得擅自修改
+// ⚠️ 禁止：修改 openFeature/handleNavigation/openDrawer/closeDrawer/setupModals
+// ⚠️ 禁止：修改导航切换流程、弹窗打开关闭行为
+// ⚠️ 允许：新增功能逻辑、API 调用、事件处理
+
 // GameClient module - state machine (dark immersive RPG layout)
 const GameClient = {
   state: 'INIT',
@@ -293,9 +298,9 @@ const GameClient = {
     document.querySelectorAll('.nav-item').forEach(item => {
       if (item.dataset.bound === 'true') return;
       item.dataset.bound = 'true';
-      item.addEventListener('click', () => {
+      item.addEventListener('click', async () => {
         const feature = item.dataset.feature;
-        if (feature) this.openFeature(feature);
+        if (feature) await this.openFeature(feature);
       });
     });
   },
@@ -318,55 +323,47 @@ const GameClient = {
     UI._applyMobileUi(mode);
   },
 
-  updateMobileUI(player) {
-    if (!player) return;
-    var s = player.stats || player;
-    var hp = s.hp || 0, maxHp = s.maxHp || 100, stamina = s.stamina || 0, maxStamina = s.maxStamina || 50;
-    var rankKey = s.avatarRank || 'F', rankName = s.avatarRankName || '临时化身';
-    // Design A — floating pill
-    UI.setText('dbPillName', player.player_name);
-    UI.setText('dbPillRank', rankKey + '级·' + rankName);
-    UI.setText('dbPillLv', 'Lv.' + (s.level || 1));
-    UI.setText('dbPillHp', hp + '/' + maxHp);
-    UI.setText('dbPillSta', stamina + '/' + maxStamina);
-    // Design B — top bar & more
-    UI.setText('irTopRank', rankKey + '级');
-    UI.setText('irTopHp', '♥ ' + hp + '/' + maxHp);
-    UI.setText('irTopSta', '⚡ ' + stamina);
-    UI.setText('irTopCoins', '◎ ' + (player.coins || 0));
-    UI.setText('irMoreName', player.player_name);
-    UI.setText('irMoreRank', rankKey + '级·' + rankName);
-    UI.setText('irMoreLv', 'Lv.' + (s.level || 1));
-    // Design C — top bar & hamburger
-    UI.setText('swTopName', player.player_name);
-    UI.setText('swTopRank', rankKey + '级·' + rankName);
-    UI.setText('swTopHp', '♥ ' + hp + '/' + maxHp);
-    UI.setText('swTopCoins', '◎ ' + (player.coins || 0));
-    UI.setText('swHamName', player.player_name);
-    UI.setText('swHamRank', rankKey + '级·' + rankName);
-    UI.setText('swHamLv', 'Lv.' + (s.level || 1));
-  },
-
   setupModals() {
-    const modalOverlay = document.getElementById('modalOverlay');
-    if (modalOverlay && modalOverlay.dataset.bound !== 'true') {
-      modalOverlay.dataset.bound = 'true';
-      modalOverlay.addEventListener('click', function(e) {
-        if (e.target === this) UI.hideModal();
+    var self = this;
+    var overlayIds = [
+      'modalOverlay', 'pkModalOverlay', 'warningOverlay',
+      'storyPopupOverlay', 'explorePopupOverlay', 'combatPopupOverlay',
+      'constellationPopupOverlay', 'challengePopupOverlay', 'mapOverlay',
+      'feedbackOverlay', 'changelogOverlay'
+    ];
+    var dismissMap = {
+      modalOverlay: 'modalOverlay',
+      pkModalOverlay: 'pkModalOverlay',
+      warningOverlay: 'warningOverlay',
+      storyPopupOverlay: 'storyPopupOverlay',
+      explorePopupOverlay: 'explorePopupOverlay',
+      combatPopupOverlay: 'combatPopupOverlay',
+      constellationPopupOverlay: 'constellationPopupOverlay',
+      challengePopupOverlay: 'challengePopupOverlay',
+      mapOverlay: 'mapOverlay',
+      feedbackOverlay: 'feedbackOverlay',
+      changelogOverlay: 'changelogOverlay'
+    };
+    overlayIds.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (!el || el.dataset.bound === 'true') return;
+      el.dataset.bound = 'true';
+      el.addEventListener('click', function(e) {
+        if (e.target !== this) return;
+        if (id === 'warningOverlay') {
+          var cancelBtn = document.getElementById('warningCancel');
+          if (cancelBtn) cancelBtn.click();
+          return;
+        }
+        var closeBtn = this.querySelector('.popup-close');
+        if (closeBtn) { closeBtn.click(); return; }
+        UI.dismissPopup(id);
       });
-    }
-
-    const pkModalOverlay = document.getElementById('pkModalOverlay');
-    if (pkModalOverlay && pkModalOverlay.dataset.bound !== 'true') {
-      pkModalOverlay.dataset.bound = 'true';
-      pkModalOverlay.addEventListener('click', function(e) {
-        if (e.target === this) UI.dismissPopup('pkModalOverlay');
-      });
-    }
+    });
   },
 
   // ===== Feature Navigation =====
-  openFeature(featureName) {
+  async openFeature(featureName) {
     UI.highlightNav(featureName);
 
     switch (featureName) {
@@ -374,43 +371,46 @@ const GameClient = {
         UI.closeAllOverlays();
         const logEl = document.getElementById('logStream');
         if (logEl) logEl.scrollTop = logEl.scrollHeight;
-        this.fetchChapter();
+        await this.fetchChapter();
         break;
       case 'profile':
-        this.loadDetailedStats();
+        await this.loadDetailedStats();
         break;
       case 'inventory':
-        this.loadInventory();
+        await this.loadInventory();
         break;
       case 'equipment':
-        this.loadEquipment();
+        await this.loadEquipment();
         break;
       case 'skills':
-        this.loadSkills();
+        await this.loadSkills();
         break;
       case 'titles':
-        this.loadTitles();
+        await this.loadTitles();
         break;
       case 'archive':
         this.openArchive();
         break;
       case 'pk':
-        this.loadPK();
+        await this.loadPK();
         break;
       case 'rankings':
-        this.loadRankings();
+        await this.loadRankings();
         break;
       case 'broadcast':
-        this.loadBroadcast();
+        await this.loadBroadcast();
         break;
       case 'faction':
-        this.openFaction();
+        await this.openFaction();
         break;
       case 'trade':
         this.openTrade();
         break;
       case 'party':
         this.openParty();
+        break;
+      case 'world-boss':
+        this.openWorldBoss();
         break;
       case 'settings':
         this.showSettings();
@@ -433,60 +433,6 @@ const GameClient = {
   // Backward compat alias
   switchTab(featureName) {
     this.openFeature(featureName);
-  },
-
-  // ===== Create Player =====
-  async showCreatePlayer() {
-    UI.highlightNav('story');
-    UI.closeDrawer();
-
-    // Show create player in story popup
-    const overlay = document.getElementById('storyPopupOverlay');
-    if (overlay) {
-      UI.setText('popupChapterTitle', '全知读者视角');
-      const narrative = document.getElementById('popupNarrative');
-      if (narrative) {
-        narrative.innerHTML = '<p>在灭亡的世界中存活的三种方法。你是唯一知道结局的读者。</p><p style="margin-top:8px;">请输入你的名字，然后按下确认。</p>';
-      }
-      const choices = document.getElementById('popupChoices');
-      if (choices) {
-        choices.innerHTML = `
-          <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px;">
-            <input class="app-input" id="createNameInput" placeholder="输入你的名字（留空则为"未命名读者"）" maxlength="20" style="max-width:320px;width:100%;">
-            <button class="popup-continue-btn" id="createPlayerBtn" style="max-width:200px;">进入游戏</button>
-          </div>
-        `;
-        document.getElementById('createPlayerBtn').onclick = async () => {
-          const name = document.getElementById('createNameInput').value.trim();
-          await this.createPlayer(name || undefined);
-        };
-      }
-      document.getElementById('popupContinueBtn')?.classList.add('hidden');
-      document.getElementById('popupStatGains')?.classList.add('hidden');
-      overlay.classList.remove('hidden');
-    }
-
-    UI.setText('sceneName', '全知读者视角');
-    UI.setText('sceneLocation', '');
-
-    // Clear log and add welcome
-    const stream = document.getElementById('logStream');
-    if (stream) {
-      stream.innerHTML = '';
-      UI.addLog('欢迎来到全知读者视角。系统初始化完成，等待读者就绪...', 'system');
-    }
-  },
-
-  async createPlayer(name) {
-    try {
-      const { player } = await API.createPlayer(name);
-      Storage.setPlayerId(player.id);
-      this.playerId = player.id;
-      await this.loadGame(player);
-    } catch (e) {
-      console.error('Create player error:', e);
-      UI.showError('创建玩家失败，请刷新页面重试。');
-    }
   },
 
   async loadGame(player) {
@@ -592,8 +538,10 @@ const GameClient = {
 
       // Event panel removed — choices hidden from central area
 
-      UI.renderLeftPanel(data.player);
-      UI.renderMainActionBar(data.player);
+      if (!opts.fromExplore) {
+        UI.renderLeftPanel(data.player);
+        UI.renderMainActionBar(data.player);
+      }
 
       // Check if dead
       if (data.player?.stats?.isDead) {
@@ -717,7 +665,7 @@ const GameClient = {
       }
       if (result.code) {
         UI.addLog('探索失败: ' + result.message, 'warning');
-        alert(result.message);
+        UI.addLog(result.message || '操作完成', 'system');
         return;
       }
 
@@ -801,7 +749,7 @@ const GameClient = {
       }
       const locKey = this._getExploreTarget(locations);
       for (let i = 0; i < 3; i++) {
-        const playerData = await API.getPlayer(this.playerId);
+        const { data: playerData } = await API.getPlayer(this.playerId);
         const player = playerData && playerData.player;
         if (!player) {
           UI.addLog('获取玩家数据失败，快速探索已停止。', 'warning');
@@ -837,7 +785,7 @@ const GameClient = {
         return;
       }
       for (let i = 0; i < mult; i++) {
-        const playerData = await API.getPlayer(this.playerId);
+        const { data: playerData } = await API.getPlayer(this.playerId);
         const player = playerData && playerData.player;
         if (!player) {
           UI.addLog('获取玩家数据失败，探索已停止。', 'warning');
@@ -903,7 +851,7 @@ const GameClient = {
       return;
     }
     try {
-      const playerData = await API.getPlayer(this.playerId);
+      const { data: playerData } = await API.getPlayer(this.playerId);
       const player = playerData && playerData.player;
       if (!player) { this._autoExploreActive = false; return; }
       const stamina = (player.stats && player.stats.stamina) || 0;
@@ -1039,7 +987,7 @@ const GameClient = {
         return;
       }
       try {
-        const { player } = await API.getPlayer(this.playerId);
+        const { data: { player } } = await API.getPlayer(this.playerId);
         UI.renderLeftPanel(player);
         this.updateMainActionBar(player);
         this._isResting = !!(player.stats && player.stats.isResting);
@@ -1065,7 +1013,7 @@ const GameClient = {
         campBtn.classList.remove('ma-btn-resting');
       }
     }
-    const exploreBtns = document.querySelectorAll('#btnContinueExplore, #btnQuickExplore, .ma-btn-primary, .ma-btn-explore');
+    const exploreBtns = document.querySelectorAll('#btnContinueExplore, .ma-btn-primary, .ma-btn-explore');
     exploreBtns.forEach(btn => {
       if (isResting) {
         btn.setAttribute('disabled', 'disabled');
@@ -1107,12 +1055,42 @@ const GameClient = {
   async loadInventory() {
     try {
       const { items } = await API.getInventory(this.playerId);
-      const contentHTML = UI.renderInventory(items);
+      var recipesResp = await API.getSynthesisRecipes();
+      var recipes = recipesResp.recipes || [];
+      // Compute available counts per recipe
+      var itemMap = {};
+      (items || []).forEach(function(it) { itemMap[it.item_key] = it.quantity; });
+      recipes.forEach(function(r) {
+        r.canSynthesize = r.inputs.every(function(inp) { return (itemMap[inp.itemKey] || 0) >= inp.quantity; });
+      });
+      const contentHTML = UI.renderInventoryWithSynthesis(items, recipes);
       UI.openDrawer('背包', contentHTML);
-      const { player } = await API.getPlayer(this.playerId);
+      const { data: { player } } = await API.getPlayer(this.playerId);
       UI.renderLeftPanel(player);
     } catch (e) {
       UI.addLog('加载背包失败: ' + (e.message || e), 'warning');
+    }
+  },
+
+  async synthesize(recipeKey) {
+    try {
+      var result = await API.synthesize(this.playerId, recipeKey);
+      if (result.error) { alert(result.error.message || '合成失败'); return; }
+      UI.addLog('合成成功: ' + result.recipe, 'reward');
+      this.loadInventory();
+    } catch (e) {
+      UI.addLog('合成失败: ' + (e.message || e), 'warning');
+    }
+  },
+
+  async synthesizeAll(recipeKey) {
+    try {
+      var result = await API.synthesizeAll(this.playerId, recipeKey);
+      if (result.error) { alert(result.error.message || '合成失败'); return; }
+      UI.addLog('批量合成: ' + result.times + ' 次', 'reward');
+      this.loadInventory();
+    } catch (e) {
+      UI.addLog('批量合成失败: ' + (e.message || e), 'warning');
     }
   },
 
@@ -1120,7 +1098,7 @@ const GameClient = {
     try {
       const result = await API.useItem(this.playerId, itemKey);
       if (result.error) {
-        alert(result.error.message || '使用失败');
+        UI.addLog(result.error.message || '使用失败', 'warning');
         return;
       }
       UI.addLog(`使用了: ${result.used}`, 'reward');
@@ -1133,9 +1111,54 @@ const GameClient = {
     }
   },
 
+  async useBatch(itemKey, maxQty) {
+    var qty = prompt('要使用多少个？（最大: ' + maxQty + '）', Math.min(maxQty, 10));
+    if (!qty) return;
+    var n = parseInt(qty);
+    if (isNaN(n) || n <= 0 || n > maxQty) { alert('数量无效'); return; }
+    try {
+      var result = await API.useBatch(this.playerId, itemKey, n);
+      if (result.error) { alert(result.error.message || '使用失败'); return; }
+      UI.addLog('批量使用: ' + result.used + ' 次', 'reward');
+      this.loadInventory();
+    } catch (e) {
+      UI.addLog('批量使用失败: ' + (e.message || e), 'warning');
+    }
+  },
+
+  _toggleSelectAll(checked) {
+    var checks = document.querySelectorAll('.inv-item-check');
+    checks.forEach(function(c) { c.checked = checked; });
+  },
+
+  _invertSelection() {
+    var checks = document.querySelectorAll('.inv-item-check');
+    checks.forEach(function(c) { c.checked = !c.checked; });
+  },
+
+  async sellBatch() {
+    var checks = document.querySelectorAll('.inv-item-check:checked');
+    if (checks.length === 0) { alert('请先勾选要出售的物品'); return; }
+    var items = [];
+    checks.forEach(function(c) {
+      items.push({ itemKey: c.dataset.itemKey, quantity: parseInt(c.dataset.qty) });
+    });
+    var totalPrice = 0;
+    checks.forEach(function(c) { totalPrice += parseInt(c.dataset.price) * parseInt(c.dataset.qty); });
+    if (!confirm('确定出售 ' + items.length + ' 种物品，获得 ' + totalPrice + ' 硬币？')) return;
+    try {
+      var result = await API.sellBatch(this.playerId, items);
+      if (result.error) { alert(result.error.message || '出售失败'); return; }
+      UI.addLog('批量出售获得 ' + result.coins + ' 硬币', 'reward');
+      this.loadInventory();
+    } catch (e) {
+      UI.addLog('批量出售失败: ' + (e.message || e), 'warning');
+    }
+  },
+
   // ===== Mobile =====
   async openMapFromMobile() {
-    UI._highlightMobileNav('explore');
+    UI.highlightNav('explore');
     await this.showMap();
   },
 
@@ -1146,7 +1169,7 @@ const GameClient = {
       var activeSets = data.active_sets || [];
       var contentHTML = UI.renderEquipment(data.equipped, data.available, activeSets);
       UI.openDrawer('装备', contentHTML);
-      var playerResp = await API.getPlayer(this.playerId);
+      var { data: playerResp } = await API.getPlayer(this.playerId);
       UI.renderLeftPanel(playerResp.player);
       UI.renderDescriptionPanel(playerResp.player, 'equipment');
     } catch (e) {
@@ -1158,7 +1181,7 @@ const GameClient = {
     try {
       const result = await API.equipItem(this.playerId, equipmentKey, null);
       if (result.error) {
-        alert(result.error.message || '装备失败');
+        UI.addLog(result.error.message || '装备失败', 'warning');
         return;
       }
       const eqName = (result.equipped && result.equipped.name) || equipmentKey;
@@ -1170,16 +1193,39 @@ const GameClient = {
   },
 
   async unequipItem(slot) {
+    if (!confirm(`确认卸下 ${UI._labelSlot(slot)} 栏位的装备？`)) return;
     try {
       const result = await API.unequipItem(this.playerId, slot);
       if (result.error) {
-        alert(result.error.message || '卸下失败');
+        UI.addLog(result.error.message || '卸下失败', 'warning');
         return;
       }
       UI.addLog(`卸下了 ${UI._labelSlot(slot)} 栏位的装备`, 'system');
       this.loadEquipment();
     } catch (e) {
       UI.addLog('卸下装备失败: ' + (e.message || e), 'warning');
+    }
+  },
+
+  async repairItem(slot) {
+    try {
+      var result = await API.repairItem(this.playerId, slot);
+      if (result.error) { alert(result.error.message || '修理失败'); return; }
+      UI.addLog('修理了 ' + result.item + '（花费 ' + result.cost + ' 硬币）', 'system');
+      this.loadEquipment();
+    } catch (e) {
+      UI.addLog('修理失败: ' + (e.message || e), 'warning');
+    }
+  },
+
+  async repairAll() {
+    try {
+      var result = await API.repairAll(this.playerId);
+      if (result.error) { alert(result.error.message || '修理失败'); return; }
+      UI.addLog('全部装备已修理（花费 ' + result.cost + ' 硬币）', 'system');
+      this.loadEquipment();
+    } catch (e) {
+      UI.addLog('全部修理失败: ' + (e.message || e), 'warning');
     }
   },
 
@@ -1198,7 +1244,7 @@ const GameClient = {
 
       var contentHTML = UI.renderSkills(skills, factionSkills);
       UI.openDrawer('技能', contentHTML);
-      var playerResp = await API.getPlayer(this.playerId);
+      var { data: playerResp } = await API.getPlayer(this.playerId);
       UI.renderLeftPanel(playerResp.player);
     } catch (e) {
       UI.addLog('加载技能失败: ' + (e.message || e), 'warning');
@@ -1214,7 +1260,7 @@ const GameClient = {
     try {
       var result = await API.unlockSkill(this.playerId, skillKey);
       if (result.error) {
-        alert(result.error.message || '解锁失败');
+        UI.addLog(result.error.message || '解锁失败', 'warning');
         return;
       }
       var skName = result.skill && result.skill.name || skillKey;
@@ -1229,7 +1275,7 @@ const GameClient = {
     try {
       var result = await API.learnFactionSkill(this.playerId, skillKey);
       if (result.error) {
-        alert(result.error.message || '学习失败');
+        UI.addLog(result.error.message || '学习失败', 'warning');
         return;
       }
       var skName = result.skill && result.skill.skill_name || skillKey;
@@ -1246,7 +1292,7 @@ const GameClient = {
       const { titles } = await API.getTitles(this.playerId);
       const contentHTML = UI.renderAllTitles(titles);
       UI.openDrawer('称号', contentHTML);
-      const { player } = await API.getPlayer(this.playerId);
+      const { data: { player } } = await API.getPlayer(this.playerId);
       UI.renderLeftPanel(player);
     } catch (e) {
       UI.addLog('加载称号失败: ' + (e.message || e), 'warning');
@@ -1255,7 +1301,7 @@ const GameClient = {
 
   async openArchive() {
     try {
-      const { player } = await API.getPlayer(this.playerId);
+      const { data: { player } } = await API.getPlayer(this.playerId);
       if (!player.stats && player.stats_json) {
         player.stats = typeof player.stats_json === 'string' ? JSON.parse(player.stats_json) : player.stats_json;
       }
@@ -1275,9 +1321,9 @@ const GameClient = {
       ]);
       const opponentsHTML = UI.renderPKOpponents(oppData.opponents || []);
       const recordsHTML = UI.renderPKRecords(recData.records || []);
-      const contentHTML = opponentsHTML + '<div class="drawer-section-label" style="margin-top:16px;">PK记录</div>' + recordsHTML;
+      const contentHTML = opponentsHTML + '<div class="drawer-section-label mt-16">PK记录</div>' + recordsHTML;
       UI.openDrawer('世界PK', contentHTML);
-      const { player } = await API.getPlayer(this.playerId);
+      const { data: { player } } = await API.getPlayer(this.playerId);
       UI.renderLeftPanel(player);
     } catch (e) {
       UI.addLog('加载PK失败: ' + (e.message || e), 'warning');
@@ -1285,18 +1331,10 @@ const GameClient = {
   },
 
   async doPK(defenderId) {
-    var self = this;
-    var mode = (self['_pkMode_' + defenderId]) || 'spar';
-
-    if (mode === 'deathmatch') {
-      var confirmed = confirm('[ 生死对决 ] 败者将失去全部储物（物品、装备）和一半硬币！确认发起？');
-      if (!confirmed) return;
-    }
-
     try {
-      var result = await API.challengePlayer(this.playerId, defenderId, mode);
+      var result = await API.challengePlayer(this.playerId, defenderId);
       if (result.error) {
-        alert(result.error.message || '挑战失败');
+        UI.addLog(result.error.message || '挑战失败', 'warning');
         return;
       }
       if (result.success && result.data && result.data.message) {
@@ -1312,7 +1350,7 @@ const GameClient = {
     try {
       var result = await API.resolveChallenge(challengeId, this.playerId, accept);
       if (result.error) {
-        alert(result.error.message || '操作失败');
+        UI.addLog(result.error.message || '操作失败', 'warning');
         return;
       }
       if (accept && result.data && result.data.battle) {
@@ -1341,7 +1379,7 @@ const GameClient = {
     var self = this;
     try {
       var tab = self._rankingTab;
-      var contentHTML = '<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">' +
+      var contentHTML = '<div class="flex-row-wrap mb-12">' +
         '<button class="ma-btn ' + (tab === 'hub' ? 'primary' : '') + '" onclick="GameClient.loadRankingsTab(\'hub\')">总览</button>' +
         '<button class="ma-btn ' + (tab === 'pk' ? 'primary' : '') + '" onclick="GameClient.loadRankingsTab(\'pk\')">PK榜</button>' +
         '<button class="ma-btn ' + (tab === 'avatar' ? 'primary' : '') + '" onclick="GameClient.loadRankingsTab(\'avatar\')">位阶榜</button>' +
@@ -1377,48 +1415,48 @@ const GameClient = {
       var avatarData = await API.getAvatarRankLeaderboard(5);
       var broadcastData = await API.getBroadcastLeaderboard(5);
 
-      html += '<div class="drawer-section-label" style="margin-top:0;">PK 排行榜 (Top 5)</div>';
+      html += '<div class="drawer-section-label">PK 排行榜 (Top 5)</div>';
       if (pkData.rankings && pkData.rankings.length > 0) {
-        html += '<table class="drawer-table" style="margin-bottom:16px;"><thead><tr><th>#</th><th>玩家</th><th>Lv</th><th>评分</th></tr></thead><tbody>';
+        html += '<table class="drawer-table mb-16"><thead><tr><th>#</th><th>玩家</th><th>Lv</th><th>评分</th></tr></thead><tbody>';
         for (var i = 0; i < pkData.rankings.length; i++) {
           var r = pkData.rankings[i];
           html += '<tr><td class="' + (i < 3 ? 'rank-top' : '') + '">' + (r.rank || i + 1) + '</td><td>' + r.player_name + '</td><td>' + r.level + '</td><td>' + r.rating + '</td></tr>';
         }
         html += '</tbody></table>';
       } else {
-        html += '<p style="color:var(--text-secondary);text-align:center;padding:12px;">暂无数据</p>';
+        html += '<p class="text-secondary text-center px-12 py-8">暂无数据</p>';
       }
 
       html += '<div class="drawer-section-label">位阶排行榜 (Top 5)</div>';
       if (avatarData.rankings && avatarData.rankings.length > 0) {
-        html += '<table class="drawer-table" style="margin-bottom:16px;"><thead><tr><th>#</th><th>玩家</th><th>化身位阶</th><th>Lv</th></tr></thead><tbody>';
+        html += '<table class="drawer-table mb-16"><thead><tr><th>#</th><th>玩家</th><th>化身位阶</th><th>Lv</th></tr></thead><tbody>';
         for (var j = 0; j < avatarData.rankings.length; j++) {
           var ar = avatarData.rankings[j];
-          html += '<tr><td class="' + (j < 3 ? 'rank-top' : '') + '">' + (ar.rank || j + 1) + '</td><td>' + ar.player_name + '</td><td style="color:var(--gold);">' + ar.avatarRank + '级·' + ar.avatarRankName + '</td><td>' + ar.level + '</td></tr>';
+          html += '<tr><td class="' + (j < 3 ? 'rank-top' : '') + '">' + (ar.rank || j + 1) + '</td><td>' + ar.player_name + '</td><td class="text-gold">' + ar.avatarRank + '级·' + ar.avatarRankName + '</td><td>' + ar.level + '</td></tr>';
         }
         html += '</tbody></table>';
       } else {
-        html += '<p style="color:var(--text-secondary);text-align:center;padding:12px;">暂无数据</p>';
+        html += '<p class="text-secondary text-center px-12 py-8">暂无数据</p>';
       }
 
       html += '<div class="drawer-section-label">星流贡献榜 (Top 5)</div>';
       var bRankings = broadcastData.data || [];
       if (bRankings.length > 0) {
-        html += '<table class="drawer-table" style="margin-bottom:16px;"><thead><tr><th>#</th><th>玩家</th><th>Lv</th><th>贡献值</th></tr></thead><tbody>';
+        html += '<table class="drawer-table mb-16"><thead><tr><th>#</th><th>玩家</th><th>Lv</th><th>贡献值</th></tr></thead><tbody>';
         for (var k = 0; k < bRankings.length; k++) {
           var br = bRankings[k];
-          html += '<tr><td class="' + (k < 3 ? 'rank-top' : '') + '">' + (br.rank || k + 1) + '</td><td>' + br.player_name + '</td><td>' + br.level + '</td><td style="color:var(--teal);">' + br.total_contribution + '</td></tr>';
+          html += '<tr><td class="' + (k < 3 ? 'rank-top' : '') + '">' + (br.rank || k + 1) + '</td><td>' + br.player_name + '</td><td>' + br.level + '</td><td class="text-teal">' + br.total_contribution + '</td></tr>';
         }
         html += '</tbody></table>';
       } else {
-        html += '<p style="color:var(--text-secondary);text-align:center;padding:12px;">暂无数据</p>';
+        html += '<p class="text-secondary text-center px-12 py-8">暂无数据</p>';
       }
 
-      html += '<div style="text-align:center;margin-top:8px;">';
-      html += '<span style="color:var(--text-secondary);font-size:0.8em;">点击上方标签查看完整榜单</span>';
+      html += '<div class="text-center mt-8">';
+      html += '<span class="text-secondary fs-11">点击上方标签查看完整榜单</span>';
       html += '</div>';
     } catch (e) {
-      html = '<p style="text-align:center;color:var(--text-secondary);padding:32px;">加载排行总览失败。</p>';
+      html = '<p class="empty-state">加载排行总览失败。</p>';
     }
     return html;
   },
@@ -1473,7 +1511,7 @@ const GameClient = {
       const status = await API.getStageStatus(this.playerId);
       const contentHTML = UI.renderStagePanel(status);
       UI.openDrawer('主线阶段', contentHTML);
-      const { player } = await API.getPlayer(this.playerId);
+      const { data: { player } } = await API.getPlayer(this.playerId);
       UI.renderLeftPanel(player);
     } catch (e) {
       // Stage panel is non-critical; fail silently
@@ -1485,7 +1523,7 @@ const GameClient = {
       const response = await API.doStageAdvance(this.playerId, chapterKey);
       if (!response || !response.success) {
         const errMsg = (response && response.error && response.error.message) || '阶段推进失败';
-        alert(errMsg);
+        UI.addLog(errMsg, 'warning');
         await this.loadStageStatus();
         return;
       }
@@ -1553,7 +1591,7 @@ const GameClient = {
       }
       UI.addLog('领取了星流放送奖励', 'broadcast');
       this.loadBroadcast();
-      const { player } = await API.getPlayer(this.playerId);
+      const { data: { player } } = await API.getPlayer(this.playerId);
       UI.renderLeftPanel(player);
     } catch (e) {
       UI.addLog('领奖失败: ' + (e.message || e), 'warning');
@@ -1566,7 +1604,7 @@ const GameClient = {
     var amount = parseInt(prompt('提交数量:'));
     if (!amount || amount <= 0) return;
     try {
-      var result = await API.request('POST', '/api/broadcast/' + eventId + '/submit-resource', {
+      var result = await API.submitBroadcastResource(eventId, {
         playerId: this.playerId,
         resourceType: resourceType,
         amount: amount
@@ -1600,40 +1638,18 @@ const GameClient = {
 
   // ===== Faction (阵营) =====
   async openFaction() {
-    UI.openDrawer('星座阵营', '<div id="factionContent"><p style="text-align:center;color:var(--text-secondary);padding:32px;">加载中...</p></div>');
-    try {
-      var myFaction = null;
-      if (this.playerId) {
-        var myRes = await API.getMyFaction(this.playerId);
-        myFaction = (myRes && myRes.data) || null;
-      }
-      var lbRes = await API.getFactionLeaderboard();
-      var factions = (lbRes && lbRes.data) || [];
-      var warRes = await API.getWeeklyWar();
-      var war = (warRes && warRes.data) || null;
-      var content = document.getElementById('factionContent');
-      if (content) {
-        content.innerHTML = UI.renderFactionPanel(this.playerId, myFaction, factions, war);
-      }
-    } catch (e) {
-      var content = document.getElementById('factionContent');
-      if (content) content.innerHTML = '<p style="text-align:center;color:var(--danger);padding:32px;">加载阵营数据失败: ' + (e.message || e) + '</p>';
-    }
-  },
+    UI.openDrawer('星座阵营', '<div id="factionContent"><div class="loading-placeholder"><div class="loading-spinner"></div></div></div>');
 
-  // ===== Trade (交易市场) =====
-  async openTrade() {
-    UI.openDrawer('交易市场', '<div id="tradeContent"><p style="text-align:center;color:var(--text-secondary);padding:32px;">加载中...</p></div>');
     try {
       var listings = await API.getActiveListings();
       var myListings = this.playerId ? await API.getMyListings(this.playerId) : { data: [] };
-      var content = document.getElementById('tradeContent');
+      var content = document.getElementById('factionContent');
       if (content) {
         content.innerHTML = UI.renderTradePanel(this.playerId, (listings && listings.data) || [], (myListings && myListings.data) || []);
       }
     } catch (e) {
-      var content = document.getElementById('tradeContent');
-      if (content) content.innerHTML = '<p style="text-align:center;color:var(--danger);padding:32px;">加载失败: ' + (e.message || e) + '</p>';
+      var content = document.getElementById('factionContent');
+      if (content) content.innerHTML = '<div class="error-state">加载失败: ' + UI.escapeHtml(e.message || e) + '</div>';
     }
   },
 
@@ -1665,7 +1681,7 @@ const GameClient = {
 
   // ===== Party (组队) =====
   async openParty() {
-    UI.openDrawer('组队讨伐', '<div id="partyContent"><p style="text-align:center;color:var(--text-secondary);padding:32px;">加载中...</p></div>');
+    UI.openDrawer('组队讨伐', '<div id="partyContent"><div class="loading-placeholder"><div class="loading-spinner"></div></div></div>');
     try {
       var parties = await API.getActiveParties();
       var myParty = this.playerId ? await API.getMyParty(this.playerId) : null;
@@ -1675,7 +1691,7 @@ const GameClient = {
       }
     } catch (e) {
       var content = document.getElementById('partyContent');
-      if (content) content.innerHTML = '<p style="text-align:center;color:var(--danger);padding:32px;">加载失败: ' + (e.message || e) + '</p>';
+      if (content) content.innerHTML = '<div class="error-state">加载失败: ' + UI.escapeHtml(e.message || e) + '</div>';
     }
   },
 
@@ -1719,17 +1735,58 @@ const GameClient = {
     } catch (e) { UI.addLog('讨伐失败: ' + (e.message || e), 'warning'); }
   },
 
+  // ===== World Boss (世界Boss) =====
+  async openWorldBoss() {
+    UI.openDrawer('世界Boss', '<div id="worldBossContent"><p style="text-align:center;color:var(--text-secondary);padding:32px;">加载中...</p></div>');
+    try {
+      var status = await API.getWorldBossStatus();
+      var boss = status.active;
+      var ranking = status.ranking || [];
+      var content = document.getElementById('worldBossContent');
+      if (content) content.innerHTML = UI.renderWorldBossPanel(boss, ranking, this.playerId);
+    } catch (e) {
+      var content = document.getElementById('worldBossContent');
+      if (content) content.innerHTML = '<p style="text-align:center;color:var(--danger);padding:32px;">加载失败: ' + (e.message || e) + '</p>';
+    }
+  },
+
+  async fightWorldBoss() {
+    try {
+      var result = await API.fightWorldBoss(this.playerId, 'fight');
+      if (result.error) { UI.addLog(result.error.message, 'warning'); return; }
+      if (result.damage) {
+        UI.addLog((result.crit ? '暴击！' : '') + '对世界Boss造成 ' + result.damage + ' 点伤害', 'combat');
+        if (result.defeated) {
+          UI.addLog('世界Boss被击破了！', 'story');
+        }
+      }
+      this.openWorldBoss();
+    } catch (e) { UI.addLog('战斗失败: ' + (e.message || e), 'warning'); }
+  },
+
   // ===== Chat (聊天频道) =====
   _chatChannel: 'global',
   _chatLastId: 0,
   _chatTimer: null,
+  _playerConstellation: '',
 
   async openChat() {
-    this._chatChannel = 'global';
+    // Read player constellation for sect channel
+    try {
+      var resp = await API.getPlayer(this.playerId);
+      var player = (resp && resp.data && resp.data.player) ? resp.data.player : resp;
+      this._playerConstellation = (player && player.stats && player.stats.constellation) || '';
+    } catch (e) { /* */ }
     this._chatLastId = 0;
-    UI.openDrawer('聊天频道', '<div id="chatContent"><p style="text-align:center;color:var(--text-secondary);padding:32px;">加载中...</p></div>');
+    UI.openDrawer('聊天频道', '<div id="chatContent"><div class="loading-placeholder"><div class="loading-spinner"></div></div></div>');
     await this.loadChatMessages();
     this._startChatPolling();
+  },
+
+  async switchChatChannel(channel) {
+    this._chatChannel = channel;
+    this._chatLastId = 0;
+    await this.loadChatMessages();
   },
 
   async loadChatMessages(silent) {
@@ -1742,7 +1799,7 @@ const GameClient = {
       if (!silent) {
         var chatContent = document.getElementById('chatContent');
         if (chatContent) {
-          chatContent.innerHTML = UI.renderChat(messages, this.playerId);
+          chatContent.innerHTML = UI.renderChat(messages, this.playerId, self._chatChannel);
           this._scrollChatToBottom();
         }
       } else {
@@ -1751,18 +1808,14 @@ const GameClient = {
         if (chatMsgs && messages.length > 0) {
           for (var i = 0; i < messages.length; i++) {
             var m = messages[i];
+            var isMine = this.playerId && m.player_id === this.playerId;
             var div = document.createElement('div');
-            if (m.msg_type === 'assist_invite') {
-              div.innerHTML = UI._renderAssistCard(m, self.playerId);
-            } else {
-              var isMine = self.playerId && m.player_id === self.playerId;
-              div.className = 'chat-msg' + (isMine ? ' chat-msg-mine' : '');
-              var html = '';
-              if (!isMine) html += '<span class="chat-msg-author">' + m.player_name + '</span>';
-              html += '<span class="chat-msg-text">' + m.message + '</span>';
-              html += '<span class="chat-msg-time">' + (m.created_at || '').substr(11, 5) + '</span>';
-              div.innerHTML = html;
-            }
+            div.className = 'chat-msg' + (isMine ? ' chat-msg-mine' : '');
+            var html = '';
+            if (!isMine) html += '<span class="chat-msg-author">' + UI.escapeHtml(m.player_name || '') + '</span>';
+            html += '<span class="chat-msg-text">' + UI.escapeHtml(m.message || '') + '</span>';
+            html += '<span class="chat-msg-time">' + (m.created_at || '').substr(11, 5) + '</span>';
+            div.innerHTML = html;
             chatMsgs.appendChild(div);
           }
           this._scrollChatToBottom();
@@ -1790,7 +1843,7 @@ const GameClient = {
     if (this._chatTimer) clearInterval(this._chatTimer);
     this._chatTimer = setInterval(function() {
       // Check if drawer is still open
-      var overlay = document.getElementById('drawerOverlay');
+      var overlay = document.getElementById('rightDrawer');
       if (!overlay || overlay.classList.contains('hidden')) {
         clearInterval(self._chatTimer);
         self._chatTimer = null;
@@ -1859,7 +1912,8 @@ const GameClient = {
     } catch (e) { /* non-critical */ }
   },
 
-  async removeFriend(friendId) {
+  async removeFriend(friendId, friendName) {
+    if (!confirm(`确认解除与「${friendName || '该玩家'}」的好友关系？`)) return;
     try {
       await API.removeFriend(this.playerId, friendId);
       UI.addLog('已删除好友', 'system');
@@ -1926,7 +1980,7 @@ const GameClient = {
   async showMap() {
     try {
       const { locations } = await API.getLocations(this.playerId);
-      const { player } = await API.getPlayer(this.playerId);
+      const { data: { player } } = await API.getPlayer(this.playerId);
       UI.showMapOverlay(locations, player);
       UI.renderLeftPanel(player);
     } catch (e) {
@@ -1937,7 +1991,7 @@ const GameClient = {
   travelToLocation(locationKey) {
     UI._currentMapLocation = locationKey;
     API.getLocations(this.playerId).then(({ locations }) => {
-      API.getPlayer(this.playerId).then(({ player }) => {
+      API.getPlayer(this.playerId).then(({ data: { player } }) => {
         UI.showMapOverlay(locations, player);
       });
     }).catch(() => {});
@@ -1960,10 +2014,10 @@ const GameClient = {
   // ===== Detailed Stats =====
   async loadDetailedStats() {
     try {
-      const { player } = await API.getPlayer(this.playerId);
+      const { data: { player } } = await API.getPlayer(this.playerId);
       let globalWLS = 0;
       try {
-        const wlStatus = await API.getWorldlineStatus();
+        const { data: wlStatus } = await API.getWorldlineStatus();
         globalWLS = wlStatus.worldLineShift || 0;
       } catch (e) { /* non-critical */ }
       const contentHTML = UI.renderDetailedStats(player, globalWLS);
@@ -1976,12 +2030,11 @@ const GameClient = {
   },
 
   // ===== Combat Actions =====
-  async doCombatAction(monsterKey, action, helperId) {
+  async doCombatAction(monsterKey, action) {
     try {
-      UI.hideSupportList();
-      const res = await API.resolveCombat(this.playerId, monsterKey, action, helperId);
+      const res = await API.resolveCombat(this.playerId, monsterKey, action);
       if (!res.success) {
-        alert((res.error && res.error.message) || '战斗操作失败');
+        UI.addLog((res.error && res.error.message) || '战斗操作失败', 'warning');
         return;
       }
       const data = res.data;
@@ -1993,48 +2046,12 @@ const GameClient = {
         this.updateMainActionBar(data.player);
       } else {
         // Refresh player if not included
-        const { player } = await API.getPlayer(this.playerId);
+        const { data: { player } } = await API.getPlayer(this.playerId);
         UI.renderLeftPanel(player);
         this.updateMainActionBar(player);
       }
     } catch (e) {
       UI.addLog('战斗操作失败: ' + (e.message || e), 'battle');
-    }
-  },
-
-  async publishBounty(monsterKey, locationKey, monsterName) {
-    var sharePercent = UI._bountySharePercent || 50;
-    try {
-      var overlay = document.getElementById('bountyDialogOverlay');
-      if (overlay) overlay.classList.add('hidden');
-      var result = await API.publishBounty(this.playerId, monsterKey, locationKey, monsterName, sharePercent, {});
-      if (result.error) {
-        UI.addLog(result.error.message || '发布悬赏失败', 'warning');
-        return;
-      }
-      UI.addLog(result.data.message || '悬赏已发布到世界频道！', 'system');
-    } catch (e) {
-      UI.addLog('发布悬赏失败: ' + (e.message || e), 'warning');
-    }
-  },
-
-  async acceptBounty(bountyId) {
-    try {
-      var result = await API.acceptBounty(bountyId, this.playerId);
-      if (result.error) {
-        UI.addLog(result.error.message || '响应悬赏失败', 'warning');
-        return;
-      }
-      var data = result.data || result;
-      UI.addLog(data.message || '悬赏已解决！', 'system');
-      // Refresh player
-      var resp = await API.getPlayer(this.playerId);
-      if (resp && resp.data && resp.data.player) {
-        UI.renderLeftPanel(resp.data.player);
-        this.updateMainActionBar(resp.data.player);
-      }
-    } catch (e) {
-      UI.addLog('响应悬赏失败: ' + (e.message || e), 'warning');
     }
   },
 
@@ -2045,7 +2062,8 @@ const GameClient = {
   async finishCombat() {
     UI.dismissPopup('combatPopupOverlay');
     // Refresh player after combat
-    const { player } = await API.getPlayer(this.playerId);
+        const { data: { player } } = await API.getPlayer(this.playerId);
+
     UI.renderLeftPanel(player);
     this.updateMainActionBar(player);
   },
@@ -2057,7 +2075,7 @@ const GameClient = {
     const spd = parseInt(document.getElementById('allocSpd')?.value) || 0;
     const crit = parseInt(document.getElementById('allocCrit')?.value) || 0;
     const total = atk + def + spd + crit;
-    if (total <= 0) { alert('请分配至少1点属性'); return; }
+    if (total <= 0) { UI.addLog('请分配至少1点属性', 'warning'); return; }
 
     try {
       const result = await API.allocatePoints(this.playerId, atk, def, spd, crit);
@@ -2066,22 +2084,22 @@ const GameClient = {
         UI.renderLeftPanel(result.data.player);
         this.loadDetailedStats();
       } else {
-        alert((result.error && result.error.message) || '分配失败');
+        UI.addLog((result.error && result.error.message) || '分配失败', 'warning');
       }
     } catch (e) {
-      alert('分配失败: ' + (e.message || ''));
+      UI.addLog('分配失败: ' + (e.message || ''), 'warning');
     }
   },
 
   async resetAllocation() {
     try {
-      const { player } = await API.getPlayer(this.playerId);
+      const { data: { player } } = await API.getPlayer(this.playerId);
       if (!player.stats && player.stats_json) {
         player.stats = typeof player.stats_json === 'string' ? JSON.parse(player.stats_json) : player.stats_json;
       }
       const s = player.stats || {};
       const totalAlloc = (s.allocatedAtk || 0) + (s.allocatedDef || 0) + (s.allocatedSpd || 0) + (s.allocatedCrit || 0);
-      if (totalAlloc <= 0) { alert('没有已分配的属性点'); return; }
+      if (totalAlloc <= 0) { UI.addLog('没有已分配的属性点', 'warning'); return; }
       const cost = Math.max(50, totalAlloc * 20);
       if (!confirm(`重置全部分配需要 ${cost} 枚硬币。已分配的 ${totalAlloc} 点属性将返还为自由点数。确认支付？`)) return;
 
@@ -2091,10 +2109,10 @@ const GameClient = {
         UI.renderLeftPanel(result.data.player);
         this.loadDetailedStats();
       } else {
-        alert((result.error && result.error.message) || '重置失败');
+        UI.addLog((result.error && result.error.message) || '重置失败', 'warning');
       }
     } catch (e) {
-      alert('重置失败: ' + (e.message || ''));
+      UI.addLog('重置失败: ' + (e.message || ''), 'warning');
     }
   },
 
@@ -2109,10 +2127,10 @@ const GameClient = {
           this.fetchChapter();
         });
       } else {
-        alert((result.error && result.error.message) || '选择失败');
+        UI.addLog((result.error && result.error.message) || '选择失败', 'warning');
       }
     } catch (e) {
-      alert('选择背后星失败: ' + (e.message || ''));
+      UI.addLog('选择背后星失败: ' + (e.message || ''), 'warning');
     }
   },
 
@@ -2129,16 +2147,16 @@ const GameClient = {
       if (result.success) {
         UI.dismissPopup('underworldPopupOverlay', async () => {
           UI.addLog(result.data.message || '你从冥界归来了。', 'story');
-          const { player } = await API.getPlayer(this.playerId);
+          const { data: { player } } = await API.getPlayer(this.playerId);
           UI.renderLeftPanel(player);
           this.updateMainActionBar(player);
           await this.fetchChapter();
         });
       } else {
-        alert((result.error && result.error.message) || '复活失败');
+        UI.addLog((result.error && result.error.message) || '复活失败', 'warning');
       }
     } catch (e) {
-      alert('复活失败: ' + (e.message || ''));
+      UI.addLog('复活失败: ' + (e.message || ''), 'warning');
     }
   },
 
@@ -2170,10 +2188,10 @@ const GameClient = {
           this._currentPlayer = resp.data.player;
         }
       } else {
-        alert((result.error && result.error.message) || '复活失败');
+        UI.addLog((result.error && result.error.message) || '复活失败', 'warning');
       }
     } catch (e) {
-      alert('复活失败: ' + (e.message || ''));
+      UI.addLog('复活失败: ' + (e.message || ''), 'warning');
     }
   },
 
@@ -2195,7 +2213,7 @@ const GameClient = {
 
   async loadQuests() {
     var self = this;
-    UI.openDrawer('任务', '<div id="questContent"><p style="text-align:center;color:var(--text-secondary);padding:32px;">加载中...</p></div>');
+    UI.openDrawer('任务', '<div id="questContent"><div class="loading-placeholder"><div class="loading-spinner"></div></div></div>');
     try {
       var resp = await API.getQuests(this.playerId);
       var data = (resp && resp.data) ? resp.data : null;
@@ -2207,7 +2225,7 @@ const GameClient = {
       }
     } catch (e) {
       var content = document.getElementById('questContent');
-      if (content) content.innerHTML = '<p style="text-align:center;color:var(--danger);padding:32px;">加载任务失败: ' + (e.message || e) + '</p>';
+      if (content) content.innerHTML = '<div class="error-state">加载任务失败: ' + UI.escapeHtml(e.message || e) + '</div>';
     }
   },
 
@@ -2278,21 +2296,21 @@ const GameClient = {
   // ===== Friend Requests panel =====
   openFriendRequests() {
     var self = this;
-    UI.openDrawer('好友申请', '<p style="text-align:center;color:var(--text-secondary);padding:32px;">加载中...</p>');
+    UI.openDrawer('好友申请', '<div class="loading-placeholder"><div class="loading-spinner"></div></div>');
     API.getFriendRequests(this.playerId).then(function(data) {
       var requests = (data && data.data) || [];
       var html = '';
       if (requests.length === 0) {
-        html = '<p style="text-align:center;color:var(--text-secondary);padding:32px;">暂无人申请加你为好友</p>';
+        html = '<p class="empty-state">暂无人申请加你为好友</p>';
       } else {
         html = '<div class="drawer-list">';
         for (var i = 0; i < requests.length; i++) {
           var r = requests[i];
           html += '<div class="drawer-card">';
-          html += '<span style="font-weight:600;">' + (r.from_player_name || '未知玩家') + '</span>';
-          html += '<span style="color:var(--text-secondary);font-size:12px;"> 请求加为好友</span>';
-          html += '<div style="margin-top:8px;display:flex;gap:8px;">';
-          html += '<button class="btn-action" onclick="GameClient.acceptFriendRequest(' + r.id + ',\'' + (r.from_player_name || '') + '\')">接受</button>';
+          html += '<span class="fw-600">' + UI.escapeHtml(r.from_player_name || '未知玩家') + '</span>';
+          html += '<span class="text-secondary fs-12"> 请求加为好友</span>';
+          html += '<div class="mt-8 flex-row">';
+          html += '<button class="btn-action" onclick="GameClient.acceptFriendRequest(' + r.id + ',\'' + (r.from_player_name || '').replace(/'/g, "\\'") + '\')">接受</button>';
           html += '<button class="btn-ma" onclick="GameClient.rejectFriendRequest(' + r.id + ')">拒绝</button>';
           html += '</div></div>';
         }
@@ -2300,60 +2318,39 @@ const GameClient = {
       }
       UI.openDrawer('好友申请', html);
     }).catch(function(e) {
-      UI.openDrawer('好友申请', '<p style="text-align:center;color:var(--text-secondary);padding:32px;">加载失败</p>');
-    });
-  },
-
-  acceptFriendRequest(requestId, fromName) {
-    var self = this;
-    API.acceptFriendRequest(this.playerId, requestId).then(function() {
-      UI.addLog('已接受 ' + fromName + ' 的好友申请', 'system');
-      UI.closeDrawer();
-      self.openFriends();
-    }).catch(function(e) {
-      UI.addLog('操作失败: ' + (e.message || e), 'warning');
-    });
-  },
-
-  rejectFriendRequest(requestId) {
-    var self = this;
-    API.rejectFriendRequest(this.playerId, requestId).then(function() {
-      UI.addLog('已拒绝好友申请', 'system');
-      self.openFriendRequests();
-    }).catch(function(e) {
-      UI.addLog('操作失败: ' + (e.message || e), 'warning');
+      UI.openDrawer('好友申请', '<div class="empty-state">加载失败</div>');
     });
   },
 
   // ===== Gift panel =====
   openGiftPanel() {
     var self = this;
-    UI.openDrawer('赠送礼物', '<p style="text-align:center;color:var(--text-secondary);padding:32px;">加载中...</p>');
+    UI.openDrawer('赠送礼物', '<div class="loading-placeholder"><div class="loading-spinner"></div></div>');
     Promise.all([
       API.getFriendList(this.playerId),
       API.getInventory(this.playerId)
     ]).then(function(results) {
       var friends = (results[0] && results[0].data) || [];
       var inventory = (results[1] && results[1].data) || [];
-      var html = '<div style="padding:8px;">';
+      var html = '<div class="p-8">';
       if (friends.length === 0) {
-        html += '<p style="text-align:center;color:var(--text-secondary);padding:16px;">暂无好友可赠送，先加个好友吧</p>';
+        html += '<p class="empty-state p-16">暂无好友可赠送，先加个好友吧</p>';
       } else if (inventory.length === 0) {
-        html += '<p style="text-align:center;color:var(--text-secondary);padding:16px;">背包空空，无可赠送的物品</p>';
+        html += '<p class="empty-state">背包空空，无可赠送的物品</p>';
       } else {
-        html += '<p style="margin-bottom:8px;">选择好友：</p>';
-        html += '<select id="giftTarget" style="width:100%;padding:8px;margin-bottom:16px;background:#1a1a2e;color:#ccc;border:1px solid #333;border-radius:4px;">';
+        html += '<p class="mb-8">选择好友：</p>';
+        html += '<select id="giftTarget" class="app-select mb-16">';
         for (var i = 0; i < friends.length; i++) {
           html += '<option value="' + friends[i].id + '">' + friends[i].player_name + '</option>';
         }
         html += '</select>';
-        html += '<p style="margin-bottom:8px;">选择物品：</p>';
+        html += '<p class="mb-8">选择物品：</p>';
         html += '<div style="max-height:200px;overflow-y:auto;">';
         for (var j = 0; j < inventory.length; j++) {
           var item = inventory[j];
-          html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid #222;cursor:pointer;" onclick="GameClient.sendGift(\'' + item.item_key + '\')">';
-          html += '<span>' + (item.item_name || item.item_key) + ' x' + (item.quantity || 1) + '</span>';
-          html += '<span style="color:var(--text-secondary);font-size:12px;">赠送</span>';
+          html += '<div class="drawer-record-flex p-8 cursor-pointer border-bottom" onclick="GameClient.sendGift(\'' + item.item_key + '\')">';
+          html += '<span class="dr-text">' + (item.item_name || item.item_key) + ' x' + (item.quantity || 1) + '</span>';
+          html += '<span class="text-secondary fs-12 flex-shrink-0">赠送</span>';
           html += '</div>';
         }
         html += '</div>';
@@ -2361,7 +2358,7 @@ const GameClient = {
       html += '</div>';
       UI.openDrawer('赠送礼物', html);
     }).catch(function(e) {
-      UI.openDrawer('赠送礼物', '<p style="text-align:center;color:var(--text-secondary);padding:32px;">加载失败</p>');
+      UI.openDrawer('赠送礼物', '<div class="empty-state">加载失败</div>');
     });
   },
 
@@ -2384,26 +2381,26 @@ const GameClient = {
   // ===== Recent interactions =====
   openRecentInteractions() {
     var self = this;
-    UI.openDrawer('最近互动', '<p style="text-align:center;color:var(--text-secondary);padding:32px;">加载中...</p>');
+    UI.openDrawer('最近互动', '<div class="loading-placeholder"><div class="loading-spinner"></div></div>');
     API.getRecentInteractions(this.playerId).then(function(data) {
       var interactions = (data && data.data) || [];
       var html = '';
       if (interactions.length === 0) {
-        html = '<p style="text-align:center;color:var(--text-secondary);padding:32px;">暂无最近互动记录</p>';
+        html = '<p class="empty-state">暂无最近互动记录</p>';
       } else {
         html = '<div class="drawer-list">';
         for (var i = 0; i < interactions.length; i++) {
           var ix = interactions[i];
-          html += '<div class="drawer-card" style="font-size:13px;">';
+          html += '<div class="drawer-card fs-13">';
           html += '<span>' + (ix.description || ix.type || '互动') + '</span>';
-          html += '<span style="float:right;color:var(--text-secondary);font-size:11px;">' + (ix.created_at || '').substr(0,16) + '</span>';
+          html += '<span class="text-secondary">' + (ix.created_at || '').substr(0,16) + '</span>';
           html += '</div>';
         }
         html += '</div>';
       }
       UI.openDrawer('最近互动', html);
     }).catch(function(e) {
-      UI.openDrawer('最近互动', '<p style="text-align:center;color:var(--text-secondary);padding:32px;">暂无最近互动记录</p>');
+      UI.openDrawer('最近互动', '<p class="empty-state">暂无最近互动记录</p>');
     });
   },
 
@@ -2528,121 +2525,19 @@ const GameClient = {
   },
 
   // Heartbeat every 30s to mark online + poll for PK challenges
-  startWebSocket() {
-    var self = this;
-    if (self._wsReconnectTimer) { clearTimeout(self._wsReconnectTimer); self._wsReconnectTimer = null; }
-    if (self._ws && self._ws.readyState <= 1) return;
-
-    var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    var wsUrl = proto + '//' + location.host + '/ws';
-
-    try {
-      self._ws = new WebSocket(wsUrl);
-    } catch (e) {
-      self._wsReconnectTimer = setTimeout(function() { self.startWebSocket(); }, 5000);
-      return;
-    }
-
-    self._ws.onopen = function() {
-      self._ws.send(JSON.stringify({
-        type: 'auth',
-        token: Storage.getToken(),
-        playerId: self.playerId,
-        playerName: self._currentPlayer ? self._currentPlayer.player_name : ''
-      }));
-    };
-
-    self._ws.onmessage = function(event) {
-      try {
-        var msg = JSON.parse(event.data);
-      } catch (e) { return; }
-
-      switch (msg.type) {
-        case 'auth_ok':
-          if (self._wsPingInterval) clearInterval(self._wsPingInterval);
-          self._wsPingInterval = setInterval(function() {
-            if (self._ws && self._ws.readyState === 1) {
-              try { self._ws.send(JSON.stringify({ type: 'ping' })); } catch (e) { /* */ }
-            }
-          }, 20000);
-          break;
-
-        case 'pong':
-          break;
-
-        case 'pk_challenge':
-          UI.showChallengePopup([{
-            id: msg.challengeId,
-            attacker_id: msg.attackerId,
-            attacker_name: msg.attackerName,
-            mode: msg.mode || 'spar'
-          }], self.playerId);
-          break;
-
-        case 'pk_result':
-          if (msg.accepted) {
-            UI.renderPKResult(msg.battle);
-          } else {
-            UI.addLog(msg.message || '对方拒绝了挑战', 'system');
-          }
-          break;
-
-        case 'pk_timeout':
-          UI.addLog(msg.message || '挑战已超时', 'system');
-          break;
-
-        case 'pk_challenge_expired':
-          UI.dismissChallengePopup();
-          break;
-
-        case 'assist_invite':
-          // Append bounty card to chat if chat is open
-          (function() {
-            var chatMsgs = document.getElementById('chatMessages');
-            if (chatMsgs) {
-              var cardHtml = UI._renderAssistCard({
-                player_name: msg.ownerName || '',
-                message: '【' + (msg.ownerName || '') + '】遭遇了可怕的 ' + (msg.monsterName || '') + '，不敌求助\n悬赏 ' + (msg.sharePercent || 50) + '% 的修为与掉落',
-                created_at: new Date().toISOString(),
-                msg_type: 'assist_invite',
-                player_id: msg.ownerId,
-                metadata: { bountyId: msg.bountyId, ownerId: msg.ownerId, sharePercent: msg.sharePercent }
-              }, self.playerId);
-              var div = document.createElement('div');
-              div.innerHTML = cardHtml;
-              chatMsgs.appendChild(div.firstElementChild);
-              var container = document.getElementById('chatMessages');
-              if (container) container.scrollTop = container.scrollHeight;
-            }
-          })();
-          break;
-
-        case 'assist_resolved':
-          UI.addLog(msg.content || '悬赏已被响应', 'system');
-          break;
-      }
-    };
-
-    self._ws.onclose = function() {
-      if (self._wsPingInterval) { clearInterval(self._wsPingInterval); self._wsPingInterval = null; }
-      self._wsReconnectTimer = setTimeout(function() { self.startWebSocket(); }, 3000);
-    };
-
-    self._ws.onerror = function() {};
-  },
-
   startHeartbeat() {
     var self = this;
-    this.startWebSocket();
-
     if (this._heartbeatInterval) return;
     this._heartbeatInterval = setInterval(async function() {
       try {
         if (!self.playerId) return;
-        await API.heartbeat(self.playerId);
+        var resp = await API.heartbeat(self.playerId);
+        if (resp && resp.pendingChallenges && resp.pendingChallenges.length > 0) {
+          UI.showChallengePopup(resp.pendingChallenges, self.playerId);
+        }
       } catch (e) { /* silent */ }
-    }, 60000);
-
+    }, 30000);
+    // Immediate first beat
     setTimeout(async function() {
       try {
         if (!self.playerId) return;
@@ -2693,10 +2588,10 @@ const GameClient = {
   // ===== Faction Skills (阵营技能) =====
   async openFactionSkills() {
     var self = this;
-    UI.openDrawer('阵营技能', '<div id="factionSkillsContent"><p style="text-align:center;color:var(--text-secondary);padding:32px;">加载中...</p></div>');
+    UI.openDrawer('阵营技能', '<div id="factionSkillsContent"><div class="loading-placeholder"><div class="loading-spinner"></div></div></div>');
     try {
-      var skills = await API.getMyFactionSkills(this.playerId);
-      var data = (skills && skills.skills) || [];
+      var skills = await API.getPlayerFactionSkills(this.playerId);
+      var data = (skills && skills.data && skills.data.skills) || [];
       var playerRes = await API.getPlayer(this.playerId);
       var constellationKey = '';
       if (playerRes && playerRes.data && playerRes.data.player) {
@@ -2708,7 +2603,7 @@ const GameClient = {
       }
     } catch (e) {
       var content = document.getElementById('factionSkillsContent');
-      if (content) content.innerHTML = '<p style="text-align:center;color:var(--danger);padding:32px;">加载阵营技能失败: ' + (e.message || e) + '</p>';
+      if (content) content.innerHTML = '<div class="error-state">加载阵营技能失败: ' + UI.escapeHtml(e.message || e) + '</div>';
     }
   },
 

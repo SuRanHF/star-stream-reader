@@ -2,6 +2,7 @@
 var express = require('express');
 var router = express.Router();
 var partyService = require('../services/partyService');
+var { requireOwnPlayer } = require('../middleware/authMiddleware');
 
 // 获取所有活跃队伍
 router.get('/', function(req, res) {
@@ -13,6 +14,9 @@ router.get('/', function(req, res) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
+
+// Player ownership check for all subsequent routes
+router.use(requireOwnPlayer);
 
 // 获取玩家所在队伍
 router.get('/my/:playerId', function(req, res) {

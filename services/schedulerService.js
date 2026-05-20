@@ -91,7 +91,9 @@ function autoGenerateBroadcasts() {
 
   // 生成两个不同方案
   var draft1 = aiDirector.fallbackBroadcastGenerator(worldState);
+  if (!draft1) return;
   var draft2 = aiDirector.fallbackBroadcastGenerator(worldState);
+  if (!draft2) return;
   // 确保两个方案不同：第二个用不同的 eventType
   var draft1Types = getAllowedTypes(worldState);
   draft1.eventType = draft1Types[0];

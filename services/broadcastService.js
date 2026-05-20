@@ -134,7 +134,7 @@ function activateEvent(eventId) {
   if (event.status !== 'draft') return { success: false, error: { code: 'INVALID_STATUS', message: `当前状态 ${event.status} 不允许激活` } };
 
   const now = new Date().toISOString();
-  const endTime = new Date(Date.now() + (JSON.parse(event.objectives_json) ? 0 : 60) * 60000).toISOString();
+  const endTime = new Date(Date.now() + (JSON.parse(event.objectives_json || '[]') ? 0 : 60) * 60000).toISOString();
 
   // 用 stored duration 计算 end_time
   let end = endTime;
@@ -166,7 +166,8 @@ function joinEvent(eventId, playerId) {
   if (existing) return { success: false, error: { code: 'ALREADY_JOINED', message: '你已经参加了该放送' } };
 
   // 检查 requirements
-  const reqs = JSON.parse(event.requirements_json);
+  let reqs = {};
+  try { reqs = JSON.parse(event.requirements_json); } catch (e) { reqs = {}; }
   if (reqs.min_level) {
     const stats = JSON.parse(player.stats_json);
     if ((stats.level || 1) < reqs.min_level) {
@@ -195,7 +196,8 @@ function recordContribution(eventId, playerId, contributionType, amount, metadat
   if (!partic) return;
 
   // 检查 objective 是否包含此贡献类型
-  const objectives = JSON.parse(event.objectives_json);
+  let objectives = [];
+  try { objectives = JSON.parse(event.objectives_json); } catch (e) { objectives = []; }
   const relevantObj = objectives.find(o => o.type === contributionType);
   if (!relevantObj) return;
 
@@ -216,7 +218,8 @@ function getEventProgress(eventId) {
   const event = db.prepare('SELECT * FROM broadcast_events WHERE id = ?').get(eventId);
   if (!event) return { success: false, error: { code: 'NOT_FOUND', message: '放送事件不存在' } };
 
-  const objectives = JSON.parse(event.objectives_json);
+  let objectives = [];
+  try { objectives = JSON.parse(event.objectives_json); } catch (e) { objectives = []; }
   const participants = db.prepare('SELECT * FROM broadcast_participation WHERE event_id = ?').all(eventId);
 
   // 按 objective type 汇总贡献
@@ -291,7 +294,8 @@ function claimReward(eventId, playerId) {
     return { success: false, error: { code: 'ALREADY_CLAIMED', message: '你已经领取过奖励了' } };
   }
 
-  const rewards = JSON.parse(event.rewards_json);
+  let rewards = {};
+  try { rewards = JSON.parse(event.rewards_json); } catch (e) { rewards = {}; }
   const participationReward = rewards.participation || {};
   let granted = {};
 
@@ -299,6 +303,9 @@ function claimReward(eventId, playerId) {
   if (partic.contribution_score > 0 && participationReward) {
     if (participationReward.coins) {
       const player = playerService.get(playerId);
+      if (!player) {
+        return { success: false, error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } };
+      }
       playerService.update(playerId, { coins: (player.coins || 0) + participationReward.coins });
       granted.coins = participationReward.coins;
     }
@@ -321,6 +328,9 @@ function claimReward(eventId, playerId) {
     const completionReward = rewards.completion || {};
     if (completionReward.coins) {
       const player = playerService.get(playerId);
+      if (!player) {
+        return { success: false, error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } };
+      }
       playerService.update(playerId, { coins: (player.coins || 0) + completionReward.coins });
       granted.coins = (granted.coins || 0) + completionReward.coins;
     }
@@ -352,7 +362,8 @@ function resolveEvent(eventId, success) {
 
   // 如果成功，发放排名奖励
   if (success) {
-    const rewards = JSON.parse(event.rewards_json);
+    let rewards = {};
+    try { rewards = JSON.parse(event.rewards_json); } catch (e) { rewards = {}; }
     const rankingReward = rewards.ranking || {};
     if (Object.keys(rankingReward).length > 0) {
       const topParticipants = db.prepare(
@@ -362,6 +373,7 @@ function resolveEvent(eventId, success) {
       topParticipants.forEach((p, i) => {
         if (rankingReward.coins) {
           const player = playerService.get(p.player_id);
+          if (!player) return;
           const scaledCoins = Math.round(rankingReward.coins * (1 - i * 0.15)); // 递减
           playerService.update(p.player_id, { coins: (player.coins || 0) + scaledCoins });
           playerService.addLog(p.player_id, `星流放送排名奖励: 第${i + 1}名`);
@@ -500,7 +512,8 @@ function tryRecordContributions(playerId, contributions) {
   if (active.length === 0) return;
 
   for (const event of active) {
-    const objectives = JSON.parse(event.objectives_json);
+    let objectives = [];
+    try { objectives = JSON.parse(event.objectives_json); } catch (e) { objectives = []; }
     for (const c of contributions) {
       if (objectives.some(o => o.type === c.type)) {
         recordContribution(event.id, playerId, c.type, c.amount, c.metadata || {});

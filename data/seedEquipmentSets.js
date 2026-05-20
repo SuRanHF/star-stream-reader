@@ -57,7 +57,7 @@ function seedEquipmentSets(db) {
     {
       set_key: 'abyss_walker',
       set_name: '深渊漫步者套装',
-      pieces: ['abyss_resistance_pill_relic', 'abyss_silk_belt', 'memory_fragment'],
+      pieces: ['black_gloves', 'worldline_compass', 'rusty_dagger'],
       bonuses: [
         { pieces_required: 2, bonus: { def: 7, hp: 40 } },
         { pieces_required: 3, bonus: { def: 14, hp: 90, spd: 4 } }
@@ -68,7 +68,7 @@ function seedEquipmentSets(db) {
     {
       set_key: 'star_stream_observer',
       set_name: '星流观察者套装',
-      pieces: ['stardust_powder', 'observer_notes', 'constellation_lure'],
+      pieces: ['fallen_star_badge', 'observer_longcoat', 'channel_headset'],
       bonuses: [
         { pieces_required: 2, bonus: { spd: 5, luck: 2 } },
         { pieces_required: 3, bonus: { spd: 10, luck: 5, dropRate: 0.05 } }
@@ -79,7 +79,7 @@ function seedEquipmentSets(db) {
     {
       set_key: 'narrative_reconstructor',
       set_name: '叙事重构者套装',
-      pieces: ['story_scrap', 'script_permit_fragment', 'final_key_fragment'],
+      pieces: ['script_execution_blade', 'final_chapter_page', 'old_reader_badge'],
       bonuses: [
         { pieces_required: 2, bonus: { atk: 5, insight: 3 } },
         { pieces_required: 3, bonus: { atk: 12, insight: 6, hp: 80 } }
@@ -90,7 +90,7 @@ function seedEquipmentSets(db) {
     {
       set_key: 'destiny_seeker',
       set_name: '天命追寻者套装',
-      pieces: ['broken_relic', 'dream_shard', 'star_fragment'],
+      pieces: ['nameless_crown', 'throne_fragment', 'station_guard_coat'],
       bonuses: [
         { pieces_required: 2, bonus: { atk: 6, def: 4, spd: 3 } },
         { pieces_required: 3, bonus: { atk: 14, def: 10, spd: 7, hp: 100 } }

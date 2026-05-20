@@ -6,21 +6,21 @@ router.get('/', (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 50;
     const rankings = rankingService.getRankings(limit);
-    res.json({ rankings });
+    res.json({ success: true, data: { rankings } });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
 router.get('/:playerId', (req, res) => {
   try {
     const rank = rankingService.getPlayerRank(Number(req.params.playerId));
-    if (!rank) return res.json({ rank: null });
-    res.json({ rank });
+    if (!rank) return res.json({ success: true, data: { rank: null } });
+    res.json({ success: true, data: { rank } });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 

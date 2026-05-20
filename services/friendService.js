@@ -26,7 +26,9 @@ function sendFriendRequest(playerId, friendId) {
       // The other player already sent a request — auto-accept
       db.prepare("UPDATE friendships SET status='accepted', updated_at=datetime('now','localtime') WHERE id=?").run(existing.id);
       playerService.addLog(playerId, '与 ' + friend.player_name + ' 成为好友');
-      playerService.addLog(friendId, '与 ' + playerService.getRaw(playerId).player_name + ' 成为好友');
+      var requester = playerService.getRaw(playerId);
+      var requesterName = requester ? requester.player_name : '未知化身';
+      playerService.addLog(friendId, '与 ' + requesterName + ' 成为好友');
       return { success: true, data: { status: 'accepted', message: '好友申请已自动接受' } };
     }
     if (existing.status === 'blocked') {
@@ -38,7 +40,9 @@ function sendFriendRequest(playerId, friendId) {
     'INSERT INTO friendships (player_id, friend_id, status) VALUES (?, ?, ?)'
   ).run(playerId, friendId, 'pending');
 
-  playerService.addLog(friendId, playerService.getRaw(playerId).player_name + ' 向你发送了好友申请');
+  var requester = playerService.getRaw(playerId);
+  var requesterName = requester ? requester.player_name : '未知化身';
+  playerService.addLog(friendId, requesterName + ' 向你发送了好友申请');
   return { success: true, data: { status: 'pending', message: '好友申请已发送' } };
 }
 
@@ -51,7 +55,9 @@ function acceptFriendRequest(playerId, requestId) {
 
   var friend = playerService.getRaw(friendship.player_id);
   playerService.addLog(playerId, '与 ' + (friend ? friend.player_name : '对方') + ' 成为好友');
-  playerService.addLog(friendship.player_id, '与 ' + playerService.getRaw(playerId).player_name + ' 成为好友');
+  var accepter = playerService.getRaw(playerId);
+  var accepterName = accepter ? accepter.player_name : '未知化身';
+  playerService.addLog(friendship.player_id, '与 ' + accepterName + ' 成为好友');
   return { success: true, data: { message: '已接受好友申请' } };
 }
 
@@ -95,7 +101,7 @@ function getFriendList(playerId) {
       level: stats.level || 1,
       avatarRank: stats.avatarRank || 'F',
       avatarRankName: stats.avatarRankName || '临时化身',
-      isOnline: playerService.getOnlinePlayers().indexOf(friendId) >= 0,
+      isOnline: (playerService.getOnlinePlayers() || []).indexOf(friendId) >= 0,
       created_at: r.created_at
     };
   });
@@ -146,8 +152,7 @@ function sendGift(playerId, targetId, itemKey) {
   if (targetInv) {
     db.prepare("UPDATE player_inventory SET quantity=quantity+1 WHERE player_id=? AND item_key=?").run(targetId, itemKey);
   } else {
-    var itemInfo = db.prepare("SELECT item_name FROM items WHERE item_key=?").get(itemKey);
-    db.prepare("INSERT INTO player_inventory (player_id, item_key, item_name, quantity) VALUES (?,?,?,1)").run(targetId, itemKey, (itemInfo && itemInfo.item_name) || itemKey);
+    db.prepare("INSERT INTO player_inventory (player_id, item_key, quantity) VALUES (?,?,1)").run(targetId, itemKey);
   }
 
   playerService.addLog(playerId, '向 ' + target.player_name + ' 赠送了 ' + itemKey);

@@ -1027,10 +1027,10 @@ async function run() {
   header('化身位阶: 配置加载');
   var avatarRankService = require('../services/avatarRankService');
   var config = avatarRankService.getAvatarRankConfig();
-  ok('位阶配置加载成功', Array.isArray(config) && config.length === 6);
+  ok('位阶配置加载成功', Array.isArray(config) && config.length === 9);
   ok('F是第1个位阶', config[0].rankKey === 'F');
-  ok('A是最后1个位阶', config[5].rankKey === 'A');
-  ok('A没有下一阶', config[5].nextRankKey === null);
+  ok('SSS是最后1个位阶', config[8].rankKey === 'SSS');
+  ok('SSS没有下一阶', config[8].nextRankKey === null);
 
   header('化身位阶: 星流段位');
   ok('channelHeat=0 -> 无名观测者', avatarRankService.getStarstreamTier(0).label === '无名观测者');
@@ -1100,25 +1100,22 @@ async function run() {
   var rankUpAgain = avatarRankService.rankUp(rtPlayer3.id);
   ok('重复升阶被拒绝', rankUpAgain.success === false);
 
-  header('化身位阶: 到达A级后显示max');
+  header('化身位阶: 到达SSS级后显示max');
   var rtPlayer4 = playerService.create('RankTest_Max');
   playerService.update(rtPlayer4.id, {
     stats_json: Object.assign({}, playerService.defaultStats, {
-      level: 25, hp: 300, maxHp: 300, stamina: 100, maxStamina: 100,
-      attack: 30, defense: 20, speed: 15, channelHeat: 600,
-      avatarRank: 'A', avatarRankName: '故事承载者', storyGrade: 'notable',
-      insight: 10, willpower: 10, rating: 1500
+      level: 55, hp: 500, maxHp: 500, stamina: 150, maxStamina: 150,
+      attack: 50, defense: 50, speed: 20, channelHeat: 3500,
+      avatarRank: 'SSS', avatarRankName: '全知读者', storyGrade: 'mythic',
+      insight: 20, willpower: 20, rating: 2000
     })
   });
   var maxRankData = avatarRankService.getPlayerAvatarRank(rtPlayer4.id);
   ok('是最顶级位阶', maxRankData.isMaxRank === true);
   var maxRankUp = avatarRankService.rankUp(rtPlayer4.id);
   ok('最高位阶无法升阶', maxRankUp.success === false && maxRankUp.error.code === 'MAX_RANK');
-
-  header('化身位阶: storyGrade更新');
-  // Test B->A rank up sets storyGrade to notable
-  // Already verified in rank up test above; additionally test that rank up at A level is blocked
-  ok('A级storyGrade=notable', rtPlayer4.stats.storyGrade === 'notable' || true); // already set in test setup
+  var rtPlayer4After = playerService.get(rtPlayer4.id);
+  ok('SSS级storyGrade=mythic', rtPlayer4After.stats.storyGrade === 'mythic');
 
   // Cleanup rank test players
   db.prepare("DELETE FROM players WHERE player_name LIKE 'RankTest_%'").run();

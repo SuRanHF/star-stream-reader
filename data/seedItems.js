@@ -31,8 +31,8 @@ function seedItems(db) {
     // Skill fragments
     ['script_permit_fragment', '剧本许可碎片', '一个由剧本系统签发的晶莹碎片，内部封存着解锁一项技能的权限。', 'skill_fragment', 'epic', '{"skill_unlock_fragment":1}', 1, 200],
     // ── Phase 7: 新消耗品 & 材料 ──
-    ['medium_hp_potion', '中级恢复剂', '中级HP恢复药剂，恢复80HP', 'consumable', 'uncommon', '{"heal":80}', 1, 40],
-    ['stamina_elixir', '体力药剂', '恢复30点体力', 'consumable', 'uncommon', '{"stamina_restore":30}', 1, 35],
+    ['medium_hp_potion', '中级恢复剂', '中级HP恢复药剂，恢复80HP', 'consumable', 'uncommon', '{"heal_hp":80}', 1, 40],
+    ['stamina_elixir', '体力药剂', '恢复30点体力', 'consumable', 'uncommon', '{"restore_stamina":30}', 1, 35],
     ['constellation_lure', '星座诱饵', '使用后下次探索必触发 opportunity 事件', 'consumable', 'rare', '{"force_event":"opportunity"}', 1, 100],
     ['abyss_resistance_pill', '深渊抗性药', '使用后2小时内深渊裂隙探索worldLineShift累积减半', 'consumable', 'rare', '{"worldline_shift_reduction":0.5,"duration_minutes":120}', 1, 80],
     ['narrative_ward', '叙事护符', '使用后抵挡一次叙事污染事件（自动触发）', 'consumable', 'rare', '{"block_narrative_event":1}', 1, 65],

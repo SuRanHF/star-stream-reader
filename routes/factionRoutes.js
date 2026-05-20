@@ -39,7 +39,11 @@ router.get('/war/current', function(req, res) {
 // 玩家所属阵营
 router.get('/my/:playerId', function(req, res) {
   try {
-    var faction = factionService.getPlayerFaction(parseInt(req.params.playerId));
+    var playerId = parseInt(req.params.playerId);
+    if (isNaN(playerId)) {
+      return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: 'Invalid player ID' } });
+    }
+    var faction = factionService.getPlayerFaction(playerId);
     if (!faction) return res.json({ success: true, data: null });
     res.json({ success: true, data: faction });
   } catch (e) {

@@ -156,9 +156,9 @@ async function start() {
     try {
       var skillService = require('./services/skillService');
       var skills = skillService.getFactionSkills(req.params.constellationKey);
-      res.json({ skills });
+      res.json({ success: true, data: { skills } });
     } catch (e) {
-      res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+      res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
     }
   });
 
@@ -169,7 +169,7 @@ async function start() {
   app.use('/api/avatar-rank', authRequired, require('./routes/avatarRankRoutes'));
 
   // === Public Routes (no auth required) ===
-  app.use('/api/worldline', require('./routes/worldlineRoutes'));
+  app.use('/api/worldline', authRequired, require('./routes/worldlineRoutes'));
   app.use('/api/rankings', require('./routes/rankingRoutes'));
 
   // Admin (auth + admin check)
@@ -179,15 +179,15 @@ async function start() {
   app.use('/api/broadcast', require('./routes/broadcastRoutes'));
   app.use('/api/chat', require('./routes/chatRoutes'));
   app.use('/api/friends', require('./routes/friendRoutes'));
-  app.use('/api/factions', require('./routes/factionRoutes'));
-app.use('/api/trade', authRequired, require('./routes/tradeRoutes'));
-app.use('/api/party', authRequired, require('./routes/partyRoutes'));
-app.use('/api/narrative', require('./routes/narrativeRoutes'));
-app.use('/api/ai-director', require('./routes/aiDirectorRoutes'));
+  app.use('/api/factions', authRequired, require('./routes/factionRoutes'));
+  app.use('/api/trade', authRequired, require('./routes/tradeRoutes'));
+  app.use('/api/party', authRequired, require('./routes/partyRoutes'));
+  app.use('/api/narrative', authRequired, require('./routes/narrativeRoutes'));
+  app.use('/api/ai-director', require('./routes/aiDirectorRoutes'));
 
   // Health check
   app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', time: new Date().toISOString() });
+    res.json({ success: true, data: { status: 'ok', time: new Date().toISOString() } });
   });
 
   // Admin page route
@@ -212,14 +212,14 @@ app.use('/api/ai-director', require('./routes/aiDirectorRoutes'));
   });
 
   // Version check — client uses this to detect new deployments
-  app.get('/api/version', (req, res) => {
+  app.get('/api/version', authRequired, (req, res) => {
     try {
       const raw = fs.readFileSync(changelogPath, 'utf8');
       const changelog = JSON.parse(raw);
       const version = changelog[0]?.version || '0.0.0';
-      res.json({ version, deployTime: changelog[0]?.date || '' });
+      res.json({ success: true, data: { version, deployTime: changelog[0]?.date || '' } });
     } catch (e) {
-      res.json({ version: '0.0.0', deployTime: '' });
+      res.json({ success: true, data: { version: '0.0.0', deployTime: '' } });
     }
   });
 
@@ -230,9 +230,9 @@ app.use('/api/ai-director', require('./routes/aiDirectorRoutes'));
       playerService.updateHeartbeat(req.body.playerId);
       // Return pending PK challenges for this player
       const pendingChallenges = require('./services/pkService').getPendingChallenges(req.body.playerId);
-      res.json({ success: true, pendingChallenges: pendingChallenges || [] });
+      res.json({ success: true, data: { pendingChallenges: pendingChallenges || [] } });
     } catch (e) {
-      res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+      res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
     }
   });
 
@@ -249,7 +249,7 @@ app.use('/api/ai-director', require('./routes/aiDirectorRoutes'));
       if (method === 'coins') {
         const coinCost = result.coinCost;
         if ((reviver.coins || 0) < coinCost) {
-          return res.status(400).json({ error: { code: 'NOT_ENOUGH_COINS', message: '金币不足' } });
+          return res.status(400).json({ success: false, error: { code: 'NOT_ENOUGH_COINS', message: '金币不足' } });
         }
         playerService.update(reviverId, { coins: reviver.coins - coinCost });
         playerService.addLog(reviverId, '支付' + coinCost + '金币复活了' + (playerService.get(targetId)?.player_name || '一位玩家'));
@@ -258,7 +258,7 @@ app.use('/api/ai-director', require('./routes/aiDirectorRoutes'));
       } else if (method === 'title') {
         var reviverTitles = reviver.titles || [];
         if (reviverTitles.length === 0) {
-          return res.status(400).json({ error: { code: 'NO_TITLES', message: '没有任何称号可以献祭' } });
+          return res.status(400).json({ success: false, error: { code: 'NO_TITLES', message: '没有任何称号可以献祭' } });
         }
         var sacrificed = reviverTitles.pop();
         playerService.update(reviverId, { titles_json: reviverTitles });
@@ -266,22 +266,13 @@ app.use('/api/ai-director', require('./routes/aiDirectorRoutes'));
         playerService.addLog(targetId, reviver.player_name + '献祭了称号「' + sacrificed + '」将你从冥界拉回。');
         return res.json({ success: true, data: result });
       }
-      res.status(400).json({ error: { code: 'INVALID_METHOD', message: '无效的复活方式' } });
+      res.status(400).json({ success: false, error: { code: 'INVALID_METHOD', message: '无效的复活方式' } });
     } catch (e) {
       console.error(e);
-      res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+      res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
     }
   });
 
-  // Dead players list — for underworld panel
-  app.get('/api/player/dead-list', authRequired, (req, res) => {
-    try {
-      const playerService = require('./services/playerService');
-      res.json({ success: true, data: playerService.getDeadPlayers() });
-    } catch (e) {
-      res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
-    }
-  });
 
   // Global error handler — must be registered after all routes
   app.use((err, req, res, next) => {

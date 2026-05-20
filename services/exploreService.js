@@ -133,14 +133,14 @@ function startExploration(playerId, locationKey, opts) {
   opts = opts || {};
   const db = getDb();
   const player = playerService.get(playerId);
-  if (!player) return { error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } };
+  if (!player) return { success: false, error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } };
 
   const location = db.prepare('SELECT * FROM locations WHERE location_key = ?').get(locationKey);
-  if (!location) return { error: { code: 'LOCATION_NOT_FOUND', message: '地图不存在' } };
+  if (!location) return { success: false, error: { code: 'LOCATION_NOT_FOUND', message: '地图不存在' } };
 
   const conditions = JSON.parse(location.unlock_conditions_json);
   if (!checkUnlockConditions(player, conditions)) {
-    return { error: { code: 'LOCATION_LOCKED', message: '该地图尚未解锁' } };
+    return { success: false, error: { code: 'LOCATION_LOCKED', message: '该地图尚未解锁' } };
   }
 
   // 称号修正
@@ -179,7 +179,7 @@ function startExploration(playerId, locationKey, opts) {
     staminaCost = 0;
   }
   if (staminaCost > 0 && (stats.stamina || 0) < staminaCost) {
-    return { error: { code: 'NO_STAMINA', message: `体力不足，需要${staminaCost}点体力，请等待恢复或使用道具` } };
+    return { success: false, error: { code: 'NO_STAMINA', message: `体力不足，需要${staminaCost}点体力，请等待恢复或使用道具` } };
   }
   if (staminaCost > 0) {
     stats.stamina -= staminaCost;

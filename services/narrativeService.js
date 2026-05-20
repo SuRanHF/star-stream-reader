@@ -170,7 +170,7 @@ function applyNpcEffects(db, playerId, effects) {
   // Stat changes
   if (effects.statChange) {
     try {
-      var player = db.prepare('SELECT stats_json, hp, mp FROM players WHERE id = ?').get(playerId);
+      var player = db.prepare('SELECT stats_json FROM players WHERE id = ?').get(playerId);
       if (player) {
         var stats = JSON.parse(player.stats_json || '{}');
         var sc = effects.statChange;
@@ -192,14 +192,14 @@ function applyNpcEffects(db, playerId, effects) {
           }
         }
 
-        db.prepare('UPDATE players SET stats_json = ? WHERE id = ?').run(JSON.stringify(stats), playerId);
-
-        // Handle HP changes
+        // Handle HP changes (HP stored in stats_json)
         if (sc.hp) {
-          var newHp = Math.max(0, player.hp + sc.hp);
-          db.prepare('UPDATE players SET hp = ? WHERE id = ?').run(newHp, playerId);
-          result.applied.push({ stat: 'hp', from: player.hp, to: newHp, delta: sc.hp });
+          var currentHp = stats.hp || stats.maxHp || 100;
+          stats.hp = Math.max(0, currentHp + sc.hp);
+          result.applied.push({ stat: 'hp', from: currentHp, to: stats.hp, delta: sc.hp });
         }
+
+        db.prepare('UPDATE players SET stats_json = ? WHERE id = ?').run(JSON.stringify(stats), playerId);
       }
     } catch (e) {
       result.errors.push('statChange: ' + e.message);
@@ -232,18 +232,16 @@ function applyNpcEffects(db, playerId, effects) {
     }
   }
 
-  // Unlock title
+  // Unlock title (stored in players.titles_json)
   if (effects.unlockTitle) {
     try {
       var titleKey = effects.unlockTitle;
-      var hasTitle = db.prepare(
-        'SELECT id FROM player_titles WHERE player_id = ? AND title_key = ?'
-      ).get(playerId, titleKey);
+      var playerData = db.prepare('SELECT titles_json FROM players WHERE id = ?').get(playerId);
+      var playerTitles = JSON.parse((playerData && playerData.titles_json) || '[]');
 
-      if (!hasTitle) {
-        db.prepare(
-          'INSERT OR IGNORE INTO player_titles (player_id, title_key, unlocked_at) VALUES (?, ?, datetime(\'now\',\'localtime\'))'
-        ).run(playerId, titleKey);
+      if (playerTitles.indexOf(titleKey) === -1) {
+        playerTitles.push(titleKey);
+        db.prepare('UPDATE players SET titles_json = ? WHERE id = ?').run(JSON.stringify(playerTitles), playerId);
         result.applied.push({ type: 'unlockTitle', titleKey: titleKey });
       }
     } catch (e) {
@@ -251,17 +249,17 @@ function applyNpcEffects(db, playerId, effects) {
     }
   }
 
-  // Story flags
+  // Story flags (stored as object in story_flags_json)
   if (effects.addStoryFlag) {
     try {
       var flags = Array.isArray(effects.addStoryFlag) ? effects.addStoryFlag : [effects.addStoryFlag];
       var playerData = db.prepare('SELECT story_flags_json FROM players WHERE id = ?').get(playerId);
-      var storyFlags = JSON.parse((playerData && playerData.story_flags_json) || '[]');
+      var storyFlags = JSON.parse((playerData && playerData.story_flags_json) || '{}');
 
       for (var fi = 0; fi < flags.length; fi++) {
         var flag = flags[fi];
-        if (storyFlags.indexOf(flag) === -1) {
-          storyFlags.push(flag);
+        if (!storyFlags[flag]) {
+          storyFlags[flag] = true;
           result.applied.push({ type: 'addStoryFlag', flag: flag });
         }
       }
@@ -272,22 +270,24 @@ function applyNpcEffects(db, playerId, effects) {
     }
   }
 
-  // Skills
+  // Skills (stored in player_skills table)
   if (effects.addSkill) {
     try {
       var skills = Array.isArray(effects.addSkill) ? effects.addSkill : [effects.addSkill];
-      var playerSkillsData = db.prepare('SELECT skills_json FROM players WHERE id = ?').get(playerId);
-      var playerSkills = JSON.parse((playerSkillsData && playerSkillsData.skills_json) || '[]');
 
       for (var si = 0; si < skills.length; si++) {
-        var skill = skills[si];
-        if (playerSkills.indexOf(skill) === -1) {
-          playerSkills.push(skill);
-          result.applied.push({ type: 'addSkill', skill: skill });
+        var skillKey = skills[si];
+        var existing = db.prepare(
+          'SELECT id FROM player_skills WHERE player_id = ? AND skill_key = ?'
+        ).get(playerId, skillKey);
+
+        if (!existing) {
+          db.prepare(
+            'INSERT INTO player_skills (player_id, skill_key) VALUES (?, ?)'
+          ).run(playerId, skillKey);
+          result.applied.push({ type: 'addSkill', skill: skillKey });
         }
       }
-
-      db.prepare('UPDATE players SET skills_json = ? WHERE id = ?').run(JSON.stringify(playerSkills), playerId);
     } catch (e) {
       result.errors.push('addSkill: ' + e.message);
     }

@@ -7,7 +7,16 @@
     }
   });
 
-  document.addEventListener('DOMContentLoaded', () => {
-    GameClient.init();
+  document.addEventListener('DOMContentLoaded', async () => {
+    if (typeof GameClient === 'undefined' || !GameClient.init) {
+      console.error('GameClient not loaded');
+      document.body.innerHTML = '<div style="color:var(--red);padding:20px;">Failed to load game. Check console.</div>';
+      return;
+    }
+    try {
+      await GameClient.init();
+    } catch (err) {
+      console.error('Init failed:', err);
+    }
   });
 })();

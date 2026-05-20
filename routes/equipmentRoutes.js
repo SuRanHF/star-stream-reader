@@ -21,10 +21,10 @@ router.get('/sets', (req, res) => {
         bonuses: JSON.parse(s.bonuses_json || '[]')
       };
     });
-    res.json({ sets });
+    res.json({ success: true, data: { sets } });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
@@ -33,10 +33,10 @@ router.get('/sets/my/:playerId', (req, res) => {
   try {
     var info = equipmentService.getActiveSetInfo(Number(req.params.playerId));
     var bonuses = equipmentService.getActiveSetBonuses(Number(req.params.playerId));
-    res.json({ active_sets: info, bonuses: bonuses });
+    res.json({ success: true, data: { active_sets: info, bonuses: bonuses } });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
@@ -45,57 +45,57 @@ router.get('/:playerId', (req, res) => {
   try {
     var data = equipmentService.getEquipmentWithSets(Number(req.params.playerId));
     var available = equipmentService.getAvailableEquipment(Number(req.params.playerId));
-    res.json({
+    res.json({ success: true, data: {
       equipped: data.equipped,
       available: available,
       set_bonuses: data.set_bonuses,
       active_sets: data.active_sets
-    });
+    } });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
 router.post('/equip', (req, res) => {
   try {
     var { playerId, equipmentKey, slot } = req.body;
-    if (!playerId || !equipmentKey) return res.status(400).json({ code: 'MISSING_PARAMS', message: '缺少必要参数' });
+    if (!playerId || !equipmentKey) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAMS', message: '缺少必要参数' } });
     try {
       playerService.assertNotResting(Number(playerId), '装备');
     } catch (e) {
       if (e.code === 'PLAYER_RESTING') {
-        return res.status(400).json({ code: 'PLAYER_RESTING', message: e.message });
+        return res.status(400).json({ success: false, error: { code: 'PLAYER_RESTING', message: e.message } });
       }
       throw e;
     }
     var result = equipmentService.equipItem(Number(playerId), equipmentKey, slot);
-    if (result.error) return res.status(400).json(result.error);
-    res.json(result);
+    if (result.error) return res.status(400).json({ success: false, error: result.error });
+    res.json({ success: true, data: result });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
 router.post('/unequip', (req, res) => {
   try {
     var { playerId, slot } = req.body;
-    if (!playerId || !slot) return res.status(400).json({ code: 'MISSING_PARAMS', message: '缺少必要参数' });
+    if (!playerId || !slot) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAMS', message: '缺少必要参数' } });
     try {
       playerService.assertNotResting(Number(playerId), '卸下装备');
     } catch (e) {
       if (e.code === 'PLAYER_RESTING') {
-        return res.status(400).json({ code: 'PLAYER_RESTING', message: e.message });
+        return res.status(400).json({ success: false, error: { code: 'PLAYER_RESTING', message: e.message } });
       }
       throw e;
     }
     var result = equipmentService.unequipItem(Number(playerId), slot);
-    if (result.error) return res.status(400).json(result.error);
-    res.json(result);
+    if (result.error) return res.status(400).json({ success: false, error: result.error });
+    res.json({ success: true, data: result });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 

@@ -2,6 +2,7 @@
 var express = require('express');
 var router = express.Router();
 var tradeService = require('../services/tradeService');
+var { requireOwnPlayer } = require('../middleware/authMiddleware');
 
 // 获取所有活跃挂单
 router.get('/listings', function(req, res) {
@@ -14,6 +15,9 @@ router.get('/listings', function(req, res) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
+
+// Player ownership check for all subsequent routes
+router.use(requireOwnPlayer);
 
 // 获取玩家自己的挂单
 router.get('/listings/my/:playerId', function(req, res) {

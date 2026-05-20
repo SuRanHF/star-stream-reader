@@ -155,17 +155,16 @@ function addLog(id, message) {
 
 function parsePlayerRow(row) {
   const db = getDb();
-  const rawStats = JSON.parse(row.stats_json);
-  const stats = migratePlayerStats(rawStats);
 
-  // Resolve location name
+  let stats = {};
+  try { stats = migratePlayerStats(JSON.parse(row.stats_json)); } catch (e) { stats = migratePlayerStats({}); }
+
   let current_location_name = '';
   if (row.current_location) {
     const loc = db.prepare('SELECT name FROM locations WHERE location_key = ?').get(row.current_location);
     current_location_name = loc ? loc.name : '';
   }
 
-  // Resolve stage name and progress
   let stage_name = '';
   let stage_order = 1;
   let stage_total_nodes = 0;
@@ -177,23 +176,55 @@ function parsePlayerRow(row) {
     if (mc) {
       stage_name = mc.chapter_name;
       stage_order = mc.order_index || 1;
-      const storyKeys = JSON.parse(mc.story_chapter_keys_json || '[]');
+      let storyKeys = [];
+      try { storyKeys = JSON.parse(mc.story_chapter_keys_json); } catch (e) { storyKeys = []; }
       stage_total_nodes = storyKeys.length;
-      const visited = JSON.parse(row.visited_nodes_json || '[]');
+      let visited = [];
+      try { visited = JSON.parse(row.visited_nodes_json); } catch (e) { visited = []; }
       stage_visited_nodes = visited.filter(n => storyKeys.includes(n)).length;
     }
   }
 
-  // Resolve title details
-  const titleKeys = JSON.parse(row.titles_json);
+  let titleKeys = [];
+  try { titleKeys = JSON.parse(row.titles_json); } catch (e) { titleKeys = []; }
   const title_details = titleKeys.map(key => {
     const t = db.prepare('SELECT name, rarity, description FROM titles WHERE title_key = ?').get(key);
     return t ? { title_key: key, name: t.name, rarity: t.rarity, description: t.description } : { title_key: key, name: key, rarity: 'common', description: '' };
   });
 
-  // Resolve equipment
   const { getEquippedMap } = require('./equipmentService');
   const equipment = getEquippedMap(row.id);
+
+  let relationships = {};
+  try { relationships = JSON.parse(row.relationships_json); } catch (e) { relationships = {}; }
+  let route_history = [];
+  try { route_history = JSON.parse(row.route_history_json); } catch (e) { route_history = []; }
+  let story_flags = {};
+  try { story_flags = JSON.parse(row.story_flags_json); } catch (e) { story_flags = {}; }
+  let permanent_flags = {};
+  try { permanent_flags = JSON.parse(row.permanent_flags_json); } catch (e) { permanent_flags = {}; }
+  let title_progress = {};
+  try { title_progress = JSON.parse(row.title_progress_json); } catch (e) { title_progress = {}; }
+  let sponsors = {};
+  try { sponsors = JSON.parse(row.sponsors_json); } catch (e) { sponsors = {}; }
+  let logs = [];
+  try { logs = JSON.parse(row.logs_json); } catch (e) { logs = []; }
+  let unlocked_chapters = [];
+  try { unlocked_chapters = JSON.parse(row.unlocked_chapters_json); } catch (e) { unlocked_chapters = []; }
+  let completed_chapters = [];
+  try { completed_chapters = JSON.parse(row.completed_chapters_json); } catch (e) { completed_chapters = []; }
+  let breakthrough_resources = {};
+  try { breakthrough_resources = JSON.parse(row.breakthrough_resources_json); } catch (e) { breakthrough_resources = {}; }
+  let boss_kills = [];
+  try { boss_kills = JSON.parse(row.boss_kills_json); } catch (e) { boss_kills = []; }
+  let decision_history = [];
+  try { decision_history = JSON.parse(row.decision_history_json); } catch (e) { decision_history = []; }
+  let visited_nodes = [];
+  try { visited_nodes = JSON.parse(row.visited_nodes_json); } catch (e) { visited_nodes = []; }
+  let stage_progress = {};
+  try { stage_progress = JSON.parse(row.stage_progress_json); } catch (e) { stage_progress = {}; }
+  let activity_history = [];
+  try { activity_history = JSON.parse(row.activity_history_json); } catch (e) { activity_history = []; }
 
   return {
     id: row.id,
@@ -202,30 +233,30 @@ function parsePlayerRow(row) {
     coins: row.coins,
     story_fragments: row.story_fragments,
     stats,
-    relationships: JSON.parse(row.relationships_json),
-    route_history: JSON.parse(row.route_history_json),
-    story_flags: JSON.parse(row.story_flags_json),
-    permanent_flags: JSON.parse(row.permanent_flags_json),
+    relationships,
+    route_history,
+    story_flags,
+    permanent_flags,
     titles: titleKeys,
     title_details,
-    title_progress: JSON.parse(row.title_progress_json),
-    sponsors: JSON.parse(row.sponsors_json),
-    logs: JSON.parse(row.logs_json),
-    unlocked_chapters: JSON.parse(row.unlocked_chapters_json || '[]'),
-    completed_chapters: JSON.parse(row.completed_chapters_json || '[]'),
+    title_progress,
+    sponsors,
+    logs,
+    unlocked_chapters,
+    completed_chapters,
     current_main_chapter: row.current_main_chapter || 'main_ch01_paid_service',
     stage_name,
     stage_order,
     stage_total_nodes,
     stage_visited_nodes,
-    breakthrough_resources: JSON.parse(row.breakthrough_resources_json || '{}'),
-    boss_kills: JSON.parse(row.boss_kills_json || '[]'),
-    decision_history: JSON.parse(row.decision_history_json || '[]'),
-    visited_nodes: JSON.parse(row.visited_nodes_json || '[]'),
-    stage_progress: JSON.parse(row.stage_progress_json || '{}'),
+    breakthrough_resources,
+    boss_kills,
+    decision_history,
+    visited_nodes,
+    stage_progress,
     current_location: row.current_location || '',
     current_location_name,
-    activity_history: JSON.parse(row.activity_history_json || '[]'),
+    activity_history,
     equipment,
     user_id: row.user_id || null,
     created_at: row.created_at,
@@ -319,11 +350,11 @@ function getConstellations() {
 }
 
 function selectConstellation(playerId, constellationKey) {
-  if (!CONSTELLATIONS[constellationKey]) return { error: { code: 'INVALID_CONSTELLATION', message: '该星座不存在' } };
+  if (!CONSTELLATIONS[constellationKey]) return { success: false, error: { code: 'INVALID_CONSTELLATION', message: '该星座不存在' } };
   const player = getRaw(playerId);
-  if (!player) return { error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } };
+  if (!player) return { success: false, error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } };
   const stats = JSON.parse(player.stats_json);
-  if (stats.constellation) return { error: { code: 'ALREADY_SELECTED', message: '已选择过背后星，无法更改' } };
+  if (stats.constellation) return { success: false, error: { code: 'ALREADY_SELECTED', message: '已选择过背后星，无法更改' } };
   stats.constellation = constellationKey;
   update(playerId, { stats_json: stats });
   const c = CONSTELLATIONS[constellationKey];
@@ -340,9 +371,9 @@ function selectConstellation(playerId, constellationKey) {
 
 function revivePlayer(playerId, method) {
   const player = get(playerId);
-  if (!player) return { error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } };
+  if (!player) return { success: false, error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } };
   const stats = { ...player.stats };
-  if (!stats.isDead) return { error: { code: 'NOT_DEAD', message: '你还活着，无需复活' } };
+  if (!stats.isDead) return { success: false, error: { code: 'NOT_DEAD', message: '你还活着，无需复活' } };
 
   const level = stats.level || 1;
   const coinCost = Math.round(100 * level * (stats.constellation === 'queen_of_underworld' ? 0.5 : 1));
@@ -351,7 +382,7 @@ function revivePlayer(playerId, method) {
 
   if (method === 'coins') {
     if ((player.coins || 0) < coinCost) {
-      return { error: { code: 'NOT_ENOUGH_COINS', message: `金币不足，需要 ${coinCost} 枚金币` } };
+      return { success: false, error: { code: 'NOT_ENOUGH_COINS', message: `金币不足，需要 ${coinCost} 枚金币` } };
     }
     const newCoins = player.coins - coinCost;
     stats.isDead = false;
@@ -363,7 +394,7 @@ function revivePlayer(playerId, method) {
   } else if (method === 'title') {
     const titles = [...(player.titles || [])];
     if (titles.length === 0) {
-      return { error: { code: 'NO_TITLES', message: '没有任何称号可以献祭' } };
+      return { success: false, error: { code: 'NO_TITLES', message: '没有任何称号可以献祭' } };
     }
     const sacrificed = titles.pop();
     stats.isDead = false;
@@ -373,7 +404,7 @@ function revivePlayer(playerId, method) {
     success = true;
     message = `献祭了称号「${sacrificed}」，灵魂被冥界女王放回。`;
   } else {
-    return { error: { code: 'INVALID_METHOD', message: '无效的复活方式' } };
+    return { success: false, error: { code: 'INVALID_METHOD', message: '无效的复活方式' } };
   }
 
   return { success, message, coinCost, method, player: get(playerId) };

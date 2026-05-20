@@ -1,5 +1,5 @@
-// 化身位阶配置 — 6 个位阶的升阶条件与奖励
-// 位阶排序: F < E < D < C < B < A (预留 S/SS/SSS/EX)
+// 化身位阶配置 — 9 个位阶的升阶条件与奖励 (F/E/D/C/B/A/S/SS/SSS)
+// 位阶排序: F < E < D < C < B < A < S < SS < SSS
 
 const AVATAR_RANKS = [
   {

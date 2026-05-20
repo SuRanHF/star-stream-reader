@@ -10,34 +10,38 @@ const playerService = require('../services/playerService');
 
 router.get('/locations/:playerId', (req, res) => {
   try {
-    recoveryService.applyPassiveRecovery(Number(req.params.playerId));
-    const locations = exploreService.getUnlockedLocations(Number(req.params.playerId));
-    res.json({ locations });
+    const playerId = parseInt(req.params.playerId);
+    if (isNaN(playerId)) return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: '无效的玩家ID' } });
+    recoveryService.applyPassiveRecovery(playerId);
+    const locations = exploreService.getUnlockedLocations(playerId);
+    res.json({ success: true, data: { locations } });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
 router.post('/start', (req, res) => {
   try {
     const { playerId, locationKey, firstExplore } = req.body;
-    if (!playerId || !locationKey) return res.status(400).json({ code: 'MISSING_PARAMS', message: '缺少必要参数' });
-    recoveryService.applyPassiveRecovery(Number(playerId));
+    if (!playerId || !locationKey) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAMS', message: '缺少必要参数' } });
+    const pid = parseInt(playerId);
+    if (isNaN(pid)) return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: '无效的玩家ID' } });
+    recoveryService.applyPassiveRecovery(pid);
     try {
-      playerService.assertNotResting(Number(playerId), '探索');
+      playerService.assertNotResting(pid, '探索');
     } catch (e) {
       if (e.code === 'PLAYER_RESTING') {
-        return res.status(400).json({ code: 'PLAYER_RESTING', message: e.message });
+        return res.status(400).json({ success: false, error: { code: 'PLAYER_RESTING', message: e.message } });
       }
       throw e;
     }
-    const result = exploreService.startExploration(Number(playerId), locationKey, { firstExplore: !!firstExplore });
-    if (result.error) return res.status(400).json(result.error);
-    res.json(result);
+    const result = exploreService.startExploration(pid, locationKey, { firstExplore: !!firstExplore });
+    if (result.error) return res.status(400).json({ success: false, error: result.error });
+    res.json({ success: true, data: result });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 

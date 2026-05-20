@@ -7,12 +7,12 @@ var questService = require('../services/questService');
 router.get('/daily/:playerId', function(req, res) {
   try {
     var playerId = parseInt(req.params.playerId);
-    if (!playerId) return res.status(400).json({ code: 'MISSING_PARAMS', message: '缺少 playerId' });
+    if (!playerId) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAMS', message: '缺少 playerId' } });
     var data = questService.getDailyQuests(playerId);
     res.json({ success: true, data: data });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
@@ -20,12 +20,12 @@ router.get('/daily/:playerId', function(req, res) {
 router.get('/weekly/:playerId', function(req, res) {
   try {
     var playerId = parseInt(req.params.playerId);
-    if (!playerId) return res.status(400).json({ code: 'MISSING_PARAMS', message: '缺少 playerId' });
+    if (!playerId) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAMS', message: '缺少 playerId' } });
     var data = questService.getWeeklyQuests(playerId);
     res.json({ success: true, data: data });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
@@ -33,12 +33,12 @@ router.get('/weekly/:playerId', function(req, res) {
 router.get('/all/:playerId', function(req, res) {
   try {
     var playerId = parseInt(req.params.playerId);
-    if (!playerId) return res.status(400).json({ code: 'MISSING_PARAMS', message: '缺少 playerId' });
+    if (!playerId) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAMS', message: '缺少 playerId' } });
     var data = questService.getAllQuests(playerId);
     res.json({ success: true, data: data });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
@@ -47,13 +47,13 @@ router.post('/claim/:playerId', function(req, res) {
   try {
     var playerId = parseInt(req.params.playerId);
     var questId = parseInt(req.body.questId);
-    if (!playerId || !questId) return res.status(400).json({ code: 'MISSING_PARAMS', message: '缺少参数' });
+    if (!playerId || !questId) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAMS', message: '缺少参数' } });
     var result = questService.claimQuestReward(playerId, questId);
-    if (result.error) return res.status(400).json(result);
+    if (result.error) return res.status(400).json({ success: false, error: result.error });
     res.json({ success: true, data: result.data });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 

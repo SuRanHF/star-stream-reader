@@ -11,10 +11,10 @@ router.get('/leaderboard', function(req, res) {
   try {
     var limit = parseInt(req.query.limit) || 50;
     var rankings = avatarRankService.getAvatarRankLeaderboard(limit);
-    res.json({ rankings: rankings });
+    res.json({ success: true, data: { rankings } });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
@@ -24,11 +24,11 @@ router.use(requireOwnPlayer);
 router.get('/:playerId', function(req, res) {
   try {
     var result = avatarRankService.getPlayerAvatarRank(Number(req.params.playerId));
-    if (result.error) return res.status(404).json(result.error);
+    if (result.error) return res.status(404).json({ success: false, error: result.error });
     res.json({ success: true, data: result });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
@@ -37,12 +37,12 @@ router.post('/:playerId/rank-up', function(req, res) {
     var result = avatarRankService.rankUp(Number(req.params.playerId));
     if (!result.success) {
       var s = result.error.code === 'RANK_REQUIREMENTS_NOT_MET' ? 400 : 409;
-      return res.status(s).json(result.error);
+      return res.status(s).json({ success: false, error: result.error });
     }
     res.json({ success: true, data: result.data });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
@@ -51,11 +51,11 @@ router.post('/:playerId/prestige', function(req, res) {
   try {
     var playerId = parseInt(req.params.playerId);
     var result = avatarRankService.prestige(playerId);
-    if (result.error) return res.status(400).json(result);
+    if (result.error) return res.status(400).json({ success: false, error: result.error });
     res.json({ success: true, data: result.data });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 

@@ -15,7 +15,12 @@ const API = {
       opts.headers['Authorization'] = 'Bearer ' + token;
     }
     if (body) opts.body = JSON.stringify(body);
-    const res = await fetch(url, opts);
+    let res;
+    try {
+      res = await fetch(url, opts);
+    } catch (e) {
+      throw { status: 0, error: { code: 'NETWORK_ERROR', message: '网络连接失败，请检查网络后重试' } };
+    }
     let data;
     try {
       data = await res.json();
@@ -50,10 +55,10 @@ const API = {
 
   // Player
   createPlayer(playerName) {
-    return this.request('POST', '/api/player/create', { playerName }).then(r => r.data);
+    return this.request('POST', '/api/player/create', { playerName });
   },
   getPlayer(playerId) {
-    return this.request('GET', `/api/player/${playerId}`).then(r => r.data);
+    return this.request('GET', `/api/player/${playerId}`);
   },
   resetPlayer(playerId) {
     return this.request('POST', `/api/player/reset/${playerId}`);
@@ -61,10 +66,10 @@ const API = {
 
   // Worldline
   getWorldlineStatus() {
-    return this.request('GET', '/api/worldline/status').then(r => r.data);
+    return this.request('GET', '/api/worldline/status');
   },
   getWorldlineHistory(limit) {
-    return this.request('GET', `/api/worldline/history?limit=${limit || 20}`).then(r => r.data);
+    return this.request('GET', `/api/worldline/history?limit=${limit || 20}`);
   },
 
   // Story
@@ -200,6 +205,9 @@ const API = {
   },
   getBroadcastHistory() {
     return this.request('GET', '/api/broadcast/history');
+  },
+  submitBroadcastResource(eventId, body) {
+    return this.request('POST', `/api/broadcast/${eventId}/submit-resource`, body);
   },
   // Combat
   resolveCombat(playerId, monsterKey, action) {
@@ -387,17 +395,6 @@ const API = {
   },
   claimQuestReward(playerId, questId) {
     return this.request('POST', '/api/quests/claim/' + playerId, { questId });
-  },
-
-  // Faction Skills (阵营技能)
-  getFactionSkills(constellationKey) {
-    return this.request('GET', '/api/skills/faction/' + constellationKey);
-  },
-  getMyFactionSkills(playerId) {
-    return this.request('GET', '/api/skills/faction/player/' + playerId);
-  },
-  learnFactionSkill(playerId, skillKey) {
-    return this.request('POST', '/api/skills/faction/learn', { playerId, skillKey });
   },
 
   // Equipment Sets (装备套装)

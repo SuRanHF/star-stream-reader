@@ -1,4 +1,7 @@
 <!DOCTYPE html>
+<!-- ⚠️ UI 保护文件 — 非经确认不得擅自修改 -->
+<!-- ⚠️ 禁止：删除/重命名 id/class、改变 DOM 结构层级 -->
+<!-- ⚠️ 允许：新增功能元素、修改文本内容 -->
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -12,7 +15,7 @@
   <!-- ================================================================
        Beta Banner — 测试服提示
        ================================================================ -->
-  <div id="betaBanner" style="background:#2a1a0a;color:#c9a860;text-align:center;padding:6px 12px;font-size:12px;border-bottom:1px solid #3a2a1a;">
+  <div id="betaBanner" class="text-center fs-12 text-gold py-6 px-12" style="background:#2a1a0a;border-bottom:1px solid #3a2a1a;">
     【测试服 v1.0.7】当前版本用于群友试玩和反馈，数据可能在更新时重置。
   </div>
 
@@ -177,11 +180,11 @@
           <button class="mobile-more-item" onclick="GameClient.openFeature('broadcast');UI.closeMobileMoreMenu()"><span class="mm-icon">★</span>放送</button>
           <button class="mobile-more-item" onclick="GameClient.openFeature('faction');UI.closeMobileMoreMenu()"><span class="mm-icon">⬡</span>阵营</button>
           <button class="mobile-more-item" onclick="GameClient.openFeature('trade');UI.closeMobileMoreMenu()"><span class="mm-icon">◎</span>交易</button>
-          <button class="mobile-more-item" onclick="GameClient.openFeature('party');UI.closeMobileMoreMenu()"><span class="mm-icon">👥</span>组队</button>
+          <button class="mobile-more-item" onclick="GameClient.openFeature('party');UI.closeMobileMoreMenu()"><span class="mm-icon">◈</span>组队</button>
           <button class="mobile-more-item" onclick="GameClient.openFeature('quests');UI.closeMobileMoreMenu()"><span class="mm-icon">☐</span>任务</button>
           <button class="mobile-more-item" onclick="GameClient.openFeature('archive');UI.closeMobileMoreMenu()"><span class="mm-icon">◈</span>档案</button>
-          <button class="mobile-more-item" onclick="GameClient.openFeature('underworld');UI.closeMobileMoreMenu()"><span class="mm-icon">💀</span>冥界</button>
-          <button class="mobile-more-item" onclick="GameClient.openFeature('changelog');UI.closeMobileMoreMenu()"><span class="mm-icon">📋</span>更新</button>
+          <button class="mobile-more-item" onclick="GameClient.openFeature('underworld');UI.closeMobileMoreMenu()"><span class="mm-icon">☠</span>冥界</button>
+          <button class="mobile-more-item" onclick="GameClient.openFeature('changelog');UI.closeMobileMoreMenu()"><span class="mm-icon">□</span>更新</button>
           <button class="mobile-more-item" onclick="GameClient.openFeature('settings');UI.closeMobileMoreMenu()"><span class="mm-icon">⚙</span>设置</button>
           <button class="mobile-more-item" onclick="GameClient.openFeature('feedback');UI.closeMobileMoreMenu()"><span class="mm-icon">✉</span>反馈</button>
         </div>
@@ -217,12 +220,12 @@
         <button class="db-fab-item" onclick="GameClient.openFeature('rankings');UI.closeFabMenu()"><span class="db-fab-icon">☰</span><span>排行</span></button>
         <button class="db-fab-item" onclick="GameClient.openFeature('faction');UI.closeFabMenu()"><span class="db-fab-icon">⬡</span><span>阵营</span></button>
         <button class="db-fab-item" onclick="GameClient.openFeature('trade');UI.closeFabMenu()"><span class="db-fab-icon">◎</span><span>交易</span></button>
-        <button class="db-fab-item" onclick="GameClient.openFeature('party');UI.closeFabMenu()"><span class="db-fab-icon">👥</span><span>组队</span></button>
+            <button class="db-fab-item" onclick="GameClient.openFeature('party');UI.closeFabMenu()"><span class="db-fab-icon">◈</span><span>组队</span></button>
         <button class="db-fab-item" onclick="GameClient.openFeature('quests');UI.closeFabMenu()"><span class="db-fab-icon">☐</span><span>任务</span></button>
         <button class="db-fab-item" onclick="GameClient.openFeature('broadcast');UI.closeFabMenu()"><span class="db-fab-icon">★</span><span>放送</span></button>
         <button class="db-fab-item" onclick="GameClient.openFeature('archive');UI.closeFabMenu()"><span class="db-fab-icon">◈</span><span>档案</span></button>
-        <button class="db-fab-item" onclick="GameClient.openFeature('underworld');UI.closeFabMenu()"><span class="db-fab-icon">💀</span><span>冥界</span></button>
-        <button class="db-fab-item" onclick="GameClient.openFeature('changelog');UI.closeFabMenu()"><span class="db-fab-icon">📋</span><span>更新</span></button>
+        <button class="db-fab-item" onclick="GameClient.openFeature('underworld');UI.closeFabMenu()"><span class="db-fab-icon">☠</span><span>冥界</span></button>
+        <button class="db-fab-item" onclick="GameClient.openFeature('changelog');UI.closeFabMenu()"><span class="db-fab-icon">□</span><span>更新</span></button>
         <button class="db-fab-item" onclick="GameClient.openFeature('settings');UI.closeFabMenu()"><span class="db-fab-icon">⚙</span><span>设置</span></button>
         <button class="db-fab-item" onclick="GameClient.openFeature('feedback');UI.closeFabMenu()"><span class="db-fab-icon">✉</span><span>反馈</span></button>
       </div>
@@ -232,7 +235,7 @@
     <nav class="mobile-db-bottom-nav" id="mobileDbBottomNav">
       <button class="db-nav-item db-nav-active" onclick="GameClient.openFeature('story')"><span>▸</span> 主线</button>
       <button class="db-nav-item" onclick="GameClient.openMapFromMobile()"><span>◎</span> 探索</button>
-      <button class="db-nav-item" onclick="GameClient.doRest()"><span>🛌</span> 休息</button>
+      <button class="db-nav-item" onclick="GameClient.doRest()"><span>◈</span> 休息</button>
     </nav>
 
     <!-- Dashboard Right Menu (swipe-in) -->
@@ -251,12 +254,12 @@
           <button class="db-right-item" onclick="GameClient.openFeature('rankings');UI.closeDbRightMenu()"><span class="db-right-icon">☰</span><span class="db-right-label">排行</span><span class="db-right-badge">--</span></button>
           <button class="db-right-item" onclick="GameClient.openFeature('faction');UI.closeDbRightMenu()"><span class="db-right-icon">⬡</span><span class="db-right-label">阵营</span><span class="db-right-badge">--</span></button>
           <button class="db-right-item" onclick="GameClient.openFeature('trade');UI.closeDbRightMenu()"><span class="db-right-icon">◎</span><span class="db-right-label">交易</span><span class="db-right-badge">--</span></button>
-          <button class="db-right-item" onclick="GameClient.openFeature('party');UI.closeDbRightMenu()"><span class="db-right-icon">👥</span><span class="db-right-label">组队</span><span class="db-right-badge">--</span></button>
+          <button class="db-right-item" onclick="GameClient.openFeature('party');UI.closeDbRightMenu()"><span class="db-right-icon">◈</span><span class="db-right-label">组队</span><span class="db-right-badge">--</span></button>
           <button class="db-right-item" onclick="GameClient.openFeature('quests');UI.closeDbRightMenu()"><span class="db-right-icon">☐</span><span class="db-right-label">任务</span><span class="db-right-badge">--</span></button>
           <button class="db-right-item" onclick="GameClient.openFeature('broadcast');UI.closeDbRightMenu()"><span class="db-right-icon">★</span><span class="db-right-label">放送</span><span class="db-right-badge">--</span></button>
           <button class="db-right-item" onclick="GameClient.openFeature('archive');UI.closeDbRightMenu()"><span class="db-right-icon">◈</span><span class="db-right-label">档案</span><span class="db-right-badge">--</span></button>
-          <button class="db-right-item" onclick="GameClient.openFeature('underworld');UI.closeDbRightMenu()"><span class="db-right-icon">💀</span><span class="db-right-label">冥界</span><span class="db-right-badge">--</span></button>
-          <button class="db-right-item" onclick="GameClient.openFeature('changelog');UI.closeDbRightMenu()"><span class="db-right-icon">📋</span><span class="db-right-label">更新</span><span class="db-right-badge">--</span></button>
+          <button class="db-right-item" onclick="GameClient.openFeature('underworld');UI.closeDbRightMenu()"><span class="db-right-icon">☠</span><span class="db-right-label">冥界</span><span class="db-right-badge">--</span></button>
+          <button class="db-right-item" onclick="GameClient.openFeature('changelog');UI.closeDbRightMenu()"><span class="db-right-icon">□</span><span class="db-right-label">更新</span><span class="db-right-badge">--</span></button>
         </div>
       </div>
     </div>
@@ -297,12 +300,12 @@
           <button class="ir-more-item" onclick="GameClient.openFeature('rankings');UI.closeIrMoreMenu()"><span>☰</span>排行</button>
           <button class="ir-more-item" onclick="GameClient.openFeature('faction');UI.closeIrMoreMenu()"><span>⬡</span>阵营</button>
           <button class="ir-more-item" onclick="GameClient.openFeature('trade');UI.closeIrMoreMenu()"><span>◎</span>交易</button>
-          <button class="ir-more-item" onclick="GameClient.openFeature('party');UI.closeIrMoreMenu()"><span>👥</span>组队</button>
+          <button class="ir-more-item" onclick="GameClient.openFeature('party');UI.closeIrMoreMenu()"><span>◈</span>组队</button>
           <button class="ir-more-item" onclick="GameClient.openFeature('quests');UI.closeIrMoreMenu()"><span>☐</span>任务</button>
           <button class="ir-more-item" onclick="GameClient.openFeature('broadcast');UI.closeIrMoreMenu()"><span>★</span>放送</button>
           <button class="ir-more-item" onclick="GameClient.openFeature('archive');UI.closeIrMoreMenu()"><span>◈</span>档案</button>
-          <button class="ir-more-item" onclick="GameClient.openFeature('underworld');UI.closeIrMoreMenu()"><span>💀</span>冥界</button>
-          <button class="ir-more-item" onclick="GameClient.openFeature('changelog');UI.closeIrMoreMenu()"><span>📋</span>更新</button>
+          <button class="ir-more-item" onclick="GameClient.openFeature('underworld');UI.closeIrMoreMenu()"><span>☠</span>冥界</button>
+          <button class="ir-more-item" onclick="GameClient.openFeature('changelog');UI.closeIrMoreMenu()"><span>□</span>更新</button>
           <button class="ir-more-item" onclick="GameClient.openFeature('settings');UI.closeIrMoreMenu()"><span>⚙</span>设置</button>
           <button class="ir-more-item" onclick="GameClient.openFeature('feedback');UI.closeIrMoreMenu()"><span>✉</span>反馈</button>
         </div>
@@ -322,8 +325,8 @@
         <span class="sw-top-coins" id="swTopCoins">◎ 0</span>
       </span>
       <span class="sw-top-icons">
-        <button class="sw-top-btn" onclick="GameClient.openFeature('feedback')">💬</button>
-        <button class="sw-top-btn" onclick="GameClient.openFeature('changelog')">🔔</button>
+        <button class="sw-top-btn" onclick="GameClient.openFeature('feedback')">✉</button>
+        <button class="sw-top-btn" onclick="GameClient.openFeature('changelog')">☰</button>
       </span>
     </div>
 
@@ -344,7 +347,7 @@
           <button onclick="GameClient.openMapFromMobile();UI.closeSwHamburger()"><span>◎</span> 探索</button>
           <button onclick="GameClient.openFeature('faction');UI.closeSwHamburger()"><span>⬡</span> 阵营</button>
           <button onclick="GameClient.openFeature('settings');UI.closeSwHamburger()"><span>⚙</span> 设置</button>
-          <button onclick="GameClient.doLogout()"><span>🚪</span> 退出登录</button>
+          <button onclick="GameClient.doLogout()"><span>◈</span> 退出登录</button>
         </div>
       </div>
     </div>
@@ -388,7 +391,7 @@
           </div>
         </div>
         <div class="sw-cat-card" data-cat="social" onclick="UI.toggleSwCat('social')">
-          <div class="sw-cat-header"><span class="sw-cat-icon">💬</span><span class="sw-cat-title">社交</span></div>
+          <div class="sw-cat-header"><span class="sw-cat-icon">✉</span><span class="sw-cat-title">社交</span></div>
           <div class="sw-cat-items">
             <button onclick="event.stopPropagation();GameClient.openFeature('underworld')">冥界</button>
             <button onclick="event.stopPropagation();GameClient.openFeature('rankings')">排行</button>
@@ -446,6 +449,7 @@
 
       <!-- ====== Left Panel ====== -->
       <aside class="left-panel" id="leftPanel">
+        <div class="left-panel-scroll">
         <div class="char-header">
           <div class="char-name" id="charName">未命名读者</div>
           <div class="char-stage" id="charStage">初入星流</div>
@@ -493,9 +497,11 @@
           <div class="title-badge-list" id="titleList"></div>
           <span class="title-count" id="titleCount">称号 0</span>
         </div>
+        </div><!-- /left-panel-scroll -->
 
-        <div class="char-section char-section-actions">
-          <button class="btn-detailed-stats" onclick="GameClient.loadDetailedStats()">详细属性 →</button>
+        <div class="left-panel-bottom">
+          <button class="btn-detailed-stats" onclick="GameClient.openFeature('feedback')">反馈</button>
+          <button class="btn-detailed-stats mt-4" onclick="GameClient.openFeature('settings')">设置</button>
         </div>
       </aside>
 
@@ -533,6 +539,7 @@
             </div>
             <label class="ma-auto-toggle" title="自动连续探索，遭遇事件/体力不足时自动停止">
               <input type="checkbox" id="autoExploreToggle" onchange="GameClient.toggleAutoExplore(this.checked)">
+              <span class="ma-auto-slider"></span>
               <span class="ma-auto-label">自动</span>
             </label>
           </div>
@@ -598,7 +605,7 @@
           <span class="nav-icon">◎</span><span class="nav-text">交易</span>
         </button>
         <button class="nav-item" data-feature="party" title="组队">
-          <span class="nav-icon">👥</span><span class="nav-text">组队</span>
+          <span class="nav-icon">◈</span><span class="nav-text">组队</span>
         </button>
         <button class="nav-item" data-feature="quests" title="任务">
           <span class="nav-icon">☐</span><span class="nav-text">任务</span>
@@ -609,10 +616,10 @@
         </button>
         <div class="nav-divider"></div>
         <button class="nav-item nav-item-secondary" data-feature="underworld" title="冥界">
-          <span class="nav-icon">💀</span><span class="nav-text">冥界</span>
+          <span class="nav-icon">☠</span><span class="nav-text">冥界</span>
         </button>
         <button class="nav-item nav-item-secondary" data-feature="changelog" title="更新历史">
-          <span class="nav-icon">📋</span><span class="nav-text">更新</span>
+          <span class="nav-icon">□</span><span class="nav-text">更新</span>
         </button>
         <div class="nav-divider"></div>
         <button class="nav-item nav-item-secondary" data-feature="story" title="主线聚焦">
@@ -730,7 +737,7 @@
     <div class="popup-overlay hidden" id="underworldPopupOverlay">
       <div class="popup-dialog underworld-popup" id="underworldPopupDialog">
         <div class="popup-header">
-          <span class="popup-chapter-title" style="color:var(--purple);">冥界</span>
+          <span class="popup-chapter-title text-purple">冥界</span>
         </div>
         <div class="popup-body" id="underworldPopupBody"></div>
       </div>
@@ -800,11 +807,11 @@
        Changelog — 版本更新弹窗
        ================================================================ -->
 <div id="changelogOverlay" class="modal-overlay hidden">
-  <div class="modal-content" style="max-width:480px;text-align:center;">
-    <div style="font-size:20px;color:#c9a860;margin-bottom:6px;">更新日志</div>
-    <div id="changelogVersion" style="font-size:13px;color:#8a8a9a;margin-bottom:16px;"></div>
-    <ul id="changelogList" style="text-align:left;font-size:13px;color:#c8c8d0;line-height:1.8;padding-left:20px;margin-bottom:20px;"></ul>
-    <button class="btn-warning-confirm" onclick="GameClient.closeChangelog()" style="padding:8px 32px;">知道了</button>
+  <div class="modal-content text-center" style="max-width:480px;">
+    <div class="text-gold mb-6 fs-20">更新日志</div>
+    <div id="changelogVersion" class="fs-13 text-dim mb-16"></div>
+    <ul id="changelogList" class="fs-13 mb-20 lh18" style="color:#c8c8d0;padding-left:20px;"></ul>
+    <button class="btn-warning-confirm py-8 px-32" onclick="GameClient.closeChangelog()">知道了</button>
   </div>
 </div>
 
@@ -812,11 +819,11 @@
      Version Update Overlay — 检测到新版本时强制刷新
      ================================================================ -->
 <div id="versionUpdateOverlay" style="position:fixed;inset:0;background:#000000ee;z-index:9999;display:flex;align-items:center;justify-content:center;display:none;">
-  <div style="background:#1f1e1b;border:1px solid var(--border);border-radius:12px;padding:32px 40px;text-align:center;max-width:420px;">
-    <div style="font-size:48px;margin-bottom:12px;">🔄</div>
-    <div style="font-size:18px;color:var(--gold);margin-bottom:8px;">检测到新版本</div>
-    <div id="versionUpdateMsg" style="font-size:13px;color:var(--text-dim);margin-bottom:20px;line-height:1.6;">游戏已更新，请刷新页面以获取最新内容。</div>
-    <button onclick="location.reload(true)" style="background:var(--gold-dim);color:#fff;border:none;border-radius:8px;padding:12px 40px;font-size:15px;cursor:pointer;font-family:var(--font-ui);">刷新页面</button>
+  <div class="text-center border-r-12" style="background:#1f1e1b;border:1px solid var(--border);padding:32px 40px;max-width:420px;">
+    <div class="mb-12" style="font-size:48px;">⟳</div>
+    <div class="text-gold mb-8 fs-18">检测到新版本</div>
+    <div id="versionUpdateMsg" class="fs-13 text-dim mb-20 lh16">游戏已更新，请刷新页面以获取最新内容。</div>
+    <button class="border-r-8 py-6 px-20 fs-15" onclick="location.reload(true)" style="background:var(--gold-dim);color:#fff;border:none;">刷新页面</button>
   </div>
 </div>
 

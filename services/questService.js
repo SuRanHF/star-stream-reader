@@ -427,16 +427,16 @@ function cleanupQuests(playerId) {
 function claimQuestReward(playerId, questId) {
   var db = getDb();
   var quest = findQuestById(db, questId);
-  if (!quest) return { error: { code: 'QUEST_NOT_FOUND', message: '任务不存在' } };
-  if (quest.player_id !== playerId) return { error: { code: 'NOT_YOUR_QUEST', message: '这不是你的任务' } };
-  if (quest.claimed === 1) return { error: { code: 'ALREADY_CLAIMED', message: '奖励已领取' } };
-  if (quest.progress < quest.target) return { error: { code: 'NOT_COMPLETE', message: '任务未完成' } };
+  if (!quest) return { success: false, error: { code: 'QUEST_NOT_FOUND', message: '任务不存在' } };
+  if (quest.player_id !== playerId) return { success: false, error: { code: 'NOT_YOUR_QUEST', message: '这不是你的任务' } };
+  if (quest.claimed === 1) return { success: false, error: { code: 'ALREADY_CLAIMED', message: '奖励已领取' } };
+  if (quest.progress < quest.target) return { success: false, error: { code: 'NOT_COMPLETE', message: '任务未完成' } };
 
   var rewards = {};
   try { rewards = JSON.parse(quest.rewards_json || '{}'); } catch (e) { /* ignore */ }
 
   var player = playerService.getRaw(playerId);
-  if (!player) return { error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } };
+  if (!player) return { success: false, error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } };
 
   // Apply rewards
   var earned = {};
@@ -450,8 +450,7 @@ function claimQuestReward(playerId, questId) {
     earned.story_fragments = rewards.story_fragments;
   }
   if (rewards.constellationFavor && rewards.constellationFavor > 0) {
-    var chapService = require('./chapterService');
-    chapService.awardResource(playerId, 'constellationFavor', rewards.constellationFavor);
+    chapterService.awardResource(playerId, 'constellationFavor', rewards.constellationFavor);
     earned.constellationFavor = rewards.constellationFavor;
   }
   if (rewards.items && rewards.items.length > 0) {

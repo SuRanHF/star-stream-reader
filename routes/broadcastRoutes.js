@@ -16,7 +16,7 @@ router.get('/active', (req, res) => {
     res.json({ success: true, data: withProgress });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
@@ -28,7 +28,7 @@ router.get('/history', (req, res) => {
     res.json({ success: true, data: history });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
@@ -36,24 +36,25 @@ router.get('/history', (req, res) => {
 router.post('/:eventId/join', authRequired, requireOwnPlayer, (req, res) => {
   try {
     const eventId = parseInt(req.params.eventId);
+    if (isNaN(eventId)) return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: '无效的 eventId' } });
     const { playerId } = req.body;
-    if (!playerId) return res.status(400).json({ code: 'MISSING_PARAMS', message: '缺少 playerId' });
+    if (!playerId) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAMS', message: '缺少 playerId' } });
 
     try {
       playerService.assertNotResting(Number(playerId), '参加星流放送');
     } catch (e) {
       if (e.code === 'PLAYER_RESTING') {
-        return res.status(400).json({ code: 'PLAYER_RESTING', message: e.message });
+        return res.status(400).json({ success: false, error: { code: 'PLAYER_RESTING', message: e.message } });
       }
       throw e;
     }
 
     const result = broadcastService.joinEvent(eventId, playerId);
-    if (result.error) return res.status(400).json(result.error);
+    if (result.error) return res.status(400).json({ success: false, error: result.error });
     res.json(result);
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
@@ -61,12 +62,13 @@ router.post('/:eventId/join', authRequired, requireOwnPlayer, (req, res) => {
 router.get('/:eventId/progress', (req, res) => {
   try {
     const eventId = parseInt(req.params.eventId);
+    if (isNaN(eventId)) return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: '无效的 eventId' } });
     const result = broadcastService.getEventProgress(eventId);
-    if (result.error) return res.status(400).json(result.error);
+    if (result.error) return res.status(400).json({ success: false, error: result.error });
     res.json(result);
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
@@ -74,13 +76,15 @@ router.get('/:eventId/progress', (req, res) => {
 router.get('/:eventId/my-contribution/:playerId', authRequired, (req, res) => {
   try {
     const eventId = parseInt(req.params.eventId);
+    if (isNaN(eventId)) return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: '无效的 eventId' } });
     const playerId = parseInt(req.params.playerId);
+    if (isNaN(playerId)) return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: '无效的 playerId' } });
     const result = broadcastService.getPlayerContribution(eventId, playerId);
-    if (result.error) return res.status(400).json(result.error);
+    if (result.error) return res.status(400).json({ success: false, error: result.error });
     res.json(result);
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
@@ -88,24 +92,25 @@ router.get('/:eventId/my-contribution/:playerId', authRequired, (req, res) => {
 router.post('/:eventId/claim', authRequired, requireOwnPlayer, (req, res) => {
   try {
     const eventId = parseInt(req.params.eventId);
+    if (isNaN(eventId)) return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: '无效的 eventId' } });
     const { playerId } = req.body;
-    if (!playerId) return res.status(400).json({ code: 'MISSING_PARAMS', message: '缺少 playerId' });
+    if (!playerId) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAMS', message: '缺少 playerId' } });
 
     try {
       playerService.assertNotResting(Number(playerId), '领取放送奖励');
     } catch (e) {
       if (e.code === 'PLAYER_RESTING') {
-        return res.status(400).json({ code: 'PLAYER_RESTING', message: e.message });
+        return res.status(400).json({ success: false, error: { code: 'PLAYER_RESTING', message: e.message } });
       }
       throw e;
     }
 
     const result = broadcastService.claimReward(eventId, playerId);
-    if (result.error) return res.status(400).json(result.error);
+    if (result.error) return res.status(400).json({ success: false, error: result.error });
     res.json(result);
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
@@ -113,12 +118,13 @@ router.post('/:eventId/claim', authRequired, requireOwnPlayer, (req, res) => {
 router.get('/:eventId/ranking', (req, res) => {
   try {
     const eventId = parseInt(req.params.eventId);
+    if (isNaN(eventId)) return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: '无效的 eventId' } });
     const limit = parseInt(req.query.limit) || 20;
     const ranking = broadcastService.getContributionRanking(eventId, limit);
     res.json({ success: true, data: ranking });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
@@ -130,7 +136,7 @@ router.get('/leaderboard', (req, res) => {
     res.json({ success: true, data: rankings });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
@@ -138,16 +144,17 @@ router.get('/leaderboard', (req, res) => {
 router.post('/:eventId/submit-resource', authRequired, requireOwnPlayer, (req, res) => {
   try {
     const eventId = parseInt(req.params.eventId);
+    if (isNaN(eventId)) return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: '无效的 eventId' } });
     const { playerId, resourceType, amount } = req.body;
     if (!playerId || !resourceType || !amount) {
-      return res.status(400).json({ code: 'MISSING_PARAMS', message: '缺少 playerId/resourceType/amount' });
+      return res.status(400).json({ success: false, error: { code: 'MISSING_PARAMS', message: '缺少 playerId/resourceType/amount' } });
     }
 
     try {
       playerService.assertNotResting(Number(playerId), '提交放送资源');
     } catch (e) {
       if (e.code === 'PLAYER_RESTING') {
-        return res.status(400).json({ code: 'PLAYER_RESTING', message: e.message });
+        return res.status(400).json({ success: false, error: { code: 'PLAYER_RESTING', message: e.message } });
       }
       throw e;
     }
@@ -156,7 +163,7 @@ router.post('/:eventId/submit-resource', authRequired, requireOwnPlayer, (req, r
     res.json({ success: true, data: { submitted: { resourceType, amount } } });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 

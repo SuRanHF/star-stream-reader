@@ -7,19 +7,19 @@ function checkUnlocks(playerId) {
   if (!player) return [];
 
   const allTitles = db.prepare('SELECT * FROM titles').all();
-  const playerTitles = JSON.parse(player.titles_json);
-  const titleProgress = JSON.parse(player.title_progress_json);
-  const storyFlags = JSON.parse(player.story_flags_json);
-  const permFlags = JSON.parse(player.permanent_flags_json);
-  const stats = JSON.parse(player.stats_json);
-  const sponsors = JSON.parse(player.sponsors_json);
+  let playerTitles = []; try { playerTitles = JSON.parse(player.titles_json); } catch (e) { playerTitles = []; }
+  let titleProgress = {}; try { titleProgress = JSON.parse(player.title_progress_json); } catch (e) { titleProgress = {}; }
+  let storyFlags = {}; try { storyFlags = JSON.parse(player.story_flags_json); } catch (e) { storyFlags = {}; }
+  let permFlags = {}; try { permFlags = JSON.parse(player.permanent_flags_json); } catch (e) { permFlags = {}; }
+  let stats = {}; try { stats = JSON.parse(player.stats_json); } catch (e) { stats = {}; }
+  let sponsors = []; try { sponsors = JSON.parse(player.sponsors_json); } catch (e) { sponsors = []; }
 
   const newlyUnlocked = [];
 
   for (const title of allTitles) {
     if (playerTitles.includes(title.title_key)) continue;
 
-    const conditions = JSON.parse(title.conditions_json);
+    let conditions = {}; try { conditions = JSON.parse(title.conditions_json); } catch (e) { conditions = {}; }
     if (!evaluateConditions(conditions, playerTitles, titleProgress, storyFlags, permFlags, stats, sponsors)) {
       // Update progress
       if (conditions.flags) {
@@ -36,11 +36,12 @@ function checkUnlocks(playerId) {
     }
 
     // Check exclusive titles
-    const exclusiveWith = JSON.parse(title.exclusive_with_json);
+    let exclusiveWith = []; try { exclusiveWith = JSON.parse(title.exclusive_with_json); } catch (e) { exclusiveWith = []; }
     if (exclusiveWith.length > 0 && exclusiveWith.some(t => playerTitles.includes(t))) continue;
 
     playerTitles.push(title.title_key);
-    newlyUnlocked.push({ title_key: title.title_key, name: title.name, description: title.description, rarity: title.rarity, effects: JSON.parse(title.effects_json) });
+    let effects = {}; try { effects = JSON.parse(title.effects_json); } catch (e) { effects = {}; }
+    newlyUnlocked.push({ title_key: title.title_key, name: title.name, description: title.description, rarity: title.rarity, effects });
   }
 
   if (newlyUnlocked.length > 0) {
@@ -55,18 +56,21 @@ function getUnlocked(playerId) {
   const player = playerService.getRaw(playerId);
   if (!player) return [];
 
-  const playerTitles = JSON.parse(player.titles_json);
+  let playerTitles = []; try { playerTitles = JSON.parse(player.titles_json); } catch (e) { playerTitles = []; }
   if (playerTitles.length === 0) return [];
 
   const placeholders = playerTitles.map(() => '?').join(',');
   const rows = db.prepare(`SELECT * FROM titles WHERE title_key IN (${placeholders})`).all(...playerTitles);
-  return rows.map(t => ({
-    title_key: t.title_key,
-    name: t.name,
-    description: t.description,
-    rarity: t.rarity,
-    effects: JSON.parse(t.effects_json)
-  }));
+  return rows.map(t => {
+    let effects = {}; try { effects = JSON.parse(t.effects_json); } catch (e) { effects = {}; }
+    return {
+      title_key: t.title_key,
+      name: t.name,
+      description: t.description,
+      rarity: t.rarity,
+      effects
+    };
+  });
 }
 
 function evaluateConditions(conditions, playerTitles, titleProgress, storyFlags, permFlags, stats, sponsors) {
@@ -134,7 +138,7 @@ function computeCombatModifiers(player) {
   const rows = db.prepare(`SELECT effects_json FROM titles WHERE title_key IN (${placeholders})`).all(...titles);
 
   for (const row of rows) {
-    const effects = JSON.parse(row.effects_json);
+    let effects = {}; try { effects = JSON.parse(row.effects_json); } catch (e) { effects = {}; }
     const cb = effects.combat_bonus;
     if (!cb) continue;
     if (cb.attack_pct) mods.attackBonus += cb.attack_pct;
@@ -159,7 +163,7 @@ function computeExplorationModifiers(player) {
   const rows = db.prepare(`SELECT effects_json FROM titles WHERE title_key IN (${placeholders})`).all(...titles);
 
   for (const row of rows) {
-    const effects = JSON.parse(row.effects_json);
+    let effects = {}; try { effects = JSON.parse(row.effects_json); } catch (e) { effects = {}; }
     const eb = effects.exploration_bonus;
     if (!eb) continue;
     if (eb.luck) mods.luckBonus += eb.luck;
@@ -183,7 +187,7 @@ function computePKModifiers(player) {
   const rows = db.prepare(`SELECT effects_json FROM titles WHERE title_key IN (${placeholders})`).all(...titles);
 
   for (const row of rows) {
-    const effects = JSON.parse(row.effects_json);
+    let effects = {}; try { effects = JSON.parse(row.effects_json); } catch (e) { effects = {}; }
     const pb = effects.pk_bonus;
     if (!pb) continue;
     if (pb.attack_pct) mods.attackPct += pb.attack_pct;
@@ -206,7 +210,7 @@ function computeCoinMultiplier(player) {
   const rows = db.prepare(`SELECT effects_json FROM titles WHERE title_key IN (${placeholders})`).all(...titles);
 
   for (const row of rows) {
-    const effects = JSON.parse(row.effects_json);
+    let effects = {}; try { effects = JSON.parse(row.effects_json); } catch (e) { effects = {}; }
     if (effects.coin_multiplier) {
       multiplier *= effects.coin_multiplier;
     }
@@ -227,7 +231,7 @@ function computeEffectiveStats(player) {
   const rows = db.prepare(`SELECT effects_json FROM titles WHERE title_key IN (${placeholders})`).all(...titles);
 
   for (const row of rows) {
-    const effects = JSON.parse(row.effects_json);
+    let effects = {}; try { effects = JSON.parse(row.effects_json); } catch (e) { effects = {}; }
     const sm = effects.stat_modifier;
     if (!sm) continue;
     for (const [stat, val] of Object.entries(sm)) {
@@ -250,7 +254,7 @@ function computeEventProbabilityModifiers(player) {
   const rows = db.prepare(`SELECT effects_json FROM titles WHERE title_key IN (${placeholders})`).all(...titles);
 
   for (const row of rows) {
-    const effects = JSON.parse(row.effects_json);
+    let effects = {}; try { effects = JSON.parse(row.effects_json); } catch (e) { effects = {}; }
     const epm = effects.event_prob_modifiers;
     if (!epm) continue;
     for (const [eventType, val] of Object.entries(epm)) {
@@ -267,7 +271,7 @@ function incrementTitleProgress(playerId, titleKey) {
   const player = playerService.getRaw(playerId);
   if (!player) return;
 
-  const titleProgress = JSON.parse(player.title_progress_json || '{}');
+  let titleProgress = {}; try { titleProgress = JSON.parse(player.title_progress_json || '{}'); } catch (e) { titleProgress = {}; }
   titleProgress[titleKey] = (titleProgress[titleKey] || 0) + 1;
   playerService.update(playerId, { title_progress_json: titleProgress });
 
@@ -309,7 +313,7 @@ function determineNarrativeIdentity(player) {
   for (const tKey of titles) {
     const titleDef = db.prepare('SELECT effects_json FROM titles WHERE title_key = ?').get(tKey);
     if (!titleDef) continue;
-    const effects = JSON.parse(titleDef.effects_json);
+    let effects = {}; try { effects = JSON.parse(titleDef.effects_json); } catch (e) { effects = {}; }
     const tags = effects.narrative_tags || [];
     for (const tag of tags) {
       tagCounts[tag] = (tagCounts[tag] || 0) + 1;

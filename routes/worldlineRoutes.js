@@ -26,19 +26,28 @@ router.get('/history', function(req, res) {
   try {
     var db = require('../db/database').getDb();
     var limit = parseInt(req.query.limit) || 20;
+    var minShift = parseFloat(req.query.minShift) || 0.5;
+    // worldLineShift is not stored in exploration_logs; retrieve recent logs and check
     var rows = db.prepare(
-      'SELECT * FROM exploration_logs WHERE risks_json LIKE ? ORDER BY created_at DESC LIMIT ?'
-    ).all('%worldLineShift%', limit);
-    var history = rows.map(function(r) {
-      var risks = JSON.parse(r.risks_json || '{}');
-      return {
-        playerId: r.player_id,
-        location: r.location_key,
-        worldLineShift: risks.worldLineShift || 0,
-        event: r.event_name,
-        createdAt: r.created_at
-      };
-    }).filter(function(h) { return h.worldLineShift !== 0; });
+      'SELECT * FROM exploration_logs ORDER BY created_at DESC LIMIT ?'
+    ).all(limit * 5);
+    var history = [];
+    for (var i = 0; i < rows.length && history.length < limit; i++) {
+      var r = rows[i];
+      var data = JSON.parse(r.result_json || '{}');
+      var shift = data.risks && data.risks.worldLineShift
+        ? data.risks.worldLineShift
+        : (data.worldLineShift || 0);
+      if (Math.abs(shift) >= minShift) {
+        history.push({
+          playerId: r.player_id,
+          location: r.location_key,
+          worldLineShift: shift,
+          event: data.event_name || r.result_type,
+          createdAt: r.created_at
+        });
+      }
+    }
     res.json({ success: true, data: { history: history } });
   } catch (e) {
     console.error(e);

@@ -26,7 +26,11 @@ router.get('/location-echoes/:locationKey', function(req, res) {
 // 检查NPC残影遭遇
 router.get('/ghost-check/:playerId/:locationKey', function(req, res) {
   try {
-    var ghost = narrativeService.checkNpcGhostEncounter(parseInt(req.params.playerId), req.params.locationKey);
+    var playerId = parseInt(req.params.playerId);
+    if (isNaN(playerId)) {
+      return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: 'Invalid player ID' } });
+    }
+    var ghost = narrativeService.checkNpcGhostEncounter(playerId, req.params.locationKey);
     res.json({ success: true, data: ghost });
   } catch (e) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
@@ -36,8 +40,19 @@ router.get('/ghost-check/:playerId/:locationKey', function(req, res) {
 // 处理NPC残影对话
 router.post('/ghost-encounter', function(req, res) {
   try {
-    var result = narrativeService.processNpcGhostEncounter(req.body.playerId, req.body.ghostKey, req.body.nodeIndex || 0, req.body.choiceIndex || 0);
-    if (!result) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: '对话选项不存在' } });
+    var playerId = parseInt(req.body.playerId);
+    var ghostKey = req.body.ghostKey;
+    var nodeIndex = parseInt(req.body.nodeIndex) || 0;
+    var choiceIndex = parseInt(req.body.choiceIndex) || 0;
+
+    if (!playerId || !ghostKey) {
+      return res.status(400).json({ success: false, error: { code: 'MISSING_PARAMS', message: '缺少必要参数' } });
+    }
+
+    var result = narrativeService.processNpcGhostEncounter(playerId, ghostKey, nodeIndex, choiceIndex);
+    if (result && result.error) {
+      return res.status(404).json({ success: false, error: { code: result.error.code || result.error, message: result.error.message || '' } });
+    }
     res.json({ success: true, data: result });
   } catch (e) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
@@ -47,7 +62,11 @@ router.post('/ghost-encounter', function(req, res) {
 // 玩家遭遇历史
 router.get('/encounters/:playerId', function(req, res) {
   try {
-    var encounters = narrativeService.getPlayerEncounters(parseInt(req.params.playerId), parseInt(req.query.limit) || 20);
+    var playerId = parseInt(req.params.playerId);
+    if (isNaN(playerId)) {
+      return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: 'Invalid player ID' } });
+    }
+    var encounters = narrativeService.getPlayerEncounters(playerId, parseInt(req.query.limit) || 20);
     res.json({ success: true, data: encounters });
   } catch (e) {
     res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });

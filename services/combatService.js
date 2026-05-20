@@ -61,7 +61,7 @@ function simulateBattle(player, monsterKey, options) {
   const db = getDb();
   const playerPower = calculateCombatPower(player);
   const monsterDef = db.prepare('SELECT * FROM monsters WHERE monster_key = ?').get(monsterKey);
-  if (!monsterDef) return { error: { code: 'MONSTER_NOT_FOUND', message: '怪物不存在' } };
+  if (!monsterDef) return { success: false, error: { code: 'MONSTER_NOT_FOUND', message: '怪物不存在' } };
 
   // 星流放送修正
   let broadcastMods = {};
@@ -100,7 +100,7 @@ function simulateBattle(player, monsterKey, options) {
 
   // 应用世界线怪物伤害倍率
   const monsterAtkMult = worldlineMods.monsterDamageMult || 1.0;
-  const effectiveMonsterAtk = Math.round(effectiveMonsterAtk * monsterAtkMult);
+  const effectiveMonsterAtk = Math.round(monsterDef.attack * monsterAtkMult);
 
   const attackerFirst = playerPower.spd >= monsterDef.speed;
   const MAX_ROUNDS = 30;
@@ -190,6 +190,7 @@ function applyBattleRewards(playerId, monsterKey, battleResult, battleData) {
   if (!monster) return null;
 
   const player = playerService.getRaw(playerId);
+  if (!player) return { success: false, error: { code: 'PLAYER_NOT_FOUND', message: 'Player not found' } };
   const stats = JSON.parse(player.stats_json);
   const rewards = JSON.parse(monster.rewards_json);
 
@@ -306,10 +307,10 @@ function applyBattleRewards(playerId, monsterKey, battleResult, battleData) {
 function resolveCombat(playerId, monsterKey, action) {
   const db = getDb();
   const player = playerService.get(playerId);
-  if (!player) return { error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } };
+  if (!player) return { success: false, error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } };
 
   const monster = db.prepare('SELECT * FROM monsters WHERE monster_key = ?').get(monsterKey);
-  if (!monster) return { error: { code: 'MONSTER_NOT_FOUND', message: '怪物不存在' } };
+  if (!monster) return { success: false, error: { code: 'MONSTER_NOT_FOUND', message: '怪物不存在' } };
 
   const playerPower = calculateCombatPower(player);
   const stats = player.stats;
@@ -382,7 +383,9 @@ function resolveCombat(playerId, monsterKey, action) {
             qService.checkProgress(playerId, 'defeat_boss', { monster_key: monsterKey, is_boss: true });
           }
         }
-        qService.checkProgress(playerId, 'pk_encounter', { monster_key: monsterKey });
+        if (monster.is_elite) {
+          qService.checkProgress(playerId, 'defeat_elite', { monster_key: monsterKey, is_elite: true });
+        }
       } catch (e) { /* quest not critical */ }
 
       return {
@@ -439,7 +442,9 @@ function resolveCombat(playerId, monsterKey, action) {
         questService.checkProgress(playerId, 'defeat_boss', { monster_key: monsterKey, is_boss: true });
       }
     }
-    questService.checkProgress(playerId, 'pk_encounter', { monster_key: monsterKey });
+    if (monster.is_elite) {
+      questService.checkProgress(playerId, 'defeat_elite', { monster_key: monsterKey, is_elite: true });
+    }
   } catch (e) { /* quest not critical */ }
 
   return {

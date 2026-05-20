@@ -33,10 +33,11 @@ router.get('/constellations', (req, res) => {
 router.post('/select-constellation', (req, res) => {
   try {
     const { playerId, constellationKey } = req.body;
-    if (!playerId || !constellationKey) {
+    const pid = parseInt(playerId);
+    if (!constellationKey || isNaN(pid)) {
       return res.status(400).json({ success: false, error: { code: 'MISSING_PARAMS', message: '缺少必要参数' } });
     }
-    const result = playerService.selectConstellation(Number(playerId), constellationKey);
+    const result = playerService.selectConstellation(pid, constellationKey);
     if (result.error) return res.status(400).json({ success: false, error: result.error });
     res.json({ success: true, data: result });
   } catch (e) {
@@ -58,8 +59,10 @@ router.get('/dead-list', (req, res) => {
 
 router.get('/:id', (req, res) => {
   try {
-    recoveryService.applyPassiveRecovery(Number(req.params.id));
-    const player = playerService.get(Number(req.params.id));
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: '无效的玩家ID' } });
+    recoveryService.applyPassiveRecovery(id);
+    const player = playerService.get(id);
     if (!player) return res.status(404).json({ success: false, error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } });
     res.json({ success: true, data: { player } });
   } catch (e) {
@@ -70,44 +73,48 @@ router.get('/:id', (req, res) => {
 
 router.post('/reset/:id', (req, res) => {
   try {
-    const player = playerService.reset(Number(req.params.id));
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: '无效的玩家ID' } });
+    const player = playerService.reset(id);
     if (!player) return res.status(404).json({ success: false, error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } });
     playerService.addLog(player.id, '进度已重置 (永久标记保留)');
     res.json({ success: true, data: { player } });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
 router.post('/rest/start', (req, res) => {
   try {
     const { playerId } = req.body;
-    if (!playerId) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAMS', message: '缺少必要参数' } });
-    const result = recoveryService.startRest(Number(playerId));
+    const pid = parseInt(playerId);
+    if (isNaN(pid)) return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: '无效的玩家ID' } });
+    const result = recoveryService.startRest(pid);
     if (result.error) return res.status(400).json({ success: false, error: result.error });
     // Quest progress tracking
     try {
       const questService = require('../services/questService');
-      questService.checkProgress(Number(playerId), 'rest', {});
+      questService.checkProgress(pid, 'rest', {});
     } catch (e) { /* quest not critical */ }
-    res.json(result);
+    res.json({ success: true, data: result });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
 router.post('/rest/stop', (req, res) => {
   try {
     const { playerId } = req.body;
-    if (!playerId) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAMS', message: '缺少必要参数' } });
-    const result = recoveryService.stopRest(Number(playerId));
+    const pid = parseInt(playerId);
+    if (isNaN(pid)) return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: '无效的玩家ID' } });
+    const result = recoveryService.stopRest(pid);
     if (result.error) return res.status(400).json({ success: false, error: result.error });
-    res.json(result);
+    res.json({ success: true, data: result });
   } catch (e) {
     console.error(e);
-    res.status(500).json({ code: 'SERVER_ERROR', message: e.message });
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: e.message } });
   }
 });
 
@@ -115,10 +122,11 @@ router.post('/rest/stop', (req, res) => {
 router.post('/revive', (req, res) => {
   try {
     const { playerId, method } = req.body;
-    if (!playerId || !method) {
+    const pid = parseInt(playerId);
+    if (!method || isNaN(pid)) {
       return res.status(400).json({ success: false, error: { code: 'MISSING_PARAMS', message: '缺少必要参数' } });
     }
-    const result = playerService.revivePlayer(Number(playerId), method);
+    const result = playerService.revivePlayer(pid, method);
     if (result.error) return res.status(400).json({ success: false, error: result.error });
     res.json({ success: true, data: result });
   } catch (e) {
@@ -130,9 +138,10 @@ router.post('/revive', (req, res) => {
 router.post('/allocate-points', (req, res) => {
   try {
     const { playerId, atk, def, spd, crit } = req.body;
-    if (!playerId) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAMS', message: '缺少必要参数' } });
+    const pid = parseInt(playerId);
+    if (isNaN(pid)) return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: '无效的玩家ID' } });
 
-    const player = playerService.getRaw(Number(playerId));
+    const player = playerService.getRaw(pid);
     if (!player) return res.status(404).json({ success: false, error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } });
 
     const stats = JSON.parse(player.stats_json);
@@ -167,9 +176,10 @@ router.post('/allocate-points', (req, res) => {
 router.post('/reset-allocation', (req, res) => {
   try {
     const { playerId } = req.body;
-    if (!playerId) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAMS', message: '缺少必要参数' } });
+    const pid = parseInt(playerId);
+    if (isNaN(pid)) return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: '无效的玩家ID' } });
 
-    const player = playerService.getRaw(Number(playerId));
+    const player = playerService.getRaw(pid);
     if (!player) return res.status(404).json({ success: false, error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } });
 
     const stats = JSON.parse(player.stats_json);

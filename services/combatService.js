@@ -100,7 +100,7 @@ function simulateBattle(player, monsterKey, options) {
 
   // 应用世界线怪物伤害倍率
   const monsterAtkMult = worldlineMods.monsterDamageMult || 1.0;
-  const effectiveMonsterAtk = Math.round(effectiveMonsterAtk * monsterAtkMult);
+  const effectiveMonsterAtk = Math.round(monsterDef.attack * monsterAtkMult);
 
   const attackerFirst = playerPower.spd >= monsterDef.speed;
   const MAX_ROUNDS = 30;
@@ -303,7 +303,7 @@ function applyBattleRewards(playerId, monsterKey, battleResult, battleData) {
 }
 
 // 玩家选择行动后的战斗结算
-function resolveCombat(playerId, monsterKey, action) {
+function resolveCombat(playerId, monsterKey, action, helperId) {
   const db = getDb();
   const player = playerService.get(playerId);
   if (!player) return { error: { code: 'PLAYER_NOT_FOUND', message: '玩家不存在' } };
@@ -343,40 +343,63 @@ function resolveCombat(playerId, monsterKey, action) {
   }
 
   if (action === 'support') {
-    const supportRate = Math.min(0.8, Math.max(0.2, bond * 0.08));
+    // 有在线玩家协助时，100% 成功率
+    const hasRealHelper = !!helperId;
+    const supportRate = hasRealHelper ? 1.0 : Math.min(0.8, Math.max(0.2, bond * 0.08));
     const success = Math.random() < supportRate;
+    let helper = null;
+
+    if (hasRealHelper) {
+      helper = playerService.get(helperId);
+      if (helper) {
+        playerService.addLog(helperId, player.player_name + ' 在战斗中向你求助，对抗 ' + monster.name + '！');
+        // 帮助者获得少量硬币奖励
+        const helperCoinReward = Math.max(5, Math.floor((monster.level || 1) * 3));
+        playerService.update(helperId, { coins: (helper.coins || 0) + helperCoinReward });
+        playerService.addLog(helperId, '协助 ' + player.player_name + ' 战斗获得 ' + helperCoinReward + ' 硬币。');
+      }
+    }
+
     if (success) {
-      playerService.addLog(playerId, `羁绊之力召唤了援助！攻击力获得强化。`);
+      const supportSource = hasRealHelper ? (helper ? helper.player_name : '在线玩家') : '羁绊之力';
+      playerService.addLog(playerId, supportSource + ' 回应了援助！能力全面强化。');
       // Apply support bonus then fight
       const boostedPlayer = playerService.get(playerId);
-      const origAtk = boostedPlayer.stats.attack;
-      boostedPlayer.stats.attack = Math.round(origAtk * 1.3);
-      const battle = simulateBattle(boostedPlayer, monsterKey, { supportBoost: true });
-      boostedPlayer.stats.attack = origAtk; // restore
-
-      if (battle.error) return battle;
-
-      let rewards = null;
-      let logType = 'monster';
-      if (battle.result === 'win') {
-        rewards = applyBattleRewards(playerId, monsterKey, 'win', battle);
-        battle.rewards = rewards;
+      if (hasRealHelper) {
+        // 真实玩家协助：大幅提升全属性
+        const helperLevel = helper ? (helper.stats && helper.stats.level) || 1 : 1;
+        boostedPlayer.stats.attack = Math.round(boostedPlayer.stats.attack * 2.0 + helperLevel * 3);
+        boostedPlayer.stats.defense = Math.round(boostedPlayer.stats.defense * 1.5 + helperLevel * 2);
+        boostedPlayer.stats.speed = Math.round(boostedPlayer.stats.speed * 1.3 + helperLevel);
       } else {
-        rewards = applyBattleRewards(playerId, monsterKey, 'loss', battle);
-        battle.rewards = rewards;
+        // 羁绊之力：仅攻击力小幅强化
+        boostedPlayer.stats.attack = Math.round(boostedPlayer.stats.attack * 1.3);
+      }
+      const supportBattle = simulateBattle(boostedPlayer, monsterKey, { supportBoost: true });
+
+      if (supportBattle.error) return supportBattle;
+
+      let supportRewards = null;
+      const supportLogType = 'monster';
+      if (supportBattle.result === 'win') {
+        supportRewards = applyBattleRewards(playerId, monsterKey, 'win', supportBattle);
+        supportBattle.rewards = supportRewards;
+      } else {
+        supportRewards = applyBattleRewards(playerId, monsterKey, 'loss', supportBattle);
+        supportBattle.rewards = supportRewards;
       }
 
       db.prepare(`INSERT INTO battle_logs (player_id, battle_type, enemy_key, result, battle_data_json, rewards_json)
         VALUES (?, ?, ?, ?, ?, ?)`).run(
-        playerId, logType, monsterKey, battle.result,
-        JSON.stringify({ rounds: battle.totalRounds, playerHpRemaining: battle.playerHpRemaining, support: true }),
-        JSON.stringify(rewards || {})
+        playerId, supportLogType, monsterKey, supportBattle.result,
+        JSON.stringify({ rounds: supportBattle.totalRounds, playerHpRemaining: supportBattle.playerHpRemaining, support: true, helper_id: helperId || null }),
+        JSON.stringify(supportRewards || {})
       );
 
       // Quest progress tracking
       try {
         var qService = require('./questService');
-        if (battle.result === 'win') {
+        if (supportBattle.result === 'win') {
           qService.checkProgress(playerId, 'defeat_monster', { monster_key: monsterKey });
           if (monster.is_boss) {
             qService.checkProgress(playerId, 'defeat_boss', { monster_key: monsterKey, is_boss: true });
@@ -388,8 +411,8 @@ function resolveCombat(playerId, monsterKey, action) {
       return {
         action: 'support',
         success: true,
-        message: '羁绊回应了你！援军加入战斗。',
-        battle,
+        message: (hasRealHelper ? (helper ? helper.player_name : '在线玩家') : '羁绊') + '回应了你！援军加入战斗。',
+        battle: supportBattle,
         player: playerService.get(playerId)
       };
     } else {
@@ -398,11 +421,11 @@ function resolveCombat(playerId, monsterKey, action) {
       const newHp = Math.max(0, (stats.hp || playerPower.hp) - mDmg.damage);
       const s = { ...stats, hp: newHp };
       playerService.update(playerId, { stats_json: s });
-      playerService.addLog(playerId, `请求支援失败！${monster.name} 趁机攻击，造成 ${mDmg.damage} 点伤害。`);
+      playerService.addLog(playerId, '请求支援失败！' + monster.name + ' 趁机攻击，造成 ' + mDmg.damage + ' 点伤害。');
       return {
         action: 'support',
         success: false,
-        message: `没有回应...${monster.name} 趁机攻击，造成 ${mDmg.damage} 点伤害。`,
+        message: '没有回应...' + monster.name + ' 趁机攻击，造成 ' + mDmg.damage + ' 点伤害。',
         damage_taken: mDmg.damage,
         player: playerService.get(playerId)
       };

@@ -1,0 +1,45 @@
+# ==================== Spring Boot 主配置 ====================
+
+spring:
+  # 默认激活 dev 环境, 生产环境通过 --spring.profiles.active=prod 覆盖
+  profiles:
+    active: dev
+
+  # Jackson JSON 序列化配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    default-property-inclusion: non_null
+
+# ==================== MyBatis-Plus 配置 ====================
+mybatis-plus:
+  # XML 映射文件路径
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    # 数据库下划线字段 ↔ Java 驼峰属性 自动映射
+    map-underscore-to-camel-case: true
+    # 开发环境打印 SQL 日志, 生产环境建议关闭
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      # 主键策略: 自增
+      id-type: auto
+
+# ==================== 应用自定义配置 ====================
+app:
+  scheduler:
+    # 调度引擎开关（默认开启）
+    enabled: true
+    # 全局 tick 间隔（毫秒），默认 60 秒
+    tick-interval-ms: 60000
+  jwt:
+    # JWT 签名密钥 (生产环境必须通过环境变量覆盖)
+    secret: ${JWT_SECRET:dev-secret-change-me}
+    # Token 过期时间 (小时)
+    expire-hours: 168
+
+# ==================== Knife4j 接口文档 ====================
+knife4j:
+  enable: true
+  setting:
+    language: zh-CN

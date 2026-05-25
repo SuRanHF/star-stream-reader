@@ -9,6 +9,9 @@ data/admin-actions.json
 .claude/settings.local.json
 dist/
 build/
+*.tsbuildinfo
+release.tar.gz
+seed_explore_*.sql
 .DS_Store
 authorized_content/*
 !authorized_content/README.md

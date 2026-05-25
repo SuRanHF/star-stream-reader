@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { useAuthStore } from '@/stores/authStore';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import AdminLoginView from '@/views/AdminLoginView.vue';
 import BroadcastManageView from '@/views/BroadcastManageView.vue';
@@ -11,12 +12,13 @@ import TradeAuditView from '@/views/TradeAuditView.vue';
 import WorldBossManageView from '@/views/WorldBossManageView.vue';
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/login', component: AdminLoginView },
     {
       path: '/',
       component: AdminLayout,
+      meta: { requiresAuth: true },
       children: [
         { path: '', redirect: '/dashboard' },
         { path: 'dashboard', component: DashboardView },
@@ -30,6 +32,17 @@ const router = createRouter({
       ],
     },
   ],
+});
+
+router.beforeEach((to) => {
+  const auth = useAuthStore();
+  if (to.meta.requiresAuth && !auth.isAuthenticated) {
+    return '/login';
+  }
+  if (to.path === '/login' && auth.isAuthenticated) {
+    return '/dashboard';
+  }
+  return true;
 });
 
 export default router;

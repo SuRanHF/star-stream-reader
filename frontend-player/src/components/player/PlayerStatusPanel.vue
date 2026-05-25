@@ -71,12 +71,6 @@ const CONSTELLATION_MAP: Record<string, string> = {
   morning_star: '晨星',
 };
 
-const NEBULA_MAP: Record<string, string> = {
-  nebula_eden: '伊甸星云',
-  nebula_vagrant: '流浪者星云',
-  nebula_abyss: '深渊观测所',
-  nebula_starstream: '星流档案馆',
-};
 
 function constellationDisplay(): string {
   const s = stats();

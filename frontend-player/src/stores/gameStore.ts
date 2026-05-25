@@ -55,8 +55,8 @@ export const useGameStore = defineStore('game', () => {
       rawPlayer.allocatedCrit = (stats.allocatedCrit ?? rawPlayer.allocatedCrit ?? 0) as number;
     }
     if (rawPlayer) {
-      rawPlayer.currentLocationKey = payload.current_location || payload.currentLocation || rawPlayer.current_location || rawPlayer.currentLocation || '';
-      rawPlayer.currentLocationName = payload.current_location_name || rawPlayer.current_location_name || '';
+      rawPlayer.currentLocationKey = String((rawPlayer as ApiRecord).current_location || rawPlayer.currentLocation || (payload as ApiRecord).current_location || (payload as ApiRecord).currentLocation || '');
+      rawPlayer.currentLocationName = String((rawPlayer as ApiRecord).current_location_name || rawPlayer.currentLocationName || (payload as ApiRecord).current_location_name || '');
     }
     player.value = rawPlayer;
     recentLogs.value = payload.recentLogs || [];

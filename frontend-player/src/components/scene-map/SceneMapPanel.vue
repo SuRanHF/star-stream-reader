@@ -30,8 +30,11 @@ const selectedNodeData = computed(() => {
 
 const isCurrentLocation = computed(() => {
   if (!selectedNodeData.value) return false;
-  const cur = gameStore.player?.currentLocation || gameStore.player?.currentLocationKey || '';
-  return cur === selectedNodeData.value.name || cur === selectedNodeData.value.id;
+  const p = gameStore.player as Record<string, unknown> | null;
+  const cur = gameStore.player?.currentLocation || gameStore.player?.currentLocationKey || p?.['current_location'] || '';
+  return cur === selectedNodeData.value.name
+    || cur === selectedNodeData.value.id
+    || cur === (selectedNodeData.value as any).locationKey;
 });
 
 function onNodeSelect(name: string) {

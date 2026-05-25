@@ -24,7 +24,7 @@ class RealtimeClient {
     const realtimeStore = useRealtimeStore();
     realtimeStore.setStatus('connecting');
 
-    const base = import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:8080/ws/game';
+    const base = import.meta.env.VITE_WS_BASE_URL || `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws/game`;
     const url = `${base}?token=${encodeURIComponent(token)}`;
     this.socket = new WebSocket(url);
 

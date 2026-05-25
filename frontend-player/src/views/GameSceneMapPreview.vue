@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
+
 import SceneMapPanel from '@/components/scene-map/SceneMapPanel.vue';
 
-const router = useRouter();
 const leftPanelWidth = ref(240);
 const rightPanelWidth = ref(72);
 

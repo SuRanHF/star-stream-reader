@@ -134,7 +134,7 @@ async function selectChoice(index: number) {
             >🎒 获得物品</span>
           </div>
           <div v-if="chosen.unlock_locations?.length" class="erd-unlock">
-            🗺️ 解锁新地点：{{ (chosen.unlock_location_names?.length ? chosen.unlock_location_names : chosen.unlock_locations).join('、') }}
+            🗺️ 解锁新地点：{{ chosen.unlock_locations.join('、') }}
           </div>
           <div v-if="chosen.unlock_events?.length" class="erd-unlock">
             📖 解锁新故事事件

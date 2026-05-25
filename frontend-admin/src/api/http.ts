@@ -30,7 +30,7 @@ http.interceptors.response.use(
   (error: AxiosError<{ error?: { message?: string } }>) => {
     if (error.response?.status === 401) {
       useAuthStore().clearAuth();
-      window.location.assign('/login');
+      window.location.assign('/admin/login');
     }
     return Promise.reject(new Error(error.response?.data?.error?.message || error.message || '网络请求失败'));
   },

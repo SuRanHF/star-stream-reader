@@ -53,7 +53,7 @@ async function loadPlayers() {
       limit: pageSize,
       offset: (currentPage.value - 1) * pageSize,
     });
-    players.value = (result as ApiRecord).players || [];
+    players.value = ((result as ApiRecord).players as ApiRecord[]) || [];
     total.value = Number((result as ApiRecord).total) || 0;
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : '加载失败');

@@ -28,9 +28,7 @@ router.beforeEach((to) => {
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     return '/login';
   }
-  if ((to.path === '/login' || to.path === '/register') && authStore.isAuthenticated) {
-    return '/game';
-  }
+  // 已登录用户允许访问登录/注册页（切换账号等场景）
   return true;
 });
 

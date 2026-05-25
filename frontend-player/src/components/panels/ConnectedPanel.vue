@@ -109,8 +109,6 @@ const friendKeyword = ref('');
 const bountyMonsterKey = ref('');
 const bountyLocationKey = ref('');
 const bountySharePercent = ref(50);
-const factionContributionType = ref('coins');
-const factionContributionValue = ref(100);
 const ghostNarrative = ref('');
 const ghostChoices = ref<Array<{ index: number; text: string }>>([]);
 const ghostNodeIndex = ref(0);
@@ -270,7 +268,7 @@ async function loadPanel(panel: string, id: number): Promise<ApiRecord> {
         summary: await questApi.getQuestSummary(id),
         endings: await safeList(() => endingApi.getEndings(id).then(r => asArray(asRecord(r).endings || [])), '结局接口暂不可用'),
         storyLog: await safeList(
-          () => exploreApi.getStoryLog(id).then(r => asRecord(r).story_log || []),
+          () => exploreApi.getStoryLog(id).then(r => (asRecord(r).story_log || []) as ApiRecord[]),
           '故事记录接口暂不可用',
         ),
       };
@@ -897,10 +895,6 @@ function underworldActions(entry: ApiRecord): PanelAction[] {
   ];
 }
 
-function broadcastActions(entry: ApiRecord): PanelAction[] {
-  const eventKey = pickText(entry, ['eventKey', 'event_key', 'key'], '');
-  return [{ label: '领奖', disabled: !eventKey, onClick: () => runAction('领取星流奖励', `领取 ${pickText(entry, ['title', 'name', 'eventKey'], eventKey)} 奖励？`, () => broadcastApi.claim(playerId.value, eventKey)) }];
-}
 
 function bountyAcceptActions(entry: ApiRecord): PanelAction[] {
   const bountyId = Number(pick(entry, ['id', 'bountyId', 'bounty_id']));
@@ -981,16 +975,8 @@ async function prestigeAvatar() {
   await runAction('回归', '确认回归？达到SSS位阶后重置为F位阶，保留永久加成。', () => rankingApi.prestige(playerId.value));
 }
 
-async function contributeFaction() {
-  const val = Number(factionContributionValue.value);
-  if (!val || val <= 0) { flashToast('请输入有效贡献值', true); return; }
-  const myData = asRecord(panelQuery.data.value as ApiRecord);
-  const factionKey = pickText(asRecord(myData.my), ['factionKey', 'faction_key'], '');
-  if (!factionKey) { flashToast('请先加入阵营', true); return; }
-  await runAction('阵营贡献', `向阵营贡献 ${val} ${factionContributionType.value}？`, () =>
-    factionApi.contribute(playerId.value, factionKey, factionContributionType.value, val),
-  );
-}
+
+
 
 const VALID_CONSTELLATION_KEYS = new Set([
   'demon_judge_of_fire', 'master_of_steel',

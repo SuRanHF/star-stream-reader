@@ -117,26 +117,26 @@ const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
 
 <template>
   <Teleport to="body">
-    <div v-if="visible" class="ad-backdrop" @click.self="close">
-      <div class="ad-card">
-        <h3 class="ad-title">属性加点</h3>
+    <div v-if="visible" class="ap-backdrop" @click.self="close">
+      <div class="ap-card">
+        <h3 class="ap-title">属性加点</h3>
 
-        <div class="ad-free-points">
+        <div class="ap-free-points">
           自由属性点: <b class="gold">{{ freePoints }}</b>
         </div>
 
-        <div class="ad-rows">
-          <div v-for="stat in statKeys" :key="stat" class="ad-row">
-            <span class="ad-stat-label">{{ STAT_LABELS[stat] }}</span>
-            <div class="ad-stepper">
+        <div class="ap-rows">
+          <div v-for="stat in statKeys" :key="stat" class="ap-row">
+            <span class="ap-stat-label">{{ STAT_LABELS[stat] }}</span>
+            <div class="ap-stepper">
               <button
-                class="ad-step-btn"
+                class="ap-step-btn"
                 :disabled="alloc[stat] <= 0 || submitting"
                 @click="sub(stat)"
               >−</button>
               <input
                 type="number"
-                class="ad-input"
+                class="ap-input"
                 :value="alloc[stat]"
                 min="0"
                 :max="freePoints"
@@ -144,7 +144,7 @@ const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
                 @input="onInputChange(stat, ($event.target as HTMLInputElement).value)"
               />
               <button
-                class="ad-step-btn"
+                class="ap-step-btn"
                 :disabled="totalAlloc >= freePoints || submitting"
                 @click="add(stat)"
               >+</button>
@@ -152,19 +152,19 @@ const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
           </div>
         </div>
 
-        <div class="ad-summary">
+        <div class="ap-summary">
           <span>已分配: <b class="gold">{{ num(props.stats.allocatedAtk) + num(props.stats.allocatedDef) + num(props.stats.allocatedSpd) + num(props.stats.allocatedCrit) }}</b></span>
           <span v-if="totalAlloc > 0">本次: <b class="green">+{{ totalAlloc }}</b></span>
           <button
-            class="ad-reset-btn"
+            class="ap-reset-btn"
             :disabled="submitting || resetCost <= 0"
             @click="resetAlloc"
           >重置 ({{ resetCost }}币)</button>
         </div>
 
-        <div class="ad-actions">
-          <button class="ad-btn ad-btn-cancel" :disabled="submitting" @click="close">取消</button>
-          <button class="ad-btn ad-btn-ok" :disabled="!canSubmit" @click="submit">
+        <div class="ap-actions">
+          <button class="ap-btn ap-btn-cancel" :disabled="submitting" @click="close">取消</button>
+          <button class="ap-btn ap-btn-ok" :disabled="!canSubmit" @click="submit">
             {{ submitting ? '分配中...' : `确认加点 (+${totalAlloc})` }}
           </button>
         </div>
@@ -174,7 +174,7 @@ const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
 </template>
 
 <style scoped>
-.ad-backdrop {
+.ap-backdrop {
   position: fixed;
   inset: 0;
   z-index: 1000;
@@ -182,13 +182,13 @@ const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: adFadeIn 0.15s ease;
+  animation: apFadeIn 0.15s ease;
 }
-@keyframes adFadeIn {
+@keyframes apFadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-.ad-card {
+.ap-card {
   background: #1a1e2b;
   border: 1px solid #2e3345;
   border-radius: 14px;
@@ -196,19 +196,19 @@ const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
   min-width: 340px;
   max-width: 400px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-  animation: adSlideIn 0.25s ease;
+  animation: apSlideIn 0.25s ease;
 }
-@keyframes adSlideIn {
+@keyframes apSlideIn {
   from { transform: translateY(16px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
-.ad-title {
+.ap-title {
   color: #e2e8f0;
   font-size: 18px;
   font-weight: 700;
   margin: 0 0 16px;
 }
-.ad-free-points {
+.ap-free-points {
   font-size: 14px;
   color: #94a3b8;
   margin-bottom: 16px;
@@ -220,23 +220,23 @@ const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
 .gold { color: #caa86a; }
 .green { color: #22c55e; }
 
-.ad-rows {
+.ap-rows {
   display: flex;
   flex-direction: column;
   gap: 10px;
   margin-bottom: 16px;
 }
-.ad-row {
+.ap-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-.ad-stat-label {
+.ap-stat-label {
   font-size: 14px;
   color: #cbd5e1;
   min-width: 40px;
 }
-.ad-stepper {
+.ap-stepper {
   display: flex;
   align-items: center;
   gap: 0;
@@ -244,7 +244,7 @@ const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
   border-radius: 8px;
   overflow: hidden;
 }
-.ad-step-btn {
+.ap-step-btn {
   width: 34px;
   height: 34px;
   border: none;
@@ -255,14 +255,14 @@ const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
   transition: background 0.15s;
   flex-shrink: 0;
 }
-.ad-step-btn:hover:not(:disabled) {
+.ap-step-btn:hover:not(:disabled) {
   background: #334155;
 }
-.ad-step-btn:disabled {
+.ap-step-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
 }
-.ad-input {
+.ap-input {
   width: 72px;
   height: 34px;
   text-align: center;
@@ -277,20 +277,20 @@ const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
   padding: 0 4px;
   -moz-appearance: textfield;
 }
-.ad-input::-webkit-inner-spin-button,
-.ad-input::-webkit-outer-spin-button {
+.ap-input::-webkit-inner-spin-button,
+.ap-input::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-.ad-input:disabled {
+.ap-input:disabled {
   opacity: 0.5;
 }
-.ad-input:focus {
+.ap-input:focus {
   background: #1a1f33;
   box-shadow: inset 0 0 0 1px #3b82f6;
 }
 
-.ad-summary {
+.ap-summary {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -299,7 +299,7 @@ const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
   margin-bottom: 20px;
   flex-wrap: wrap;
 }
-.ad-reset-btn {
+.ap-reset-btn {
   height: 24px;
   padding: 0 10px;
   border: 1px solid #334155;
@@ -311,20 +311,20 @@ const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
   transition: background 0.15s;
   margin-left: auto;
 }
-.ad-reset-btn:hover:not(:disabled) {
+.ap-reset-btn:hover:not(:disabled) {
   background: #334155;
 }
-.ad-reset-btn:disabled {
+.ap-reset-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
 
-.ad-actions {
+.ap-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
 }
-.ad-btn {
+.ap-btn {
   padding: 9px 24px;
   border-radius: 8px;
   font-size: 14px;
@@ -332,22 +332,22 @@ const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
   border: 1px solid transparent;
   transition: all 0.15s;
 }
-.ad-btn-cancel {
+.ap-btn-cancel {
   background: #2e3345;
   color: #94a3b8;
 }
-.ad-btn-cancel:hover:not(:disabled) {
+.ap-btn-cancel:hover:not(:disabled) {
   background: #3d4258;
 }
-.ad-btn-ok {
+.ap-btn-ok {
   background: #3b82f6;
   color: #fff;
   font-weight: 600;
 }
-.ad-btn-ok:hover:not(:disabled) {
+.ap-btn-ok:hover:not(:disabled) {
   background: #2563eb;
 }
-.ad-btn-ok:disabled {
+.ap-btn-ok:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }

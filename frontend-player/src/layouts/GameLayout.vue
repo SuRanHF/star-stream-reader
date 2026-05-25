@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, provide, ref, onBeforeUnmount, onMounted, watch } from 'vue';
-import { LogOut } from 'lucide-vue-next';
+
 import { useRouter } from 'vue-router';
 import type { ApiRecord } from '@/types/api';
 import { broadcastApi } from '@/api/broadcastApi';
@@ -115,7 +115,8 @@ function closePanel() {
 }
 
 function currentLocationKey() {
-  return String(gameStore.player?.currentLocationKey || gameStore.player?.currentLocation || '');
+  const p = gameStore.player as Record<string, unknown> | null;
+  return String(gameStore.player?.currentLocationKey || gameStore.player?.currentLocation || p?.['current_location'] || '');
 }
 
 function currentLocationDisplayName() {

@@ -34,3 +34,7 @@ logging:
   level:
     com.huazhenghai.readergame: warn
     root: warn
+
+# 管理员配置
+admin:
+  key: ${ADMIN_KEY:reader-admin-2026}

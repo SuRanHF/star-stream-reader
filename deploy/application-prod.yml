@@ -1,0 +1,38 @@
+# ==================== 生产环境配置 ====================
+
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:reader_game}?useUnicode=true&characterEncoding=UTF-8&characterSetResults=UTF-8&connectionCollation=utf8mb4_unicode_ci&serverTimezone=Asia/Shanghai
+    username: ${DB_USERNAME:reader_game}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 300000
+      connection-timeout: 20000
+
+  sql:
+    init:
+      mode: never
+
+app:
+  scheduler:
+    enabled: true
+    tick-interval-ms: 60000
+  jwt:
+    secret: ${JWT_SECRET}
+    expire-hours: 168
+
+knife4j:
+  enable: false
+
+logging:
+  level:
+    com.huazhenghai.readergame: info
+  file:
+    path: C:/reader-game/logs
+    name: app.log

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<service>
+  <id>reader-game</id>
+  <name>Star Stream Reader (星流读者)</name>
+  <description>Spring Boot 游戏后端服务</description>
+  <executable>java</executable>
+  <arguments>-jar C:\reader-game\reader-game.jar --spring.profiles.active=prod</arguments>
+  <workingdirectory>C:\reader-game</workingdirectory>
+  <env name="DB_HOST" value="localhost"/>
+  <env name="DB_PORT" value="3306"/>
+  <env name="DB_NAME" value="reader_game"/>
+  <env name="DB_USERNAME" value="reader_game"/>
+  <env name="DB_PASSWORD" value="请修改为真实密码"/>
+  <env name="JWT_SECRET" value="请修改为随机32位以上字符串"/>
+  <logmode>rotate</logmode>
+  <logpath>C:\reader-game\logs</logpath>
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="20 sec"/>
+</service>

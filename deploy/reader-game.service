@@ -1,0 +1,21 @@
+[Unit]
+Description=Star Stream Reader
+After=network.target mysql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/reader-game
+ExecStart=/usr/bin/java -jar /opt/reader-game/reader-game.jar --spring.profiles.active=prod
+Restart=on-failure
+RestartSec=10
+
+Environment="DB_HOST=localhost"
+Environment="DB_PORT=3306"
+Environment="DB_NAME=reader_game"
+Environment="DB_USERNAME=reader_game"
+Environment="DB_PASSWORD=请修改为真实密码"
+Environment="JWT_SECRET=请修改为随机32位以上字符串"
+
+[Install]
+WantedBy=multi-user.target

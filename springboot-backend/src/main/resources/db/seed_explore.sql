@@ -1,118 +1,1050 @@
 -- ============================================================
--- Phase 2 探索系统种子数据
--- locations + exploration_events 初始数据
+-- Phase 2 探索系统 — ORV 原著主题种子数据
+-- 10 个地点 × N 个故事事件 (按原著比例) + 配套非故事事件
+-- 每个故事事件附带 choices_json 分支选项
 -- ============================================================
 
--- === 地点种子 ===
+-- ============================================================
+-- PART 1: 地点种子 (10 个)
+-- ============================================================
 
 INSERT IGNORE INTO `locations` (`location_key`, `name`, `description`, `unlock_conditions_json`, `event_rates_json`, `min_level`, `danger_level`, `recommended_rank`, `is_default`)
 VALUES
-('ruined_station', '废弃车站', '地铁三号线的废墟，倒塌的天花板下散落着使用过的票根与干涸的血迹。新晋角色最安全的起点。',
+
+-- 第一卷·灭世之后 ---
+('ruined_station', '废弃车站',
+ '地铁三号线的废墟。倒塌的天花板下散落着使用过的票根与干涸的血迹。故事开始的地方——也是无数条世界线的起点。',
  '{}',
- '{"story":20,"resource":30,"opportunity":15,"boss_clue":10,"empty":25}',
+ '{"story":15,"side_story":5,"resource":30,"opportunity":15,"boss_clue":10,"empty":25}',
  1, 2, 'F', 1),
 
-('broken_mall', '断裂商场', '资源和遭遇更多的危险区域，断裂的混凝土之间偶尔能看到发光的物品。',
+('geumho_station', '金湖站',
+ '第一个相对安全的避难所。幸存者们在这里建立了临时据点，微弱但持久的烛光照亮了黑暗的地下通道。',
  '{"required_level":3}',
- '{"story":10,"resource":35,"opportunity":20,"boss_clue":15,"empty":20}',
- 3, 4, 'E', 0);
+ '{"story":15,"side_story":10,"resource":25,"opportunity":15,"boss_clue":10,"empty":25}',
+ 3, 2, 'F', 0),
 
--- === 废弃车站事件 (5个) ===
+('dongmyo', '东庙',
+ '幸存者自发形成的交易市场。用蜡烛照明的摊位上摆满了各种奇怪的商品——从食物到情报，从武器到旧世界的回忆。',
+ '{"required_level":2}',
+ '{"story":12,"side_story":10,"resource":30,"opportunity":20,"boss_clue":8,"empty":20}',
+ 2, 1, 'F', 0),
+
+('chungmuro', '忠武路',
+ '"十王"团体控制的地铁站。铁王座上的统治者用铁腕手段维持秩序——但秩序从来不是免费的。',
+ '{"required_level":5}',
+ '{"story":20,"side_story":5,"resource":20,"opportunity":10,"boss_clue":20,"hidden":5,"empty":20}',
+ 5, 4, 'E', 0),
+
+('dongdaemun', '东大门',
+ '站外盘踞着强大的恶灵"火焰巨人"。这里曾是首尔最繁华的商业区，现在是最危险的战场之一。',
+ '{"required_level":8}',
+ '{"story":15,"side_story":10,"resource":20,"opportunity":10,"boss_clue":20,"hidden":5,"empty":20}',
+ 8, 6, 'E', 0),
+
+('myeongdong', '明洞',
+ '地下商业街隐藏着"星流图书馆"的入口。知识的回响在这里格外清晰——只要你愿意静静地听。',
+ '{"required_level":6}',
+ '{"story":12,"side_story":15,"resource":20,"opportunity":15,"boss_clue":8,"hidden":10,"empty":20}',
+ 6, 3, 'E', 0),
+
+('gwangjin_bridge', '广津大桥',
+ '通往江南的必经之路。大桥上布满了陷阱和怪物，每一个裂缝中都可能藏着致命的剧本——或是救赎的契机。',
+ '{"required_level":10}',
+ '{"story":15,"side_story":5,"resource":20,"opportunity":10,"boss_clue":18,"hidden":5,"empty":27}',
+ 10, 7, 'D', 0),
+
+('gangnam_station', '江南站',
+ '首尔最大的地下城入口。高等级的怪物和丰厚的奖励等待着勇敢的读者。但越深入黑暗，越容易迷失。',
+ '{"required_level":12}',
+ '{"story":15,"side_story":8,"resource":25,"opportunity":10,"boss_clue":17,"hidden":5,"empty":20}',
+ 12, 8, 'D', 0),
+
+('seoul_forest', '首尔森林',
+ '曾经的城市公园变成了魔物森林。传说有"世界树苗"隐藏其中——但到目前为止，所有寻找它的人都有去无回。',
+ '{"required_level":15}',
+ '{"story":5,"side_story":10,"resource":25,"opportunity":10,"boss_clue":10,"hidden":20,"empty":20}',
+ 15, 9, 'C', 0),
+
+-- 第二卷·恶魔世界 ---
+('demon_gate', '恶魔之门',
+ '通往恶魔世界的次元裂缝。穿过这道门，将进入完全不同的异世界。72柱恶魔中的强者统治着这片土地。',
+ '{"required_level":18}',
+ '{"story":15,"side_story":10,"resource":20,"opportunity":10,"boss_clue":20,"hidden":5,"empty":20}',
+ 18, 8, 'C', 0);
+
+
+-- ============================================================
+-- PART 2: 故事事件 (每个地点按原著比例，含 choices_json)
+-- ============================================================
+
+-- ========================
+-- 废弃车站 (1 个故事事件)
+-- ========================
+
+INSERT IGNORE INTO `exploration_events` (`event_key`, `event_type`, `stage_key`, `location_key`, `name`, `description`, `weight`, `stamina_cost`, `repeatable`, `rewards_json`, `progress_effects_json`, `choices_json`, `log_template`)
+VALUES
+
+('station_first_trace', 'story', 'vol1_ch1', 'ruined_station',
+ '第一个异常痕迹',
+ '你在地铁车厢的废墟中醒来。周围的乘客变成了模糊的影子——他们还没完全"加载"到这场场景中。窗外，黑暗中有东西在移动。\n\n一个黑发男子从车厢尽头走来。他穿着破旧的黑色外套，眼睛里有一种不属于这个世界的神情——像是已经把这段剧情经历过无数次。\n\n"你。"他停下脚步，盯着你。"你能看到我？"',
+ 15, 5, 0,
+ '{"storyFragments":3,"exp":50,"channelHeat":10,"coins":20}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": ""是的。我知道你是谁——刘众赫。"",
+     "consequence_text": "刘众赫的表情变化了一瞬——那不是惊讶，而是确认。他盯着你看了很久。\"你读过那本书。\"这不是一个疑问句。\"那就跟上来。别拖后腿。\"他转身走入了黑暗。",
+     "title_bias": {"title_regression_witness": 1}
+   },
+   {
+     "label": ""我只是一个普通的幸存者。"",
+     "consequence_text": "刘众赫的嘴角微微上翘。\"没有人在这个场景里是'普通'的。\"他转身前说了一句：\"你会想起来的。到了金湖站来找我。\"他的身影消失在黑暗中。",
+     "unlock_locations": ["geumho_station"],
+     "title_bias": {"title_humble_reader": 1}
+   }
+ ]',
+ '你在废弃车站与回归者刘众赫相遇了。这本该只发生在故事里的情节，如今真切地发生在了眼前。'),
+
+
+-- ========================
+-- 金湖站 (2 个故事事件)
+-- ========================
+
+('geumho_shelter_story', 'story', 'vol1_ch2', 'geumho_station',
+ '金湖站避难所',
+ '金湖站是第一个建立了秩序的地下避难所。蜡烛照亮了站台，人们围坐在一起分享食物和情报。\n\n一个叫李智慧的年轻女孩走过来，手里拿着一张泛黄的星座图表。\n\n"你是新来的？\"她问。\"你看到了吗——天上的那个？\"她指着图表上一个发光的符号。\"那是'秃鹫星座'。它一直在看着我们。"',
+ 12, 6, 0,
+ '{"storyFragments":3,"exp":80,"channelHeat":15,"coins":30}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": ""星座？你是在说星流频道吗？"",
+     "consequence_text": "李智慧的眼睛亮了起来。\"你知道星流？\"她压低声音。\"那就好办了。这里有很多人还不知道发生了什么。我需要帮手——有人得告诉他们真相。\"她递给你一张纸，上面画着星座的连接图。",
+     "rewards_override": {"storyFragments":5,"channelHeat":25,"coins":30,"items":[{"itemKey":"constellation_chart","quantity":1,"dropRate":1.0}]},
+     "title_bias": {"title_starstream_observed": 2}
+   },
+   {
+     "label": ""比起星座，我更关心这里有多少食物。"",
+     "consequence_text": "李智慧叹了口气。\"你倒是很现实。\"她指向站台深处。\"那边的仓库有一些物资——但'十王'的人在管。想在金湖站活下去，你得弄清楚谁说了算。\"她转身离开，但你感觉到了：她已经标记了你。",
+     "unlock_events": ["geumho_underground_story"],
+     "title_bias": {"title_survivor": 1}
+   }
+ ]',
+ '你在金湖站认识了李智慧，第一次听说了"星座"的存在——那些注视着下界的未知存在。'),
+
+('geumho_underground_story', 'story', 'vol1_ch2', 'geumho_station',
+ '地下交易',
+ '站台深处的角落里，几个幸存者围坐在一个用木板拼成的桌子旁。桌上堆满了各种物品：从魔物骨骼到旧世界的电子产品，甚至还有几张写着"技能书"的泛黄纸页。\n\n一个戴着旧棒球帽的中年男人朝你招手。\"新来的，过来看看。别怕——在金湖站，什么东西都有价格。问题是——你付得起吗？"',
+ 10, 5, 0,
+ '{"storyFragments":2,"coins":40,"exp":60}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": "用故事碎片交换情报 (消耗1碎片)",
+     "consequence_text": "男人接过碎片，在蜡烛下仔细端详。\"好东西。\"他递给你一张地铁路线图，上面标注了忠武路和东庙的位置。\"忠武路——那边有'十王'，不好惹。东庙——我哥们在那里开了个市场，报我的名字有折扣。\"",
+     "rewards_override": {"coins":20,"items":[{"itemKey":"subway_map_fragment","quantity":1,"dropRate":1.0}]},
+     "unlock_locations": ["dongmyo"],
+     "title_bias": {"title_information_broker": 1}
+   },
+   {
+     "label": ""我只是看看。"",
+     "consequence_text": "\"随便看。\"男人耸了耸肩。\"但别告诉别人这里——金湖站的规矩是：知道得越少，活得越久。\"他在你转身时又说了一句：\"对了——如果你去忠武路，小心那个叫'铁王'的。他的拳头比他的脑袋硬十倍。\"",
+     "unlock_events": ["chungmuro_iron_king_story"],
+     "title_bias": {"title_cautious": 1}
+   }
+ ]',
+ '你在金湖站的地下交易市场获得了一些情报——以及一个警告：忠武路的"十王"不是好惹的。'),
+
+
+-- ========================
+-- 东庙 (2 个故事事件)
+-- ========================
+
+('dongmyo_market_story', 'story', 'vol1_ch2', 'dongmyo',
+ '东庙交易市场',
+ '东庙站聚集了大量幸存者，形成了地下最大的交易市场。摊位沿着站台延伸，空气中混合着烤魔物肉和消毒水的味道。\n\n一个白发老人在角落里摆了个小摊，只卖一样东西——"记忆碎片"。他用苍老的手指敲了敲桌上的玻璃瓶：里面装着的不是液体，而是一段发光的雾气。\n\n"你想看看别人看到过的东西吗？"他问。"只要一点代价——一段你自己的记忆。"',
+ 12, 5, 0,
+ '{"storyFragments":3,"exp":70,"coins":50}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": "交换记忆——用一段无关紧要的旧回忆换取新的视野",
+     "consequence_text": "老人将你的记忆吸入玻璃瓶，同时打开了另一个瓶子。一段不属于你的记忆涌入脑海——你看到了刘众赫的上一轮回归。他在废弃车站独自面对了什么。为什么他的眼神总是那么疲惫。\n\n\"有趣。\"老人低声说。\"你的记忆里……有一本书。一本很厚的书。\"",
+     "rewards_override": {"storyFragments":6,"channelHeat":30,"exp":100},
+     "title_bias": {"title_memory_trader": 2}
+   },
+   {
+     "label": ""不，谢谢。我不想失去任何东西。"",
+     "consequence_text": "\"明智的选择。不是每个人都能承受不属于自己的记忆。\"老人收起了玻璃瓶，但递给你一枚铜币。\"拿着——在东庙市场，这枚硬币能让你买到一些真正的好东西。\"硬币上铸着一个闭着的眼睛——那只眼睛似乎在看着你。",
+     "rewards_override": {"coins":80,"items":[{"itemKey":"memory_coin","quantity":1,"dropRate":1.0}]},
+     "title_bias": {"title_cautious": 2}
+   }
+ ]',
+ '你在东庙遇到了一位交易记忆的神秘老人。有些记忆不是用来记住的——而是用来交换的。'),
+
+('dongmyo_whisperer_story', 'story', 'vol1_ch2', 'dongmyo',
+ '情报贩子的秘密',
+ '市场最偏僻的角落，一个女人独自坐在阴影中。她面前的毯子上没有任何商品——只有一面破旧的镜子和一个笔记本。\n\n"别找东西。\"她说，头也没抬。\"找答案。\"\n\n她翻开笔记本。上面密密麻麻写满了名字——一些被划掉了，一些被圈了起来。\"我记录每一个来到地下的人。不是监视——只是记账。你想知道什么？关于'十王'？关于星座？还是关于——\"她终于抬起头，\"——关于那本你一直在读的书？"',
+ 10, 5, 0,
+ '{"storyFragments":2,"exp":50,"channelHeat":20}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": ""告诉我关于'十王'的一切。"",
+     "consequence_text": "情报贩子翻了翻笔记本。\"十王——忠武路的统治者。不是一个人，是十个。最强的叫'铁王'——一个金刚不坏的疯子。最聪明的叫'影王'——没人见过他的脸。他们的规则很简单：要么服从，要么消失。\"她撕下一页纸递给你。\"拿去——这是忠武路的入口地图。祝你好运。\"",
+     "rewards_override": {"items":[{"itemKey":"chungmuro_map","quantity":1,"dropRate":1.0}]},
+     "unlock_locations": ["chungmuro"],
+     "title_bias": {"title_information_broker": 2}
+   },
+   {
+     "label": ""关于星座——它们到底想要什么？"",
+     "consequence_text": "\"好问题。\"情报贩子合上了笔记本。\"星座不是神——它们只是读者。比我们更古老的读者。它们付钱看故事——用星币。你的每一次选择，每一次战斗，每一次痛苦和胜利——都是它们消费的内容。\"她指了指你胸口的位置。\"你在频道里的观众数——决定了一切。\"",
+     "rewards_override": {"channelHeat":40,"storyFragments":3},
+     "title_bias": {"title_starstream_observed": 3}
+   },
+   {
+     "label": ""你怎么知道那本书的事？"",
+     "consequence_text": "情报贩子沉默了一会儿。然后她把镜子转向你——镜子里映出的不是你的脸，而是一本书的封面：《SSSSS级无限回归者》。\"因为我也读过。\"她说。\"每一个情报贩子都是一名读者——只是在不同的章节里。\"她的声音变得很轻：\"别告诉任何人我说过这个。有些秘密……最好不要被'作者'发现。\"",
+     "rewards_override": {"storyFragments":8,"channelHeat":25,"exp":120},
+     "title_bias": {"title_omniscient_reader": 3}
+   }
+ ]',
+ '东庙的情报贩子似乎知道太多秘密。她不仅知道星座——还知道那本书。'),
+
+
+-- ========================
+-- 忠武路 (5 个故事事件)
+-- ========================
+
+('chungmuro_iron_king_story', 'story', 'vol1_ch3', 'chungmuro',
+ '忠武路的铁王',
+ '忠武路站被一群人占领了。十个自称"王"的人统治着这里——但最强的是铁王。他的皮肤泛着金属的光泽，一种极为罕见的能力：钢铁化。\n\n"新来的！\"铁王从铁王座上站起身，他比一般人高出两个头。\"想留在忠武路，你需要做两件事：第一——跪下。第二——献上你的故事碎片。\"\n\n他的拳头砸在扶手上，整个站台都在震动。",
+ 15, 8, 0,
+ '{"storyFragments":4,"exp":150,"coins":60}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": "拒绝下跪——"我不会向任何人跪下。"",
+     "consequence_text": "铁王大笑了三声——然后一拳砸过来。你躲开了，但冲击波震得你踉跄后退。\"有意思！\"他的笑容很残忍。\"很久没人敢在忠武路站着了。来吧——让我看看你有多少分量。\"一场硬仗在所难免。",
+     "risks_json": {"damagePercent":15},
+     "rewards_override": {"storyFragments":6,"exp":200,"coins":80},
+     "unlock_events": ["chungmuro_shadow_king_story"],
+     "title_bias": {"title_defiant": 3}
+   },
+   {
+     "label": "交出一点故事碎片作为"通行费"——暂且妥协",
+     "consequence_text": "铁王接过你的碎片，在手中掂了掂。\"聪明。\"他坐回王座。\"忠武路有十位王——但只有聪明人活得久。影王会喜欢你的。\"他的手下给你让开了一条路。你失去了碎片，但获得了一个机会——潜入这个王国的内部。",
+     "rewards_override": {"storyFragments":-1,"exp":80,"coins":20},
+     "unlock_events": ["chungmuro_shadow_king_story", "chungmuro_underground_resistance"],
+     "title_bias": {"title_calculating": 2}
+   }
+ ]',
+ '你在忠武路面对了铁王——十王中最强的存在。钢铁化的皮肤下，是一个以力量为唯一信条的暴君。'),
+
+('chungmuro_shadow_king_story', 'story', 'vol1_ch3', 'chungmuro',
+ '影王的秘密',
+ '在忠武路站台最深处，远离铁王和其他统治者的喧嚣，你找到了影王。他的身形几乎融入了周围的阴影——你只能看到一张模糊的脸和被黑袍包裹的身体。\n\n"我知道你会来。\"他的声音很平静，不像铁王那样充满威慑。\"在你走进忠武路的那一刻——我就感觉到了。你身上有一股不属于这里的气息。不是星座。不是场景。是一本书——一本记载了一切的书。\"\n\n他递给你一张纸。上面写着关于"星流直播"的关键信息——星座频道如何运作，观众如何影响剧本。\n\n"我需要一个帮手。\"他说。\"不是推翻铁王——而是保护这个故事。有人想重写结局。"',
+ 12, 7, 0,
+ '{"storyFragments":4,"exp":120,"channelHeat":30}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": "接受影王的提议——暗中保护剧本",
+     "consequence_text": "影王微微点头。\"很好。\"他教给你一种能力——'暗影行走'。\"这不会让你隐形——但会让星座暂时注意不到你。有时候，不被看到是最有力的位置。\"他的声音里有一丝苦涩。\"铁王们统治地面，但地下——地下由剧本说了算。\"",
+     "rewards_override": {"storyFragments":5,"exp":150,"channelHeat":20,"items":[{"itemKey":"shadow_cloak_scroll","quantity":1,"dropRate":1.0}]},
+     "unlock_events": ["chungmuro_conspiracy_story"],
+     "title_bias": {"title_shadow_walker": 3}
+   },
+   {
+     "label": ""谁想重写结局？告诉我更多。"",
+     "consequence_text": "影王沉默良久。\"有一个读者——不是我们这种。他是'作者'。他想改写这个故事的结局。\"他递给你一页撕下的手稿——上面的文字正在实时变化。\"这是一页剧本。读它——然后决定站在哪一边。\"手稿上的文字描述的是你的死亡。日期是明天。",
+     "rewards_override": {"storyFragments":8,"exp":100,"channelHeat":20,"items":[{"itemKey":"剧本碎片","quantity":1,"dropRate":1.0}]},
+     "unlock_events": ["chungmuro_conspiracy_story"],
+     "title_bias": {"title_truth_seeker": 3}
+   }
+ ]',
+ '影王告诉了你一个惊人的秘密——有人想重写这个世界的结局。而那个"作者"正在改写你的剧本。'),
+
+('chungmuro_underground_resistance', 'story', 'vol1_ch3', 'chungmuro',
+ '地下抵抗组织',
+ '忠武路的地下通道中，一群躲避铁王统治的人组成了秘密抵抗组织。他们藏在废弃的储藏室里，墙上用粉笔写满了标语——"我们不是角色。我们是读者。"\n\n抵抗组织的首领是一个叫朴素英的年轻女人——前任检察官，现在是一个熟练的魔物猎手。\n\n"铁王控制了地面以上的所有区域。\"她说，\"但他从来不下到地下。他害怕黑暗——因为黑暗中不需要铁拳。\"她看着你。\"我们需要一个人——一个读过书的人。你能帮我们找到'星流图书馆'吗？据说那里有写满真相的书页。\"",
+ 10, 7, 0,
+ '{"storyFragments":3,"exp":100,"coins":40}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": ""星流图书馆？在哪里？"",
+     "consequence_text": "\"在明洞。\"朴素英摊开一张旧地图。\"明洞的地下商业街——曾经的购物天堂，现在的禁忌区域。图书馆就藏在那里。馆中有一本书——《故事之书》，据说记载了所有已发生和将要发生的剧本。\"她将地图递给你。\"把它带回来。整个抵抗组织——不，整个忠武路——都需要它。\"",
+     "unlock_locations": ["myeongdong"],
+     "unlock_events": ["myeongdong_library_story"],
+     "title_bias": {"title_revolutionary": 2}
+   },
+   {
+     "label": ""我不是革命者。我只是想活下去。"",
+     "consequence_text": "朴素英看了你好一会儿。\"每个人都想活下去。\"她说。\"但在忠武路——仅仅活下去是不够的。铁王迟早会来找你。到那时候——你打算怎么办？\"她没有等你回答。\"当你改变主意的时候——我们知道去哪里找你。\"",
+     "title_bias": {"title_survivor": 2}
+   }
+ ]',
+ '忠武路地下存在着抵抗组织——他们的目标是推翻铁王，找到写满真相的星流图书馆。'),
+
+('chungmuro_conspiracy_story', 'story', 'vol1_ch3', 'chungmuro',
+ '十王的会议',
+ '影王的传讯让你得以潜入十王的秘密会议。九位王围坐在一张被星之流灯照亮的圆桌前——铁王不在其中。\n\n"我们的世界正在被改写。\"会议的主持者——一个被称为"纸王"的瘦削男子正在说话。他面前堆满了稿纸，每一张都在不断改写自己。\"不是星座的手笔。是更底层的力量——一个'做梦者'。他在一个比星流更高的维度上书写这个故事。\"\n\n影王暗中看了你一眼。你知道——这就是他说的"作者"。',
+ 12, 8, 0,
+ '{"storyFragments":5,"exp":180,"channelHeat":40}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": "站出来揭露真相——告诉他们"作者"的存在",
+     "consequence_text": "你站了起来。九位王的目光集中在你身上。"各位——你们不是王。你们是角色。在一本小说里。\"会议室里一片死寂。纸王手中的纸停止改写——然后开始疯狂翻页。\"把这个人赶出去！\"有人喊道。但纸王举起手。\"让他说完。\"他说。\"我有一种感觉——他说的可能是唯一的真相。\"",
+     "rewards_override": {"storyFragments":10,"channelHeat":50,"exp":250},
+     "unlock_events": ["chungmuro_revelation_story"],
+     "title_bias": {"title_truth_bringer": 5}
+   },
+   {
+     "label": "保持沉默，暗中观察会议的走向",
+     "consequence_text": "会议继续进行。纸王展示了一页被撕裂的剧本——上面描述了忠武路在一个月后的毁灭。"这不是预言——这是设定。但设定可以被改写。\"你意识到,影王让你来这里不只是为了偷听——而是为了让你知道：这个世界不是真实的。它是被书写出来的。而书写它的笔——也许就在你手中。",
+     "rewards_override": {"storyFragments":6,"exp":120,"channelHeat":30},
+     "unlock_events": ["chungmuro_revelation_story"],
+     "title_bias": {"title_silent_watcher": 3}
+   }
+ ]',
+ '十王的会议揭示了一个惊人的真相：这个世界正在被一个"做梦者"书写。而剧本——即将在忠武路写下一个毁灭的结局。'),
+
+('chungmuro_revelation_story', 'story', 'vol1_ch3', 'chungmuro',
+ '剧本的启示',
+ '纸王私下找到了你。他将一页发光的稿纸铺在桌面上——上面的文字不是固定的，而是随着你的动作不断变化。"这是剧本的一页。它记录了可能发生的未来——但它是活的。你的每一个选择都会在上面留下新的文字。\"\n\n他指着稿纸底部的一行字：\n\n"忠武路将在第7个场景日被'地狱之火'吞噬。除非——\"后面的文字在不断闪烁，尚未确定。\n\n"这行字的空白——就是你。\"纸王说。"把它填上。"',
+ 15, 8, 0,
+ '{"storyFragments":10,"exp":300,"channelHeat":50,"coins":100}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": "在剧本上写下——"忠武路的所有人联合起来，击败了地狱之火。"",
+     "consequence_text": "稿纸发出刺眼的光芒。纸王震惊地看着你。\"你——你改写了它？\"他反复检查那行新出现的文字。\"这不是预测——这是新的剧本！\"窗外，你看到十王们开始行动——不是彼此争斗，而是联合布防。读者的一笔——改变了忠武路的命运。\n\n但纸王注意到了一件事：那行文字的下面——在很远很远的段落里——写着你的名字。和你的死亡日期。",
+     "rewards_override": {"storyFragments":15,"exp":400,"channelHeat":80,"coins":150,"items":[{"itemKey":"剧本笔迹","quantity":1,"dropRate":1.0}]},
+     "unlock_locations": ["dongdaemun"],
+     "title_bias": {"title_script_rewriter": 5}
+   },
+   {
+     "label": "合上剧本——"有些未来最好不要知道。"",
+     "consequence_text": "纸王叹了口气。\"也许你是对的。\"他收起了稿纸。\"不知为何——我觉得你还会再看到这页纸的。\"他给你一张通行证——上面盖着十王的十枚印章。\"拿着。不管忠武路未来如何——你都可以在这里自由通行。\"\n\n但你心里清楚：你只是推迟了一个问题的答案。剧本上那段关于你的文字，迟早会写完。",
+     "rewards_override": {"storyFragments":5,"exp":150,"coins":100,"items":[{"itemKey":"ten_kings_pass","quantity":1,"dropRate":1.0}]},
+     "unlock_locations": ["dongdaemun"],
+     "title_bias": {"title_acceptance": 3}
+   }
+ ]',
+ '你亲手改写了忠武路的剧本——阻止了一场即将发生的毁灭。但你也学到了一个残酷的真理：每一行被写下的文字，都有一个作者。而每一个作者——都有自己的读者。'),
+
+
+-- ========================
+-- 东大门 (3 个故事事件)
+-- ========================
+
+('dongdaemun_flame_giant_story', 'story', 'vol1_ch4', 'dongdaemun',
+ '东大门的火焰巨人',
+ '东大门站外的广场上，一尊十米高的火焰巨人正在咆哮。它不是魔物——而是一个被愤怒吞噬的星座。它在无数年前陨落，无法安息，只能在地表焚烧一切接近它的生命。\n\n"那是'火之主'——曾经是星流排名前十的星座。\"一个声音在你身后响起。是一个年轻的猎人——背着比他本人还高的剑。\"它的陨落不是因为失败——而是因为读者背叛了它。没有人再订阅它的频道。\"\n\n\"现在它只是愤怒。纯粹的、永不熄灭的愤怒。\"',
+ 12, 10, 0,
+ '{"storyFragments":5,"exp":250,"channelHeat":30}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": ""怎样才能让它安息？"",
+     "consequence_text": "猎人看了你一眼。\"有两种方法——一种是杀了它。另一种——\"他指向火焰巨人胸口的位置。\"找出它陨落的原因。找到它最后一个读者。找到那本记载了它结局的书。\"\n\n他从背包里翻出一本书——残破的《星流频道历史》。\"这本书的最后一章被撕掉了。那一章记载的——可能正是火之主的陨落。\"",
+     "unlock_events": ["dongdaemun_missing_chapter_story"],
+     "unlock_locations": ["myeongdong"],
+     "title_bias": {"title_compassionate": 2}
+   },
+   {
+     "label": "准备战斗——"我来打倒它。"",
+     "consequence_text": "猎人挑起眉。\"你？一个人？\"但当他看到你的表情后，他把背上的巨剑递给了你。\"这剑叫'星陨'——曾经砍倒过一个星座。但记住——\"他顿了顿，\"打败火之主——未必意味着你就会比它更好。有时候——杀死怪物的人会变成新的怪物。\"",
+     "risks_json": {"monsterKey":"flame_giant"},
+     "rewards_override": {"storyFragments":8,"exp":400,"coins":120,"equipment":[{"equipmentKey":"starfall_sword","dropRate":1.0}]},
+     "title_bias": {"title_giant_slayer": 4}
+   }
+ ]',
+ '东大门广场上，一个陨落的星座在烈焰中哀嚎。它的愤怒不是天生的——而是被读者的背叛塑造出来的。'),
+
+('dongdaemun_missing_chapter_story', 'story', 'vol1_ch4', 'dongdaemun',
+ '遗失的章节',
+ '你追踪着《星流频道历史》的线索来到了东大门旧书市场。在一片废墟的角落中，你找到了一个被星之流光芒笼罩的书架——上面的每一本书都在低声吟诵自己的内容。\n\n一本没有封面的薄册子引起了你的注意。翻开它——第一节的标题是："火之主——最后的频道"。\n\n书中写道，火之主的陨落不是背叛——而是它主动选择的结果。它关闭了自己的频道，拒绝继续为星座们表演。作为惩罚，它的频道变成了一座监狱——将它永远锁在火焰之中。\n\n最后一页写着："只有理解了自愿沉默的勇气的人，才能解除火之主的痛苦。"',
+ 10, 8, 0,
+ '{"storyFragments":8,"exp":200,"channelHeat":40}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": "回到火焰巨人身边——告诉它你读到了它的故事",
+     "consequence_text": "火焰巨人的咆哮停止了。你举起那本没有封面的书，在它面前大声朗读关于它的故事。\n\n当读到"它自愿关闭频道"那段时，火焰突然开始缩小——不是熄灭，而是收敛。巨人俯下身，用火焰凝成的眼睛看着你。\"有人——读到了。\"它的声音不再是咆哮，而是一种疲惫的、古老的解脱。\n\n火焰在下一秒消散。留下的不是一个魔物——而是一颗微小的火星，静静躺在你的掌心里。火之主最后的频道：已经关闭。但它的故事——有人记住了。",
+     "rewards_override": {"storyFragments":15,"exp":350,"channelHeat":60,"items":[{"itemKey":"火之主的最后火星","quantity":1,"dropRate":1.0}]},
+     "title_bias": {"title_story_bearer": 5}
+   },
+   {
+     "label": "将遗失的章节交给星流图书馆——让它被更多人读到",
+     "consequence_text": "一个管理图书馆的学者接过书册，郑重地点头。\"这章是被星流审查者撕掉的。\"她说。\"有些故事太危险了——它们告诉星座们：读者不需要它们。\"她将书册编号，放入图书馆的禁书区。"但每一个进入禁书区的读者——都会读到火之主的故事。它的牺牲——不会被遗忘。\"",
+     "rewards_override": {"storyFragments":12,"exp":250,"channelHeat":30},
+     "unlock_locations": ["myeongdong"],
+     "title_bias": {"title_librarian": 4}
+   }
+ ]',
+ '你在废墟中找到了一页被审查的世界历史。真相有时比战斗更沉重——但只有真相能让陨落的星座最终安息。'),
+
+('dongdaemun_decision_story', 'story', 'vol1_ch4', 'dongdaemun',
+ '东大门的抉择',
+ '东大门的战斗结束了。火焰巨人已经安息——或被打倒。广场上的人群开始散去。但猎人就站在你身后。\n\n"你做完了这里的事。\"他说。\"现在想想——接下来你要去哪？\"他展开一张地图：向北是广津大桥，向南是明洞。\"每一扇门后面都有不同的故事。但你不能同时走两条路。\"\n\n他盯着你。\"这是你的第一个分岔口。选择吧——然后永远别回头看。\"',
+ 8, 5, 0,
+ '{"storyFragments":3,"exp":100,"coins":50}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": "向北——跨越广津大桥，前往江南",
+     "consequence_text": "猎人点头。\"广津大桥是最危险的路线——但也是最直接的。过了桥就是江南——那里的地下城比你想像的要深得多。\"他递给你一件披风。\"拿着——在桥上你会需要它的。别信任任何站在桥中央的人。\"",
+     "rewards_override": {"items":[{"itemKey":"汉江通行证","quantity":1,"dropRate":1.0}]},
+     "unlock_locations": ["gwangjin_bridge"],
+     "title_bias": {"title_pathfinder": 2}
+   },
+   {
+     "label": "向南——前往明洞，探索星流图书馆",
+     "consequence_text": "\"明洞——\"猎人若有所思。\"我听说那里的图书馆收藏了一切。但图书馆有图书馆的规矩——有些书永远不会让你翻开最后一页。\"他在你的地图上做了一个标记。\"在明洞——最重要的不是读到了什么，而是你愿意承认你不知道什么。\"",
+     "rewards_override": {"items":[{"itemKey":"图书馆推荐信","quantity":1,"dropRate":1.0}]},
+     "unlock_locations": ["myeongdong"],
+     "title_bias": {"title_seeker": 2}
+   },
+   {
+     "label": ""我需要时间——先回忠武路看看。"",
+     "consequence_text": "猎人耸肩。\"随时都可以回来。但记住——\"他收起地图。\"场景不会等我们。你有时间的时候——我还在东大门。\"他的身影消失在人群中。你失去了猎人的线索，但你拥有了时间——去消化已经发生的一切。",
+     "title_bias": {"title_contemplative": 1}
+   }
+ ]',
+ '东大门的猎人给了你一个痛苦的选择——向左还是向右，两条路都通向不同的未来。你只能选一条。'),
+
+
+-- ========================
+-- 明洞 (2 个故事事件)
+-- ========================
+
+('myeongdong_library_story', 'story', 'vol1_ch4', 'myeongdong',
+ '星流图书馆',
+ '明洞的地下商业街在"场景"降临后变成了星流图书馆——一个由布满灰尘的书架构成的地下迷宫。馆中的每一本书都在自行书写。\n\n一名老图书管理员坐在入口处，面前放着一本超级厚重的大书。"你来找什么？"她问。她的眼镜片厚如瓶底，但没有在读书——她在"听"书。\n\n"这座图书馆收藏的不是书——是可能性。每一本书都是一个可能的未来。如果你想找到你要的那一本——你必须先回答我一个问题：你相信命运吗？"',
+ 15, 6, 0,
+ '{"storyFragments":5,"exp":150,"channelHeat":40}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": ""我相信故事——但不相信被写死的结局。"",
+     "consequence_text": "老管理员沉默了很久。然后她露出了一个微笑——一个经过几千年才酝酿出来的微笑。\"这是最好的答案。\"她推开面前的大书。"进来吧。禁书区也在你的权限内——尽管那些书会让你害怕。但它们会让你成长。\"",
+     "rewards_override": {"storyFragments":8,"exp":200,"channelHeat":50},
+     "unlock_events": ["myeongdong_forbidden_story"],
+     "title_bias": {"title_librarian": 3}
+   },
+   {
+     "label": ""我不相信。一切都是随机——没有剧本。"",
+     "consequence_text": "\"所以你才来到这里——寻找答案。\"老管理员叹了口气。"图书馆欢迎怀疑者。但不要拒绝对你展开的可能性——否则这座图书馆对你来说就只是一堆纸。\"她递给你一本小册子——《图书馆目录》。"从这里开始——找到你要的书。或者让你的书找到你。"",
+     "rewards_override": {"storyFragments":4,"exp":120,"items":[{"itemKey":"图书馆目录","quantity":1,"dropRate":1.0}]},
+     "title_bias": {"title_skeptic": 2}
+   }
+ ]',
+ '明洞的地下商业街变成了星流图书馆——一座收藏了所有可能未来的迷宫。每一本书都在等待它的读者。'),
+
+('myeongdong_forbidden_story', 'story', 'vol1_ch4', 'myeongdong',
+ '禁书区',
+ '禁书区的空气更冷。这里的书不会自行翻页——它们被封存着，只有特定的人能打开它们。\n\n你沿着布满灰尘的书架前行，直到你看到一本封面空白的书。它没有书名，没有作者——但当你碰触它时，它自动打开了。\n\n书页上写着的——是关于你自己的事。不只是过去——还有可能的未来。你看到自己站在一道高墙前。看到自己与刘众赫并肩战斗。看到自己——在那本书的最后一页，做出一个决定，将改变一切。\n\n书页底部有一行小字："只有当读者相信空白可以书写时——禁书才会打开。"',
+ 12, 7, 0,
+ '{"storyFragments":10,"exp":250,"channelHeat":50}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": "继续读到最后一页——即使上面写着你的死亡",
+     "consequence_text": "你翻到了最后一页。上面只写了一句话——关于你的死亡日期。但日期下面的空白处——开始出现新的文字。不是预言。是选择。无数条世界线在你眼前展开——每一条都是由你曾经可以做出的选择构成的。你意识到禁书不是预测未来——是让你看到所有你没有选择的可能。然后你合上书——选择去创造一个书里没有写的结局。",
+     "rewards_override": {"storyFragments":20,"exp":400,"channelHeat":80,"items":[{"itemKey":"禁书残页","quantity":1,"dropRate":1.0}]},
+     "title_bias": {"title_forbidden_reader": 6}
+   },
+   {
+     "label": "合上书——"有些未来不值得被看到。"",
+     "consequence_text": "书颤抖了一下——然后合上的封面浮现出两个字："明智。"但它也留下了一页——只有一页——被扯下来落在你手中。是空白的。封底浮现出一行字："当你在寻找答案的路上走到尽头时——你可以自己写在这一页上。不是当作预言——当作你自己的选择。\"",
+     "rewards_override": {"storyFragments":8,"exp":180,"channelHeat":30,"items":[{"itemKey":"空白书页","quantity":1,"dropRate":1.0}]},
+     "title_bias": {"title_wise": 3}
+   }
+ ]',
+ '禁书区的书不只预测未来——它还展示所有你未曾选择的道路。知道得越多，担子越重。'),
+
+
+-- ========================
+-- 广津大桥 (2 个故事事件)
+-- ========================
+
+('gwangjin_bridge_trap_story', 'story', 'vol1_ch5', 'gwangjin_bridge',
+ '广津大桥的陷阱',
+ '广津大桥被一层诡异的雾气笼罩着。桥面上的车辆挤成一团——但车里的乘客全都消失了，只留下他们生前最后的姿势被固定在座位上。\n\n桥中央站着一个人影。不是魔物——而是一个老人，穿着一件褪色的星流观察者长袍。\n\n"又一个想过桥的。\"他说，声音平淡。"你应该知道这座桥的规则：一半的人过不去。不是怪物的问题——是桥本身。它是一座门槛。只有带着足够的"重量"才能通过。"\n\n他伸出手：\"你的选择——接受桥的审判，还是付给我过桥费。\"',
+ 12, 10, 0,
+ '{"storyFragments":5,"exp":200,"coins":30}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": "接受桥的审判——用你的故事碎片证明你的"重量"",
+     "consequence_text": "老人退后一步。桥面开始震动——一股无形的力量扫描了你的整个存在。你感到你经历过的每一个事件——废弃车站的相遇、忠武路的叛乱、东大门的火焰——都在被衡重。\n\n然后——桥安静了下来。\"你的重量够了。\"老人说，语气里有一丝惊讶。\"不是因为你有多强大——而是因为你带了多少故事。每一段故事都是一份重量。而你的背包——很满。\"桥前的雾气散开，露出通往江南的路。",
+     "rewards_override": {"storyFragments":-2,"exp":300,"channelHeat":30},
+     "unlock_locations": ["gangnam_station"],
+     "title_bias": {"title_heavy_soul": 3}
+   },
+   {
+     "label": "付过桥费——用硬币买通道路",
+     "consequence_text": "老人满意地数了数硬币。\"聪明。\"他说。"不是每个人都愿意接受审判的。\"他让开了路。当你走过他身边时，他低声说了一句：\"但记住——桥也记得你。下次想过桥——审判的代价会翻倍。\"他的笑声随着雾气一起消失了。",
+     "rewards_override": {"coins":-50,"exp":120},
+     "unlock_locations": ["gangnam_station"],
+     "title_bias": {"title_pragmatic": 1}
+   }
+ ]',
+ '广津大桥是一座门槛——只有带着足够"重量"的人才能通过。不是力量的重量，而是故事的重量。每一段经历都是一份重量。'),
+
+('gwangjin_bridge_guardian_story', 'story', 'vol1_ch5', 'gwangjin_bridge',
+ '桥之守护者',
+ '桥的另一端——你遇到了一个被时间遗忘的守护者。她的盔甲锈迹斑斑，手中的长矛已经折断了一半，但她的眼神依然锐利。\n\n"我是这座桥的守护者——自从第一个场景以来。\"她的声音沙哑但坚定。"我的职责是确保每一个过桥的人都值得。但今天——我累了。\"\n\n她放下长矛。\"你想知道桥的真相吗？\"她指向桥下——黑水之中，沉睡着千百个未能过桥的人。不是死了——而是一种比死亡更可怕的静止。"他们不是因为太弱——而是因为太少故事。没有故事的人——过不了桥。"',
+ 8, 8, 0,
+ '{"storyFragments":6,"exp":150,"channelHeat":20}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": ""我帮你解脱——你守护这座桥已经够久了。"",
+     "consequence_text": "守护者看了你好一会儿。然后她笑了——一个疲惫的微笑。\"谢谢你。\"她将长矛交给你。\"这矛曾经能够刺穿星座的防御。它不能战斗了——但它承载了我所有的记忆。用你的故事喂养它——总有一天，它会重新发光。\"她放下盔甲，走下桥——第一次在数百年后走出了自己的岗位。",
+     "rewards_override": {"storyFragments":10,"exp":200,"items":[{"itemKey":"守护者长矛残骸","quantity":1,"dropRate":1.0}]},
+     "title_bias": {"title_liberator": 4}
+   },
+   {
+     "label": ""继续你的职责。这座桥还需要你。"",
+     "consequence_text": "守护者点了点头——没有失望，只有理解。\"职责不是负担——是自己选择的路。\"她重新握紧了长矛。"你去吧。但当你走完所有路的时候——回来告诉我。也许那时——我就知道桥还需要不需要我了。\"她的身影慢慢退入雾中。",
+     "title_bias": {"title_respectful": 2}
+   }
+ ]',
+ '广津大桥的守护者已经在桥上站了数百年——不是因为无法离开，而是因为没人邀请她离开。一个真正的守护者需要的不是解放——而是被感谢。'),
+
+
+-- ========================
+-- 江南站 (3 个故事事件)
+-- ========================
+
+('gangnam_dungeon_gate_story', 'story', 'vol1_ch5', 'gangnam_station',
+ '地下城入口',
+ '江南站的最深处有一道巨大无比的铁门——地下城的入口。门上刻着古老的符号——不是人类的语言，而是星座的文字。\n\n一个商贩在门口搭了帐篷——\"冒险者公会注册处\"。\n\n"你是第一千零三十七位来到这里的探索者。\"商贩翻开一本厚厚的登记册。\"在你之前的一千零三十六位——有四百个回来了。六百个留在了地下。\"他推过来一张表格。\"注册需要你的名字——和你想达到的深度。越深——风险越大，但奖励也越丰厚。冒险者——你准备好签下了吗？"',
+ 15, 8, 0,
+ '{"storyFragments":5,"exp":200,"coins":50}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": "签下名字——"我要走到最深处。"",
+     "consequence_text": "\"最深处——\"商贩吹了一声口哨。\"好多年没人这么说了。\"他递给你一盏星流灯笼——不是照明用的，是用来标记你已经走过的深度。\"拿着——在每个交叉口把灯笼举起来。它会告诉你要走哪条路。\"他盖章递过登记册。"祝你好运——冒险者。\"",
+     "rewards_override": {"storyFragments":5,"exp":250,"items":[{"itemKey":"地下城地图","quantity":1,"dropRate":1.0}]},
+     "unlock_events": ["gangnam_deep_floor_story"],
+     "title_bias": {"title_dungeon_delver": 3}
+   },
+   {
+     "label": ""先不急着签——告诉我地下的情况。"",
+     "consequence_text": "商贩合上登记册。\"聪明。\"他承认。"地下城——是旧世界的遗址。'场景'把它变成了一个不断向下延伸的迷宫。没有人到过最底部——但所有人都声称见过最可怕的东西。我能告诉你的是——地下的声音不是怪物；是依然在运转的旧世界记忆。你听到的——是一千年前的电话铃。\"",
+     "rewards_override": {"exp":80,"channelHeat":20},
+     "title_bias": {"title_cautious": 2}
+   }
+ ]',
+ '江南站的地下城入口——一千零三十六个人在你之前进去了。六百个再也没有出来。你即将成为第一千零三十七位签下名字的探索者。'),
+
+('gangnam_deep_floor_story', 'story', 'vol1_ch5', 'gangnam_station',
+ '深层迷宫',
+ '拿着星流灯笼，你进入了地下迷宫的深处。墙壁上刻满了符号——但不是星座的符号。是人类的手印。千百只手掌印在墙壁上，每一个都朝着更深处延伸。\n\n一个声音从黑暗尽头传来——不是吼叫，而是在唱歌。歌声是旧世界的一首流行歌曲。你举起灯笼——看到一个穿着校服的少女站在走廊尽头。她对着墙壁唱歌——没有对着你。\n\n"他们在看。\"她说，没有停下歌声。"在外面——天上有观众。但在地下——墙有耳朵。每一层都是一个故事——而读者——从来不应只有星座。"',
+ 12, 10, 0,
+ '{"storyFragments":8,"exp":280,"channelHeat":40}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": ""你在唱给谁听？"",
+     "consequence_text": "\"给墙。\"少女转过身来。"这些墙壁听了非常久——比任何人都久。它们知道所有的剧本。每一个在星流中被卖掉、被删掉、被遗忘的故事——都在这些墙壁里。\"她伸手触摸墙壁——你看到墙壁上浮现出无数文字。所有的剧本都在这里——不为星座，不为读者，只为墙壁本身而存在。",
+     "rewards_override": {"storyFragments":12,"exp":350,"channelHeat":50},
+     "title_bias": {"title_wall_listener": 4}
+   },
+   {
+     "label": ""你怎么还活着——在这个地下迷宫里？"",
+     "consequence_text": "少女停下了歌声。\"不是活着——\"她说，\"是被记住了。只要有人在这面墙上唱一首歌——我就还在。\"她笑了笑——然后消失在墙壁之中。在她原来站着的地方——墙壁上浮现出一行字："她是在第一次场景中死去的学生。她的歌声——是唯一她从旧世界带来的东西。"",
+     "rewards_override": {"storyFragments":8,"exp":200,"channelHeat":30},
+     "unlock_events": ["gangnam_memory_wall_story"],
+     "title_bias": {"title_memory_keeper": 4}
+   }
+ ]',
+ '地下深处有一个少女——她不是幽灵，而是一段被墙壁记住的歌声。旧世界已死，但只要有人还在唱——它就没有真正消失。'),
+
+('gangnam_memory_wall_story', 'story', 'vol1_ch5', 'gangnam_station',
+ '记忆之墙',
+ '在少女消失的墙面上，你看到了整个地下迷宫的使命——它是一座记忆的庇护所。墙壁中储存的每一段故事都是曾被星流遗弃的剧本。\n\n你看到了一些熟悉的名字——刘众赫的第一次回归。韩秀英曾写下的一章。甚至还有你自己的名字——在墙壁的深处，未完成的部分。\n\n"你看到了。\"一个声音——不是少女——而是更深层的存在。"世界上第一个被星流遗弃的故事——就是我。我是一本没有读者的书。我唯一的愿望——是让这本书的最后一页上写着：'终于有人读到了这里。'\"',
+ 15, 10, 0,
+ '{"storyFragments":15,"exp":400,"channelHeat":60,"coins":80}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": "翻开那本无读者的书——成为第一个读者",
+     "consequence_text": "墙壁裂开了——一本破旧的书从中浮现。书没有封面，没有作者——第一页上是空白的。但随着你的阅读，书页中逐渐浮现出文字——不是一个故事，而是每一个曾经被遗弃的人的故事。书开始发光——不是因为魔法，而是因为它被人翻开了。最后一页上浮现出一行字："献给第一个读者。'\n\n墙壁开始坍塌——但它不是在毁灭——是在解放。所有被锁在墙内的故事——都自由了。",
+     "rewards_override": {"storyFragments":25,"exp":600,"channelHeat":100,"items":[{"itemKey":"第一本被阅读的书","quantity":1,"dropRate":1.0}]},
+     "title_bias": {"title_first_reader": 8}
+   },
+   {
+     "label": ""我读不了所有人——但我可以记住你。"",
+     "consequence_text": "那个声音沉默了一会儿——然后轻得像一声叹息。\"被记住——就是一切。对于被遗弃的故事来说——被记得，就是复活。\"墙壁没有坍塌，但它发生了变化——在它的表面上出现了新的文字：关于你的。你成为了这段被遗弃的剧本里的一部分。",
+     "rewards_override": {"storyFragments":12,"exp":300,"channelHeat":50},
+     "title_bias": {"title_rememberer": 5}
+   }
+ ]',
+ '地下城最深处的记忆之墙——保存着所有被星流遗弃的剧本。然后你翻开了那本"无读者的书"——成为了这堵墙中第一个读者的记忆。'),
+
+
+-- ========================
+-- 首尔森林 (1 个隐藏故事事件)
+-- ========================
+
+('seoul_forest_world_tree_story', 'story', 'vol1_ch5', 'seoul_forest',
+ '世界树苗',
+ '穿过魔物栖息的密林——你在一片隐蔽的空地中找到了它。不是一棵巨树——而是一株微小的、正在发光的树苗。它的根须扎在一片由星之流残骸组成的土壤中——每一片残骸都曾被一个星座拥有。\n\n"它是以陨落的星座为肥料的。\"一个苍老的声音——一个穿着破烂长袍的守树人。"你不必理解——你只需知道：这棵树不是从种子长出来的。它是从一篇从未被读完的故事中长出来的。当第一页被翻开——故事就开始了。当最后一页被合上——这棵树就会开花。"',
+ 8, 5, 0,
+ '{"storyFragments":8,"exp":300,"channelHeat":50}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": ""我可以——在树下埋一些故事碎片？"",
+     "consequence_text": "守树人微微点头。你将一片碎片埋入土壤——树苗的根迅速缠绕住它。一瞬间——你看到了树苗内部的记忆：每一个殉道的星座，每一个被遗忘的故事，每一个在沉默中死去的读者——都在这片土壤中。不是死亡——而是被记住了。而当这棵树长成——它将承载所有被遗忘的故事。它的花开时——世界将回忆起一切。",
+     "rewards_override": {"storyFragments":-3,"exp":350,"channelHeat":80},
+     "unlock_locations": ["demon_gate"],
+     "title_bias": {"title_tree_planter": 5}
+   },
+   {
+     "label": "在树下坐一会儿——只是静静地听",
+     "consequence_text": "风吹动着树苗的叶子——每一片叶子都在发出微弱的低语。不是言语——而是旋律。守树人闭上眼睛。"它在唱歌。\"他说。"它唱的是所有还没有被书写的故事。那些仍然在宇宙的某个角落等待被翻开的世界。\"他转向你。"拿着一片叶子。让它提醒你——故事是没有尽头的。当你准备好时——翻开下一页。\"",
+     "rewards_override": {"storyFragments":5,"exp":200,"channelHeat":40,"items":[{"itemKey":"世界树叶","quantity":1,"dropRate":1.0}]},
+     "unlock_locations": ["demon_gate"],
+     "title_bias": {"title_leaf_listener": 4}
+   }
+ ]',
+ '在首尔森林的深处——你用陨落星座作为沃土，培育了一株来自最初故事的世界树苗。当你离开时——你知道这棵树将在某一天开花。'),
+
+
+-- ========================
+-- 恶魔之门 (1 个故事事件)
+-- ========================
+
+('demon_gate_first_step_story', 'story', 'vol2_ch1', 'demon_gate',
+ '踏入恶魔世界',
+ '你站在恶魔之门前——一道不断变化形态的次元裂缝。从裂缝的另一端吹来炎热的风——带着硫磺、书页和旧血的味道。\n\n门的一侧——旧世界最后的景象：锈蚀的桥梁、沉默的地铁站、漆黑的汉江。另一侧——未知。\n\n一个声音从裂缝中传来——不是邀请，是挑战："在旧世界里，你是一个读者。在这里——你就得变成故事的一部分。你还能回头。但一旦你踏入这道门——你的名字就会被写进恶魔的目录。他们将记得你。永不忘记。\"\n\n风更猛烈了。世界线在门的两端分别延伸。\n\n你在两页之间——旧的一页和新的一页。是翻还是合上？',
+ 15, 10, 0,
+ '{"storyFragments":10,"exp":350,"coins":100}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": "深吸一口气——踏过恶魔之门",
+     "consequence_text": "裂缝吞没了你——当你再次睁开眼时，你看到的是猩红色的天空和由暗黑石料筑成的巨大都市。城门上方铭刻着恶魔的文字——但不知为何你能读懂："进入此门的读者——必须留下自己的一页。\"你低头看见一本凭空出现的空白书页——正等着你用此后的每一个选择来书写。\n\n远处，一个长角的恶魔商人注意到你——他露出饶有兴味的微笑。",
+     "rewards_override": {"storyFragments":12,"exp":400,"channelHeat":60,"items":[{"itemKey":"恶魔契约书页","quantity":1,"dropRate":1.0}]},
+     "title_bias": {"title_demon_walker": 4}
+   },
+   {
+     "label": "在门前做最后的停顿——阅读旧世界的最后一刻",
+     "consequence_text": "你转过身——最后看了一眼。汉江在远处闪着漆黑的微光。广津大桥的雾气正在散去。首尔森林的方向有一道微弱的绿光——那株世界树苗在夜风中轻轻点头。你听见了歌声——不是人唱的——而是这个旧世界本身在用它的余韵对你低语：'别忘记——把这一切写下来。不是当作结局——当作开篇。'\n\n然后你进入了门。旧世界合上——新世界翻开。",
+     "rewards_override": {"storyFragments":15,"exp":300,"channelHeat":50},
+     "title_bias": {"title_world_walker": 5}
+   }
+ ]',
+ '你踏入恶魔之门——旧世界在身后合上，新世界在眼前翻开。恶魔的目录上多了一个名字：你的。');
+
+
+-- ============================================================
+-- PART 3: 非故事事件 (resource / opportunity / boss_clue / empty / side_story / hidden)
+-- 每个地点至少 3-4 个非故事事件
+-- ============================================================
 
 INSERT IGNORE INTO `exploration_events` (`event_key`, `event_type`, `location_key`, `name`, `description`, `weight`, `stamina_cost`, `repeatable`, `rewards_json`, `progress_effects_json`, `log_template`)
 VALUES
 
--- 1. story 事件
-('station_first_trace', 'story', 'ruined_station',
- '第一个异常痕迹',
- '你在废弃车站发现了第一处剧本异常痕迹，星流开始记录你的行动。',
- 15, 5, 0,
- '{"storyFragments":2,"channelHeat":5}',
- '{"storyEventsTriggeredAdd":1,"storyPityReset":true}',
- '你在废弃车站发现了第一处剧本异常痕迹，星流开始记录你的行动。'),
-
--- 2. resource 事件
-('station_resource_scrap', 'resource', 'ruined_station',
- '散落物资',
- '你在角落里找到了一些可用物资。',
- 30, 5, 1,
+-- --- 废弃车站 ---
+('station_scrap', 'resource', 'ruined_station',
+ '散落的物资',
+ '你在废弃车站的角落里找到了一些可用物资。',
+ 25, 5, 1,
  '{"coins":10,"storyFragments":1,"items":[{"itemKey":"stamina_bread","quantity":1,"dropRate":0.3}]}',
  '{"storyPityAdd":1}',
- '你在角落里找到了一些可用物资。'),
+ '你在废弃车站找到了一些可用物资。'),
 
--- 3. opportunity 事件
-('station_opportunity_whisper', 'opportunity', 'ruined_station',
+('station_whisper', 'opportunity', 'ruined_station',
  '频道低语',
- '一阵低语从频道深处传来，你感觉自己被短暂注视了。',
+ '一阵低语从频道深处传来——某个星座在你身上短暂地投注了一瞬的注意力。',
  15, 5, 1,
  '{"channelHeat":3,"worldLineShift":1}',
  '{"storyPityAdd":1}',
  '一阵低语从频道深处传来，你感觉自己被短暂注视了。'),
 
--- 4. boss_clue 事件
 ('station_boss_clue', 'boss_clue', 'ruined_station',
  '看门人的痕迹',
- '你发现了废弃车站看门人的痕迹。',
+ '你在废弃车站的深处发现了看门人的痕迹——巨大的爪痕和一道被蛮力撕开的铁门。',
  10, 6, 0,
  '{"storyFragments":1}',
  '{"bossClueKey":"station_keeper","bossClueAdd":1}',
  '你发现了废弃车站看门人的痕迹。'),
 
--- 5. empty 事件
-('station_empty_walk', 'empty', 'ruined_station',
+('station_empty', 'empty', 'ruined_station',
  '无事发生',
- '你在废弃车站巡视了一圈，没有发现明显异常。',
+ '缓慢而庄重地在废弃车站巡视了一圈，没有发现明显异常。但墙壁上的每一道影子似乎都在暗示：故事还没有结束。',
  30, 4, 1,
  '{}',
  '{"storyPityAdd":1}',
- '你在废弃车站巡视了一圈，没有发现明显异常。');
+ '你在废弃车站巡视了一圈，没有发现明显异常。'),
 
--- === 断裂商场事件 (3个) ===
-
-INSERT IGNORE INTO `exploration_events` (`event_key`, `event_type`, `location_key`, `name`, `description`, `weight`, `stamina_cost`, `repeatable`, `rewards_json`, `progress_effects_json`, `log_template`)
-VALUES
-
-('mall_resource_stash', 'resource', 'broken_mall',
- '商场残存物资',
- '断裂的货架下藏着一些未被拿走的补给。',
- 35, 6, 1,
- '{"coins":20,"storyFragments":2,"items":[{"itemKey":"first_aid_bandage","quantity":1,"dropRate":0.4},{"itemKey":"channel_token","quantity":1,"dropRate":0.2}]}',
+-- --- 金湖站 ---
+('geumho_supplies', 'resource', 'geumho_station',
+ '避难所储备',
+ '金湖站的集中仓库中储存了充足的物资——由避难所居民共同维护。',
+ 25, 6, 1,
+ '{"coins":20,"storyFragments":2,"items":[{"itemKey":"first_aid_bandage","quantity":1,"dropRate":0.4}]}',
  '{"storyPityAdd":1}',
- '断裂的货架下藏着一些未被拿走的补给。'),
+ '你在金湖站避难所的仓库中领取了一些补给。'),
 
-('mall_opportunity_signal', 'opportunity', 'broken_mall',
+('geumho_signal', 'opportunity', 'geumho_station',
  '奇怪的信号',
- '你的终端捕捉到一段断断续续的信号，似乎是某个星座赞助者在试图连接。',
- 20, 6, 1,
+ '你的终端捕捉到一段微弱但不断重复的信号——发出自附近的一个未知地点。',
+ 15, 6, 1,
  '{"channelHeat":5,"worldLineShift":2}',
  '{"storyPityAdd":1}',
  '你的终端捕捉到一段断断续续的信号，似乎是某个星座赞助者在试图连接。'),
 
-('mall_empty_patrol', 'empty', 'broken_mall',
- '废墟巡逻',
- '你在断裂商场中巡逻了一圈，除了一些可疑的影子外一切正常。',
- 45, 5, 1,
+('geumho_patrol', 'empty', 'geumho_station',
+ '避难所巡逻',
+ '你沿着金湖站的各个区域进行例行巡逻。一切秩序井然。',
+ 30, 5, 1,
  '{}',
  '{"storyPityAdd":1}',
- '你在断裂商场中巡逻了一圈，除了一些可疑的影子外一切正常。');
+ '你在金湖站避难所巡逻了一圈，一切正常。'),
 
--- === 战斗占位事件 (2个) ===
+('geumho_echo_whisper', 'side_story', 'geumho_station',
+ '李智慧的日记',
+ '在站台边缘的一张旧长椅下面，你发现了一本日记。封面上写着李智慧的名字——字迹细小平整。里面记录了她遇到的第一批幸存者、第一个夜晚、以及第一次在黑暗中看到天上那个东西的经历。最后一页写道：'我不确定这些事情有没有人在读——但如果有人在读——请继续。别停下。'',
+ 12, 6, 0,
+ '{"storyFragments":3,"exp":50}',
+ '{"storyPityAdd":0}',
+ '你读了李智慧的日记——她比你早很久就在记录这个世界的故事。'),
 
-INSERT IGNORE INTO `exploration_events` (`event_key`, `event_type`, `location_key`, `name`, `description`, `weight`, `stamina_cost`, `repeatable`, `rewards_json`, `risks_json`, `log_template`)
-VALUES
+-- --- 东庙 ---
+('dongmyo_trade', 'resource', 'dongmyo',
+ '市场淘金',
+ '在东庙的市场中淘到了一些意想不到的好东西。',
+ 25, 5, 1,
+ '{"coins":30,"items":[{"itemKey":"channel_token","quantity":1,"dropRate":0.3},{"itemKey":"mystery_box","quantity":1,"dropRate":0.15}]}',
+ '{"storyPityAdd":1}',
+ '你在东庙市场中淘到了一些意想不到的好东西。'),
 
-('station_rat_ambush', 'battle_placeholder', 'ruined_station',
- '遭遇变异站鼠',
- '一只变异站鼠从阴影中窜出，朝你扑了过来！',
+('dongmyo_gossip', 'opportunity', 'dongmyo',
+ '市场流言',
+ '东庙的情报贩子和顾客们不断交流着流言——有些是垃圾，但有些关乎生存。',
+ 15, 5, 1,
+ '{"channelHeat":3,"worldLineShift":1,"coins":15}',
+ '{"storyPityAdd":1}',
+ '你在东庙市场的流言中筛到了一条有用的情报。'),
+
+('dongmyo_empty', 'empty', 'dongmyo',
+ '市场闲逛',
+ '你在东庙的市场中缓缓闲逛，感受着这个地下社会稀少但真实的秩序。',
+ 30, 4, 1,
+ '{}',
+ '{"storyPityAdd":1}',
+ '你在东庙市场逛了一圈，没什么特别的事发生。'),
+
+-- --- 忠武路 ---
+('chungmuro_scrap', 'resource', 'chungmuro',
+ '铁王仓库边角料',
+ '在忠武路站台后方找到了铁王们留下的一些边角物资——他们不屑于捡这些小东西。',
+ 20, 7, 1,
+ '{"coins":25,"storyFragments":2,"items":[{"itemKey":"iron_scrap","quantity":2,"dropRate":0.5}]}',
+ '{"storyPityAdd":1}',
+ '你在铁王仓库附近找到了一些被丢弃的物资。'),
+
+('chungmuro_intel', 'opportunity', 'chungmuro',
+ '十王内部消息',
+ '忠武路的统治体系复杂而残酷——但总有人愿意泄露秘密。',
+ 10, 6, 1,
+ '{"channelHeat":8,"worldLineShift":2}',
+ '{"storyPityAdd":1}',
+ '你在忠武路获得了一些关于十王的内部消息。'),
+
+('chungmuro_boss_clue', 'boss_clue', 'chungmuro',
+ '地狱之火的预兆',
+ '你在忠武路的墙壁上发现了被火焰烧灼的刻痕。与剧本中遭遇的毁灭预言完全吻合。',
+ 15, 8, 0,
+ '{"storyFragments":3}',
+ '{"bossClueKey":"hellfire","bossClueAdd":1}',
+ '你在忠武路墙壁上发现了与剧本预言吻合的火焰刻痕。'),
+
+('chungmuro_empty', 'empty', 'chungmuro',
+ '铁王统治下的平静',
+ '在十王的统治下——暴政与秩序并存。今天，是秩序的日子。',
+ 25, 6, 1,
+ '{}',
+ '{"storyPityAdd":1}',
+ '你在忠武路的压迫下度过了相对安静的一天。'),
+
+('chungmuro_hidden_poem', 'hidden', 'chungmuro',
+ '墙壁上的诗',
+ '忠武路最深处的一面墙上有人用粉笔写了一首诗——歪歪扭扭的韩文：\n\n"我是读者 / 但也是角色 / 我看着你 / 你看到了谁？ / 是翻页的人 / 还是被翻的纸？"\n\n诗的末尾粉笔仍放在旁边的地板上——好像写诗的人只是暂时离开。',
+ 5, 6, 0,
+ '{"storyFragments":5,"channelHeat":15,"exp":80}',
+ '{"storyPityAdd":0}',
+ '你在忠武路深处的墙壁上发现了一首诗——写满了读者与角色之间模煳的边界。'),
+
+-- --- 东大门 ---
+('dongdaemun_loot', 'resource', 'dongdaemun',
+ '战后狼藉',
+ '东大门广场周边的废弃店铺中仍残留着未被搜刮的物资。',
  20, 8, 1,
- '{}',
- '{"monsterKey":"station_rat"}',
- '你在废弃车站遭遇了变异站鼠！'),
+ '{"coins":30,"storyFragments":2,"items":[{"itemKey":"火之精华","quantity":1,"dropRate":0.35}]}',
+ '{"storyPityAdd":1}',
+ '你在东大门战后狼藉中找到了一些残留物资。'),
 
-('mall_echo_ambush', 'battle_placeholder', 'broken_mall',
- '遭遇商场饥饿回响',
- '一道饥饿的记忆残影从商场深处涌出！',
- 15, 10, 1,
+('dongdaemun_boss_clue', 'boss_clue', 'dongdaemun',
+ '第二个巨人的痕迹',
+ '你在东大门更深处发现了不属于火之主的战斗痕迹——另一个可怕的存在。',
+ 15, 9, 0,
+ '{"storyFragments":2}',
+ '{"bossClueKey":"second_giant","bossClueAdd":1}',
+ '你在东大门深处发现了第二个巨人的痕迹。'),
+
+('dongdaemun_empty', 'empty', 'dongdaemun',
+ '硝烟散后',
+ '东大门广丿的硝烟渐渐散去了。空荡荡的街道上只有瓦砾和残留的余温。',
+ 25, 7, 1,
  '{}',
- '{"monsterKey":"mall_hunger_echo"}',
- '你在断裂商场遭遇了商场饥饿回响！');
+ '{"storyPityAdd":1}',
+ '你在东大门的战后残骸中缓缓踱步——硝烟散尽，只有沉默。'),
+
+-- --- 明洞 ---
+('myeongdong_old_book', 'resource', 'myeongdong',
+ '旧书堆',
+ '明洞商业街的书架深处埋藏着大量未被归类或被人遗忘的书卷。',
+ 20, 5, 1,
+ '{"coins":15,"storyFragments":3,"items":[{"itemKey":"古老典籍","quantity":1,"dropRate":0.4}]}',
+ '{"storyPityAdd":1}',
+ '你在明洞的旧书堆中翻到了一卷古老典籍。'),
+
+('myeongdong_silence', 'opportunity', 'myeongdong',
+ '图书馆的寂静',
+ '在图书馆某个没有灯的角落——你感受到了绝对的寂静。一种让你的思想变得异常清晰的东西。',
+ 15, 5, 1,
+ '{"channelHeat":5,"exp":40}',
+ '{"storyPityAdd":1}',
+ '你在图书馆的寂静角落中——你的思想比任何时刻都更加清晰。'),
+
+('myeongdong_empty', 'empty', 'myeongdong',
+ '书间漫步',
+ '你在星流图书馆的书架间缓慢穿行。书页在你的手指下簌簌作响——但今天没有一本选择对你开口。',
+ 25, 4, 1,
+ '{}',
+ '{"storyPityAdd":1}',
+ '你在星流图书馆的书架间漫步——今天没有书选择对你开口。'),
+
+('myeongdong_hidden_index', 'hidden', 'myeongdong',
+ '隐藏的目录',
+ '图书馆中一本极其不起眼的薄册子突然自己落在了你手中。翻开它——里面不是文字，而是一段关于你自己的条目："第2049章——图书馆的访客。\"但你还没有读到这里。',
+ 8, 5, 0,
+ '{"storyFragments":5,"exp":100,"channelHeat":20}',
+ '{"storyPityAdd":0}',
+ '你在星流图书馆中发现了一段描写自己的未完成章节——它还不应该存在。'),
+
+-- --- 广津大桥 ---
+('gwangjin_drift_loot', 'resource', 'gwangjin_bridge',
+ '漂来的物资',
+ '桥下的黑水中偶尔会漂来上游的残留物资——今天有一包看起来保存完好的补给。',
+ 20, 8, 1,
+ '{"coins":25,"items":[{"itemKey":"first_aid_bandage","quantity":2,"dropRate":0.5}]}',
+ '{"storyPityAdd":1}',
+ '你在桥下捞起了一包从上游漂下来的补给品。'),
+
+('gwangjin_fog_vision', 'opportunity', 'gwangjin_bridge',
+ '雾气中的影像',
+ '桥上的雾气今天异常浓厚——但雾中不断变化的形状似乎带着一些来自其他世界线的信息。',
+ 10, 6, 1,
+ '{"channelHeat":8,"worldLineShift":3}',
+ '{"storyPityAdd":1}',
+ '桥上的雾气中出现了一些来自其他世界线的影像——一闪而逝。'),
+
+('gwangjin_empty', 'empty', 'gwangjin_bridge',
+ '雾中巡视',
+ '浓雾笼罩着整座大桥，能见度只有十步。你小心翼翼地走着——每一次脚步都激起雾气的颤动。',
+ 25, 6, 1,
+ '{}',
+ '{"storyPityAdd":1}',
+ '你在广津大桥的浓雾中小心巡视——每一步都激起雾气无声的颤动。'),
+
+-- --- 江南站 ---
+('gangnam_dungeon_scrap', 'resource', 'gangnam_station',
+ '地下城残存物资',
+ '在地下城的入口层——之前探索失败的人留下了不少有用的东西。',
+ 20, 8, 1,
+ '{"coins":35,"storyFragments":2,"items":[{"itemKey":"stamina_bread","quantity":2,"dropRate":0.4}]}',
+ '{"storyPityAdd":1}',
+ '你在地下城入口层找到了一些前人留下的物资。'),
+
+('gangnam_boss_clue', 'boss_clue', 'gangnam_station',
+ '地下的声音',
+ '地下深处传来低沉的脉动——不是心跳，而是某种巨大存在的呼吸。',
+ 15, 9, 0,
+ '{"storyFragments":2}',
+ '{"bossClueKey":"underground_behemoth","bossClueAdd":1}',
+ '你听到了地下深处传来的低沉脉动——巨大存在的呼吸。'),
+
+('gangnam_empty', 'empty', 'gangnam_station',
+ '地下城的沉默',
+ '地下迷宫的某段走廊中——绝对的沉默。回声在这里无法传递。',
+ 25, 7, 1,
+ '{}',
+ '{"storyPityAdd":1}',
+ '你在迷宫深处遭遇了绝对的沉默——连回声都消失了。'),
+
+-- --- 首尔森林 ---
+('seoul_forest_herb', 'resource', 'seoul_forest',
+ '森林药草',
+ '首尔森林中长满了各种在旧世界不存在的药草——它们以星之流的残余能量为养料。',
+ 20, 6, 1,
+ '{"coins":10,"items":[{"itemKey":"forest_herb","quantity":2,"dropRate":0.5},{"itemKey":"森林精灵之泪","quantity":1,"dropRate":0.15}]}',
+ '{"storyPityAdd":1}',
+ '你在首尔森林中找到了一些药草——这些药草以星之流的残余能量为养料。'),
+
+('seoul_forest_creature', 'opportunity', 'seoul_forest',
+ '森林生物',
+ '当你在密林中移动时——你注意到一只从未在旧世界中出现过的发光生物正在注视着你。',
+ 10, 5, 1,
+ '{"channelHeat":10,"exp":60}',
+ '{"storyPityAdd":1}',
+ '一只发光的生物在密林中看着你——它的眼睛似乎装满了来自其他世界的故事。'),
+
+('seoul_forest_empty', 'empty', 'seoul_forest',
+ '林间寂静',
+ '穿过树林——你走入了一片被古树环绕的空地。风吹过树叶的沙沙声是这里唯一的声音。',
+ 25, 5, 1,
+ '{}',
+ '{"storyPityAdd":1}',
+ '你在首尔森林的林间空地中享受着难得的宁静——只有风和树叶。'),
+
+('seoul_forest_hidden_trail', 'hidden', 'seoul_forest',
+ '隐形的小径',
+ '在密林的尽头——有一条路径。它似乎是专为你铺就的——别人也许根本看不见。',
+ 5, 5, 0,
+ '{"storyFragments":6,"exp":150,"channelHeat":20,"items":[{"itemKey":"星之流萤火","quantity":1,"dropRate":1.0}]}',
+ '{"storyPityAdd":0}',
+ '你在首尔森林中发现了一条隐形的小径——它似乎只向你展现。'),
+
+-- --- 恶魔之门 ---
+('demon_gate_resource', 'resource', 'demon_gate',
+ '恶魔世界的魔法残渣',
+ '恶魔之门附近的地面上散落着从裂缝另一端飘过来的魔法残渣——微小的能量结晶。',
+ 20, 8, 1,
+ '{"coins":40,"storyFragments":2,"items":[{"itemKey":"恶魔之尘","quantity":2,"dropRate":0.5}]}',
+ '{"storyPityAdd":1}',
+ '你在恶魔之门外收集了一些飘过裂缝的魔法残渣。'),
+
+('demon_gate_echo', 'opportunity', 'demon_gate',
+ '裂缝低语',
+ '恶魔之门的次元裂缝不断低语——内容无法分辨，但能感知到一种古老的、不祥的诱惑。',
+ 10, 6, 1,
+ '{"channelHeat":10,"worldLineShift":5}',
+ '{"storyPityAdd":1}',
+ '恶魔之门不断低语——你能感知到古老的、不祥的诱惑。');
+
+
+-- ============================================================
+-- PART 3: 最黑暗春天的女王 系列故事事件
+-- 星座 "queen_of_darkest_spring" 的剧情线
+-- 分布在不同地点，按推荐等级逐步揭示
+-- ============================================================
+
+-- --- 金湖站·初见神迹 ---
+('darkest_spring_first_omen', 'story', 'vol2_dark_spring', 'geumho_station',
+ '晦日之兆',
+ '避难所的深夜，大部分幸存者都已入睡。你被一阵奇怪的声音唤醒——像是远处传来的钟声，却没有人注意到。\n\n李智慧坐在蜡烛旁，手里捧着一本破损的旧书。看到你醒来，她微微点头。\n\n"你也听到了？"她小声问。"只有特定的人能听到。那是'晦日之钟'——最黑暗的春天降临前的钟声。古老的传说里，有一位被封印在深渊之中的女神。她掌管着冬天结束的时刻——当最后一寸日光也被吞噬，春天就会从黑暗中诞生。"\n\n她翻开书页，露出一个手绘的符号：一朵在黑暗中绽放的花。',
+ 10, 5, 0,
+ '{"storyFragments":3,"exp":60,"channelHeat":15,"coins":20}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": ""这位女神是谁？我想知道更多。"",
+     "consequence_text": "李智慧的眼睛闪过一丝敬畏。\"她有很多名字。'最黑暗春天的女王'、'深渊之花'、'晦日女神'。传说在第一个春天到来之前，世界曾被永恒的冬天支配。是她——用自己的双眼换来了第一缕阳光。从此她就被封印在深渊之中，用被刺瞎的眼睛凝视着最黑暗的春天。\"她放低了声音：\"有人说，她的双眼至今仍在深渊的某个地方发光。\"",
+     "rewards_override": {"storyFragments":5,"channelHeat":25,"exp":80,"coins":30},
+     "title_bias": {"title_dark_spring_seeker": 2}
+   },
+   {
+     "label": ""钟声……听起来像是警告。"",
+     "consequence_text": "\"也许就是警告。\"李智慧合上书。\"传说中，每当晦日之钟响起，意味着女神在深渊中翻了一次身。她的梦境会溢出到我们的世界——改变一些东西。或许是一个人的命运，或许是一条世界线的走向。\"她吹灭了蜡烛。\"睡吧。今晚你不会再听到钟声了——她一夜只敲一次。\"",
+     "unlock_events": ["darkest_spring_forest_vision"],
+     "title_bias": {"title_omen_listener": 1}
+   }
+ ]',
+ '深夜里只有你能听到的钟声——李智慧告诉你，那是"晦日之钟"，来自一位被封印在深渊中的古老女神。'),
+
+-- --- 首尔森林·花之幻象 ---
+('darkest_spring_forest_vision', 'story', 'vol2_dark_spring', 'seoul_forest',
+ '深渊之花的幻象',
+ '首尔森林的深处有一片从未见过阳光的谷地。那里的一切都是灰色的——灰色的草、灰色的树、灰色的光。在这片灰色的世界中央，长着一朵花。它是黑色的。黑得像深渊的底部——却散发着微弱的暖意。\n\n一位看不清面容的女性身影站在花旁。她的眼睛被黑色的丝带蒙住，头发像墨色的瀑布垂落到地面。她开口了——声音不像从喉咙发出的，而像是从花蕊中直接传入你的脑海：\n\n"你能看见这朵花——这意味着你的世界线已经偏离了足够远。远到足以感知深渊的存在。"',
+ 10, 8, 0,
+ '{"storyFragments":5,"exp":120,"channelHeat":30,"coins":40}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": ""你是谁？为什么我能看到你？"",
+     "consequence_text": "\"我是被遗忘的春天的守护者。\"她伸出手，黑色的花瓣在指尖旋转。\"我的双眼在亿万年前被献祭给了太阳——从那以后，我只能通过被选中的人的眼睛来观察世界。你——\"她转向你，即使被丝带蒙住眼，你仍感到被什么东西洞穿了。\"你是被'星流'选中的读者。你的眼睛能看到的，远比你意识到的更多。所以我才能借用你的视线。\"",
+     "rewards_override": {"storyFragments":7,"channelHeat":50,"exp":150,"coins":50},
+     "unlock_events": ["darkest_spring_abyss_gate"],
+     "title_bias": {"title_queens_witness": 3}
+   },
+   {
+     "label": ""这朵花——它为什么会在这里？"",
+     "consequence_text": "\"它不是'在这里'。它哪里都不在——又无处不在。\"她的手轻轻拂过花瓣，黑色的光随之流转。\"这朵花是我的牢笼，也是我的力量。只要它盛开，春天就永远不会真正消失。世界可以毁灭无数次——但春天总会回来。这就是我的职责。被遗忘的职责。\"\n\n幻象开始消散，但她最后的话回荡在空气中：\"去恶魔之门。那里的裂缝足够宽——宽到能让你听到我的完整故事。\"",
+     "rewards_override": {"coins":40,"items":[{"itemKey":"深渊花瓣","quantity":1,"dropRate":1.0}]},
+     "title_bias": {"title_abyss_touched": 2}
+   }
+ ]',
+ '在首尔森林最深处的灰色谷地，一朵黑色的花盛开着。它的守护者——蒙着眼睛的女神——借用了你的视线。'),
+
+-- --- 恶魔之门·深渊的女神 ---
+('darkest_spring_abyss_gate', 'story', 'vol2_dark_spring', 'demon_gate',
+ '深渊中的女神',
+ '恶魔之门的次元裂缝今天异常活跃。裂缝中不再喷涌恶魔世界的硫磺气息——取而代之的是一种湿润的、带着花香的风。那是春天的气息。在一个充满硫磺与火焰的世界里，春天的气息。\n\n裂缝的画面稳定下来，你看到了一座宫殿。黑色的水晶墙壁上爬满了发光的藤蔓。在宫殿的王座上，坐着那位蒙眼的女神——但与之前不同，她身后的丝带正在缓缓滑落。\n\n"在亿万个世界线中，只有少数几个能让你走到这里。"她的声音无比清晰，仿佛就在耳边。\"在大多数世界里，你在废弃车站就死了。在更多世界里，你从来没读过那本书。但在这个世界里——\"她的嘴角浮起一丝微笑。\"你活着。你读到了。你来了。"',
+ 10, 10, 0,
+ '{"storyFragments":8,"exp":200,"channelHeat":50,"coins":80}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": ""你到底是谁？请告诉我你的名字。"",
+     "consequence_text": "她站了起来。蒙眼的丝带完全落下——但眼眶中没有眼球，而是两颗正在爆炸的微型恒星。光芒穿透了你，似乎在阅读你灵魂的每一个角落。\n\n\"我的名字在被封印的那一刻就被世界线抹除了。但你可以叫我——晦日之春。我曾经是72柱恶魔之一，排名第29位。阿斯提罗斯——掌管春天与黑暗交界的神魔。我在深渊中看到了真正的春天——不是阳光普照下的春天，而是从最深的黑暗中生长出来的春天。那才是真正的希望。\"\n\n宫殿随着她的情绪波动而震动。\"选择权在你——是否接受我的祝福，成为'晦日之春'的代言人。\"",
+     "rewards_override": {"storyFragments":10,"channelHeat":100,"exp":300,"coins":100},
+     "title_bias": {"title_queens_messenger": 5}
+   },
+   {
+     "label": ""你为什么被封印——是谁做的？"",
+     "consequence_text": "\"'星流'的创始人。\"她的声音冷了下来。\"他们害怕从黑暗中诞生的希望——因为它不受控制。他们需要一种能被叙事系统管理的希望：有开头、有发展、有高潮、有结局。但我带来的春天没有剧本。它是野生的、不可预测的——就像从废墟中长出的第一朵花。\"\n\n她叹了口气，整个宫殿都在颤抖。\"他们剥夺了我的双眼，封印了我的身体。但他们忘了一件事——春天不需要阳光，也不需要眼睛。它只需要一颗愿意在黑暗中扎根的种子。\"",
+     "rewards_override": {"storyFragments":6,"channelHeat":60,"exp":200,"coins":60},
+     "unlock_events": ["darkest_spring_seed_of_hope"],
+     "title_bias": {"title_truth_seeker": 3}
+   }
+ ]',
+ '恶魔之门的裂缝通往了女神的宫殿。她揭开了自己的身份：曾经的72柱恶魔之一，阿斯提罗斯——被"星流"创始人封印的春天与黑暗之神。'),
+
+-- --- 首尔森林·希望的种子 ---
+('darkest_spring_seed_of_hope', 'story', 'vol2_dark_spring', 'seoul_forest',
+ '希望的种子',
+ '灰色的谷地改变了。那朵黑色的花已经完全绽放——花瓣中央，一颗发光的深紫色种子正在成型。周围的世界开始融化——树木、草地、甚至空气都变得半透明，仿佛这个场景本身就是一层即将被揭开的面纱。\n\n女神的声音从四面八方传来，不再是低语，而是清晰而温暖的女声：\n\n"这颗种子是我的本质——'晦日之种'。它包含了我对春天的所有记忆和希望。把它埋在任何一个世界中——那里就会诞生一个新的春天。不一定是最好的春天，不一定是最亮的春天——但是最真实的。\"\n\n她停顿了一下。\"我把它交给你。不是因为你强大——而是因为你在完全不确定的情况下，选择了继续听下去。好奇心——这是我挑选代言人的唯一标准。"',
+ 5, 8, 0,
+ '{"storyFragments":12,"exp":250,"channelHeat":80,"coins":120}',
+ '{"storyPityReset":true}',
+ '[
+   {
+     "label": "接受晦日之种——成为女神在世间的代言人",
+     "consequence_text": "种子融入你的掌心——没有什么惊天动地的光效，只是一个温度。就像最寒冷的冬天午后，你突然感觉到的那一缕微弱的暖意。\n\n女神的声音越来越远：\"从现在起，你凝视的黑暗将不再只是黑暗。你会看到黑暗中等待萌发的春天。去吧——去让更多的世界线上长出花来。\"\n\n你获得了星座祝福：'最黑暗春天的女王'从此与你并肩。",
+     "rewards_override": {"storyFragments":20,"channelHeat":200,"exp":500,"coins":200,"items":[{"itemKey":"晦日之种","quantity":1,"dropRate":1.0}]},
+     "title_bias": {"title_queens_messenger": 8}
+   },
+   {
+     "label": "拒绝种子——"春天应该自己找到出路"",
+     "consequence_text": "女神沉默了很久。当你以为她已经离开时，她的声音再次响起——这次带着一丝你从未听过的情感：像是一种骄傲。\"你拒绝了我。不是因为恐惧——而是因为你相信春天自己能找到路。这种信念——正是我失去双眼时也在坚持的。\"\n\n谷地开始缓缓变亮。灰色的世界第一次出现了淡金色的光。\"那么我把这个还给你——不是种子，而是真相：每一个拒绝预写剧本的世界，都是最黑暗的春天。而每一个从拒绝中生长出来的希望，都是黑暗中的第一朵花。\"",
+     "rewards_override": {"storyFragments":15,"channelHeat":100,"exp":300,"coins":100},
+     "unlock_locations": ["seoul_forest"],
+     "title_bias": {"title_free_spring": 5}
+   }
+ ]',
+ '女神将她的本质——"晦日之种"——托付给你。接受还是拒绝，将定义你和晦日之春之间永恒的关系。');
+-- Phase 2 探索种子数据 初始化完成
+-- ============================================================

@@ -66,6 +66,26 @@ public class SkillController {
         return Result.ok(result);
     }
 
+    @PostMapping("/equip")
+    @Operation(summary = "装备技能")
+    public Result<PlayerSkillVO> equipSkill(@RequestBody Map<String, Object> body) {
+        Long userId = LoginUserContext.get().getUserId();
+        Long playerId = Long.valueOf(body.get("playerId").toString());
+        String skillKey = (String) body.get("skillKey");
+        PlayerSkillVO result = skillService.equipSkill(playerId, skillKey, userId);
+        return Result.ok(result);
+    }
+
+    @PostMapping("/unequip")
+    @Operation(summary = "卸下技能")
+    public Result<PlayerSkillVO> unequipSkill(@RequestBody Map<String, Object> body) {
+        Long userId = LoginUserContext.get().getUserId();
+        Long playerId = Long.valueOf(body.get("playerId").toString());
+        String skillKey = (String) body.get("skillKey");
+        PlayerSkillVO result = skillService.unequipSkill(playerId, skillKey, userId);
+        return Result.ok(result);
+    }
+
     // 阵营技能占位 — 返回 NOT_MIGRATED
     @GetMapping("/faction/{constellationKey}")
     @Operation(summary = "阵营技能列表 (暂未迁移)")

@@ -17,14 +17,11 @@ import java.util.Map;
 public class SystemController {
 
     @GetMapping("/changelog")
-    public Result<Map<String, Object>> changelog() {
-        Map<String, Object> m = new LinkedHashMap<>();
-        m.put("version", "2.0.0");
-        m.put("entries", List.of(
+    public Result<List<Map<String, Object>>> changelog() {
+        return Result.ok(List.of(
             Map.of("version", "2.0.0", "date", "2026-05-21",
                    "changes", List.of("Spring Boot 后端迁移完成", "多人联机开放世界"))
         ));
-        return Result.ok(m);
     }
 
     @GetMapping("/version")

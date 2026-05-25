@@ -18,6 +18,7 @@ import com.huazhenghai.readergame.service.InventoryService;
 import com.huazhenghai.readergame.service.WorldlineService;
 import com.huazhenghai.readergame.vo.BroadcastEventVO;
 import com.huazhenghai.readergame.vo.BroadcastSummaryVO;
+import com.huazhenghai.readergame.websocket.WebSocketSessionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -39,6 +40,7 @@ public class BroadcastServiceImpl implements BroadcastService {
     private final PlayerMapper playerMapper;
     private final InventoryService inventoryService;
     private final ObjectMapper objectMapper;
+    private final WebSocketSessionManager sessionManager;
 
     public BroadcastServiceImpl(BroadcastEventMapper eventMapper,
                                 BroadcastContributionMapper contributionMapper,
@@ -46,7 +48,8 @@ public class BroadcastServiceImpl implements BroadcastService {
                                 ChatService chatService,
                                 PlayerMapper playerMapper,
                                 InventoryService inventoryService,
-                                ObjectMapper objectMapper) {
+                                ObjectMapper objectMapper,
+                                WebSocketSessionManager sessionManager) {
         this.eventMapper = eventMapper;
         this.contributionMapper = contributionMapper;
         this.worldlineService = worldlineService;
@@ -54,6 +57,7 @@ public class BroadcastServiceImpl implements BroadcastService {
         this.playerMapper = playerMapper;
         this.inventoryService = inventoryService;
         this.objectMapper = objectMapper;
+        this.sessionManager = sessionManager;
     }
 
     @Override
@@ -284,6 +288,49 @@ public class BroadcastServiceImpl implements BroadcastService {
         return vo;
     }
 
+    @Override
+    public List<Map<String, Object>> getLeaderboard(int limit) {
+        // 聚合所有玩家贡献值，按 total_contribution 降序
+        List<Map<String, Object>> result = new ArrayList<>();
+        QueryWrapper<BroadcastContribution> qw = new QueryWrapper<>();
+        qw.select("player_id", "SUM(contribution_value) AS total_contribution")
+          .groupBy("player_id")
+          .orderByDesc("total_contribution")
+          .last("LIMIT " + Math.max(1, Math.min(limit, 100)));
+        List<Map<String, Object>> aggList = contributionMapper.selectMaps(qw);
+
+        int rank = 1;
+        for (Map<String, Object> row : aggList) {
+            Long playerId = toLong(row.get("player_id"));
+            Long totalContribution = toLong(row.get("total_contribution"));
+            Player player = playerMapper.selectById(playerId);
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("rank", rank++);
+            entry.put("player_id", playerId);
+            entry.put("player_name", player != null ? player.getPlayerName() : "未知玩家");
+            entry.put("level", player != null ? extractLevel(player) : 1);
+            entry.put("total_contribution", totalContribution);
+            result.add(entry);
+        }
+        return result;
+    }
+
+    private long toLong(Object v) {
+        if (v instanceof Number) return ((Number) v).longValue();
+        return 0L;
+    }
+
+    private int extractLevel(Player player) {
+        if (player.getStatsJson() == null) return 1;
+        try {
+            Map<String, Object> stats = objectMapper.readValue(player.getStatsJson(), new TypeReference<LinkedHashMap<String, Object>>() {});
+            Object lv = stats.get("level");
+            return lv instanceof Number ? ((Number) lv).intValue() : 1;
+        } catch (Exception e) {
+            return 1;
+        }
+    }
+
     // ─── internal ───
 
     @Override
@@ -344,6 +391,9 @@ public class BroadcastServiceImpl implements BroadcastService {
 
         eventMapper.insert(event);
 
+        // Push real-time update to all online players
+        pushBroadcastUpdate();
+
         // Send system chat notification
         try {
             chatService.saveSystemMessage(
@@ -375,6 +425,9 @@ public class BroadcastServiceImpl implements BroadcastService {
         event.setUpdatedAt(LocalDateTime.now());
         eventMapper.updateById(event);
 
+        // Push real-time update to all online players
+        pushBroadcastUpdate();
+
         // Apply worldline effects
         String effectsJson = event.getWorldlineEffectsJson();
         if (effectsJson != null && !effectsJson.isBlank()) {
@@ -391,6 +444,34 @@ public class BroadcastServiceImpl implements BroadcastService {
                     "broadcast", metadata);
         } catch (Exception e) {
             // Don't let chat failure affect broadcast completion
+        }
+    }
+
+    private void pushBroadcastUpdate() {
+        try {
+            BroadcastSummaryVO summary = getBroadcastSummary();
+            List<Map<String, Object>> activeEvents = new ArrayList<>();
+            for (BroadcastEventVO vo : getActiveBroadcasts()) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("eventKey", vo.getEventKey());
+                item.put("title", vo.getTitle());
+                item.put("type", vo.getType());
+                item.put("status", vo.getStatus());
+                item.put("currentValue", vo.getCurrentValue());
+                item.put("targetValue", vo.getTargetValue());
+                activeEvents.add(item);
+            }
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("activeCount", summary.getActiveCount());
+            data.put("totalContributors", summary.getTotalContributors());
+            data.put("topEvents", summary.getTopEvents());
+            data.put("activeEvents", activeEvents);
+            Map<String, Object> msg = new LinkedHashMap<>();
+            msg.put("type", "broadcast.progress.updated");
+            msg.put("data", data);
+            sessionManager.broadcastToAll(msg);
+        } catch (Exception e) {
+            log.warn("Failed to push broadcast update: {}", e.getMessage());
         }
     }
 

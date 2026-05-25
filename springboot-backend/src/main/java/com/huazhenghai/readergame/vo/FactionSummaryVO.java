@@ -10,6 +10,9 @@ public class FactionSummaryVO {
     private Long contributionTotal;
     private Integer factionLevel;
     private Integer factionRank;
+    private Integer factionBuff;       // 当前阵营攻击加成值
+    private Long dailyContribution;    // 今日贡献值
+    private String buffDescription;    // 加成说明文案
 
     public boolean isJoined() { return joined; }
     public void setJoined(boolean joined) { this.joined = joined; }
@@ -27,4 +30,10 @@ public class FactionSummaryVO {
     public void setFactionLevel(Integer factionLevel) { this.factionLevel = factionLevel; }
     public Integer getFactionRank() { return factionRank; }
     public void setFactionRank(Integer factionRank) { this.factionRank = factionRank; }
+    public Integer getFactionBuff() { return factionBuff; }
+    public void setFactionBuff(Integer factionBuff) { this.factionBuff = factionBuff; }
+    public Long getDailyContribution() { return dailyContribution; }
+    public void setDailyContribution(Long dailyContribution) { this.dailyContribution = dailyContribution; }
+    public String getBuffDescription() { return buffDescription; }
+    public void setBuffDescription(String buffDescription) { this.buffDescription = buffDescription; }
 }

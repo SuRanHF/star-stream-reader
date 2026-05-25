@@ -1,0 +1,103 @@
+<script setup lang="ts">
+import { ref, watch, nextTick } from 'vue';
+import type { LogEntry } from '@/types/bootstrap';
+
+const props = defineProps<{
+  logs: LogEntry[];
+}>();
+
+const containerRef = ref<HTMLElement>();
+
+watch(() => props.logs.length, () => {
+  nextTick(() => {
+    if (containerRef.value) {
+      containerRef.value.scrollTop = containerRef.value.scrollHeight;
+    }
+  });
+}, { immediate: true });
+
+const TYPE_MAP: Record<string, string> = {
+  info: '信息',
+  exploration: '探索',
+  story: '故事',
+  friend: '同伴',
+  battle: '战斗',
+  combat: '战斗',
+  pk: 'PK',
+  explore: '探索',
+  trade: '交易',
+  trade_list: '上架',
+  trade_sold: '售出',
+  trade_cancel: '取消',
+  trade_bought: '购买',
+  party_create: '创建队伍',
+  party_join: '加入队伍',
+  party_leave: '离开队伍',
+  party_kicked: '踢出队伍',
+  party_leader: '转让队长',
+  party_disband: '解散队伍',
+  party_battle: '队伍战斗',
+  party_quest: '队伍任务',
+  equipment: '装备',
+  equipment_acquire: '获得装备',
+  equipment_equip: '穿戴',
+  equipment_unequip: '卸下',
+  equipment_repair: '修理',
+  faction: '阵营',
+  faction_join: '加入阵营',
+  faction_leave: '离开阵营',
+  faction_contribute: '阵营贡献',
+  faction_war: '阵营战',
+  skill: '技能',
+  skill_learn: '学习技能',
+  skill_unlock: '技能解锁',
+  title_earn: '获得称号',
+  title_equip: '装备称号',
+  title_unequip: '卸下称号',
+  rest_start: '开始待机',
+  rest_stop: '结束行动',
+  revive: '复活',
+  peer_revive: '援救复活',
+  constellation_change: '背后星更换',
+  bounty_publish: '发布悬赏',
+  bounty_accept: '接取悬赏',
+  bounty_complete: '完成悬赏',
+  achievement: '成就',
+  income: '收益',
+  reward: '奖励',
+  quest: '任务',
+  worldBoss: '灾厄',
+  world_boss_event: '灾厄事件',
+  world_boss_defeated: '灾厄击败',
+  world_boss_claim: '灾厄领取',
+  system: '系统',
+  admin: '管理',
+  death: '死亡',
+};
+
+function typeLabel(type?: string): string {
+  if (!type) return '消息';
+  return TYPE_MAP[type] || type;
+}
+
+function lineClass(type?: string) {
+  if (type === 'battle' || type === 'combat') return 'is-danger';
+  if (type === 'income' || type === 'reward') return 'is-income';
+  if (type === 'admin') return 'is-admin';
+  return 'is-normal';
+}
+</script>
+
+<template>
+  <section ref="containerRef" class="ling-log">
+    <p v-if="logs.length === 0" class="ling-log-line is-normal">暂无日志。</p>
+    <p
+      v-for="log in logs"
+      :key="log.id || log.createdAt || log.message"
+      :class="['ling-log-line', lineClass(log.type)]"
+    >
+      <span class="ling-log-type">[{{ typeLabel(log.type) }}]</span>
+      {{ log.message || '未命名事件' }}
+    </p>
+  </section>
+</template>

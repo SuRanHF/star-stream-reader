@@ -42,4 +42,10 @@ public interface FactionService {
 
     /** 阵营成员列表 */
     java.util.List<java.util.Map<String, Object>> getFactionMembers(String factionKey, int limit);
+
+    /** 获取阵营加成（当前玩家的攻击加成值） */
+    java.util.Map<String, Object> getFactionBuff(Long playerId);
+
+    /** 每日结算阵营贡献，计算并存储各玩家的阵营加成 */
+    java.util.Map<String, Object> settleFactionDaily();
 }

@@ -18,6 +18,9 @@ public interface BroadcastService {
 
     List<Map<String, Object>> getPlayerContributions(Long playerId);
 
+    /** 获取全服贡献排行 (用于星流贡献榜) */
+    List<Map<String, Object>> getLeaderboard(int limit);
+
     BroadcastSummaryVO getBroadcastSummary();
 
     /** 从 AI Director 草稿创建广播事件，返回 eventKey，失败返回 null */

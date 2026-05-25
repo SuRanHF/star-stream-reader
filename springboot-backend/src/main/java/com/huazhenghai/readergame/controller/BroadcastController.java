@@ -64,6 +64,13 @@ public class BroadcastController {
         return Result.ok(result);
     }
 
+    @GetMapping("/rankings")
+    @Operation(summary = "星流贡献榜")
+    public Result<List<Map<String, Object>>> getLeaderboard(
+            @RequestParam(defaultValue = "50") int limit) {
+        return Result.ok(broadcastService.getLeaderboard(limit));
+    }
+
     @GetMapping("/my/{playerId}")
     @Operation(summary = "查看玩家贡献记录")
     public Result<List<Map<String, Object>>> getPlayerContributions(@PathVariable Long playerId) {

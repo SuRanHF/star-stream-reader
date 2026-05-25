@@ -6,12 +6,15 @@ import com.huazhenghai.readergame.entity.*;
 import com.huazhenghai.readergame.mapper.*;
 import com.huazhenghai.readergame.service.AiDirectorService;
 import com.huazhenghai.readergame.service.BroadcastService;
+import com.huazhenghai.readergame.service.FactionService;
 import com.huazhenghai.readergame.service.QuestService;
 import com.huazhenghai.readergame.service.SchedulerService;
 import com.huazhenghai.readergame.service.WorldBossService;
 import com.huazhenghai.readergame.service.WorldlineService;
 import com.huazhenghai.readergame.vo.ScheduledTaskLogVO;
 import com.huazhenghai.readergame.vo.SchedulerSummaryVO;
+import com.huazhenghai.readergame.vo.WorldBossVO;
+import com.huazhenghai.readergame.websocket.WebSocketSessionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,12 +34,14 @@ public class SchedulerServiceImpl implements SchedulerService {
     private final BroadcastEventMapper broadcastEventMapper;
     private final FriendRequestMapper friendRequestMapper;
     private final ScheduledTaskLogMapper taskLogMapper;
+    private final FactionService factionService;
     private final WorldlineService worldlineService;
     private final WorldBossService worldBossService;
     private final WorldBossMapper worldBossMapper;
     private final QuestService questService;
     private final AiDirectorService aiDirectorService;
     private final BroadcastService broadcastService;
+    private final WebSocketSessionManager sessionManager;
 
     @Value("${app.scheduler.enabled:true}")
     private boolean schedulerEnabled;
@@ -45,22 +50,26 @@ public class SchedulerServiceImpl implements SchedulerService {
                                 BroadcastEventMapper broadcastEventMapper,
                                 FriendRequestMapper friendRequestMapper,
                                 ScheduledTaskLogMapper taskLogMapper,
+                                FactionService factionService,
                                 WorldlineService worldlineService,
                                 WorldBossService worldBossService,
                                 WorldBossMapper worldBossMapper,
                                 QuestService questService,
                                 AiDirectorService aiDirectorService,
-                                BroadcastService broadcastService) {
+                                BroadcastService broadcastService,
+                                WebSocketSessionManager sessionManager) {
         this.pkChallengeMapper = pkChallengeMapper;
         this.broadcastEventMapper = broadcastEventMapper;
         this.friendRequestMapper = friendRequestMapper;
         this.taskLogMapper = taskLogMapper;
+        this.factionService = factionService;
         this.worldlineService = worldlineService;
         this.worldBossService = worldBossService;
         this.worldBossMapper = worldBossMapper;
         this.questService = questService;
         this.aiDirectorService = aiDirectorService;
         this.broadcastService = broadcastService;
+        this.sessionManager = sessionManager;
     }
 
     @Scheduled(fixedDelayString = "${app.scheduler.tick-interval-ms:60000}")
@@ -167,6 +176,12 @@ public class SchedulerServiceImpl implements SchedulerService {
                     taskLog.setStatus("success");
                     taskLog.setMessage(taskName + " 执行成功");
                 }
+                case "settleFactionDaily" -> {
+                    factionService.settleFactionDaily();
+                    affected = 1;
+                    taskLog.setStatus("success");
+                    taskLog.setMessage(taskName + " 执行成功");
+                }
                 default -> {
                     affected = 0;
                     taskLog.setStatus("skipped");
@@ -264,7 +279,11 @@ public class SchedulerServiceImpl implements SchedulerService {
           .lt("end_at", now)
           .set("status", "expired")
           .set("updated_at", now);
-        return broadcastEventMapper.update(null, uw);
+        int count = broadcastEventMapper.update(null, uw);
+        if (count > 0) {
+            pushSystemAnnouncement("星流放送", "有放送事件已过期，世界线轻微偏移。");
+        }
+        return count;
     }
 
     private int applyWorldlineDecay() {
@@ -290,7 +309,10 @@ public class SchedulerServiceImpl implements SchedulerService {
 
     private int openWorldBossIfNeeded() {
         try {
-            worldBossService.openScheduledBoss();
+            WorldBossVO result = worldBossService.openScheduledBoss();
+            if (result == null) return 0;
+            pushWorldBossUpdate();
+            pushSystemAnnouncement("世界Boss", "新的世界Boss已出现，请所有化身前往讨伐！");
             return 1;
         } catch (Exception e) {
             log.warn("openWorldBossIfNeeded failed: {}", e.getMessage());
@@ -308,6 +330,10 @@ public class SchedulerServiceImpl implements SchedulerService {
                 boss.setUpdatedAt(LocalDateTime.now());
                 worldBossMapper.updateById(boss);
                 try { worldBossService.settleBoss(boss.getBossNo()); } catch (Exception ignored) {}
+            }
+            if (!expired.isEmpty()) {
+                pushWorldBossUpdate();
+                pushSystemAnnouncement("世界Boss", "世界Boss讨伐时限已过，请等待下次机会。");
             }
             return expired.size();
         } catch (Exception e) {
@@ -332,6 +358,35 @@ public class SchedulerServiceImpl implements SchedulerService {
     }
 
     // ─── internal ───
+
+    private void pushSystemAnnouncement(String title, String message) {
+        try {
+            Map<String, Object> msg = new LinkedHashMap<>();
+            msg.put("type", "system.message");
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("channel", "world");
+            data.put("senderName", "星流系统");
+            data.put("content", "【" + title + "】" + message);
+            data.put("createdAt", LocalDateTime.now().toString());
+            msg.put("data", data);
+            sessionManager.broadcastToAll(msg);
+        } catch (Exception e) {
+            log.warn("Failed to push system announcement: {}", e.getMessage());
+        }
+    }
+
+    private void pushWorldBossUpdate() {
+        try {
+            Map<String, Object> msg = new LinkedHashMap<>();
+            msg.put("type", "worldBoss.hp.updated");
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("updatedAt", LocalDateTime.now().toString());
+            msg.put("data", data);
+            sessionManager.broadcastToAll(msg);
+        } catch (Exception e) {
+            log.warn("Failed to push world boss update: {}", e.getMessage());
+        }
+    }
 
     private int generateAiBroadcast() {
         try {
@@ -366,7 +421,8 @@ public class SchedulerServiceImpl implements SchedulerService {
             "settleKilledWorldBosses",
             "expireDailyQuests",
             "expireWeeklyQuests",
-            "generateAiBroadcast"
+            "generateAiBroadcast",
+            "settleFactionDaily"
     );
 
     private ScheduledTaskLogVO toVO(ScheduledTaskLog e) {

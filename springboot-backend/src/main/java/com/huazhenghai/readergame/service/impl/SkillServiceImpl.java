@@ -170,9 +170,74 @@ public class SkillServiceImpl implements SkillService {
     }
 
     @Override
+    @Transactional
+    public PlayerSkillVO equipSkill(Long playerId, String skillKey, Long userId) {
+        validateOwnership(playerId, userId);
+
+        // 检查休息状态
+        Player player = playerMapper.selectById(playerId);
+        Map<String, Object> stats = parseJsonMap(player.getStatsJson());
+        if (Boolean.TRUE.equals(stats.get("isResting"))) {
+            throw new BusinessException(ErrorCode.PLAYER_RESTING, "休息中无法装备技能");
+        }
+
+        // 查找玩家技能记录
+        QueryWrapper<PlayerSkill> psQuery = new QueryWrapper<>();
+        psQuery.eq("player_id", playerId).eq("skill_key", skillKey);
+        PlayerSkill ps = playerSkillMapper.selectOne(psQuery);
+        if (ps == null)
+            throw new BusinessException(ErrorCode.SKILL_NOT_UNLOCKED, "尚未学习该技能");
+
+        // 查找技能定义
+        Skill skill = skillMapper.selectOne(
+                new QueryWrapper<Skill>().eq("skill_key", skillKey));
+        if (skill == null)
+            throw new BusinessException(ErrorCode.SKILL_NOT_FOUND, "技能不存在");
+
+        // 已装备则无需操作
+        if (ps.getEquipped() != null && ps.getEquipped() == 1) {
+            return toPlayerSkillVO(skill, ps);
+        }
+
+        ps.setEquipped(1);
+        playerSkillMapper.updateById(ps);
+        playerLogService.addLog(playerId, "skill_equip", "装备技能: " + skill.getName());
+        return toPlayerSkillVO(skill, ps);
+    }
+
+    @Override
+    @Transactional
+    public PlayerSkillVO unequipSkill(Long playerId, String skillKey, Long userId) {
+        validateOwnership(playerId, userId);
+
+        // 查找玩家技能记录
+        QueryWrapper<PlayerSkill> psQuery = new QueryWrapper<>();
+        psQuery.eq("player_id", playerId).eq("skill_key", skillKey);
+        PlayerSkill ps = playerSkillMapper.selectOne(psQuery);
+        if (ps == null)
+            throw new BusinessException(ErrorCode.SKILL_NOT_UNLOCKED, "尚未学习该技能");
+
+        // 查找技能定义
+        Skill skill = skillMapper.selectOne(
+                new QueryWrapper<Skill>().eq("skill_key", skillKey));
+        if (skill == null)
+            throw new BusinessException(ErrorCode.SKILL_NOT_FOUND, "技能不存在");
+
+        // 已卸下则无需操作
+        if (ps.getEquipped() == null || ps.getEquipped() == 0) {
+            return toPlayerSkillVO(skill, ps);
+        }
+
+        ps.setEquipped(0);
+        playerSkillMapper.updateById(ps);
+        playerLogService.addLog(playerId, "skill_unequip", "卸下技能: " + skill.getName());
+        return toPlayerSkillVO(skill, ps);
+    }
+
+    @Override
     public Map<String, Object> calculateSkillBonus(Long playerId) {
         QueryWrapper<PlayerSkill> psQuery = new QueryWrapper<>();
-        psQuery.eq("player_id", playerId);
+        psQuery.eq("player_id", playerId).eq("equipped", 1);
         List<PlayerSkill> psList = playerSkillMapper.selectList(psQuery);
 
         Map<String, Object> bonus = new LinkedHashMap<>();
@@ -192,6 +257,42 @@ public class SkillServiceImpl implements SkillService {
             }
         }
         return bonus;
+    }
+
+    @Override
+    public Map<String, String> getSkillBonusDetail(Long playerId) {
+        QueryWrapper<PlayerSkill> psQuery = new QueryWrapper<>();
+        psQuery.eq("player_id", playerId).eq("equipped", 1);
+        List<PlayerSkill> psList = playerSkillMapper.selectList(psQuery);
+
+        Map<String, StringBuilder> detail = new LinkedHashMap<>();
+        for (PlayerSkill ps : psList) {
+            Skill skill = skillMapper.selectOne(
+                    new QueryWrapper<Skill>().eq("skill_key", ps.getSkillKey()));
+            if (skill == null) continue;
+
+            String skillName = skill.getName() != null ? skill.getName() : ps.getSkillKey();
+            Map<String, Object> effects = parseJsonMap(skill.getEffectsJson());
+            for (Map.Entry<String, Object> entry : effects.entrySet()) {
+                String key = entry.getKey();
+                if (!NUMERIC_EFFECTS.contains(key)) continue;
+                double val = toDouble(entry.getValue(), 0);
+                if (val == 0) continue;
+                detail.computeIfAbsent(key, k -> new StringBuilder())
+                        .append(detail.get(key).isEmpty() ? "" : ", ")
+                        .append(skillName).append("+").append(formatBonus(val));
+            }
+        }
+        Map<String, String> result = new LinkedHashMap<>();
+        for (Map.Entry<String, StringBuilder> e : detail.entrySet()) {
+            result.put(e.getKey(), e.getValue().toString());
+        }
+        return result;
+    }
+
+    private String formatBonus(double v) {
+        if (v == Math.floor(v)) return String.valueOf((long) v);
+        return String.valueOf(Math.round(v * 100.0) / 100.0);
     }
 
     @Override

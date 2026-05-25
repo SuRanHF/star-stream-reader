@@ -336,10 +336,154 @@ public class FactionServiceImpl implements FactionService {
             }
         }
 
+        // 计算阵营加成
+        Map<String, Object> buffInfo = getFactionBuff(playerId);
+        vo.setFactionBuff((Integer) buffInfo.getOrDefault("buffAtk", 0));
+        vo.setDailyContribution((Long) buffInfo.getOrDefault("dailyContribution", 0L));
+        vo.setBuffDescription((String) buffInfo.getOrDefault("description", ""));
+
         return vo;
     }
 
-    // ─── internal helpers ───
+    @Override
+    public Map<String, Object> getFactionBuff(Long playerId) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("buffAtk", 0);
+        result.put("dailyContribution", 0L);
+        result.put("baseAtk", 0);
+        result.put("multiplier", 1.0);
+        result.put("description", "未加入阵营，无加成");
+
+        if (playerId == null) return result;
+
+        QueryWrapper<PlayerFaction> pq = new QueryWrapper<>();
+        pq.eq("player_id", playerId).eq("status", "active");
+        PlayerFaction pf = playerFactionMapper.selectOne(pq);
+        if (pf == null) return result;
+
+        ConstellationFaction faction = getFactionByKey(pf.getFactionKey());
+        Map<String, Object> buffs = parseJsonMap(faction.getBuffsJson());
+        int baseAtk = 0;
+        if (buffs.get("atk") instanceof Number) {
+            baseAtk = ((Number) buffs.get("atk")).intValue();
+        }
+        result.put("baseAtk", baseAtk);
+
+        // 读取上次每日结算的 metadata
+        Map<String, Object> meta = parseJsonMap(pf.getMetadataJson());
+        long dailyContribution = 0;
+        if (meta.get("dailyContribution") instanceof Number) {
+            dailyContribution = ((Number) meta.get("dailyContribution")).longValue();
+        }
+
+        // 如果还没结算过，从贡献表实时计算
+        if (dailyContribution == 0) {
+            dailyContribution = getTodayContribution(playerId, pf.getFactionKey());
+        }
+
+        // 加成倍率：每 500 贡献 x1.0 倍，最高 5 倍
+        double multiplier = 1.0 + Math.min((double) dailyContribution / 500.0, 4.0);
+        int buffAtk = (int) Math.round(baseAtk * multiplier);
+
+        result.put("dailyContribution", dailyContribution);
+        result.put("multiplier", Math.round(multiplier * 100.0) / 100.0);
+        result.put("buffAtk", buffAtk);
+        result.put("description", "攻击 +" + buffAtk + "（基础 " + baseAtk
+                + " × " + String.format("%.2f", multiplier) + " 倍，今日贡献 " + dailyContribution + "）");
+
+        return result;
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> settleFactionDaily() {
+        Map<String, Object> summary = new LinkedHashMap<>();
+        LocalDateTime now = LocalDateTime.now();
+        summary.put("settledAt", now.toString());
+        summary.put("settledFactions", 0);
+        summary.put("settledPlayers", 0);
+
+        // 今天已经结算过则跳过
+        LocalDateTime todayStart = now.withHour(0).withMinute(0).withSecond(0).withNano(0);
+        QueryWrapper<PlayerFaction> checkQw = new QueryWrapper<>();
+        checkQw.eq("status", "active")
+               .isNotNull("metadata_json")
+               .ne("metadata_json", "")
+               .ne("metadata_json", "{}")
+               .last("LIMIT 1");
+        PlayerFaction anyActive = playerFactionMapper.selectOne(checkQw);
+        if (anyActive != null) {
+            Map<String, Object> existingMeta = parseJsonMap(anyActive.getMetadataJson());
+            Object settledAt = existingMeta.get("settledAt");
+            if (settledAt != null) {
+                try {
+                    LocalDateTime settledTime = LocalDateTime.parse(settledAt.toString());
+                    if (!settledTime.isBefore(todayStart)) {
+                        summary.put("message", "今日已结算，跳过");
+                        log.info("阵营每日结算: 今日已结算，跳过");
+                        return summary;
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+
+        // 获取所有活跃阵营
+        QueryWrapper<ConstellationFaction> fq = new QueryWrapper<>();
+        fq.eq("enabled", 1);
+        List<ConstellationFaction> factions = factionMapper.selectList(fq);
+
+        int totalPlayers = 0;
+
+        for (ConstellationFaction faction : factions) {
+            Map<String, Object> buffs = parseJsonMap(faction.getBuffsJson());
+            int baseAtk = 0;
+            if (buffs.get("atk") instanceof Number) {
+                baseAtk = ((Number) buffs.get("atk")).intValue();
+            }
+
+            // 获取该阵营所有活跃成员
+            QueryWrapper<PlayerFaction> pq = new QueryWrapper<>();
+            pq.eq("faction_key", faction.getFactionKey()).eq("status", "active");
+            List<PlayerFaction> members = playerFactionMapper.selectList(pq);
+
+            for (PlayerFaction pf : members) {
+                long dailyContrib = getTodayContribution(pf.getPlayerId(), pf.getFactionKey());
+                double multiplier = 1.0 + Math.min((double) dailyContrib / 500.0, 4.0);
+                int buffAtk = (int) Math.round(baseAtk * multiplier);
+
+                Map<String, Object> meta = new LinkedHashMap<>();
+                meta.put("dailyContribution", dailyContrib);
+                meta.put("buffMultiplier", Math.round(multiplier * 100.0) / 100.0);
+                meta.put("buffAtk", buffAtk);
+                meta.put("settledAt", now.toString());
+
+                try {
+                    pf.setMetadataJson(objectMapper.writeValueAsString(meta));
+                } catch (Exception ignored) {
+                    pf.setMetadataJson("{}");
+                }
+                pf.setUpdatedAt(now);
+                playerFactionMapper.updateById(pf);
+                totalPlayers++;
+            }
+        }
+
+        summary.put("settledFactions", factions.size());
+        summary.put("settledPlayers", totalPlayers);
+        log.info("阵营每日结算完成: {} 个阵营, {} 个玩家", factions.size(), totalPlayers);
+        return summary;
+    }
+
+    private long getTodayContribution(Long playerId, String factionKey) {
+        LocalDateTime todayStart = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0);
+        QueryWrapper<FactionContribution> cq = new QueryWrapper<>();
+        cq.eq("player_id", playerId)
+          .eq("faction_key", factionKey)
+          .ge("created_at", todayStart);
+        // 使用 MyBatis-Plus 的 selectList + 求和处理
+        List<FactionContribution> list = contributionMapper.selectList(cq);
+        return list.stream().mapToLong(FactionContribution::getValue).sum();
+    }
 
     private ConstellationFaction getFactionByKey(String factionKey) {
         QueryWrapper<ConstellationFaction> qw = new QueryWrapper<>();
@@ -406,6 +550,19 @@ public class FactionServiceImpl implements FactionService {
         vo.setJoinedAt(pf.getJoinedAt() != null ? pf.getJoinedAt().toString() : null);
         vo.setLeftAt(pf.getLeftAt() != null ? pf.getLeftAt().toString() : null);
         vo.setStatus(pf.getStatus());
+
+        // 前端兼容字段
+        if (faction != null) {
+            vo.setFactionLevel(faction.getLevel());
+            vo.setActiveMembers(faction.getMemberCount());
+            vo.setTotalContributionScore(faction.getTotalContribution());
+            // factionSkills as list of skill keys
+            List<FactionSkill> skills = skillMapper.selectList(
+                    new QueryWrapper<FactionSkill>().eq("faction_key", pf.getFactionKey()));
+            if (skills != null) {
+                vo.setFactionSkills(skills.stream().map(FactionSkill::getSkillKey).collect(Collectors.toList()));
+            }
+        }
         return vo;
     }
 

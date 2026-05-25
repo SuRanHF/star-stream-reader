@@ -66,28 +66,28 @@ VALUES
 ('D', '频道记录者', 'D级·频道记录者',
  '行动开始被频道记录，拥有初步故事价值。',
  3, 'C',
- '[{"type":"levelMin","value":5,"label":"等级达到5"},{"type":"storyEventsTriggeredMin","value":1,"label":"触发至少1次主线事件"},{"type":"bossClue","bossKey":"station_keeper","count":1,"label":"发现至少1条看门人线索"}]',
+ '[{"type":"levelMin","value":6,"label":"等级达到6"},{"type":"storyEventsTriggeredMin","value":1,"label":"触发至少1次主线事件"},{"type":"bossClue","bossKey":"station_keeper","count":1,"label":"发现至少1条看门人线索"}]',
  '{"stats":{"attack":5,"defense":5},"channelHeat":20,"log":"你的行动开始被频道记录。从此以后，你的存在将在星流中留下痕迹。"}',
  1),
 
 ('C', '剧本执行者', 'C级·剧本执行者',
  '可以独立完成探索、战斗和阶段目标。',
  4, 'B',
- '[{"type":"levelMin","value":10,"label":"等级达到10"},{"type":"titlesCountMin","value":3,"label":"拥有至少3个称号"},{"type":"storyFragmentsMin","value":20,"label":"故事碎片≥20"}]',
+ '[{"type":"levelMin","value":12,"label":"等级达到12"},{"type":"titlesCountMin","value":3,"label":"拥有至少3个称号"},{"type":"storyFragmentsMin","value":20,"label":"故事碎片≥20"}]',
  '{"stats":{"insight":3,"willpower":3},"log":"你已具备独立执行剧本的资格。"}',
  1),
 
 ('B', '星流候选者', 'B级·星流候选者',
  '开始被星座或频道关注，拥有成为故事核心的资格。',
  5, 'A',
- '[{"type":"levelMin","value":15,"label":"等级达到15"},{"type":"channelHeatMin","value":300,"label":"频道热度≥300"},{"type":"pkRatingMin","value":1000,"label":"PK评分≥1000"}]',
+ '[{"type":"levelMin","value":20,"label":"等级达到20"},{"type":"channelHeatMin","value":300,"label":"频道热度≥300"},{"type":"pkRatingMin","value":1000,"label":"PK评分≥1000"}]',
  '{"stats":{"channelHeat":50,"leadership":3},"log":"星流开始把你列入候选观察名单。"}',
  1),
 
 ('A', '故事承载者', 'A级·故事承载者',
  '拥有完整故事路线，能够在星流中留下显著痕迹。',
  6, NULL,
- '[{"type":"levelMin","value":20,"label":"等级达到20"},{"type":"rareTitleRequired","value":true,"label":"拥有至少一个稀有称号"},{"type":"worldLineShiftMin","value":10,"label":"世界线偏移≥10"}]',
+ '[{"type":"levelMin","value":30,"label":"等级达到30"},{"type":"rareTitleRequired","value":true,"label":"拥有至少一个稀有称号"},{"type":"worldLineShiftMin","value":10,"label":"世界线偏移≥10"}]',
  '{"storyGrade":"notable","stats":{"maxHp":50,"attack":10,"defense":10},"log":"你的故事终于拥有了足以被星流承认的重量。从此刻起，你是真正的故事承载者。"}',
  1);
 

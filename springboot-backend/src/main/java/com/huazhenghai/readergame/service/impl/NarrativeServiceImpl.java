@@ -29,6 +29,7 @@ public class NarrativeServiceImpl implements NarrativeService {
     private final PlayerMapper playerMapper;
     private final PlayerInventoryMapper inventoryMapper;
     private final PlayerSkillMapper skillMapper;
+    private final ItemMapper itemMapper;
     private final ObjectMapper objectMapper;
 
     public NarrativeServiceImpl(ItemMemoryMapper itemMemoryMapper,
@@ -38,6 +39,7 @@ public class NarrativeServiceImpl implements NarrativeService {
                                 PlayerMapper playerMapper,
                                 PlayerInventoryMapper inventoryMapper,
                                 PlayerSkillMapper skillMapper,
+                                ItemMapper itemMapper,
                                 ObjectMapper objectMapper) {
         this.itemMemoryMapper = itemMemoryMapper;
         this.locationEchoMapper = locationEchoMapper;
@@ -46,6 +48,7 @@ public class NarrativeServiceImpl implements NarrativeService {
         this.playerMapper = playerMapper;
         this.inventoryMapper = inventoryMapper;
         this.skillMapper = skillMapper;
+        this.itemMapper = itemMapper;
         this.objectMapper = objectMapper;
     }
 
@@ -93,6 +96,8 @@ public class NarrativeServiceImpl implements NarrativeService {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id", row.getId());
         m.put("itemKey", row.getItemKey());
+        Item item = itemMapper.selectOne(new QueryWrapper<Item>().eq("item_key", row.getItemKey()));
+        m.put("itemName", item != null ? item.getName() : row.getItemKey());
         m.put("memoryText", row.getMemoryText());
         m.put("narrator", row.getNarrator());
         return m;

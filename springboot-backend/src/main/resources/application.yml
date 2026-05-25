@@ -1,5 +1,12 @@
 # ==================== Spring Boot 主配置 ====================
 
+server:
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
 spring:
   # 默认激活 dev 环境, 生产环境通过 --spring.profiles.active=prod 覆盖
   profiles:

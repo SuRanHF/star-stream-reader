@@ -230,22 +230,21 @@ public class CombatServiceImpl implements CombatService {
         if ("win".equals(result)) {
             Map<String, Object> rewardDef = parseJsonMap(monster.getRewardsJson());
 
-            // exp
+            // exp (位阶倍率加成)
             int exp = toInt(rewardDef.get("exp"), 0);
             if (exp > 0) {
+                double multiplier = expMultiplier((String) stats.getOrDefault("avatarRank", "F"));
+                int adjustedExp = Math.max(1, (int) Math.round(exp * multiplier));
                 int currentExp = toInt(stats.get("exp"), 0);
-                stats.put("exp", currentExp + exp);
-                rewards.setExp(exp);
-                // 升级检查
-                int newLevel = (currentExp + exp) / 100 + 1;
+                stats.put("exp", currentExp + adjustedExp);
+                rewards.setExp(adjustedExp);
+                // 升级检查: level = floor(sqrt(totalExp / 100)) + 1
+                int newLevel = (int) Math.floor(Math.sqrt((currentExp + adjustedExp) / 100.0)) + 1;
                 int oldLevel = toInt(stats.get("level"), 1);
                 if (newLevel > oldLevel) {
                     int levelsGained = newLevel - oldLevel;
                     stats.put("level", newLevel);
-                    stats.put("maxHp", 100 + (newLevel - 1) * 20);
-                    stats.put("hp", stats.get("maxHp"));
-                    stats.put("attack", 10 + (newLevel - 1) * 2);
-                    stats.put("defense", 5 + (newLevel - 1) * 1);
+                    stats.put("hp", toInt(stats.get("maxHp"), 100));
                     stats.put("freePoints", toInt(stats.get("freePoints"), 0) + 3 * levelsGained);
                     playerHpAfter = toInt(stats.get("maxHp"), 100);
                 }
@@ -626,6 +625,22 @@ public class CombatServiceImpl implements CombatService {
         } catch (Exception e) {
             return new ArrayList<>();
         }
+    }
+
+    /** 位阶经验倍率: 阶梯型增长 */
+    private double expMultiplier(String rankKey) {
+        if (rankKey == null) return 1.0;
+        return switch (rankKey.toUpperCase()) {
+            case "E" -> 1.5;
+            case "D" -> 2.5;
+            case "C" -> 4.0;
+            case "B" -> 7.0;
+            case "A" -> 12.0;
+            case "S" -> 20.0;
+            case "SS" -> 35.0;
+            case "SSS" -> 60.0;
+            default -> 1.0;
+        };
     }
 
     private Map<String, Object> parseJsonMap(String json) {

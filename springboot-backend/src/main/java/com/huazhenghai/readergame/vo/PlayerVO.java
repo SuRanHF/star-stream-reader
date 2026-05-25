@@ -30,6 +30,8 @@ public class PlayerVO {
     private String currentMainChapter;
     @JsonProperty("current_location")
     private String currentLocation;
+    @JsonProperty("current_location_name")
+    private String currentLocationName;
     @JsonProperty("logs")
     private List<LogEntry> recentLogs;
     @JsonProperty("created_at")
@@ -60,6 +62,8 @@ public class PlayerVO {
     public void setCurrentMainChapter(String currentMainChapter) { this.currentMainChapter = currentMainChapter; }
     public String getCurrentLocation() { return currentLocation; }
     public void setCurrentLocation(String currentLocation) { this.currentLocation = currentLocation; }
+    public String getCurrentLocationName() { return currentLocationName; }
+    public void setCurrentLocationName(String currentLocationName) { this.currentLocationName = currentLocationName; }
     public List<LogEntry> getRecentLogs() { return recentLogs; }
     public void setRecentLogs(List<LogEntry> recentLogs) { this.recentLogs = recentLogs; }
     public LocalDateTime getCreatedAt() { return createdAt; }
@@ -84,6 +88,7 @@ public class PlayerVO {
         private Map<String, Object> stageProgress;
         private String currentMainChapter;
         private String currentLocation;
+        private String currentLocationName;
         private List<LogEntry> recentLogs;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
@@ -98,6 +103,7 @@ public class PlayerVO {
         public Builder stageProgress(Map<String, Object> stageProgress) { this.stageProgress = stageProgress; return this; }
         public Builder currentMainChapter(String currentMainChapter) { this.currentMainChapter = currentMainChapter; return this; }
         public Builder currentLocation(String currentLocation) { this.currentLocation = currentLocation; return this; }
+        public Builder currentLocationName(String currentLocationName) { this.currentLocationName = currentLocationName; return this; }
         public Builder recentLogs(List<LogEntry> recentLogs) { this.recentLogs = recentLogs; return this; }
         public Builder createdAt(LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
         public Builder updatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; return this; }
@@ -114,6 +120,7 @@ public class PlayerVO {
             vo.stageProgress = stageProgress;
             vo.currentMainChapter = currentMainChapter;
             vo.currentLocation = currentLocation;
+            vo.currentLocationName = currentLocationName;
             vo.recentLogs = recentLogs;
             vo.createdAt = createdAt;
             vo.updatedAt = updatedAt;

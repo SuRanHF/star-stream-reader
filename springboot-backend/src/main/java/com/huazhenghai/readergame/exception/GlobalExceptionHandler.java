@@ -31,7 +31,7 @@ public class GlobalExceptionHandler {
     private static final Set<String> AUTH_CODES = Set.of(
             ErrorCode.UNAUTHORIZED, ErrorCode.TOKEN_INVALID);
     private static final Set<String> FORBIDDEN_CODES = Set.of(
-            ErrorCode.FORBIDDEN);
+            ErrorCode.FORBIDDEN, ErrorCode.CONSTELLATION_REQUIRED);
     private static final Set<String> NOT_FOUND_CODES = Set.of(
             ErrorCode.NOT_FOUND, ErrorCode.PLAYER_NOT_FOUND,
             ErrorCode.CHAPTER_NOT_FOUND, ErrorCode.LOCATION_NOT_FOUND,

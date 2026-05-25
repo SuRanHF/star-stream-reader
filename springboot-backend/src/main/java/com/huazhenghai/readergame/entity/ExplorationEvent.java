@@ -48,6 +48,9 @@ public class ExplorationEvent {
     @TableField("progress_effects_json")
     private String progressEffectsJson;
 
+    @TableField("choices_json")
+    private String choicesJson;
+
     @TableField("log_template")
     private String logTemplate;
 
@@ -87,6 +90,8 @@ public class ExplorationEvent {
     public void setRisksJson(String risksJson) { this.risksJson = risksJson; }
     public String getProgressEffectsJson() { return progressEffectsJson; }
     public void setProgressEffectsJson(String progressEffectsJson) { this.progressEffectsJson = progressEffectsJson; }
+    public String getChoicesJson() { return choicesJson; }
+    public void setChoicesJson(String choicesJson) { this.choicesJson = choicesJson; }
     public String getLogTemplate() { return logTemplate; }
     public void setLogTemplate(String logTemplate) { this.logTemplate = logTemplate; }
     public Integer getEnabled() { return enabled; }

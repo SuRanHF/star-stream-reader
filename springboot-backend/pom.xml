@@ -40,6 +40,12 @@
             <artifactId>spring-boot-starter-websocket</artifactId>
         </dependency>
 
+        <!-- Controller-level business rule guards -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
         <!-- Bean Validation (参数校验) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -169,6 +169,47 @@ ORV 世界作为背景设定，玩家通过探索触发事件、战斗、收集�
 - 调度引擎：60s 心跳自动驱动（放送生成/结算、世界线衰减、PK 过期、阵营战）
 - 更新历史：`data/changelog.json` 驱动，前端按版本比对 localStorage，未读新版本弹出更新弹窗
 
+## Phase 9B Vue 前端重构
+
+当前 Spring Boot 迁移版本位于 `springboot-backend/`。`public/` 旧前端继续作为 legacy 保留，不删除、不移动、不再作为新功能开发目标。
+
+新增正式前端：
+
+- `frontend-player/`：玩家端，Vue 3 + Vite + TypeScript + Pinia + Vue Router + TanStack Vue Query + Axios + Tailwind CSS。
+- `frontend-admin/`：后台端，Vue 3 + Vite + TypeScript + Pinia + Vue Router + Axios + Element Plus。
+
+本地启动：
+
+```bash
+cd springboot-backend
+mvn spring-boot:run
+
+cd frontend-player
+pnpm install
+pnpm dev
+
+cd frontend-admin
+pnpm install
+pnpm dev
+```
+
+如果本机没有 pnpm，可以在两个前端目录中使用 `npm install`、`npm run dev`、`npm run build`。
+
+玩家端环境变量：
+
+```bash
+VITE_API_BASE_URL=http://localhost:8080/api
+VITE_WS_BASE_URL=ws://localhost:8080/ws/game
+```
+
+后台端环境变量：
+
+```bash
+VITE_API_BASE_URL=http://localhost:8080/api
+```
+
+生产配置先保留占位域名，部署时再替换 `frontend-player/.env.production` 中的 WebSocket 域名。
+
 ## 安装与运行
 
 ```bash

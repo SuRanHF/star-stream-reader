@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 public class AvatarRankVO {
-    private String currentRank;
+    private Map<String, Object> currentRank;
     private String currentRankName;
     private String currentDisplayName;
     private String storyGrade;
@@ -12,7 +12,7 @@ public class AvatarRankVO {
     private String starstreamTier;
     private String starstreamTierLabel;
     private int currentOrder;
-    private String nextRank;
+    private Map<String, Object> nextRank;
     private String nextRankName;
     private String nextDisplayName;
     private boolean canRankUp;
@@ -20,8 +20,8 @@ public class AvatarRankVO {
     private List<RankProgressItem> requirements;
     private Map<String, Object> rewards;
 
-    public String getCurrentRank() { return currentRank; }
-    public void setCurrentRank(String currentRank) { this.currentRank = currentRank; }
+    public Map<String, Object> getCurrentRank() { return currentRank; }
+    public void setCurrentRank(Map<String, Object> currentRank) { this.currentRank = currentRank; }
     public String getCurrentRankName() { return currentRankName; }
     public void setCurrentRankName(String currentRankName) { this.currentRankName = currentRankName; }
     public String getCurrentDisplayName() { return currentDisplayName; }
@@ -36,8 +36,8 @@ public class AvatarRankVO {
     public void setStarstreamTierLabel(String starstreamTierLabel) { this.starstreamTierLabel = starstreamTierLabel; }
     public int getCurrentOrder() { return currentOrder; }
     public void setCurrentOrder(int currentOrder) { this.currentOrder = currentOrder; }
-    public String getNextRank() { return nextRank; }
-    public void setNextRank(String nextRank) { this.nextRank = nextRank; }
+    public Map<String, Object> getNextRank() { return nextRank; }
+    public void setNextRank(Map<String, Object> nextRank) { this.nextRank = nextRank; }
     public String getNextRankName() { return nextRankName; }
     public void setNextRankName(String nextRankName) { this.nextRankName = nextRankName; }
     public String getNextDisplayName() { return nextDisplayName; }
@@ -57,6 +57,7 @@ public class AvatarRankVO {
         private int current;
         private int required;
         private boolean completed;
+        private String reqKey;
 
         public RankProgressItem() {}
         public RankProgressItem(String type, String label, int current, int required, boolean completed) {
@@ -73,5 +74,7 @@ public class AvatarRankVO {
         public void setRequired(int required) { this.required = required; }
         public boolean isCompleted() { return completed; }
         public void setCompleted(boolean completed) { this.completed = completed; }
+        public String getReqKey() { return reqKey; }
+        public void setReqKey(String reqKey) { this.reqKey = reqKey; }
     }
 }

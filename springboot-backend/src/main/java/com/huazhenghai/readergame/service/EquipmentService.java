@@ -15,6 +15,9 @@ public interface EquipmentService {
 
     Map<String, Object> calculateEquipmentBonus(Long playerId);
 
+    /** 返回每个 stat → "装备名+值, 装备名+值" 的详情字符串 */
+    Map<String, String> getEquipmentBonusDetail(Long playerId);
+
     int addEquipment(Long playerId, String equipmentKey, String source);
 
     PlayerEquipmentVO equip(Long playerId, String equipmentKey, Long userId);

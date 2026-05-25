@@ -209,6 +209,7 @@ CREATE TABLE IF NOT EXISTS `exploration_events` (
     `rewards_json`             JSON         DEFAULT NULL COMMENT '奖励',
     `risks_json`               JSON         DEFAULT NULL COMMENT '风险',
     `progress_effects_json`    JSON         DEFAULT NULL COMMENT '进度效果',
+    `choices_json`             JSON         DEFAULT NULL COMMENT '分支选项 JSON: [{label, consequence_text, rewards_override, unlock_locations, unlock_events, title_bias}]',
     `log_template`             TEXT         DEFAULT NULL COMMENT '日志模板',
     `enabled`                  TINYINT      NOT NULL DEFAULT 1,
     `created_at`               DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1178,6 +1179,13 @@ CREATE TABLE IF NOT EXISTS `faction_skills` (
     INDEX `idx_fs_unlock_level`         (`unlock_level`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='阵营技能定义表';
 
+-- constellation_factions seed data (8 ORV constellations)
+INSERT IGNORE INTO `constellation_factions` (`faction_key`, `name`, `constellation_name`, `description`, `alignment`, `ideology`, `level`, `exp`, `member_count`, `total_contribution`, `buffs_json`, `unlocks_json`, `enabled`) VALUES
+('nebula_abyss',      '深渊观测所',   '深渊观测所',   '深渊中观测星流的古老组织。成员在暗处守望世界线的流动，洞悉故事背后的真相。攻击加成由每日贡献决定。',            'abyss',   '深渊洞察',     1, 0, 0, 0, '{"atk":20}', '{"skill_1":"abyss_gaze","skill_2":"truth_sight"}', 1),
+('nebula_eden',       '伊甸星云',     '伊甸星云',     '追寻星流起源的理想者聚集地。相信在某条世界线中存在完美的故事结局。攻击加成由每日贡献决定。',                  'order',   '均衡守护',     1, 0, 0, 0, '{"atk":20}', '{"skill_1":"eden_light","skill_2":"ancient_might"}', 1),
+('nebula_vagrant',    '流浪者星云',   '流浪者星云',   '无拘无束的星流漫游者。不被固定星座束缚，自由穿梭于世界线之间。攻击加成由每日贡献决定。',              'neutral', '自由漫游',     1, 0, 0, 0, '{"atk":20}', '{"skill_1":"vagrant_step","skill_2":"lucky_strike"}', 1),
+('nebula_starstream', '星流档案馆',   '星流档案馆',   '记录星流一切故事的古老档案馆。馆员们将无数世界线的故事存档、分类、守护。攻击加成由每日贡献决定。',              'starstream', '知识守护',   1, 0, 0, 0, '{"atk":20}', '{"skill_1":"archive_blessing","skill_2":"watcher_grace"}', 1);
+
 -- ============================================================
 -- Phase 8G (faction) 初始化完成
 -- ============================================================
@@ -1279,6 +1287,40 @@ INSERT IGNORE INTO `quests` (`quest_key`, `title`, `description`, `quest_type`, 
 
 -- ============================================================
 -- Phase 8H (quest) 初始化完成
+-- ============================================================
+
+-- ============================================================
+-- Phase 5D: Synthesis — 物品合成系统
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `synthesis_recipes` (
+    `id`               BIGINT       NOT NULL AUTO_INCREMENT,
+    `recipe_key`       VARCHAR(100) NOT NULL,
+    `name`             VARCHAR(200) DEFAULT NULL,
+    `description`      TEXT         DEFAULT NULL,
+    `result_item_key`  VARCHAR(100) NOT NULL,
+    `result_quantity`  INT          NOT NULL DEFAULT 1,
+    `ingredients_json` JSON         DEFAULT NULL,
+    `cost_coins`       INT          NOT NULL DEFAULT 0,
+    `enabled`          TINYINT      NOT NULL DEFAULT 1,
+    `created_at`       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_sr_recipe_key` (`recipe_key`),
+    INDEX `idx_sr_enabled` (`enabled`),
+    INDEX `idx_sr_result_item_key` (`result_item_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='合成配方表';
+
+-- Seed: 基础合成配方
+INSERT IGNORE INTO `synthesis_recipes` (`recipe_key`, `name`, `description`, `result_item_key`, `result_quantity`, `ingredients_json`, `cost_coins`, `enabled`) VALUES
+('craft_medium_hp', '合成中瓶生命药剂', '用2个小瓶生命药剂合成1个中瓶', 'medium_hp_potion', 1, '{"small_hp_potion": 2}', 30, 1),
+('craft_large_hp', '合成大瓶生命药剂', '用3个中瓶生命药剂合成1个大瓶', 'large_hp_potion', 1, '{"medium_hp_potion": 3}', 80, 1),
+('craft_stamina_pill', '合成活力丹', '用1瓶圣水+1个魔物骨骸合成活力丹', 'stamina_pill', 1, '{"purification_water": 1, "monster_bone": 1}', 50, 1),
+('craft_story_scroll', '合成故事卷轴', '用5个故事碎片合成1个故事卷轴', 'story_scroll', 1, '{"story_fragment": 5}', 100, 1),
+('craft_abyss_elixir', '合成深渊秘药', '用深渊碎片+故事卷轴合成', 'abyss_elixir', 1, '{"abyss_shard": 1, "story_scroll": 1}', 200, 1),
+('craft_hunter_blade', '合成猎人短刃', '用生锈短刀+猎人的戒指合成', 'hunter_blade', 1, '{"rusty_dagger": 1, "hunters_ring": 1}', 150, 1);
+
+-- ============================================================
+-- Phase 5D (synthesis) 初始化完成
 -- ============================================================
 
 -- ============================================================
@@ -1488,4 +1530,45 @@ INSERT IGNORE INTO `endings` (`ending_key`, `name`, `description`, `priority`, `
 
 -- ============================================================
 -- Phase 9F (ending) 初始化完成
+-- ============================================================
+
+-- ============================================================
+-- Phase 10: 探索系统增强 — 故事日志 + choices_json 迁移
+-- ============================================================
+
+-- 10a. 玩家故事日志表
+CREATE TABLE IF NOT EXISTS `player_story_logs` (
+    `id`               BIGINT       NOT NULL AUTO_INCREMENT,
+    `player_id`        BIGINT       NOT NULL,
+    `event_key`        VARCHAR(100) NOT NULL,
+    `location_key`     VARCHAR(100) NOT NULL,
+    `location_name`    VARCHAR(200) DEFAULT NULL,
+    `event_name`       VARCHAR(200) DEFAULT NULL,
+    `choice_index`     INT          DEFAULT NULL COMMENT '玩家选择的选项索引(0-based)',
+    `choice_label`     VARCHAR(500) DEFAULT NULL COMMENT '选项文本',
+    `consequence_text` TEXT         DEFAULT NULL COMMENT '后果描述',
+    `rewards_snapshot` JSON         DEFAULT NULL COMMENT '奖励快照',
+    `created_at`       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    INDEX `idx_psl_player`    (`player_id`),
+    INDEX `idx_psl_location`  (`location_key`),
+    INDEX `idx_psl_created`   (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家故事日志表';
+
+-- 10b. exploration_events 加 choices_json 字段（已存在的 DB 迁移用）
+DROP PROCEDURE IF EXISTS add_choices_json_col;
+DELIMITER //
+CREATE PROCEDURE add_choices_json_col()
+BEGIN
+    IF NOT EXISTS (SELECT * FROM information_schema.COLUMNS
+                   WHERE TABLE_SCHEMA = 'reader_game' AND TABLE_NAME = 'exploration_events' AND COLUMN_NAME = 'choices_json') THEN
+        ALTER TABLE `exploration_events` ADD COLUMN `choices_json` JSON DEFAULT NULL COMMENT '分支选项 JSON' AFTER `progress_effects_json`;
+    END IF;
+END //
+DELIMITER ;
+CALL add_choices_json_col();
+DROP PROCEDURE IF EXISTS add_choices_json_col;
+
+-- ============================================================
+-- Phase 10 初始化完成
 -- ============================================================

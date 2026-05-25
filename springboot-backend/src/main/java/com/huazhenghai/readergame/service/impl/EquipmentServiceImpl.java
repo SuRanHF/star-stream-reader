@@ -123,6 +123,42 @@ public class EquipmentServiceImpl implements EquipmentService {
     }
 
     @Override
+    public Map<String, String> getEquipmentBonusDetail(Long playerId) {
+        QueryWrapper<PlayerEquipment> peQuery = new QueryWrapper<>();
+        peQuery.eq("player_id", playerId).eq("equipped", 1).gt("durability", 0);
+        List<PlayerEquipment> peList = playerEquipmentMapper.selectList(peQuery);
+
+        Map<String, StringBuilder> detail = new LinkedHashMap<>();
+        for (PlayerEquipment pe : peList) {
+            QueryWrapper<Equipment> eqQuery = new QueryWrapper<>();
+            eqQuery.eq("equipment_key", pe.getEquipmentKey()).eq("enabled", 1);
+            Equipment equip = equipmentMapper.selectOne(eqQuery);
+            if (equip == null) continue;
+
+            String equipName = equip.getName() != null ? equip.getName() : pe.getEquipmentKey();
+            Map<String, Object> stats = parseJsonMap(equip.getBaseStatsJson());
+            for (Map.Entry<String, Object> entry : stats.entrySet()) {
+                String key = entry.getKey();
+                double val = toDouble(entry.getValue(), 0);
+                if (val == 0) continue;
+                detail.computeIfAbsent(key, k -> new StringBuilder())
+                        .append(detail.get(key).isEmpty() ? "" : ", ")
+                        .append(equipName).append("+").append(formatNum(val));
+            }
+        }
+        Map<String, String> result = new LinkedHashMap<>();
+        for (Map.Entry<String, StringBuilder> e : detail.entrySet()) {
+            result.put(e.getKey(), e.getValue().toString());
+        }
+        return result;
+    }
+
+    private String formatNum(double v) {
+        if (v == Math.floor(v)) return String.valueOf((long) v);
+        return String.valueOf(Math.round(v * 100.0) / 100.0);
+    }
+
+    @Override
     @Transactional
     public int addEquipment(Long playerId, String equipmentKey, String source) {
         QueryWrapper<Equipment> eqQuery = new QueryWrapper<>();

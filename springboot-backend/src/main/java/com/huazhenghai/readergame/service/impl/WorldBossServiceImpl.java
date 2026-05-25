@@ -125,7 +125,7 @@ public class WorldBossServiceImpl implements WorldBossService {
     @Override
     public WorldBossVO openScheduledBoss() {
         WorldBoss existing = queryActiveBoss();
-        if (existing != null) return buildBossVO(existing, null);
+        if (existing != null) return null; // 已有活跃Boss，不重复创建
 
         WorldBoss boss = new WorldBoss();
         boss.setBossKey(DEFAULT_BOSS_KEY);

@@ -27,6 +27,9 @@ import com.huazhenghai.readergame.vo.WorldBossSummaryVO;
 import com.huazhenghai.readergame.vo.FactionSummaryVO;
 import org.springframework.stereotype.Service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -42,6 +45,8 @@ import java.util.Map;
  */
 @Service
 public class GameBootstrapServiceImpl implements GameBootstrapService {
+
+    private static final Logger log = LoggerFactory.getLogger(GameBootstrapServiceImpl.class);
 
     private final UserMapper userMapper;
     private final PlayerService playerService;
@@ -150,6 +155,86 @@ public class GameBootstrapServiceImpl implements GameBootstrapService {
             // 3. 应用被动恢复
             Map<String, Object> stats = recoveryService.applyRecovery(player);
             playerVO = playerService.getPlayer(player.getId());
+            // 合并装备属性加成到玩家 stats
+            try {
+                Map<String, Object> equipBonus = equipmentService.calculateEquipmentBonus(player.getId());
+                Map<String, String> equipDetail = equipmentService.getEquipmentBonusDetail(player.getId());
+                if (equipBonus != null && !equipBonus.isEmpty()) {
+                    Map<String, Object> mergedStats = new LinkedHashMap<>(playerVO.getStats());
+                    for (Map.Entry<String, Object> entry : equipBonus.entrySet()) {
+                        String key = entry.getKey();
+                        double bonusValue = toDoubleVal(entry.getValue());
+                        if (bonusValue != 0) {
+                            double baseValue = toDoubleVal(mergedStats.get(key));
+                            mergedStats.put(key, baseValue + bonusValue);
+                            setBonusField(mergedStats, key, "Equipment", bonusValue);
+                        }
+                    }
+                    // 写入装备详情字符串 (例: bonusAtkEquipmentDetail = "屠龙刀+5, 龙鳞甲+3")
+                    if (equipDetail != null) {
+                        for (Map.Entry<String, String> e : equipDetail.entrySet()) {
+                            String key = e.getKey();
+                            String mapped = mapStatKey(key);
+                            if (mapped != null) {
+                                mergedStats.put("bonus" + mapped + "EquipmentDetail", e.getValue());
+                            }
+                        }
+                    }
+                    playerVO.setStats(mergedStats);
+                }
+            } catch (Exception e) {
+                log.error("[Bootstrap] equipment bonus merge failed", e);
+            }
+            // 合并已装备技能的属性加成到玩家 stats
+            try {
+                Map<String, Object> skillBonus = skillService.calculateSkillBonus(player.getId());
+                Map<String, String> skillDetail = skillService.getSkillBonusDetail(player.getId());
+                if (skillBonus != null && !skillBonus.isEmpty()) {
+                    Map<String, Object> mergedStats = new LinkedHashMap<>(playerVO.getStats());
+                    for (Map.Entry<String, Object> entry : skillBonus.entrySet()) {
+                        String key = entry.getKey();
+                        double bonusValue = toDoubleVal(entry.getValue());
+                        if (bonusValue != 0) {
+                            double baseValue = toDoubleVal(mergedStats.get(key));
+                            mergedStats.put(key, baseValue + bonusValue);
+                            setBonusField(mergedStats, key, "Skill", bonusValue);
+                        }
+                    }
+                    // 写入技能详情字符串
+                    if (skillDetail != null) {
+                        for (Map.Entry<String, String> e : skillDetail.entrySet()) {
+                            String key = e.getKey();
+                            String mapped = mapStatKey(key);
+                            if (mapped != null) {
+                                mergedStats.put("bonus" + mapped + "SkillDetail", e.getValue());
+                            }
+                        }
+                    }
+                    playerVO.setStats(mergedStats);
+                }
+            } catch (Exception e) {
+                log.error("[Bootstrap] skill bonus merge failed", e);
+            }
+            // 合并阵营加成到玩家 stats
+            try {
+                Map<String, Object> factionBuff = factionService.getFactionBuff(player.getId());
+                int buffAtk = factionBuff.get("buffAtk") instanceof Number n ? n.intValue() : 0;
+                if (buffAtk != 0) {
+                    Map<String, Object> mergedStats = new LinkedHashMap<>(playerVO.getStats());
+                    double curAtk = mergedStats.get("attack") instanceof Number n ? n.doubleValue() : 10;
+                    mergedStats.put("attack", curAtk + buffAtk);
+                    setBonusField(mergedStats, "attack", "Faction", buffAtk);
+                    // 阵营名称和详情
+                    FactionSummaryVO fsv = factionService.getFactionSummary(player.getId());
+                    String factionName = (fsv != null && fsv.getFactionName() != null)
+                            ? fsv.getFactionName() : "";
+                    mergedStats.put("bonusFactionName", factionName);
+                    mergedStats.put("bonusAtkFactionDetail", factionName + "+" + buffAtk);
+                    playerVO.setStats(mergedStats);
+                }
+            } catch (Exception e) {
+                log.error("[Bootstrap] faction buff merge failed", e);
+            }
             recentLogs = getRecentLogs(player.getId(), 50);
 
             // 4. 构建休息状态
@@ -163,6 +248,22 @@ public class GameBootstrapServiceImpl implements GameBootstrapService {
             restState.setMaxStamina(toInt(stats.get("maxStamina"), 50));
             Object lastRecoveryAt = stats.get("lastRecoveryAt");
             restState.setLastRecoveryAt(lastRecoveryAt != null ? lastRecoveryAt.toString() : null);
+            // 恢复间隔 (与 RecoveryServiceImpl 常量一致: HP满恢复2h, 体力满恢复3h, 休息外3倍)
+            boolean resting = Boolean.TRUE.equals(stats.get("isResting"));
+            int hpMax = Math.max(1, toInt(stats.get("maxHp"), 100));
+            int staMax = Math.max(1, toInt(stats.get("maxStamina"), 50));
+            int hpInterval = Math.max(1, 7200 / hpMax);
+            int staInterval = Math.max(1, 10800 / staMax);
+            if (!resting) { hpInterval *= 3; staInterval *= 3; }
+            restState.setHpIntervalSeconds(hpInterval);
+            restState.setStaminaIntervalSeconds(staInterval);
+            boolean resting2 = Boolean.TRUE.equals(stats.get("isResting"));
+            int expInterval = 30;
+            if (!resting2) expInterval *= 3;
+            restState.setExpIntervalSeconds(expInterval);
+            restState.setExp(toInt(stats.get("exp"), 0));
+            int level = toInt(stats.get("level"), 1);
+            restState.setMaxExp(100 * level * level);
 
             // 5. Phase 3: 获取成长系统信息
             try {
@@ -478,5 +579,38 @@ public class GameBootstrapServiceImpl implements GameBootstrapService {
     private int toInt(Object val, int defaultVal) {
         if (val instanceof Number) return ((Number) val).intValue();
         return defaultVal;
+    }
+
+    private double toDoubleVal(Object val) {
+        if (val instanceof Number) return ((Number) val).doubleValue();
+        return 0;
+    }
+
+    /** 将装备/技能加成写入 stats 的拆解字段 (bonusXXXEquipment / bonusXXXSkill) */
+    private void setBonusField(Map<String, Object> stats, String statKey, String source, double value) {
+        String fieldKey = switch (statKey) {
+            case "attack", "atk" -> "bonusAtk" + source;
+            case "defense", "def" -> "bonusDef" + source;
+            case "speed", "spd" -> "bonusSpd" + source;
+            case "critRate" -> "bonusCrit" + source;
+            case "maxHp" -> "bonusMaxHp" + source;
+            default -> null;
+        };
+        if (fieldKey != null) {
+            double current = stats.get(fieldKey) instanceof Number n ? n.doubleValue() : 0;
+            stats.put(fieldKey, Math.round((current + value) * 100.0) / 100.0);
+        }
+    }
+
+    /** 将装备/技能 detail 的 stat key 映射为 CamelCase 字段前缀 */
+    private String mapStatKey(String key) {
+        return switch (key) {
+            case "attack", "atk" -> "Atk";
+            case "defense", "def" -> "Def";
+            case "speed", "spd" -> "Spd";
+            case "critRate" -> "Crit";
+            case "maxHp" -> "MaxHp";
+            default -> null;
+        };
     }
 }

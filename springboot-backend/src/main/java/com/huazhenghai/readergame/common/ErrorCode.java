@@ -27,6 +27,9 @@ public final class ErrorCode {
     /** 无权限操作 */
     public static final String FORBIDDEN = "FORBIDDEN";
 
+    /** 请求参数错误 */
+    public static final String BAD_REQUEST = "BAD_REQUEST";
+
     // ==================== 用户 & 玩家 (2xx) ====================
 
     /** 用户名已存在 */
@@ -74,6 +77,9 @@ public final class ErrorCode {
 
     /** 无可用探索事件 */
     public static final String NO_AVAILABLE_EVENT = "NO_AVAILABLE_EVENT";
+
+    /** 事件不存在 */
+    public static final String EVENT_NOT_FOUND = "EVENT_NOT_FOUND";
 
     /** 玩家正在休息 */
     public static final String PLAYER_RESTING = "PLAYER_RESTING";
@@ -146,6 +152,9 @@ public final class ErrorCode {
 
     /** 玩家已死亡 */
     public static final String PLAYER_DEAD = "PLAYER_DEAD";
+
+    /** 尚未选择背后星 */
+    public static final String CONSTELLATION_REQUIRED = "CONSTELLATION_REQUIRED";
 
     /** PK 对手不存在或不在线 */
     public static final String PK_TARGET_UNAVAILABLE = "PK_TARGET_UNAVAILABLE";

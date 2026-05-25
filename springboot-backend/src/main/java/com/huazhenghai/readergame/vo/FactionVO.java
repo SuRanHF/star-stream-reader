@@ -32,8 +32,12 @@ public class FactionVO {
     public void setId(Long id) { this.id = id; }
     public String getFactionKey() { return factionKey; }
     public void setFactionKey(String factionKey) { this.factionKey = factionKey; }
+    @com.fasterxml.jackson.annotation.JsonProperty("constellationKey")
+    public String getConstellationKey() { return factionKey; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+    @com.fasterxml.jackson.annotation.JsonProperty("factionName")
+    public String getFactionName() { return name; }
     public String getConstellationName() { return constellationName; }
     public void setConstellationName(String constellationName) { this.constellationName = constellationName; }
     public String getDescription() { return description; }
@@ -44,12 +48,18 @@ public class FactionVO {
     public void setIdeology(String ideology) { this.ideology = ideology; }
     public Integer getLevel() { return level; }
     public void setLevel(Integer level) { this.level = level; }
+    @com.fasterxml.jackson.annotation.JsonProperty("factionLevel")
+    public Integer getFactionLevel() { return level; }
     public Long getExp() { return exp; }
     public void setExp(Long exp) { this.exp = exp; }
     public Integer getMemberCount() { return memberCount; }
     public void setMemberCount(Integer memberCount) { this.memberCount = memberCount; }
+    @com.fasterxml.jackson.annotation.JsonProperty("activeMembers")
+    public Integer getActiveMembers() { return memberCount; }
     public Long getTotalContribution() { return totalContribution; }
     public void setTotalContribution(Long totalContribution) { this.totalContribution = totalContribution; }
+    @com.fasterxml.jackson.annotation.JsonProperty("totalContributionScore")
+    public Long getTotalContributionScore() { return totalContribution; }
     public Map<String, Object> getBuffs() { return buffs; }
     public void setBuffs(Map<String, Object> buffs) { this.buffs = buffs; }
     public Map<String, Object> getUnlocks() { return unlocks; }

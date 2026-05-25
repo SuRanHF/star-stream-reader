@@ -22,6 +22,15 @@ public interface SkillService {
     /** 计算已解锁技能的被动效果加成 (动态计算，不写入 stats_json) */
     Map<String, Object> calculateSkillBonus(Long playerId);
 
+    /** 返回每个 stat → "技能名+值, 技能名+值" 的详情字符串 */
+    Map<String, String> getSkillBonusDetail(Long playerId);
+
+    /** 装备技能 */
+    PlayerSkillVO equipSkill(Long playerId, String skillKey, Long userId);
+
+    /** 卸下技能 */
+    PlayerSkillVO unequipSkill(Long playerId, String skillKey, Long userId);
+
     /** 技能摘要 (用于 bootstrap) */
     SkillSummaryVO getSkillSummary(Long playerId);
 }

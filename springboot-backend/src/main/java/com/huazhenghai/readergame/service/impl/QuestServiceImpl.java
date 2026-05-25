@@ -33,6 +33,7 @@ public class QuestServiceImpl implements QuestService {
     private final PlayerLogMapper playerLogMapper;
     private final InventoryService inventoryService;
     private final TitleService titleService;
+    private final AvatarRankService avatarRankService;
     private final ObjectMapper objectMapper;
 
     private static final DateTimeFormatter DAILY_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -45,6 +46,7 @@ public class QuestServiceImpl implements QuestService {
                             PlayerLogMapper playerLogMapper,
                             InventoryService inventoryService,
                             TitleService titleService,
+                            AvatarRankService avatarRankService,
                             ObjectMapper objectMapper) {
         this.questMapper = questMapper;
         this.playerQuestMapper = playerQuestMapper;
@@ -53,6 +55,7 @@ public class QuestServiceImpl implements QuestService {
         this.playerLogMapper = playerLogMapper;
         this.inventoryService = inventoryService;
         this.titleService = titleService;
+        this.avatarRankService = avatarRankService;
         this.objectMapper = objectMapper;
     }
 
@@ -222,16 +225,29 @@ public class QuestServiceImpl implements QuestService {
             earned.put("storyFragments", fragments);
         }
 
-        // exp (存入 stats_json)
+        // exp (位阶倍率加成，存入 stats_json)
         int exp = toInt(rewardsObj.get("exp"), 0);
         if (exp > 0) {
             Map<String, Object> stats = parseJsonMap(player.getStatsJson());
+            double multiplier = avatarRankService.getExpMultiplier(
+                    (String) stats.getOrDefault("avatarRank", "F"));
+            int adjustedExp = Math.max(1, (int) Math.round(exp * multiplier));
             int currentExp = toInt(stats.get("exp"), 0);
-            stats.put("exp", currentExp + exp);
+            int totalExp = currentExp + adjustedExp;
+            stats.put("exp", totalExp);
+            // 升级检查: level = floor(sqrt(totalExp / 100)) + 1
+            int newLevel = (int) Math.floor(Math.sqrt(totalExp / 100.0)) + 1;
+            int oldLevel = toInt(stats.get("level"), 1);
+            if (newLevel > oldLevel) {
+                int levelsGained = newLevel - oldLevel;
+                stats.put("level", newLevel);
+                stats.put("hp", toInt(stats.get("maxHp"), 100));
+                stats.put("freePoints", toInt(stats.get("freePoints"), 0) + 3 * levelsGained);
+            }
             try {
                 player.setStatsJson(objectMapper.writeValueAsString(stats));
             } catch (Exception ignored) {}
-            earned.put("exp", exp);
+            earned.put("exp", adjustedExp);
         }
 
         // channelHeat

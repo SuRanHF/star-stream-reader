@@ -35,6 +35,8 @@ public class PkServiceImpl implements PkService {
     private final BroadcastService broadcastService;
     private final FactionService factionService;
     private final QuestService questService;
+    private final OnlinePlayerService onlinePlayerService;
+    private final AvatarRankService avatarRankService;
     private final ObjectMapper objectMapper;
     private final Random random = new Random();
 
@@ -51,6 +53,8 @@ public class PkServiceImpl implements PkService {
                          BroadcastService broadcastService,
                          FactionService factionService,
                          QuestService questService,
+                         OnlinePlayerService onlinePlayerService,
+                         AvatarRankService avatarRankService,
                          ObjectMapper objectMapper) {
         this.playerMapper = playerMapper;
         this.challengeMapper = challengeMapper;
@@ -62,6 +66,8 @@ public class PkServiceImpl implements PkService {
         this.broadcastService = broadcastService;
         this.factionService = factionService;
         this.questService = questService;
+        this.onlinePlayerService = onlinePlayerService;
+        this.avatarRankService = avatarRankService;
         this.objectMapper = objectMapper;
     }
 
@@ -92,6 +98,7 @@ public class PkServiceImpl implements PkService {
         List<Map<String, Object>> opponents = new ArrayList<>();
         for (Player p : allPlayers) {
             if (pendingOpponentIds.contains(p.getId())) continue;
+            if (!onlinePlayerService.isOnline(p.getId())) continue;
 
             Map<String, Object> stats = parseJsonMap(p.getStatsJson());
             CombatStatsVO combatStats = combatService.calculateCombatPower(p.getId());
@@ -350,9 +357,21 @@ public class PkServiceImpl implements PkService {
         Map<String, Object> defStatsRef = attackerWins ? defStats : atkStats;
 
         int expReward = 30;
+        double expMult = avatarRankService.getExpMultiplier((String) atkStatsRef.getOrDefault("avatarRank", "F"));
+        int adjustedExp = Math.max(1, (int) Math.round(expReward * expMult));
         int coinsReward = 50;
         int currentExp = toInt(atkStatsRef.get("exp"), 0);
-        atkStatsRef.put("exp", currentExp + expReward);
+        int totalExp = currentExp + adjustedExp;
+        atkStatsRef.put("exp", totalExp);
+        // 升级检查
+        int newLevel = (int) Math.floor(Math.sqrt(totalExp / 100.0)) + 1;
+        int oldLevel = toInt(atkStatsRef.get("level"), 1);
+        if (newLevel > oldLevel) {
+            int levelsGained = newLevel - oldLevel;
+            atkStatsRef.put("level", newLevel);
+            atkStatsRef.put("hp", atkStatsRef.get("maxHp"));
+            atkStatsRef.put("freePoints", toInt(atkStatsRef.get("freePoints"), 0) + 3 * levelsGained);
+        }
         winner.setCoins(winner.getCoins() + coinsReward);
 
         // 败者HP归0

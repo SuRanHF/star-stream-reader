@@ -7,7 +7,6 @@ import jakarta.validation.constraints.NotBlank;
  */
 public class CreatePlayerRequest {
 
-    @NotBlank(message = "角色名称不能为空")
     private String playerName;
 
     public CreatePlayerRequest() {
@@ -20,4 +19,5 @@ public class CreatePlayerRequest {
     public void setPlayerName(String playerName) {
         this.playerName = playerName;
     }
+
 }

@@ -51,6 +51,10 @@ public class WorldBossVO {
     public void setMaxHp(long maxHp) { this.maxHp = maxHp; }
     public long getCurrentHp() { return currentHp; }
     public void setCurrentHp(long currentHp) { this.currentHp = currentHp; }
+    @com.fasterxml.jackson.annotation.JsonProperty("hp")
+    public long getHp() { return currentHp; }
+    @com.fasterxml.jackson.annotation.JsonProperty("max_hp")
+    public long getMax_hp() { return maxHp; }
     public int getAttack() { return attack; }
     public void setAttack(int attack) { this.attack = attack; }
     public int getDefense() { return defense; }

@@ -59,7 +59,14 @@ public class AvatarRankServiceImpl implements AvatarRankService {
         Map<String, Object> starstreamTier = getStarstreamTier(channelHeat);
 
         AvatarRankVO vo = new AvatarRankVO();
-        vo.setCurrentRank(currentRankKey);
+
+        // currentRank as object (frontend expects .displayName, .description)
+        Map<String, Object> crMap = new LinkedHashMap<>();
+        crMap.put("key", currentRankKey);
+        crMap.put("displayName", currentRank != null ? currentRank.getDisplayName() : currentRankKey);
+        crMap.put("description", currentRank != null ? currentRank.getDescription() : "");
+        vo.setCurrentRank(crMap);
+
         vo.setCurrentRankName(currentRank != null ? currentRank.getRankName() : currentRankKey);
         vo.setCurrentDisplayName(currentRank != null ? currentRank.getDisplayName() : currentRankKey);
         vo.setStoryGrade(storyGrade);
@@ -70,7 +77,6 @@ public class AvatarRankServiceImpl implements AvatarRankService {
 
         // 下一级位阶
         if (currentRank != null && currentRank.getNextRankKey() != null) {
-            vo.setNextRank(currentRank.getNextRankKey());
             QueryWrapper<AvatarRankConfig> nextQuery = new QueryWrapper<>();
             nextQuery.eq("rank_key", currentRank.getNextRankKey());
             AvatarRankConfig nextRank = rankConfigMapper.selectOne(nextQuery);
@@ -78,6 +84,14 @@ public class AvatarRankServiceImpl implements AvatarRankService {
                 vo.setNextRankName(nextRank.getRankName());
                 vo.setNextDisplayName(nextRank.getDisplayName());
                 vo.setRewards(parseJsonMap(nextRank.getRewardsJson()));
+
+                // nextRank as object (frontend expects .displayName, .description, .resourceCost, .breakthroughRate, .requirements)
+                Map<String, Object> nrMap = new LinkedHashMap<>();
+                nrMap.put("key", nextRank.getRankKey());
+                nrMap.put("displayName", nextRank.getDisplayName());
+                nrMap.put("description", nextRank.getDescription() != null ? nextRank.getDescription() : "");
+                nrMap.put("resourceCost", parseJsonMap(nextRank.getUnlocksJson()));
+                nrMap.put("breakthroughRate", null);
 
                 // 计算进度
                 List<Map<String, Object>> rawRequirements = parseJsonList(nextRank.getRequirementsJson());
@@ -90,10 +104,30 @@ public class AvatarRankServiceImpl implements AvatarRankService {
                     int current = evaluateRequirement(type, req, player, stats, stageProgress);
                     boolean completed = current >= required;
                     if (!completed) allCompleted = false;
-                    progressItems.add(new AvatarRankVO.RankProgressItem(
-                            type, label, Math.min(current, required), required, completed));
+                    AvatarRankVO.RankProgressItem item = new AvatarRankVO.RankProgressItem(
+                            type, label, Math.min(current, required), required, completed);
+                    String reqKey = (String) req.get("locationKey");
+                    if (reqKey == null) reqKey = (String) req.get("bossKey");
+                    if (reqKey == null) reqKey = (String) req.get("bossId");
+                    item.setReqKey(reqKey);
+                    progressItems.add(item);
                 }
                 vo.setRequirements(progressItems);
+
+                // Build nextRank requirements list for display
+                List<Map<String, Object>> nrReqs = new ArrayList<>();
+                for (AvatarRankVO.RankProgressItem item : progressItems) {
+                    Map<String, Object> r = new LinkedHashMap<>();
+                    r.put("type", item.getType());
+                    r.put("label", item.getLabel());
+                    r.put("current", item.getCurrent());
+                    r.put("required", item.getRequired());
+                    r.put("completed", item.isCompleted());
+                    nrReqs.add(r);
+                }
+                nrMap.put("requirements", nrReqs);
+                vo.setNextRank(nrMap);
+
                 vo.setCanRankUp(allCompleted);
                 vo.setMaxRank(false);
             } else {
@@ -150,6 +184,9 @@ public class AvatarRankServiceImpl implements AvatarRankService {
         // 应用升阶 — 更新 stats
         stats.put("avatarRank", nextRank.getRankKey());
         stats.put("avatarRankName", nextRank.getRankName());
+        // 位阶晋升奖励 100 自由属性点
+        int currentFreePoints = toInt(stats.get("freePoints"), 0);
+        stats.put("freePoints", currentFreePoints + 100);
 
         // 应用奖励
         Map<String, Object> rewards = parseJsonMap(nextRank.getRewardsJson());

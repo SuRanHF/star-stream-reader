@@ -103,9 +103,9 @@ public class InventoryController {
     @GetMapping("/synthesis/recipes")
     @Operation(summary = "获取合成配方")
     public Result<Map<String, Object>> getSynthesisRecipes() {
-        // Return empty recipes for now - synthesis not yet implemented
+        java.util.List<Map<String, Object>> recipes = inventoryService.getRecipes();
         Map<String, Object> response = new java.util.LinkedHashMap<>();
-        response.put("recipes", java.util.Collections.emptyList());
+        response.put("recipes", recipes);
         return Result.ok(response);
     }
 
@@ -115,12 +115,8 @@ public class InventoryController {
         Long userId = LoginUserContext.get().getUserId();
         Long playerId = MapUtils.getLong(body, "playerId");
         String recipeKey = MapUtils.getString(body, "recipeKey");
-        // Synthesis not yet implemented - return error
-        Map<String, Object> response = new java.util.LinkedHashMap<>();
-        response.put("success", false);
-        response.put("recipe", recipeKey);
-        response.put("error", "合成系统尚未实现");
-        return Result.ok(response);
+        Map<String, Object> result = inventoryService.synthesize(playerId, recipeKey, userId);
+        return Result.ok(result);
     }
 
     @PostMapping("/synthesis-all")
@@ -129,9 +125,8 @@ public class InventoryController {
         Long userId = LoginUserContext.get().getUserId();
         Long playerId = MapUtils.getLong(body, "playerId");
         String recipeKey = MapUtils.getString(body, "recipeKey");
-        Map<String, Object> response = new java.util.LinkedHashMap<>();
-        response.put("times", 0);
-        response.put("recipe", recipeKey);
-        return Result.ok(response);
+        int times = MapUtils.getInt(body, "times");
+        Map<String, Object> result = inventoryService.synthesizeAll(playerId, recipeKey, Math.max(1, Math.min(times, 99)), userId);
+        return Result.ok(result);
     }
 }

@@ -9,7 +9,9 @@ import com.huazhenghai.readergame.mapper.*;
 import com.huazhenghai.readergame.security.LoginUser;
 import com.huazhenghai.readergame.security.LoginUserContext;
 import com.huazhenghai.readergame.service.AvatarRankService;
+import com.huazhenghai.readergame.service.EquipmentService;
 import com.huazhenghai.readergame.service.FeedbackService;
+import com.huazhenghai.readergame.websocket.WebSocketSessionManager;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -34,10 +37,15 @@ public class AdminController {
     private final PlayerInventoryMapper playerInventoryMapper;
     private final PlayerEquipmentMapper playerEquipmentMapper;
     private final PlayerSkillMapper playerSkillMapper;
+    private final PlayerTitleMapper playerTitleMapper;
     private final FeedbackService feedbackService;
     private final AdminActionLogMapper adminActionLogMapper;
     private final AvatarRankService avatarRankService;
+    private final MainChapterMapper mainChapterMapper;
+    private final LocationMapper locationMapper;
     private final ObjectMapper objectMapper;
+    private final WebSocketSessionManager sessionManager;
+    private final EquipmentService equipmentService;
 
     @Value("${admin.key:}")
     private String adminKey;
@@ -51,10 +59,15 @@ public class AdminController {
                            PlayerInventoryMapper playerInventoryMapper,
                            PlayerEquipmentMapper playerEquipmentMapper,
                            PlayerSkillMapper playerSkillMapper,
+                           PlayerTitleMapper playerTitleMapper,
                            FeedbackService feedbackService,
                            AdminActionLogMapper adminActionLogMapper,
                            AvatarRankService avatarRankService,
-                           ObjectMapper objectMapper) {
+                           MainChapterMapper mainChapterMapper,
+                           LocationMapper locationMapper,
+                           ObjectMapper objectMapper,
+                           WebSocketSessionManager sessionManager,
+                           EquipmentService equipmentService) {
         this.playerMapper = playerMapper;
         this.playerLogMapper = playerLogMapper;
         this.itemMapper = itemMapper;
@@ -64,10 +77,15 @@ public class AdminController {
         this.playerInventoryMapper = playerInventoryMapper;
         this.playerEquipmentMapper = playerEquipmentMapper;
         this.playerSkillMapper = playerSkillMapper;
+        this.playerTitleMapper = playerTitleMapper;
         this.feedbackService = feedbackService;
         this.adminActionLogMapper = adminActionLogMapper;
         this.avatarRankService = avatarRankService;
+        this.mainChapterMapper = mainChapterMapper;
+        this.locationMapper = locationMapper;
         this.objectMapper = objectMapper;
+        this.sessionManager = sessionManager;
+        this.equipmentService = equipmentService;
     }
 
     // ─── 认证 ───
@@ -87,6 +105,21 @@ public class AdminController {
     @SuppressWarnings("unchecked")
     private <T> Result<T> forbidden() {
         return (Result<T>) Result.fail("FORBIDDEN", "需要管理员权限或有效的 ADMIN_KEY");
+    }
+
+    // ─── 实时推送玩家更新 ───
+
+    private void pushStatsUpdated(Long playerId) {
+        try {
+            Player p = playerMapper.selectById(playerId);
+            if (p == null) return;
+            Map<String, Object> msg = new LinkedHashMap<>();
+            msg.put("type", "stats.updated");
+            msg.put("data", buildPlayerFull(p));
+            sessionManager.sendToPlayer(playerId, msg);
+        } catch (Exception e) {
+            log.warn("Failed to push stats updated to player {}: {}", playerId, e.getMessage());
+        }
     }
 
     // ─── 日志 ───
@@ -182,23 +215,7 @@ public class AdminController {
         Player p = playerMapper.selectById(id);
         if (p == null) return Result.fail("PLAYER_NOT_FOUND", "玩家不存在");
 
-        Map<String, Object> player = new LinkedHashMap<>();
-        player.put("id", p.getId());
-        player.put("player_name", p.getPlayerName());
-        player.put("user_id", p.getUserId());
-        player.put("coins", p.getCoins());
-        player.put("story_fragments", p.getStoryFragments());
-        player.put("current_main_chapter", p.getCurrentMainChapter());
-        player.put("current_chapter", p.getCurrentChapter());
-        player.put("current_location", p.getCurrentLocation());
-        player.put("titles_json", p.getTitlesJson());
-        player.put("stats_json", p.getStatsJson());
-        player.put("story_flags_json", p.getStoryFlagsJson());
-        player.put("permanent_flags_json", p.getPermanentFlagsJson());
-        player.put("stage_progress_json", p.getStageProgressJson());
-        player.put("created_at", p.getCreatedAt());
-        player.put("updated_at", p.getUpdatedAt());
-        return Result.ok(Map.of("player", player));
+        return Result.ok(Map.of("player", buildPlayerFull(p)));
     }
 
     // ─── 3. 快速更新 ───
@@ -216,7 +233,7 @@ public class AdminController {
         Map<String, Object> stats = parseJsonMap(p.getStatsJson());
         String[] allowedStats = {"hp", "maxHp", "stamina", "maxStamina", "attack", "defense",
                 "speed", "critRate", "critDamage", "level", "exp", "freePoints", "luck",
-                "channelHeat", "worldLineShift", "insight", "willpower", "leadership", "bond"};
+                "channelHeat", "insight", "willpower", "leadership", "bond"};
         boolean statsChanged = false;
         for (String key : allowedStats) {
             if (body.containsKey(key)) {
@@ -268,6 +285,7 @@ public class AdminController {
         playerMapper.updateById(p);
         addPlayerLog(id, "[管理员] 数据已被调整");
         logAction(admin, "update_player", id, Map.of("fields", changedFields));
+        pushStatsUpdated(id);
 
         return Result.ok(Map.of("player", buildPlayerFull(p), "changed", changedFields));
     }
@@ -289,6 +307,7 @@ public class AdminController {
         playerMapper.updateById(p);
         addPlayerLog(id, "[管理员] 强制复活");
         logAction(admin, "force_revive", id, Map.of());
+        pushStatsUpdated(id);
 
         return Result.ok(Map.of("player", buildPlayerFull(p)));
     }
@@ -308,7 +327,7 @@ public class AdminController {
         Map<String, Object> stats = parseJsonMap(p.getStatsJson());
         String[] allowedStats = {"hp", "maxHp", "stamina", "maxStamina", "attack", "defense",
                 "speed", "critRate", "critDamage", "level", "exp", "freePoints", "luck",
-                "channelHeat", "worldLineShift", "insight", "willpower", "leadership", "bond"};
+                "channelHeat", "insight", "willpower", "leadership", "bond"};
         String[] stringStats = {"avatarRank", "storyGrade"};
         List<String> changed = new ArrayList<>();
 
@@ -353,6 +372,7 @@ public class AdminController {
         playerMapper.updateById(p);
         addPlayerLog(id, "[管理员] 属性已调整: " + String.join(", ", changed));
         logAction(admin, "update_stats", id, Map.of("changed", changed));
+        pushStatsUpdated(id);
 
         return Result.ok(Map.of("player", buildPlayerFull(p), "changed", changed));
     }
@@ -401,6 +421,7 @@ public class AdminController {
         playerMapper.updateById(p);
         addPlayerLog(id, "[管理员] 资源已调整: " + String.join(", ", changed));
         logAction(admin, "update_resources", id, Map.of("changed", changed));
+        pushStatsUpdated(id);
 
         return Result.ok(Map.of("player", buildPlayerFull(p), "changed", changed));
     }
@@ -431,6 +452,22 @@ public class AdminController {
             p.setCurrentLocation((String) body.get("current_location"));
             changed.add("current_location");
         }
+        if (body.containsKey("current_stage")) {
+            p.setCurrentStage((String) body.get("current_stage"));
+            changed.add("current_stage");
+        }
+        if (body.containsKey("stage_progress_json")) {
+            Object spj = body.get("stage_progress_json");
+            String spjStr = spj instanceof String ? (String) spj : spj.toString();
+            // validate it's valid JSON
+            try {
+                objectMapper.readTree(spjStr);
+                p.setStageProgressJson(spjStr);
+                changed.add("stage_progress_json");
+            } catch (Exception e) {
+                return Result.fail("INVALID_JSON", "stage_progress_json 不是有效的JSON");
+            }
+        }
 
         if (changed.isEmpty()) return Result.fail("NO_CHANGES", "没有提供有效的进度字段");
 
@@ -439,6 +476,97 @@ public class AdminController {
         logAction(admin, "update_progress", id, Map.of("changed", changed));
 
         return Result.ok(Map.of("player", buildPlayerFull(p), "changed", changed));
+    }
+
+    // ─── 7.5. 发放道具 — 可选项列表 ───
+
+    @GetMapping("/grant-options")
+    public Result<Map<String, Object>> getGrantOptions(HttpServletRequest request) {
+        String admin = checkAdmin(request);
+        if (admin == null) return forbidden();
+
+        List<Map<String, Object>> items = itemMapper.selectList(null).stream().map(i -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("key", i.getItemKey());
+            m.put("name", i.getName() != null ? i.getName() : i.getItemKey());
+            m.put("type", i.getItemType());
+            m.put("rarity", i.getRarity());
+            return m;
+        }).collect(Collectors.toList());
+
+        List<Map<String, Object>> equipments = equipmentMapper.selectList(null).stream().map(e -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("key", e.getEquipmentKey());
+            m.put("name", e.getName() != null ? e.getName() : e.getEquipmentKey());
+            m.put("slot", e.getSlot());
+            m.put("rarity", e.getRarity());
+            return m;
+        }).collect(Collectors.toList());
+
+        List<Map<String, Object>> skills = skillMapper.selectList(null).stream().map(s -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("key", s.getSkillKey());
+            m.put("name", s.getName() != null ? s.getName() : s.getSkillKey());
+            m.put("type", s.getType());
+            m.put("rarity", s.getRarity());
+            return m;
+        }).collect(Collectors.toList());
+
+        List<Map<String, Object>> titles = titleMapper.selectList(null).stream().map(t -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("key", t.getTitleKey());
+            m.put("name", t.getName() != null ? t.getName() : t.getTitleKey());
+            m.put("rarity", t.getRarity());
+            return m;
+        }).collect(Collectors.toList());
+
+        return Result.ok(Map.of("items", items, "equipments", equipments, "skills", skills, "titles", titles));
+    }
+
+    // ─── 7.6. 进度选项列表 ───
+
+    @GetMapping("/progress-options")
+    public Result<Map<String, Object>> getProgressOptions(HttpServletRequest request) {
+        String admin = checkAdmin(request);
+        if (admin == null) return forbidden();
+
+        // main chapters from main_chapters table
+        List<Map<String, Object>> mainChapters = mainChapterMapper.selectList(null).stream().map(mc -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("key", mc.getChapterKey());
+            m.put("name", mc.getName() != null ? mc.getName() : mc.getChapterKey());
+            return m;
+        }).collect(Collectors.toList());
+
+        // locations from locations table
+        List<Map<String, Object>> locations = locationMapper.selectList(null).stream().map(l -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("key", l.getLocationKey());
+            m.put("name", l.getName() != null ? l.getName() : l.getLocationKey());
+            return m;
+        }).collect(Collectors.toList());
+
+        // distinct current_chapter values from players table
+        QueryWrapper<Player> cq = new QueryWrapper<>();
+        cq.select("DISTINCT current_chapter").isNotNull("current_chapter").ne("current_chapter", "").orderByAsc("current_chapter");
+        List<String> chapters = playerMapper.selectList(cq).stream()
+                .map(Player::getCurrentChapter).filter(Objects::nonNull).distinct().collect(Collectors.toList());
+
+        // hardcoded stages
+        List<Map<String, String>> stages = List.of(
+                Map.of("key", "stage_1", "name", "第一阶段 — 初入星流"),
+                Map.of("key", "stage_2", "name", "第二阶段 — 剧本觉醒"),
+                Map.of("key", "stage_3", "name", "第三阶段 — 星辰试炼"),
+                Map.of("key", "stage_4", "name", "第四阶段 — 终章前夜"),
+                Map.of("key", "stage_5", "name", "第五阶段 — 结局降临")
+        );
+
+        return Result.ok(Map.of(
+                "mainChapters", mainChapters,
+                "locations", locations,
+                "chapters", chapters,
+                "stages", stages
+        ));
     }
 
     // ─── 8. 发放物品/装备/技能/称号 ───
@@ -481,6 +609,7 @@ public class AdminController {
                 }
                 addPlayerLog(id, "[管理员] 发放道具: " + (item.getName() != null ? item.getName() : key) + " x" + qty);
                 logAction(admin, "grant_item", id, Map.of("item_key", key, "quantity", qty));
+                pushStatsUpdated(id);
                 return Result.ok(Map.of("type", type, "key", key, "quantity", qty,
                         "message", "已发放 " + (item.getName() != null ? item.getName() : key) + " x" + qty));
             }
@@ -501,6 +630,7 @@ public class AdminController {
                 playerEquipmentMapper.insert(pe);
                 addPlayerLog(id, "[管理员] 发放装备: " + (eq.getName() != null ? eq.getName() : key));
                 logAction(admin, "grant_equipment", id, Map.of("equipment_key", key));
+                pushStatsUpdated(id);
                 return Result.ok(Map.of("type", type, "key", key,
                         "message", "已发放 " + (eq.getName() != null ? eq.getName() : key)));
             }
@@ -519,6 +649,7 @@ public class AdminController {
                 playerSkillMapper.insert(ps);
                 addPlayerLog(id, "[管理员] 发放技能: " + (skill.getName() != null ? skill.getName() : key));
                 logAction(admin, "grant_skill", id, Map.of("skill_key", key));
+                pushStatsUpdated(id);
                 return Result.ok(Map.of("type", type, "key", key,
                         "message", "已发放 " + (skill.getName() != null ? skill.getName() : key)));
             }
@@ -532,6 +663,7 @@ public class AdminController {
                 playerMapper.updateById(p);
                 addPlayerLog(id, "[管理员] 授予称号: " + (title.getName() != null ? title.getName() : key));
                 logAction(admin, "grant_title", id, Map.of("title_key", key));
+                pushStatsUpdated(id);
                 return Result.ok(Map.of("type", type, "key", key,
                         "message", "已授予 " + (title.getName() != null ? title.getName() : key)));
             }
@@ -588,6 +720,11 @@ public class AdminController {
                 stats.put("hp", Math.max(toInt(stats.get("hp"), 1), 1));
                 msg = "已清除死亡状态";
             }
+            case "kill_player" -> {
+                stats.put("isDead", true);
+                stats.put("hp", 0);
+                msg = "已将玩家设为死亡";
+            }
             case "fill_rank_requirements" -> {
                 return fillRankRequirements(id, admin);
             }
@@ -603,6 +740,7 @@ public class AdminController {
         playerMapper.updateById(p);
         addPlayerLog(id, "[管理员] " + msg);
         logAction(admin, "quick_action", id, Map.of("action", action, "result", msg));
+        pushStatsUpdated(id);
 
         return Result.ok(Map.of("player", buildPlayerFull(p), "message", msg));
     }
@@ -626,11 +764,26 @@ public class AdminController {
                         case "channelHeatMin" -> stats.put("channelHeat", Math.max(
                                 toInt(stats.get("channelHeat"), 0), req.getRequired()));
                         case "titlesCountMin" -> {
-                            List<String> titles = parseJsonList(p.getTitlesJson());
-                            while (titles.size() < req.getRequired()) {
-                                titles.add("admin_placeholder_" + titles.size());
+                            long count = playerTitleMapper.selectCount(
+                                    new QueryWrapper<com.huazhenghai.readergame.entity.PlayerTitle>()
+                                            .eq("player_id", playerId));
+                            String[] pool = {"first_explorer", "station_witness", "story_fragment_collector",
+                                    "starstream_observed", "boss_trace_hunter"};
+                            int pi = 0;
+                            while (count < req.getRequired() && pi < pool.length) {
+                                var exists = playerTitleMapper.selectOne(
+                                        new QueryWrapper<com.huazhenghai.readergame.entity.PlayerTitle>()
+                                                .eq("player_id", playerId).eq("title_key", pool[pi]));
+                                if (exists == null) {
+                                    var pt = new com.huazhenghai.readergame.entity.PlayerTitle();
+                                    pt.setPlayerId(playerId);
+                                    pt.setTitleKey(pool[pi]);
+                                    pt.setUnlockedAt(java.time.LocalDateTime.now());
+                                    playerTitleMapper.insert(pt);
+                                    count++;
+                                }
+                                pi++;
                             }
-                            try { p.setTitlesJson(objectMapper.writeValueAsString(titles)); } catch (Exception ignored) {}
                         }
                         case "worldLineShiftMin" -> stats.put("worldLineShift", Math.max(
                                 toInt(stats.get("worldLineShift"), 0), req.getRequired()));
@@ -638,7 +791,37 @@ public class AdminController {
                             @SuppressWarnings("unchecked")
                             Map<String, Object> byLoc = (Map<String, Object>)
                                     stageProgress.computeIfAbsent("explorationsByLocation", k -> new LinkedHashMap<>());
-                            byLoc.put("any", Math.max(toInt(byLoc.get("any"), 0), req.getRequired()));
+                            String locKey = req.getReqKey() != null ? req.getReqKey() : "any";
+                            byLoc.put(locKey, Math.max(toInt(byLoc.get(locKey), 0), req.getRequired()));
+                        }
+                        case "storyEventsTriggeredMin" -> {
+                            @SuppressWarnings("unchecked")
+                            List<String> triggered = (List<String>)
+                                    stageProgress.computeIfAbsent("storyEventsTriggered", k -> new ArrayList<>());
+                            while (triggered.size() < req.getRequired()) {
+                                triggered.add("admin_placeholder_event_" + triggered.size());
+                            }
+                        }
+                        case "bossClue" -> {
+                            @SuppressWarnings("unchecked")
+                            Map<String, Object> clues = (Map<String, Object>)
+                                    stageProgress.computeIfAbsent("bossClues", k -> new LinkedHashMap<>());
+                            String bossKey = req.getReqKey() != null ? req.getReqKey() : "unknown_boss";
+                            clues.put(bossKey, Math.max(toInt(clues.get(bossKey), 0), req.getRequired()));
+                        }
+                        case "pkRatingMin" -> stats.put("rating", Math.max(
+                                toInt(stats.get("rating"), 1000), req.getRequired()));
+                        case "rareTitleRequired" -> {
+                            var exists = playerTitleMapper.selectOne(
+                                    new QueryWrapper<com.huazhenghai.readergame.entity.PlayerTitle>()
+                                            .eq("player_id", playerId).eq("title_key", "boss_trace_hunter"));
+                            if (exists == null) {
+                                var pt = new com.huazhenghai.readergame.entity.PlayerTitle();
+                                pt.setPlayerId(playerId);
+                                pt.setTitleKey("boss_trace_hunter");
+                                pt.setUnlockedAt(java.time.LocalDateTime.now());
+                                playerTitleMapper.insert(pt);
+                            }
                         }
                     }
                 }
@@ -839,13 +1022,41 @@ public class AdminController {
         player.put("current_main_chapter", p.getCurrentMainChapter());
         player.put("current_chapter", p.getCurrentChapter());
         player.put("current_location", p.getCurrentLocation());
+        player.put("current_stage", p.getCurrentStage());
         player.put("titles_json", p.getTitlesJson());
         player.put("stats_json", p.getStatsJson());
+        // Parsed stats for frontend edit form
+        Map<String, Object> parsedStats = parseJsonMap(p.getStatsJson());
+        // 确保 maxExp 始终根据 level 计算
+        int lvl = parsedStats.get("level") instanceof Number n ? n.intValue() : 1;
+        parsedStats.putIfAbsent("maxExp", 100 * lvl * lvl);
+        player.put("stats", parsedStats);
+        player.put("level", toInt(parsedStats.get("level"), 1));
+        player.put("hp", toInt(parsedStats.get("hp"), 100));
+        player.put("maxHp", toInt(parsedStats.get("maxHp"), 100));
+        player.put("stamina", toInt(parsedStats.get("stamina"), 50));
+        player.put("maxStamina", toInt(parsedStats.get("maxStamina"), 50));
+        player.put("attack", toInt(parsedStats.get("attack"), 10));
+        player.put("defense", toInt(parsedStats.get("defense"), 5));
+        player.put("speed", toInt(parsedStats.get("speed"), 10));
+        player.put("isDead", Boolean.TRUE.equals(parsedStats.get("isDead")));
+        player.put("isResting", Boolean.TRUE.equals(parsedStats.get("isResting")));
+        player.put("avatarRank", parsedStats.getOrDefault("avatarRank", "F"));
+        player.put("avatarRankName", parsedStats.getOrDefault("avatarRankName", "临时化身"));
+        player.put("storyGrade", parsedStats.getOrDefault("storyGrade", "ordinary"));
         player.put("story_flags_json", p.getStoryFlagsJson());
         player.put("permanent_flags_json", p.getPermanentFlagsJson());
         player.put("stage_progress_json", p.getStageProgressJson());
+        player.put("stageProgress", parseJsonMap(p.getStageProgressJson()));
         player.put("created_at", p.getCreatedAt());
         player.put("updated_at", p.getUpdatedAt());
+        // 装备属性加成
+        try {
+            Map<String, Object> equipBonus = equipmentService.calculateEquipmentBonus(p.getId());
+            player.put("equipmentBonus", equipBonus != null ? equipBonus : Collections.emptyMap());
+        } catch (Exception e) {
+            player.put("equipmentBonus", Collections.emptyMap());
+        }
         return player;
     }
 

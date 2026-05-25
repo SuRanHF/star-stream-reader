@@ -122,6 +122,13 @@ public class FactionController {
         return Result.ok(factionService.getFactionSummary(playerId));
     }
 
+    @GetMapping("/buff/{playerId}")
+    @Operation(summary = "获取阵营加成")
+    public Result<java.util.Map<String, Object>> getFactionBuff(@PathVariable Long playerId) {
+        validatePlayerOwnership(playerId);
+        return Result.ok(factionService.getFactionBuff(playerId));
+    }
+
     private void validatePlayerOwnership(Long playerId) {
         Long userId = LoginUserContext.get().getUserId();
         Player player = playerMapper.selectById(playerId);

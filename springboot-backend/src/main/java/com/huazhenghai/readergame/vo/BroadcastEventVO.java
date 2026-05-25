@@ -1,5 +1,6 @@
 package com.huazhenghai.readergame.vo;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class BroadcastEventVO {
@@ -23,12 +24,18 @@ public class BroadcastEventVO {
 
     public String getEventKey() { return eventKey; }
     public void setEventKey(String eventKey) { this.eventKey = eventKey; }
+    @com.fasterxml.jackson.annotation.JsonProperty("id")
+    public String getId() { return eventKey; }
+    @com.fasterxml.jackson.annotation.JsonProperty("eventId")
+    public String getEventId() { return eventKey; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
+    @com.fasterxml.jackson.annotation.JsonProperty("event_type")
+    public String getEvent_type() { return type; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public Integer getTargetValue() { return targetValue; }
@@ -39,6 +46,8 @@ public class BroadcastEventVO {
     public void setStartAt(String startAt) { this.startAt = startAt; }
     public String getEndAt() { return endAt; }
     public void setEndAt(String endAt) { this.endAt = endAt; }
+    @com.fasterxml.jackson.annotation.JsonProperty("end_time")
+    public String getEnd_time() { return endAt; }
     public Map<String, Object> getRewards() { return rewards; }
     public void setRewards(Map<String, Object> rewards) { this.rewards = rewards; }
     public Map<String, Object> getPersonalRewards() { return personalRewards; }
@@ -53,4 +62,21 @@ public class BroadcastEventVO {
     public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+
+    // Synthetic progress object for frontend compatibility
+    @com.fasterxml.jackson.annotation.JsonProperty("progress")
+    public Map<String, Object> getProgress() {
+        Map<String, Object> p = new LinkedHashMap<>();
+        if (metadata != null && metadata.containsKey("objectives")) {
+            p.put("objectives", metadata.get("objectives"));
+        } else {
+            p.put("objectives", java.util.Collections.emptyList());
+        }
+        p.put("totalParticipants", 0);
+        p.put("currentValue", currentValue != null ? currentValue : 0);
+        p.put("targetValue", targetValue != null ? targetValue : 0);
+        p.put("percentage", targetValue != null && targetValue > 0
+                ? Math.round(currentValue * 100.0 / targetValue) : 0);
+        return p;
+    }
 }

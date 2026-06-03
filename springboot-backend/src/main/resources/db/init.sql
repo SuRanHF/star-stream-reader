@@ -533,6 +533,7 @@ CREATE TABLE IF NOT EXISTS `monsters` (
     `skills_json`    JSON         DEFAULT NULL COMMENT '怪物技能',
     `rewards_json`   JSON         DEFAULT NULL COMMENT '战斗奖励',
     `drops_json`     JSON         DEFAULT NULL COMMENT '掉落配置',
+    `narrative_tags_json` JSON     DEFAULT NULL COMMENT '叙事阵营标签 JSON',
     `enabled`        TINYINT      NOT NULL DEFAULT 1,
     `created_at`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

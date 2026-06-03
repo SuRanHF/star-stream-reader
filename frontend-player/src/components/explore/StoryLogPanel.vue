@@ -98,24 +98,24 @@ function toggleLoc(key: string) {
   gap: 10px;
 }
 .slp-title {
-  color: #caa86a;
+  color: var(--color-system-bright, #7ab0f7);
   font-size: 16px;
   font-weight: 700;
   margin: 0;
 }
 .slp-subtitle {
-  color: #64748b;
+  color: #6a7a9a;
   font-size: 12px;
 }
 .slp-loading, .slp-empty {
   text-align: center;
   padding: 40px 0;
-  color: #64748b;
+  color: #6a7a9a;
   font-size: 13px;
 }
 .slp-empty-hint {
   font-size: 12px;
-  color: #4a5555;
+  color: #5a6688;
   margin-top: 6px;
 }
 
@@ -128,17 +128,17 @@ function toggleLoc(key: string) {
   gap: 8px;
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #28343d;
+  border: 1px solid rgba(38, 56, 120, 0.35);
   border-radius: 8px;
-  background: #0f1519;
-  color: #cbd5e1;
+  background: rgba(13, 20, 48, 0.5);
+  color: #d0d8f0;
   font-size: 14px;
   cursor: pointer;
   transition: all 0.15s;
 }
 .slp-loc-header:hover {
-  border-color: #caa86a;
-  background: rgba(202, 168, 106, 0.05);
+  border-color: var(--color-system, #4a8fe7);
+  background: rgba(74, 143, 231, 0.06);
 }
 .slp-loc-name {
   flex: 1;
@@ -147,27 +147,27 @@ function toggleLoc(key: string) {
 }
 .slp-loc-count {
   font-size: 12px;
-  color: #64748b;
+  color: #6a7a9a;
 }
 .slp-chevron {
-  color: #64748b;
+  color: #6a7a9a;
   font-size: 12px;
 }
 
 .slp-stories {
   padding: 8px 0 0 12px;
-  border-left: 1px solid #28343d;
+  border-left: 1px solid rgba(38, 56, 120, 0.3);
   margin-left: 8px;
 }
 .slp-story-card {
   padding: 10px 12px;
   margin-bottom: 6px;
-  border: 1px solid #1e2a33;
+  border: 1px solid rgba(26, 38, 80, 0.4);
   border-radius: 8px;
-  background: rgba(15, 21, 25, 0.5);
+  background: rgba(7, 11, 26, 0.4);
 }
 .slp-story-name {
-  color: #caa86a;
+  color: var(--color-system-bright, #7ab0f7);
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 6px;
@@ -179,7 +179,7 @@ function toggleLoc(key: string) {
   margin-bottom: 4px;
 }
 .slp-choice-label {
-  color: #64748b;
+  color: #6a7a9a;
   flex-shrink: 0;
 }
 .slp-choice-text {
@@ -187,12 +187,12 @@ function toggleLoc(key: string) {
 }
 .slp-cons-line {
   font-size: 12px;
-  color: #94a3b8;
+  color: #8898b8;
   line-height: 1.5;
   margin-bottom: 4px;
 }
 .slp-time {
   font-size: 11px;
-  color: #4a5555;
+  color: #5a6688;
 }
 </style>

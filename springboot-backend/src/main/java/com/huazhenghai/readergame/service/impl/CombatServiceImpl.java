@@ -6,10 +6,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huazhenghai.readergame.common.BusinessException;
 import com.huazhenghai.readergame.common.ErrorCode;
 import com.huazhenghai.readergame.entity.BattleLog;
+import com.huazhenghai.readergame.entity.Location;
 import com.huazhenghai.readergame.entity.Monster;
 import com.huazhenghai.readergame.entity.Player;
+import com.huazhenghai.readergame.entity.Title;
 import com.huazhenghai.readergame.mapper.BattleLogMapper;
+import com.huazhenghai.readergame.mapper.LocationMapper;
 import com.huazhenghai.readergame.mapper.PlayerMapper;
+import com.huazhenghai.readergame.mapper.TitleMapper;
 import com.huazhenghai.readergame.service.*;
 import com.huazhenghai.readergame.vo.*;
 import org.springframework.stereotype.Service;
@@ -24,6 +28,8 @@ public class CombatServiceImpl implements CombatService {
     private final MonsterService monsterService;
     private final PlayerMapper playerMapper;
     private final BattleLogMapper battleLogMapper;
+    private final LocationMapper locationMapper;
+    private final TitleMapper titleMapper;
     private final RecoveryService recoveryService;
     private final PlayerLogService playerLogService;
     private final TitleService titleService;
@@ -41,6 +47,8 @@ public class CombatServiceImpl implements CombatService {
     public CombatServiceImpl(MonsterService monsterService,
                              PlayerMapper playerMapper,
                              BattleLogMapper battleLogMapper,
+                             LocationMapper locationMapper,
+                             TitleMapper titleMapper,
                              RecoveryService recoveryService,
                              PlayerLogService playerLogService,
                              TitleService titleService,
@@ -54,6 +62,8 @@ public class CombatServiceImpl implements CombatService {
         this.monsterService = monsterService;
         this.playerMapper = playerMapper;
         this.battleLogMapper = battleLogMapper;
+        this.locationMapper = locationMapper;
+        this.titleMapper = titleMapper;
         this.recoveryService = recoveryService;
         this.playerLogService = playerLogService;
         this.titleService = titleService;
@@ -106,6 +116,82 @@ public class CombatServiceImpl implements CombatService {
 
         Map<String, Object> monsterStats = parseJsonMap(monster.getStatsJson());
 
+        // 5a. 计算位格压制倍率
+        String playerRank = (String) stats.getOrDefault("avatarRank", "F");
+        double rankSuppMult = 1.0;
+        String rankSuppNote = "";
+        QueryWrapper<Location> locQw = new QueryWrapper<Location>().eq("location_key", monster.getLocationKey());
+        Location monsterLoc = locationMapper.selectOne(locQw);
+        String monsterRecommendedRank = monsterLoc != null && monsterLoc.getRecommendedRank() != null
+                ? monsterLoc.getRecommendedRank() : "F";
+        int rankDiff = rankToValue(playerRank) - rankToValue(monsterRecommendedRank);
+        if (rankDiff != 0) {
+            rankSuppMult = Math.max(0.5, Math.min(3.0, 1.0 + rankDiff * 0.15));
+            if (rankDiff > 0) {
+                rankSuppNote = "化身位格压制：伤害 +" + Math.round((rankSuppMult - 1) * 100) + "%";
+            } else {
+                rankSuppNote = "位格不足：伤害 -" + Math.round((1 - rankSuppMult) * 100) + "%";
+            }
+        }
+
+        // 5b. 计算叙事压制倍率
+        double narrativeMult = 1.0;
+        String narrativeNote = "";
+        List<String> monsterNarrativeTags = parseStringList(monster.getNarrativeTagsJson());
+        if (!monsterNarrativeTags.isEmpty()) {
+            PlayerTitleVO equippedTitle = titleService.getEquippedTitle(playerId);
+            if (equippedTitle != null) {
+                Title titleDef = titleMapper.selectOne(
+                        new QueryWrapper<Title>().eq("title_key", equippedTitle.getTitleKey()));
+                if (titleDef != null) {
+                    List<String> playerTags = parseStringList(titleDef.getTagsJson());
+                    List<String> playerStrong = parseStringList(titleDef.getStrongAgainstJson());
+                    List<String> playerWeak = parseStringList(titleDef.getWeakAgainstJson());
+                    narrativeMult = narrativeSuppressionMultiplier(
+                            playerStrong, playerWeak, monsterNarrativeTags);
+                    if (narrativeMult > 1.0) {
+                        narrativeNote = "叙事压制：[" + String.join("/", playerTags) + "]克制["
+                                + String.join("/", monsterNarrativeTags) + "]：伤害 +"
+                                + Math.round((narrativeMult - 1) * 100) + "%";
+                    } else if (narrativeMult < 1.0) {
+                        narrativeNote = "叙事不利：[" + String.join("/", monsterNarrativeTags) + "]克制["
+                                + String.join("/", playerTags) + "]：伤害 -"
+                                + Math.round((1 - narrativeMult) * 100) + "%";
+                    }
+                }
+            }
+        }
+        double playerSuppressionMult = rankSuppMult * narrativeMult;
+        String combinedNote = rankSuppNote.isEmpty() ? narrativeNote
+                : narrativeNote.isEmpty() ? rankSuppNote
+                : rankSuppNote + "；" + narrativeNote;
+
+        // 怪物对玩家的叙事倍率（逆方向）
+        double monsterNarrativeMult = 1.0;
+        String monsterNarrNote = "";
+        if (!monsterNarrativeTags.isEmpty()) {
+            PlayerTitleVO eqTitle = titleService.getEquippedTitle(playerId);
+            if (eqTitle != null) {
+                Title tDef = titleMapper.selectOne(
+                        new QueryWrapper<Title>().eq("title_key", eqTitle.getTitleKey()));
+                if (tDef != null) {
+                    List<String> pStrong = parseStringList(tDef.getStrongAgainstJson());
+                    List<String> pWeak = parseStringList(tDef.getWeakAgainstJson());
+                    for (String mTag : monsterNarrativeTags) {
+                        if (pWeak.contains(mTag)) { monsterNarrativeMult = 1.4; break; }
+                    }
+                    for (String mTag : monsterNarrativeTags) {
+                        if (pStrong.contains(mTag)) { monsterNarrativeMult = 0.6; break; }
+                    }
+                    if (monsterNarrativeMult > 1.0) {
+                        monsterNarrNote = "怪物叙事克制：伤害 +" + Math.round((monsterNarrativeMult - 1) * 100) + "%";
+                    } else if (monsterNarrativeMult < 1.0) {
+                        monsterNarrNote = "怪物叙事被压制：伤害 -" + Math.round((1 - monsterNarrativeMult) * 100) + "%";
+                    }
+                }
+            }
+        }
+
         // 6. 计算玩家战斗属性
         CombatStatsVO playerStats = calculateCombatPower(playerId);
         int playerHpBefore = currentHp;
@@ -136,7 +222,8 @@ public class CombatServiceImpl implements CombatService {
 
             if (attackerFirst) {
                 // Player attacks
-                Map<String, Object> pAtk = calcDamage(playerAtk, monsterDef, playerCritRate, playerCritDamage);
+                Map<String, Object> pAtk = calcDamage(playerAtk, monsterDef, playerCritRate, playerCritDamage,
+                        playerSuppressionMult, combinedNote);
                 int pDmg = toInt(pAtk.get("damage"), 0);
                 monsterBattleHp -= pDmg;
                 Map<String, Object> pAction = new LinkedHashMap<>();
@@ -144,6 +231,9 @@ public class CombatServiceImpl implements CombatService {
                 pAction.put("type", "attack");
                 pAction.put("damage", pDmg);
                 pAction.put("critical", pAtk.get("critical"));
+                if (pAtk.containsKey("suppressionNote")) {
+                    pAction.put("suppressionNote", pAtk.get("suppressionNote"));
+                }
                 pAction.put("targetHpAfter", (int) Math.max(0, monsterBattleHp));
                 round.getActions().add(pAction);
 
@@ -154,7 +244,8 @@ public class CombatServiceImpl implements CombatService {
                 }
 
                 // Monster attacks
-                Map<String, Object> mAtk = calcDamage(monsterAtk, playerDef, 0, 1);
+                Map<String, Object> mAtk = calcDamage(monsterAtk, playerDef, 0, 1,
+                        monsterNarrativeMult, monsterNarrNote);
                 int mDmg = toInt(mAtk.get("damage"), 0);
                 playerBattleHp -= mDmg;
                 Map<String, Object> mAction = new LinkedHashMap<>();
@@ -162,6 +253,9 @@ public class CombatServiceImpl implements CombatService {
                 mAction.put("type", "attack");
                 mAction.put("damage", mDmg);
                 mAction.put("critical", false);
+                if (mAtk.containsKey("suppressionNote")) {
+                    mAction.put("suppressionNote", mAtk.get("suppressionNote"));
+                }
                 mAction.put("targetHpAfter", (int) Math.max(0, playerBattleHp));
                 round.getActions().add(mAction);
 
@@ -172,7 +266,8 @@ public class CombatServiceImpl implements CombatService {
                 }
             } else {
                 // Monster attacks first
-                Map<String, Object> mAtk = calcDamage(monsterAtk, playerDef, 0, 1);
+                Map<String, Object> mAtk = calcDamage(monsterAtk, playerDef, 0, 1,
+                        monsterNarrativeMult, monsterNarrNote);
                 int mDmg = toInt(mAtk.get("damage"), 0);
                 playerBattleHp -= mDmg;
                 Map<String, Object> mAction = new LinkedHashMap<>();
@@ -180,6 +275,9 @@ public class CombatServiceImpl implements CombatService {
                 mAction.put("type", "attack");
                 mAction.put("damage", mDmg);
                 mAction.put("critical", false);
+                if (mAtk.containsKey("suppressionNote")) {
+                    mAction.put("suppressionNote", mAtk.get("suppressionNote"));
+                }
                 mAction.put("targetHpAfter", (int) Math.max(0, playerBattleHp));
                 round.getActions().add(mAction);
 
@@ -190,7 +288,8 @@ public class CombatServiceImpl implements CombatService {
                 }
 
                 // Player attacks
-                Map<String, Object> pAtk = calcDamage(playerAtk, monsterDef, playerCritRate, playerCritDamage);
+                Map<String, Object> pAtk = calcDamage(playerAtk, monsterDef, playerCritRate, playerCritDamage,
+                        playerSuppressionMult, combinedNote);
                 int pDmg = toInt(pAtk.get("damage"), 0);
                 monsterBattleHp -= pDmg;
                 Map<String, Object> pAction = new LinkedHashMap<>();
@@ -198,6 +297,9 @@ public class CombatServiceImpl implements CombatService {
                 pAction.put("type", "attack");
                 pAction.put("damage", pDmg);
                 pAction.put("critical", pAtk.get("critical"));
+                if (pAtk.containsKey("suppressionNote")) {
+                    pAction.put("suppressionNote", pAtk.get("suppressionNote"));
+                }
                 pAction.put("targetHpAfter", (int) Math.max(0, monsterBattleHp));
                 round.getActions().add(pAction);
 
@@ -606,14 +708,68 @@ public class CombatServiceImpl implements CombatService {
         return vo;
     }
 
-    private Map<String, Object> calcDamage(int atk, int def, double critRate, double critDamage) {
+    private Map<String, Object> calcDamage(int atk, int def, double critRate, double critDamage,
+                                          double suppressionMult, String suppressionNote) {
         int baseDmg = Math.max(1, (int) Math.round(atk - def * 0.5));
         boolean crit = random.nextDouble() < critRate;
         int dmg = crit ? (int) Math.round(baseDmg * critDamage) : baseDmg;
+        dmg = Math.max(1, (int) Math.round(dmg * suppressionMult));
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("damage", dmg);
         result.put("critical", crit);
+        if (!suppressionNote.isEmpty()) {
+            result.put("suppressionNote", suppressionNote);
+        }
         return result;
+    }
+
+    /** 位格转数值: F=1, E=2, ..., SSS=9 */
+    private int rankToValue(String rank) {
+        if (rank == null) return 1;
+        return switch (rank.toUpperCase()) {
+            case "F" -> 1;
+            case "E" -> 2;
+            case "D" -> 3;
+            case "C" -> 4;
+            case "B" -> 5;
+            case "A" -> 6;
+            case "S" -> 7;
+            case "SS" -> 8;
+            case "SSS" -> 9;
+            default -> 1;
+        };
+    }
+
+    /** 叙事压制倍率: 检查攻击方对防御方的叙事克制关系 */
+    private double narrativeSuppressionMultiplier(
+            List<String> attackerStrongAgainst,
+            List<String> attackerWeakAgainst,
+            List<String> defenderTags) {
+        double mult = 1.0;
+        for (String strong : attackerStrongAgainst) {
+            if (defenderTags.contains(strong)) {
+                mult *= 1.4;
+                break;
+            }
+        }
+        for (String weak : attackerWeakAgainst) {
+            if (defenderTags.contains(weak)) {
+                mult *= 0.6;
+                break;
+            }
+        }
+        return mult;
+    }
+
+    /** 解析 JSON 字符串数组为 List<String> */
+    private List<String> parseStringList(String json) {
+        if (json == null || json.isBlank() || "null".equals(json))
+            return new ArrayList<>();
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<String>>() {});
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
     }
 
     @SuppressWarnings("unchecked")

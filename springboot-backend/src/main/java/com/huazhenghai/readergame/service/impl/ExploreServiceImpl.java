@@ -93,7 +93,7 @@ public class ExploreServiceImpl implements ExploreService {
     public void seedExplorationData() {
         try {
             Long count = eventMapper.selectCount(null);
-            if (count != null && count >= 40) {
+            if (count != null && count >= 70) {
                 log.info("Exploration events already seeded ({} events), skipping", count);
                 return;
             }
@@ -192,6 +192,9 @@ public class ExploreServiceImpl implements ExploreService {
         if (!checkUnlock(stats, unlockConditions))
             throw new BusinessException(ErrorCode.LOCATION_LOCKED, "该地点尚未解锁");
 
+        // 5a. 检查低等级地点是否有未完成的剧情事件
+        List<String> lowerUnfinishedStories = findLowerUnfinishedStories(locationKey, playerId);
+
         // 6. 获取可用事件 (按 event_rates_json 过滤类型，排除已触发的非可重复故事)
         Map<String, Object> stageProgress = parseJsonMap(player.getStageProgressJson());
         int storyPity = toInt(stageProgress.get("storyPity"), 0);
@@ -214,8 +217,15 @@ public class ExploreServiceImpl implements ExploreService {
             if (!checkRequiredConditions(stats, stageProgress, parseJsonMap(e.getRequiredConditionsJson()))) {
                 continue;
             }
+            // 低等级地点有未完成剧情 → 当前地点屏蔽 story/side_story 事件
+            if (!lowerUnfinishedStories.isEmpty() &&
+                ("story".equals(e.getEventType()) || "side_story".equals(e.getEventType()))) {
+                continue;
+            }
             availableEvents.add(e);
         }
+        // 记录屏蔽原因，供前端展示
+        final boolean storiesBlocked = !lowerUnfinishedStories.isEmpty();
 
         if (availableEvents.isEmpty())
             throw new BusinessException(ErrorCode.NO_AVAILABLE_EVENT, "该地点暂无可用的探索事件");
@@ -252,6 +262,8 @@ public class ExploreServiceImpl implements ExploreService {
             battleResult.put("progress_effects", new LinkedHashMap<>());
             battleResult.put("new_titles", new ArrayList<>());
             battleResult.put("stories_exhausted", storiesExhausted);
+            battleResult.put("stories_blocked", storiesBlocked);
+            battleResult.put("lower_unfinished", lowerUnfinishedStories);
             battleResult.put("player", buildPlayerSnapshot(player, stats, stageProgress));
             battleResult.put("new_logs", new ArrayList<>());
             return battleResult;
@@ -322,6 +334,8 @@ public class ExploreServiceImpl implements ExploreService {
         result.put("progress_effects", appliedProgress);
         result.put("new_titles", newTitles);
         result.put("stories_exhausted", storiesExhausted);
+        result.put("stories_blocked", storiesBlocked);
+        result.put("lower_unfinished", lowerUnfinishedStories);
 
         // 玩家快照
         Map<String, Object> playerSnapshot = buildPlayerSnapshot(player, stats, stageProgress);
@@ -388,6 +402,48 @@ public class ExploreServiceImpl implements ExploreService {
             }
         }
         return events.get(events.size() - 1);
+    }
+
+    // ─── 低等级地点未完成剧情检测 ───
+
+    private List<String> findLowerUnfinishedStories(String currentLocationKey, Long playerId) {
+        Location currentLocation = locationMapper.selectOne(
+                new QueryWrapper<Location>().eq("location_key", currentLocationKey));
+        if (currentLocation == null || currentLocation.getMinLevel() == null) {
+            return Collections.emptyList();
+        }
+        int currentMinLevel = currentLocation.getMinLevel();
+
+        QueryWrapper<Location> locQw = new QueryWrapper<>();
+        locQw.lt("min_level", currentMinLevel);
+        List<Location> lowerLocations = locationMapper.selectList(locQw);
+        if (lowerLocations.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Player player = playerMapper.selectById(playerId);
+        Map<String, Object> stageProgress = parseJsonMap(player.getStageProgressJson());
+        @SuppressWarnings("unchecked")
+        List<String> triggeredEvents = (List<String>) stageProgress.getOrDefault(
+                "storyEventsTriggered", new ArrayList<>());
+
+        List<String> result = new ArrayList<>();
+        for (Location loc : lowerLocations) {
+            QueryWrapper<ExplorationEvent> evQw = new QueryWrapper<>();
+            evQw.eq("location_key", loc.getLocationKey())
+               .eq("event_type", "story")
+               .eq("enabled", 1);
+            List<ExplorationEvent> storyEvents = eventMapper.selectList(evQw);
+
+            long unfinishedCount = storyEvents.stream()
+                    .filter(e -> !triggeredEvents.contains(e.getEventKey()))
+                    .count();
+
+            if (unfinishedCount > 0) {
+                result.add(loc.getName() + "(" + unfinishedCount + ")");
+            }
+        }
+        return result;
     }
 
     // ─── 故事耗尽检测 ───
@@ -528,6 +584,40 @@ public class ExploreServiceImpl implements ExploreService {
             }
         }
 
+        // ── P0: 持久化解锁地点 ──
+        Map<String, Object> playerFlags = parseJsonMap(player.getStoryFlagsJson());
+        @SuppressWarnings("unchecked")
+        List<String> unlockedLocations = (List<String>) playerFlags.computeIfAbsent(
+                "unlocked_locations", k -> new ArrayList<>());
+        for (String locKey : unlockLocs) {
+            if (!unlockedLocations.contains(locKey)) {
+                unlockedLocations.add(locKey);
+            }
+        }
+        playerFlags.put("unlocked_locations", unlockedLocations);
+
+        // ── P0: 记录决策历史 ──
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> decisionHistory = (List<Map<String, Object>>) parseJsonList(
+                player.getDecisionHistoryJson());
+        if (decisionHistory == null) decisionHistory = new ArrayList<>();
+        Map<String, Object> decision = new LinkedHashMap<>();
+        decision.put("event_key", eventKey);
+        decision.put("event_name", event.getName());
+        decision.put("choice_index", choiceIndex);
+        decision.put("choice_label", chosen.get("label"));
+        decision.put("timestamp", LocalDateTime.now().toString());
+        decisionHistory.add(decision);
+        player.setDecisionHistoryJson(toJson(decisionHistory));
+
+        // ── P0: 记录路线历史 (防重复领奖) ──
+        @SuppressWarnings("unchecked")
+        List<String> routeHistory = (List<String>) stageProgress.computeIfAbsent(
+                "routeHistory", k -> new ArrayList<>());
+        if (!routeHistory.contains(eventKey)) {
+            routeHistory.add(eventKey);
+        }
+
         // 写入玩家故事日志
         PlayerStoryLog log = new PlayerStoryLog();
         log.setPlayerId(playerId);
@@ -543,12 +633,16 @@ public class ExploreServiceImpl implements ExploreService {
         } catch (Exception ignored) {}
         storyLogMapper.insert(log);
 
+        // ── P0: 章节/阶段推进 ──
+        advanceChapter(player, stageProgress, event);
+
         // 日志
         playerLogService.addLog(playerId, "story", "你选择了: " + chosen.get("label"));
 
         // 保存玩家
         try {
             player.setStageProgressJson(objectMapper.writeValueAsString(stageProgress));
+            player.setStoryFlagsJson(objectMapper.writeValueAsString(playerFlags));
         } catch (Exception ignored) {}
         playerMapper.updateById(player);
 
@@ -624,6 +718,37 @@ public class ExploreServiceImpl implements ExploreService {
             if (!acquiredEquip.isEmpty()) applied.put("equipment", acquiredEquip);
         }
         return applied;
+    }
+
+    // ─── P0: 章节推进 ───
+
+    @SuppressWarnings("unchecked")
+    private void advanceChapter(Player player, Map<String, Object> stageProgress, ExplorationEvent event) {
+        // 从事件的 stage_key 或 progress_effects 推断章节信息
+        String stageKey = event.getStageKey();
+        if (stageKey == null || stageKey.isBlank()) return;
+
+        // 更新 current_stage
+        player.setCurrentStage(stageKey);
+
+        // 统计该章节已完成的 story 事件数
+        Map<String, Integer> chapterEventCounts = (Map<String, Integer>) stageProgress.get("chapterEventCounts");
+        if (chapterEventCounts == null) {
+            chapterEventCounts = new LinkedHashMap<>();
+            stageProgress.put("chapterEventCounts", chapterEventCounts);
+        }
+        String chapterKey = event.getLocationKey() + "_ch" + extractChapterNum(stageKey);
+        int count = chapterEventCounts.getOrDefault(chapterKey, 0) + 1;
+        chapterEventCounts.put(chapterKey, count);
+
+        // 更新 current_chapter (简单策略: 基于 stageKey 前缀)
+        player.setCurrentChapter(chapterKey);
+    }
+
+    private int extractChapterNum(String stageKey) {
+        // 从 "ch01", "ch1", "chapter_1" 等格式提取数字
+        String num = stageKey.replaceAll("[^0-9]", "");
+        try { return Integer.parseInt(num); } catch (NumberFormatException e) { return 1; }
     }
 
     // ─── 故事回顾 ───
@@ -893,12 +1018,13 @@ public class ExploreServiceImpl implements ExploreService {
 
     private String mapEventTypeToLogType(String eventType) {
         switch (eventType) {
-            case "story":       return "story";
-            case "resource":    return "exploration";
-            case "opportunity": return "exploration";
-            case "boss_clue":   return "milestone";
-            case "empty":       return "info";
-            default:            return "exploration";
+            case "story":                return "story";
+            case "resource":             return "exploration";
+            case "opportunity":          return "exploration";
+            case "boss_clue":            return "milestone";
+            case "empty":                return "info";
+            case "battle_placeholder":   return "battle";
+            default:                     return "exploration";
         }
     }
 

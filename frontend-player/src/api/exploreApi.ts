@@ -3,6 +3,7 @@ import type { ApiRecord } from '@/types/api';
 
 export interface ExploreResult {
   result_type: string;
+  monster_key?: string;
   result: {
     event_key: string;
     event_type: string;
@@ -14,6 +15,8 @@ export interface ExploreResult {
   progress_effects: Record<string, unknown>;
   new_titles: unknown[];
   stories_exhausted: boolean;
+  stories_blocked?: boolean;
+  lower_unfinished?: string[];
   player?: ApiRecord;
   new_logs?: unknown[];
 }
@@ -55,9 +58,33 @@ export interface StoryLogEntry {
   }[];
 }
 
+export interface MapNode {
+  id: string;
+  name: string;
+  description: string;
+  minLevel: number;
+  dangerLevel: number;
+  recommendedRank: string;
+  unlocked: boolean;
+  completed: boolean;
+  totalStories: number;
+  triggeredStories: number;
+  x: number;
+  y: number;
+  type: 'main' | 'side' | 'hidden' | 'boss';
+  volume: number;
+  chapter: number;
+  chapterName: string;
+  keyItems: string[];
+  connectedTo: string[];
+}
+
 export const exploreApi = {
   getLocations(playerId: number) {
     return http.get<unknown, ApiRecord>(`/explore/locations/${playerId}`);
+  },
+  getMapNodes(playerId: number) {
+    return http.get<unknown, { nodes: MapNode[] }>(`/explore/map-nodes/${playerId}`);
   },
   startExplore(playerId: number, locationKey?: string) {
     return http.post<unknown, ExploreResult>('/explore/start', { playerId, locationKey });

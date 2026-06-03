@@ -1,5 +1,6 @@
 package com.huazhenghai.readergame.vo;
 
+import java.util.List;
 import java.util.Map;
 
 public class MonsterVO {
@@ -14,6 +15,7 @@ public class MonsterVO {
     private Map<String, Object> skills;
     private Map<String, Object> rewards;
     private Map<String, Object> drops;
+    private List<String> narrativeTags;
     private boolean enabled;
 
     public String getMonsterKey() { return monsterKey; }
@@ -45,6 +47,9 @@ public class MonsterVO {
 
     public Map<String, Object> getDrops() { return drops; }
     public void setDrops(Map<String, Object> drops) { this.drops = drops; }
+
+    public List<String> getNarrativeTags() { return narrativeTags; }
+    public void setNarrativeTags(List<String> narrativeTags) { this.narrativeTags = narrativeTags; }
 
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }

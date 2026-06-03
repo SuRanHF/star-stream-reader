@@ -2,7 +2,7 @@
 -- Phase 5C 怪物种子数据
 -- ============================================================
 
-INSERT IGNORE INTO `monsters` (`monster_key`, `name`, `type`, `rarity`, `location_key`, `description`, `stats_json`, `skills_json`, `rewards_json`, `drops_json`, `enabled`)
+INSERT IGNORE INTO `monsters` (`monster_key`, `name`, `type`, `rarity`, `location_key`, `description`, `stats_json`, `skills_json`, `rewards_json`, `drops_json`, `narrative_tags_json`, `enabled`)
 VALUES
 
 -- 1. 变异站鼠 (废弃车站)
@@ -12,6 +12,7 @@ VALUES
  '[]',
  '{"exp":8,"coins":8,"storyFragments":0}',
  '{"items":[{"itemKey":"stamina_bread","quantity":1,"dropRate":0.2}]}',
+ '["beast"]',
  1),
 
 -- 2. 破碎化身影子 (废弃车站)
@@ -21,6 +22,7 @@ VALUES
  '[]',
  '{"exp":12,"coins":12,"storyFragments":1}',
  '{"items":[{"itemKey":"first_aid_bandage","quantity":1,"dropRate":0.15}],"equipment":[{"equipmentKey":"broken_pipe","dropRate":0.05}]}',
+ '["abyss","corrupted"]',
  1),
 
 -- 3. 车站看门人残影 (废弃车站 - 精英)
@@ -30,6 +32,7 @@ VALUES
  '[]',
  '{"exp":25,"coins":30,"storyFragments":2,"channelHeat":5}',
  '{"items":[{"itemKey":"station_keeper_trace","quantity":1,"dropRate":0.5}],"equipment":[{"equipmentKey":"cracked_watcher_badge","dropRate":0.08}]}',
+ '["king","guardian"]',
  1),
 
 -- 4. 商场饥饿回响 (断裂商场)
@@ -39,4 +42,5 @@ VALUES
  '[]',
  '{"exp":28,"coins":35,"storyFragments":1}',
  '{"items":[{"itemKey":"story_fragment_core","quantity":1,"dropRate":0.2}],"equipment":[{"equipmentKey":"reader_scrap_blade","dropRate":0.05}]}',
+ '["starstream","starving"]',
  1);

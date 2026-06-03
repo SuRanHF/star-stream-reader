@@ -40,6 +40,9 @@ public class Monster {
     @TableField("drops_json")
     private String dropsJson;
 
+    @TableField("narrative_tags_json")
+    private String narrativeTagsJson;
+
     private Integer enabled;
 
     @TableField("created_at")
@@ -84,6 +87,9 @@ public class Monster {
 
     public String getDropsJson() { return dropsJson; }
     public void setDropsJson(String dropsJson) { this.dropsJson = dropsJson; }
+
+    public String getNarrativeTagsJson() { return narrativeTagsJson; }
+    public void setNarrativeTagsJson(String narrativeTagsJson) { this.narrativeTagsJson = narrativeTagsJson; }
 
     public Integer getEnabled() { return enabled; }
     public void setEnabled(Integer enabled) { this.enabled = enabled; }

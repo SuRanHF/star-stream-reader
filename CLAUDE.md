@@ -2,63 +2,85 @@
 
 ## 项目概况
 
-全知读者视角 是一个后端+前端的文字冒险游戏。后端 Express + SQLite，前端 HTML + CSS + Vanilla JS。
+全知读者视角 — 文字冒险游戏。后端 Spring Boot 3.2.5 + MySQL + MyBatis-Plus，前端 Vue 3 + TypeScript + Vite。
+
+```
+reader-scenario-game/
+├── springboot-backend/     # Spring Boot 3.2.5 + MySQL + MyBatis-Plus (端口 8080)
+├── frontend-player/        # Vue 3 + TypeScript + Vite (玩家端, 端口 5173)
+├── frontend-admin/         # Vue 3 + TypeScript + Vite (管理后台, 待建)
+└── docs/                   # 设计文档
+```
+
+后端 31 个 Controller，前端 8 个 Pinia Store + 24 个 API 模块 + 38 个 Vue 组件。
 
 ## Project Rules
 
 - 后端负责所有业务逻辑和校验。
 - 前端只负责展示和交互，不存储关键游戏状态。
-- 剧情数据存储在 SQLite 中，不硬编码在 DOM 事件里。
-- 使用项目级 subagents 分工：backend-architect, database-designer, story-system-designer, title-ending-designer, frontend-implementer, qa-reviewer。
+- 使用项目级 subagents 分工。
 - 不复制受版权保护的小说正文。
 - 不爬取受保护的小说网站。
-- 不绕过 Cloudflare 或反爬机制。
-- routeHistory 必须防止重复领奖。
-- 称号必须影响玩法，不能只是展示文本。
 - 后端必须校验选项合法性，不能只依赖前端禁用按钮。
-- 用户导入的文本只作为草稿内容，不作为默认数据。
+- 称号必须影响玩法，不能只是展示文本。
 
 ## 技术约定
 
-- `better-sqlite3` 为同步 API，服务层直接返回结果，无需 async/await。
-- 路由层用 try/catch 包装，统一返回 `{ code, message }` 错误格式。
-- JSON 字段在服务层解析和序列化，路由层只传原生对象。
-- 数据库种子数据只在 chapters 表为空时执行一次。
-- 前端 JS 模块使用 const 对象挂载在全局作用域（不使用 ES module）。
+### 后端 (Spring Boot)
+- Spring Boot 3.2.5 + MySQL 8.0 + MyBatis-Plus 3.5.5
+- 统一返回 `ApiResponse<T>` 格式：`{ code: 200, message: "success", data: ... }`
+- 认证：JWT token（`LoginUserContext`），`@ConstellationRequired` AOP 校验星座
+- 种子数据通过 `src/main/resources/db/seed_*.json` 自动播种
+- 管理端点鉴权：角色="admin" 或 `X-Admin-Key` 请求头
+- 端口 8080，context-path: `/api`
 
-## 文件职责
+### 前端玩家端 (Vue 3)
+- Vue 3 Composition API (`<script setup lang="ts">`)
+- Pinia Setup Store 风格
+- Axios 拦截器：自动注入 JWT，401 跳转登录
+- 路径别名 `@/` → `src/`
+- TailwindCSS + 自定义深空主题 CSS 变量
+- Token 存储：localStorage key `lingverse_token`
+- 端口 5173
 
-| 文件 | 职责 |
+### 前端管理后台 (Vue 3, 待建)
+- 与玩家端技术栈一致
+- 端口 5174
+- 鉴权：JWT (role=admin) + X-Admin-Key 双通道
+
+## 文件职责 (后端)
+
+| 目录 | 职责 |
 |------|------|
-| `server.js` | Express 启动、中间件、路由挂载、seed 调用 |
-| `db/database.js` | SQLite 连接管理、schema 初始化 |
-| `routes/*.js` | 请求解析、参数校验、调用服务、返回 JSON |
-| `services/storyService.js` | 章节获取、选项校验（五重规则）、选项执行 |
-| `services/playerService.js` | 玩家 CRUD、状态更新、日志追加 |
-| `services/titleService.js` | 称号解锁条件评估、互斥检查 |
-| `services/endingService.js` | 结局条件评估、优先级排序 |
-| `services/saveService.js` | 存档创建、列表、加载 |
-| `public/src/api.js` | fetch 封装 |
-| `public/src/ui.js` | DOM 渲染函数 |
-| `public/src/gameClient.js` | 游戏状态机 |
-| `public/src/storage.js` | localStorage 缓存 |
-| `public/src/main.js` | DOMContentLoaded 入口 |
+| `config/` | Spring 配置、CORS、MyBatis-Plus 分页 |
+| `security/` | JWT 过滤器、LoginUserContext、ConstellationRequiredAspect |
+| `controller/` | REST 控制器（31 个） |
+| `service/impl/` | 业务逻辑实现 |
+| `mapper/` | MyBatis-Plus Mapper 接口 |
+| `entity/` | 数据库实体类 |
+| `model/` | DTO/Request/Response 模型 |
+| `websocket/` | WebSocket 实时通信 |
+
+## 文件职责 (前端)
+
+| 目录 | 职责 |
+|------|------|
+| `src/api/` | Axios 封装 + 24 个 API 模块 |
+| `src/stores/` | Pinia Store（auth, game, chat, quest, realtime 等） |
+| `src/components/` | Vue 组件（按功能域分包） |
+| `src/components/panels/ConnectedPanel.vue` | 通用面板引擎（驱动 23 个子面板） |
+| `src/views/` | 页面级组件 |
+| `src/layouts/GameLayout.vue` | 游戏主布局 |
+| `src/router/` | Vue Router + 导航守卫 |
+| `src/realtime/realtimeClient.ts` | WebSocket 客户端 |
+| `src/styles/` | 全局样式 + 深空主题 CSS 变量 |
 
 ## Validation
 
 Before finishing, verify:
-- npm install 成功。
-- npm start 启动后端，无报错。
-- SQLite 数据库自动创建并完成 seed。
-- 浏览器打开 localhost:3000 页面能进入游戏。
-- 能创建玩家。
-- 能读取当前章节并看到选项。
-- 点击选择能推动剧情。
-- 已选路线灰显锁定。
-- 后端拒绝重复选择。
-- 刷新页面进度不丢失。
-- 称号在满足条件后解锁。
-- 结局在终章正确触发。
-- 存档/读档正常。
-- README.md 和 CLAUDE.md 完整。
+- 后端 mvn compile 通过。
+- 后端启动无报错（端口 8080）。
+- 前端 npm run dev 启动无报错。
+- 浏览器打开 localhost:5173 能登录进入游戏。
+- 核心流程：探索→战斗→奖励 全链路贯通。
 - 浏览器控制台无明显报错。

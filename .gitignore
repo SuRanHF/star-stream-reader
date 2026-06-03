@@ -17,3 +17,7 @@ authorized_content/*
 !authorized_content/README.md
 !authorized_content/.gitkeep
 public/fonts/*.woff2
+*.png
+*.jpg
+!.gitkeep
+.playwright-mcp/

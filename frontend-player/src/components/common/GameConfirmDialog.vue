@@ -46,40 +46,42 @@ const ui = useUiStore();
   position: fixed;
   inset: 0;
   z-index: 999;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(4, 8, 18, 0.7);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: lingDialogFadeIn 0.15s ease;
+  animation: lingDialogFadeIn 0.2s ease;
 }
 @keyframes lingDialogFadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 .ling-dialog-box {
-  background: #1a1e2b;
-  border: 1px solid #2e3345;
-  border-radius: 12px;
-  padding: 24px 28px;
+  background: linear-gradient(180deg, rgba(13, 20, 48, 0.97), rgba(7, 11, 26, 0.98));
+  border: 1px solid var(--color-system-border);
+  border-radius: var(--radius-lg);
+  padding: 26px 30px;
   min-width: 320px;
   max-width: 420px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  animation: lingDialogSlideIn 0.2s ease;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(74, 143, 231, 0.08);
+  animation: lingDialogSlideIn 0.25s var(--ease-out-expo);
 }
 @keyframes lingDialogSlideIn {
-  from { transform: translateY(12px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from { transform: translateY(16px) scale(0.96); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
 }
 .ling-dialog-title {
-  color: #e2e8f0;
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0 0 10px;
+  color: var(--color-system-bright);
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0 0 12px;
+  text-shadow: 0 0 8px rgba(74, 143, 231, 0.2);
 }
 .ling-dialog-msg {
-  color: #94a3b8;
-  font-size: 14px;
-  line-height: 1.6;
+  color: var(--color-text-dim);
+  font-size: 13px;
+  line-height: 1.65;
   margin: 0 0 22px;
 }
 .ling-dialog-actions {
@@ -88,60 +90,55 @@ const ui = useUiStore();
   gap: 10px;
 }
 .ling-dialog-btn {
-  padding: 8px 22px;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 9px 24px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
   cursor: pointer;
-  border: 1px solid transparent;
-  transition: background 0.15s;
+  border: 1px solid;
+  transition: all var(--duration-fast);
+  font-weight: 500;
 }
 .ling-dialog-btn-cancel {
-  background: #2e3345;
-  color: #94a3b8;
+  background: transparent;
+  border-color: var(--color-border);
+  color: var(--color-muted);
 }
 .ling-dialog-btn-cancel:hover {
-  background: #3d4258;
+  border-color: var(--color-border-bright);
+  color: var(--color-text-dim);
+  background: rgba(255,255,255,0.02);
 }
 .ling-dialog-btn-ok {
-  background: #3b82f6;
-  color: #fff;
+  background: rgba(74, 143, 231, 0.1);
+  border-color: var(--color-system-border);
+  color: var(--color-system-bright);
 }
 .ling-dialog-btn-ok:hover {
-  background: #2563eb;
+  background: rgba(74, 143, 231, 0.2);
+  border-color: var(--color-system);
+  box-shadow: var(--glow-system);
 }
 .ling-dialog-details {
   list-style: none;
-  padding: 0;
+  padding: 12px 14px;
   margin: 0 0 18px;
+  background: rgba(7, 11, 26, 0.4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 }
 .ling-dialog-details li {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 0;
-  font-size: 13px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 7px 0;
+  font-size: 12px;
+  border-bottom: 1px solid rgba(26, 38, 80, 0.4);
 }
-.ling-detail-check {
-  width: 16px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-.ling-detail-done .ling-detail-check {
-  color: #22c55e;
-}
-.ling-detail-pending .ling-detail-check {
-  color: #ef4444;
-}
-.ling-detail-label {
-  flex: 1;
-  color: #cbd5e1;
-}
-.ling-detail-done .ling-detail-label {
-  color: #94a3b8;
-}
-.ling-detail-progress {
-  color: #64748b;
-  font-variant-numeric: tabular-nums;
-}
+.ling-dialog-details li:last-child { border-bottom: none; }
+.ling-detail-check { width: 18px; font-weight: 700; flex-shrink: 0; }
+.ling-detail-done .ling-detail-check { color: var(--color-spirit); }
+.ling-detail-pending .ling-detail-check { color: var(--color-danger); }
+.ling-detail-label { flex: 1; color: var(--color-text); }
+.ling-detail-done .ling-detail-label { color: var(--color-text-dim); }
+.ling-detail-progress { color: var(--color-muted); font-variant-numeric: tabular-nums; }
 </style>

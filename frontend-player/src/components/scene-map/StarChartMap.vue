@@ -3,10 +3,10 @@ import { ref, computed } from 'vue';
 import { starChartNodes, type SceneNode } from './mockData';
 
 const VOLUME_COLORS: Record<number, string> = {
-  1: '#caa86a',
-  2: '#d97b6c',
-  3: '#8db8d8',
-  4: '#98c9bb',
+  1: '#a0b0f0',
+  2: '#e07070',
+  3: '#7ab0f7',
+  4: '#5ec49e',
 };
 
 const TYPE_ICONS: Record<string, string> = {
@@ -174,16 +174,16 @@ function resetView() {
         <!-- background grid -->
         <defs>
           <radialGradient id="glow-main" cx="50%" cy="50%">
-            <stop offset="0%" stop-color="#caa86a" stop-opacity="0.3" />
-            <stop offset="100%" stop-color="#caa86a" stop-opacity="0" />
+            <stop offset="0%" stop-color="#a0b0f0" stop-opacity="0.25" />
+            <stop offset="100%" stop-color="#a0b0f0" stop-opacity="0" />
           </radialGradient>
           <radialGradient id="glow-boss" cx="50%" cy="50%">
-            <stop offset="0%" stop-color="#d97b6c" stop-opacity="0.35" />
-            <stop offset="100%" stop-color="#d97b6c" stop-opacity="0" />
+            <stop offset="0%" stop-color="#e07070" stop-opacity="0.3" />
+            <stop offset="100%" stop-color="#e07070" stop-opacity="0" />
           </radialGradient>
           <radialGradient id="glow-hidden" cx="50%" cy="50%">
-            <stop offset="0%" stop-color="#98c9bb" stop-opacity="0.4" />
-            <stop offset="100%" stop-color="#98c9bb" stop-opacity="0" />
+            <stop offset="0%" stop-color="#5ec49e" stop-opacity="0.35" />
+            <stop offset="100%" stop-color="#5ec49e" stop-opacity="0" />
           </radialGradient>
           <filter id="star-glow">
             <feGaussianBlur stdDeviation="3" result="blur" />
@@ -193,15 +193,15 @@ function resetView() {
 
         <!-- grid pattern -->
         <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
-          <circle cx="30" cy="30" r="0.8" fill="#28343d" opacity="0.5" />
+          <circle cx="30" cy="30" r="0.8" fill="#3a4a7a" opacity="0.35" />
         </pattern>
         <rect :x="viewBox.x - 200" :y="viewBox.y - 200" :width="viewBox.w + 400" :height="viewBox.h + 400" fill="url(#grid)" />
 
         <!-- volume zone labels -->
-        <text x="400" y="530" fill="#caa86a" opacity="0.15" font-size="48" font-weight="900">第一卷</text>
-        <text x="100" y="160" fill="#d97b6c" opacity="0.15" font-size="48" font-weight="900">第二卷</text>
-        <text x="520" y="620" fill="#8db8d8" opacity="0.15" font-size="48" font-weight="900">第三卷</text>
-        <text x="300" y="50" fill="#98c9bb" opacity="0.15" font-size="48" font-weight="900">第四卷</text>
+        <text x="400" y="530" fill="#a0b0f0" opacity="0.1" font-size="48" font-weight="900">第一卷</text>
+        <text x="100" y="160" fill="#e07070" opacity="0.1" font-size="48" font-weight="900">第二卷</text>
+        <text x="520" y="620" fill="#7ab0f7" opacity="0.1" font-size="48" font-weight="900">第三卷</text>
+        <text x="300" y="50" fill="#5ec49e" opacity="0.1" font-size="48" font-weight="900">第四卷</text>
 
         <!-- edges -->
         <line
@@ -209,7 +209,7 @@ function resetView() {
           :key="'e' + i"
           :x1="edge.from.x" :y1="edge.from.y"
           :x2="edge.to.x" :y2="edge.to.y"
-          :stroke="VOLUME_COLORS[edge.from.volume] || '#4a5a5d'"
+          :stroke="VOLUME_COLORS[edge.from.volume] || '#4a5a7a'"
           :stroke-opacity="edge.from.unlocked && edge.to.unlocked ? 0.5 : 0.15"
           :stroke-dasharray="edge.from.unlocked && edge.to.unlocked ? 'none' : '6 4'"
           stroke-width="1.5"
@@ -233,8 +233,8 @@ function resetView() {
           <!-- main body -->
           <circle
             r="16"
-            :fill="node.unlocked ? '#11181d' : '#0a0e10'"
-            :stroke="VOLUME_COLORS[node.volume] || '#4a5a5d'"
+            :fill="node.unlocked ? '#0d1428' : '#070b1a'"
+            :stroke="VOLUME_COLORS[node.volume] || '#4a5a7a'"
             :stroke-width="node.id === selectedId ? 3 : 1.5"
             :stroke-opacity="node.unlocked ? 0.9 : 0.3"
             :filter="node.unlocked ? 'url(#star-glow)' : ''"
@@ -243,14 +243,14 @@ function resetView() {
           <text
             text-anchor="middle"
             dy="5"
-            :fill="node.unlocked ? (VOLUME_COLORS[node.volume] || '#7e9292') : '#3a4545'"
+            :fill="node.unlocked ? (VOLUME_COLORS[node.volume] || '#6a7a9a') : '#4a5588'"
             font-size="14"
           >{{ TYPE_ICONS[node.type] }}</text>
           <!-- label -->
           <text
             text-anchor="middle"
             dy="32"
-            :fill="node.unlocked ? '#c9d8d5' : '#4a5555'"
+            :fill="node.unlocked ? '#d0d8f0' : '#5a6688'"
             font-size="11"
             opacity="0.9"
           >{{ node.name }}</text>
@@ -259,7 +259,7 @@ function resetView() {
             v-if="node.completed"
             text-anchor="middle"
             dy="-22"
-            fill="#98c9bb"
+            fill="#5ec49e"
             font-size="11"
           >✓</text>
         </g>
@@ -270,7 +270,7 @@ function resetView() {
 
     <!-- side detail panel -->
     <aside v-if="selectedNode" class="sc-detail">
-      <h3 :style="{ color: VOLUME_COLORS[selectedNode.volume] || '#caa86a' }">
+      <h3 :style="{ color: VOLUME_COLORS[selectedNode.volume] || '#7ab0f7' }">
         {{ TYPE_ICONS[selectedNode.type] }} {{ selectedNode.name }}
       </h3>
       <div class="sc-meta">
@@ -312,37 +312,37 @@ function resetView() {
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  border-bottom: 1px solid #1e2a33;
+  border-bottom: 1px solid rgba(26, 38, 80, 0.45);
   flex-wrap: wrap;
 }
 
 .sc-filters button {
   padding: 3px 12px;
-  border: 1px solid #28343d;
+  border: 1px solid rgba(38, 56, 120, 0.3);
   border-radius: 3px;
-  background: #0f1519;
-  color: #7e9292;
+  background: rgba(13, 20, 48, 0.5);
+  color: #6a7a9a;
   font-size: 12px;
   cursor: pointer;
   transition: all 0.15s;
 }
 .sc-filters button:hover {
-  border-color: #4a5a5d;
-  color: #c9d8d5;
+  border-color: rgba(74, 143, 231, 0.35);
+  color: #b0bdd0;
 }
 .sc-filters button.active {
-  border-color: #caa86a;
-  color: #caa86a;
-  background: rgba(202, 168, 106, 0.08);
+  border-color: var(--color-system, #4a8fe7);
+  color: var(--color-system-bright, #7ab0f7);
+  background: rgba(74, 143, 231, 0.1);
 }
 .sc-filters .sep {
-  color: #28343d;
+  color: rgba(26, 38, 80, 0.5);
   margin: 0 4px;
 }
 .sc-filters .sc-reset {
   margin-left: auto;
-  color: #d97b6c;
-  border-color: #3a2a28;
+  color: #e07070;
+  border-color: rgba(200, 80, 80, 0.3);
 }
 
 .sc-canvas-wrap {
@@ -350,7 +350,7 @@ function resetView() {
   position: relative;
   overflow: hidden;
   cursor: grab;
-  background: radial-gradient(ellipse at 40% 50%, #151b20 0%, #080b0d 100%);
+  background: radial-gradient(ellipse at 40% 50%, rgba(13, 20, 48, 0.6) 0%, #070b1a 100%);
 }
 .sc-canvas-wrap:active {
   cursor: grabbing;
@@ -367,13 +367,16 @@ function resetView() {
   transition: opacity 0.2s;
 }
 .star-node.is-locked {
-  opacity: 0.45;
+  opacity: 0.4;
 }
 .star-node.is-locked:hover {
-  opacity: 0.65;
+  opacity: 0.6;
 }
 .star-node.is-unlocked:hover circle:first-of-type {
   filter: url(#star-glow);
+}
+.star-node.is-selected circle:nth-child(2) {
+  filter: drop-shadow(0 0 6px rgba(74, 143, 231, 0.4));
 }
 
 .sc-zoom-hint {
@@ -381,13 +384,13 @@ function resetView() {
   bottom: 10px;
   right: 14px;
   font-size: 11px;
-  color: #3a4545;
+  color: #4a5588;
   pointer-events: none;
 }
 
 .sc-detail {
-  border-top: 1px solid #1e2a33;
-  background: #0f1519;
+  border-top: 1px solid rgba(38, 56, 120, 0.35);
+  background: linear-gradient(180deg, rgba(13, 20, 48, 0.98), rgba(7, 11, 26, 0.99));
   padding: 16px 20px;
   max-height: 220px;
   overflow-y: auto;
@@ -410,50 +413,52 @@ function resetView() {
   border-radius: 2px;
   border: 1px solid;
 }
-.sc-badge.main { color: #caa86a; border-color: #554b34; }
-.sc-badge.side { color: #8db8d8; border-color: #2d3a4a; }
-.sc-badge.hidden { color: #98c9bb; border-color: #2a3a35; }
-.sc-badge.boss { color: #d97b6c; border-color: #3a2a28; }
-.sc-volume-tag { font-size: 12px; color: #7e9292; }
-.sc-level { font-size: 12px; color: #caa86a; }
-.sc-danger { font-size: 11px; color: #d97b6c; }
+.sc-badge.main { color: var(--color-system-bright, #7ab0f7); border-color: rgba(74, 143, 231, 0.3); }
+.sc-badge.side { color: #7ab0f7; border-color: rgba(74, 143, 231, 0.3); }
+.sc-badge.hidden { color: #5ec49e; border-color: rgba(94, 196, 158, 0.3); }
+.sc-badge.boss { color: #e07070; border-color: rgba(200, 80, 80, 0.3); }
+.sc-volume-tag { font-size: 12px; color: #6a7a9a; }
+.sc-level { font-size: 12px; color: var(--color-system-bright, #7ab0f7); }
+.sc-danger { font-size: 11px; color: #e07070; }
 .sc-desc {
   margin: 0 0 10px;
   font-size: 13px;
-  color: #9aaca8;
+  color: #8898b8;
   line-height: 1.6;
 }
 .sc-chapter-info {
   font-size: 12px;
-  color: #7e9292;
+  color: #6a7a9a;
   margin-bottom: 8px;
 }
 .sc-items { margin-bottom: 10px; }
-.sc-items-label { font-size: 12px; color: #7e9292; }
+.sc-items-label { font-size: 12px; color: #6a7a9a; }
 .sc-item-tag {
   display: inline-block;
   padding: 1px 8px;
   margin: 2px 4px 2px 0;
-  border: 1px solid #28343d;
+  border: 1px solid rgba(38, 56, 120, 0.3);
   border-radius: 2px;
   font-size: 11px;
-  color: #98c9bb;
-  background: rgba(152, 201, 187, 0.05);
+  color: #5ec49e;
+  background: rgba(94, 196, 158, 0.06);
 }
 .sc-status { margin-bottom: 10px; font-size: 13px; }
-.sc-done { color: #98c9bb; }
-.sc-available { color: #caa86a; }
-.sc-locked { color: #4a5555; }
+.sc-done { color: #5ec49e; }
+.sc-available { color: #7ab0f7; }
+.sc-locked { color: #5a6688; }
 .sc-enter-btn {
   padding: 6px 24px;
-  border: 1px solid #caa86a;
+  border: 1px solid var(--color-system, #4a8fe7);
   border-radius: 3px;
-  background: rgba(202, 168, 106, 0.1);
-  color: #caa86a;
+  background: rgba(74, 143, 231, 0.1);
+  color: var(--color-system-bright, #7ab0f7);
   font-size: 13px;
   cursor: pointer;
+  transition: all 0.2s;
 }
 .sc-enter-btn:hover {
-  background: rgba(202, 168, 106, 0.2);
+  background: rgba(74, 143, 231, 0.22);
+  box-shadow: 0 0 12px rgba(74, 143, 231, 0.15);
 }
 </style>

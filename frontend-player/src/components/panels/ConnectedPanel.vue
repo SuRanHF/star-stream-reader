@@ -1192,39 +1192,42 @@ onBeforeUnmount(() => {
     </form>
 
     <div v-if="!canLoadPanel(panel, playerId)" class="text-sm text-danger">缺少玩家信息，无法加载该面板。</div>
-    <div v-else-if="panelQuery.isLoading.value" class="text-sm text-star">正在读取星流数据...</div>
+    <div v-else-if="panelQuery.isLoading.value" class="flex items-center gap-3 text-sm" style="color: var(--color-star);">
+      <span class="inline-block w-3.5 h-3.5 border-2 border-star/30 border-t-star rounded-full animate-spin"></span>
+      正在读取星流数据...
+    </div>
     <div v-else-if="panelQuery.error.value" class="space-y-3 text-sm">
       <p class="text-danger">{{ panelQuery.error.value.message }}</p>
       <button class="rounded border border-line px-3 py-1 text-muted hover:text-spirit" @click="panelQuery.refetch()">重试</button>
     </div>
     <div v-else-if="panel === 'feedback'" class="text-sm text-muted">反馈内容只会在提交后写入后端。</div>
     <div v-else class="space-y-4">
-      <article v-for="block in blocks" :key="block.title" class="rounded border border-line/70 bg-black/10 p-3">
-        <div class="mb-3 flex items-baseline justify-between gap-3">
-          <h3 class="text-sm text-star">{{ block.title }}</h3>
-          <p v-if="block.description" class="text-xs text-muted">{{ block.description }}</p>
+      <article v-for="block in blocks" :key="block.title" class="rounded-md border p-4 transition-shadow duration-200 hover:shadow-[0_0_16px_rgba(74,143,231,0.06)]" style="border-color: var(--color-border); background: rgba(7,11,26,0.3);">
+        <div class="mb-3 flex items-baseline justify-between gap-3 border-b pb-2.5" style="border-color: var(--color-border);">
+          <h3 class="text-sm font-semibold tracking-wide" style="color: var(--color-system-bright, #7ab0f7); text-shadow: 0 0 8px rgba(74,143,231,0.15);">{{ block.title }}</h3>
+          <p v-if="block.description" class="text-xs" style="color: var(--color-muted);">{{ block.description }}</p>
         </div>
 
         <div v-if="block.stats?.length" class="mb-3 grid grid-cols-2 gap-2 text-xs md:grid-cols-4">
-          <div v-for="stat in block.stats" :key="`${block.title}-${stat.label}`" class="rounded border border-line/70 p-2">
-            <div class="text-muted">{{ stat.label }}</div>
-            <div class="mt-1 break-words text-spirit">{{ stat.value }}</div>
+          <div v-for="stat in block.stats" :key="`${block.title}-${stat.label}`" class="rounded-md border p-2.5" style="border-color: var(--color-border); background: rgba(7,11,26,0.25);">
+            <div style="color: var(--color-muted);">{{ stat.label }}</div>
+            <div class="mt-1 break-words" style="color: var(--color-spirit);">{{ stat.value }}</div>
             <div v-if="parseProgress(stat.label, String(stat.value))" class="ling-progress-bar">
               <div class="ling-progress-fill" :class="parseProgress(stat.label, String(stat.value))!.barClass" :style="{ width: parseProgress(stat.label, String(stat.value))!.pct + '%' }"></div>
             </div>
           </div>
         </div>
 
-        <p v-if="(!block.entries || block.entries.length === 0) && !block.stats?.length" class="text-sm text-muted">{{ block.emptyText || '暂无数据' }}</p>
+        <p v-if="(!block.entries || block.entries.length === 0) && !block.stats?.length" class="text-sm" style="color: var(--color-muted);">{{ block.emptyText || '暂无数据' }}</p>
 
         <div v-if="block.entries?.length" class="space-y-2">
-          <div v-for="entry in block.entries" :key="entry.id" class="rounded border border-line/60 bg-panel/40 p-3 text-sm">
+          <div v-for="entry in block.entries" :key="entry.id" class="rounded-md border p-3 text-sm transition-colors duration-150 hover:bg-white/[0.02]" style="border-color: var(--color-border); background: rgba(7,11,26,0.2);">
             <div class="flex flex-wrap items-start justify-between gap-3">
               <div class="min-w-0 flex-1">
                 <div class="break-words text-ink">{{ entry.title }}</div>
                 <p v-if="entry.subtitle" class="mt-1 break-words text-xs text-muted">{{ entry.subtitle }}</p>
                 <div v-if="entry.meta?.length" class="mt-2 flex flex-wrap gap-2 text-xs text-muted">
-                  <span v-for="meta in entry.meta" :key="meta" :class="['rounded border border-line/50 px-2 py-1', getDurabilityClass(meta)]">{{ meta }}</span>
+                  <span v-for="meta in entry.meta" :key="meta" :class="['rounded border px-2 py-1 text-xs', getDurabilityClass(meta)]" style="border-color: var(--color-border); color: var(--color-text-dim);">{{ meta }}</span>
                 </div>
               </div>
               <div v-if="entry.actions?.length" class="flex flex-wrap gap-2">
@@ -1249,8 +1252,8 @@ onBeforeUnmount(() => {
 
       <button v-if="panel === 'hiddenScene'" class="rounded border border-line px-3 py-2 text-sm text-muted hover:text-star" @click="emit('selectPanel', 'worldBoss')">前往灾厄战斗</button>
 
-      <div v-if="showGhostDialog && panel === 'explore'" class="mt-4 rounded border border-spirit/60 bg-spirit/10 p-4">
-        <h3 class="text-sm text-spirit mb-2">NPC残影</h3>
+      <div v-if="showGhostDialog && panel === 'explore'" class="mt-4 rounded-md border p-4" style="border-color: rgba(94, 196, 158, 0.3); background: rgba(94, 196, 158, 0.05);">
+        <h3 class="text-sm font-semibold mb-3" style="color: var(--color-spirit); text-shadow: 0 0 8px rgba(94, 196, 158, 0.2);">NPC残影</h3>
         <p class="text-sm text-ink mb-4 whitespace-pre-wrap">{{ ghostNarrative }}</p>
         <div v-if="ghostChoices.length" class="flex flex-wrap gap-2">
           <button v-for="c in ghostChoices" :key="c.index" class="rounded border border-line px-3 py-1 text-sm text-muted hover:text-star" :disabled="Boolean(actionBusy)" @click="selectGhostChoice(c.index)">{{ c.text }}</button>

@@ -1,14 +1,83 @@
+/* ═══════════════════════════════════════════
+   星流 · 设计令牌
+   韩式异世界 UI — 深蓝夜空 · 系统窗口 · 星辉蓝
+   ═══════════════════════════════════════════ */
+
 :root {
   color-scheme: dark;
-  --color-bg: #080b0d;
-  --color-panel: #11171b;
-  --color-panel-soft: #151b20;
-  --color-border: #28343d;
-  --color-border-bright: #4a5a5d;
-  --color-text: #c9d8d5;
-  --color-muted: #7e9292;
-  --color-star: #caa86a;
-  --color-spirit: #98c9bb;
-  --color-danger: #d97b6c;
-  --color-info: #8db8d8;
+
+  /* ── 背景色 (深蓝夜空) ── */
+  --color-void: #070b1a;              /* 虚空 — 最深背景 */
+  --color-abyss: #0a0f24;             /* 深渊 — 面板底 */
+  --color-panel: #0d1430;             /* 面板 — 主面板 */
+  --color-panel-elevated: #111a3a;    /* 悬浮面板 */
+  --color-surface: #151f45;           /* 表面 — 卡片/输入框 */
+
+  /* ── 边框 ── */
+  --color-border: #1a2650;            /* 默认边框 */
+  --color-border-bright: #253570;     /* 亮边框 */
+  --color-border-glow: #3a50a0;       /* 发光边框 */
+
+  /* ── 文字 ── */
+  --color-text: #c8d0e0;             /* 主文字 */
+  --color-text-dim: #8a96b8;         /* 次级文字 */
+  --color-muted: #5a6688;            /* 弱化文字 */
+
+  /* ── 系统蓝 (Dokkaebi 系统消息 / ORV 公告风格) ── */
+  --color-system: #4a8fe7;           /* 系统蓝 */
+  --color-system-glow: rgba(74, 143, 231, 0.25);
+  --color-system-bright: #6aafff;
+  --color-system-bg: rgba(74, 143, 231, 0.08);
+  --color-system-border: rgba(74, 143, 231, 0.35);
+
+  /* ── 星辉蓝 (星座/背后星/重要强调) ── */
+  --color-star: #6aafff;             /* 星辉蓝 */
+  --color-star-glow: rgba(106, 175, 255, 0.25);
+  --color-star-bright: #8ec8ff;
+  --color-star-bg: rgba(106, 175, 255, 0.08);
+  --color-star-border: rgba(106, 175, 255, 0.35);
+
+  /* ── 灵魄绿 (生命/体力/恢复) ── */
+  --color-spirit: #5ec49e;
+  --color-spirit-glow: rgba(94, 196, 158, 0.25);
+  --color-spirit-bright: #7edcb8;
+
+  /* ── 危险红 ── */
+  --color-danger: #e0556a;
+  --color-danger-glow: rgba(224, 85, 106, 0.25);
+
+  /* ── 紫气 (隐藏/特殊事件/寓言) ── */
+  --color-purple: #a080e0;
+  --color-purple-glow: rgba(160, 128, 224, 0.25);
+
+  /* ── 发光阴影 ── */
+  --glow-star: 0 0 12px rgba(106, 175, 255, 0.3), 0 0 3px rgba(106, 175, 255, 0.15);
+  --glow-system: 0 0 12px rgba(74, 143, 231, 0.3), 0 0 3px rgba(74, 143, 231, 0.15);
+  --glow-spirit: 0 0 10px rgba(94, 196, 158, 0.25);
+  --glow-danger: 0 0 10px rgba(224, 85, 106, 0.25);
+  --glow-purple: 0 0 12px rgba(160, 128, 224, 0.25);
+  --shadow-panel: 0 2px 24px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-float: 0 8px 32px rgba(0, 0, 0, 0.6);
+
+  /* ── 动画曲线 ── */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out-smooth: cubic-bezier(0.45, 0, 0.2, 1);
+  --duration-fast: 120ms;
+  --duration-normal: 200ms;
+  --duration-slow: 350ms;
+  --duration-glacial: 600ms;
+
+  /* ── 圆角 ── */
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+
+  /* ── 间距 ── */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
 }

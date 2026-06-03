@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { useQuery } from '@tanstack/vue-query';
 import { useGameStore } from '@/stores/gameStore';
 import { useUiStore } from '@/stores/uiStore';
 import { playerApi } from '@/api/playerApi';
 import { gameApi } from '@/api/gameApi';
-import { exploreApi } from '@/api/exploreApi';
+import { exploreApi, type MapNode } from '@/api/exploreApi';
+import { dangerTier } from '@/utils/sceneUtils';
 import StarChartMapCore from './StarChartMapCore.vue';
-import { starChartNodes, type SceneNode } from './mockData';
 
 const emit = defineEmits<{
   'close-panel': [];
@@ -16,16 +17,37 @@ const gameStore = useGameStore();
 const uiStore = useUiStore();
 
 const mapRef = ref<InstanceType<typeof StarChartMapCore>>();
-const selectedNode = ref<SceneNode | null>(null);
+const selectedNode = ref<MapNode | null>(null);
 
 const activeVolume = ref(0);
 const activeType = ref('all');
 const switching = ref(false);
 
+// P1: 从 API 获取真实星图节点数据
+const playerId = computed(() => Number(gameStore.player?.id || gameStore.player?.playerId || 0));
+const { data: mapNodesData } = useQuery({
+  queryKey: ['map-nodes', playerId],
+  queryFn: () => exploreApi.getMapNodes(playerId.value),
+  enabled: computed(() => playerId.value > 0),
+  staleTime: 10_000,
+});
+const starChartNodes = computed<MapNode[]>(() => mapNodesData.value?.nodes || []);
+
+const volumeProgress = computed(() => {
+  const nodes = starChartNodes.value;
+  const vols = [1, 2, 3, 4];
+  return vols.map(v => {
+    const volNodes = nodes.filter(n => n.volume === v);
+    const total = volNodes.length;
+    const completed = volNodes.filter(n => n.completed).length;
+    const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { volume: v, total, completed, pct };
+  });
+});
+
 const selectedNodeData = computed(() => {
   if (!selectedNode.value) return null;
-  const found = starChartNodes.find(n => n.id === selectedNode.value!.id);
-  return found || null;
+  return starChartNodes.value.find(n => n.id === selectedNode.value!.id) || null;
 });
 
 const isCurrentLocation = computed(() => {
@@ -33,8 +55,7 @@ const isCurrentLocation = computed(() => {
   const p = gameStore.player as Record<string, unknown> | null;
   const cur = gameStore.player?.currentLocation || gameStore.player?.currentLocationKey || p?.['current_location'] || '';
   return cur === selectedNodeData.value.name
-    || cur === selectedNodeData.value.id
-    || cur === (selectedNodeData.value as any).locationKey;
+    || cur === selectedNodeData.value.id;
 });
 
 function onNodeSelect(name: string) {
@@ -42,7 +63,7 @@ function onNodeSelect(name: string) {
     selectedNode.value = null;
     return;
   }
-  const node = starChartNodes.find(n => n.name === name);
+  const node = starChartNodes.value.find(n => n.name === name);
   selectedNode.value = node || null;
 }
 
@@ -65,7 +86,7 @@ async function switchToScene() {
   }
   switching.value = true;
   try {
-    const locationKey = (node as any).locationKey || node.name;
+    const locationKey = (node as any).locationKey || node.id;
 
     // 先从后端获取真实解锁状态
     let realUnlocked = node.unlocked; // fallback to mockData
@@ -150,9 +171,26 @@ async function switchToScene() {
       <button class="smp-close" @click="emit('close-panel')" title="关闭场景地图">✕</button>
     </div>
 
+    <!-- 卷进度 -->
+    <div class="smp-progress">
+      <div v-for="vp in volumeProgress" :key="'vp'+vp.volume" class="smp-prog-item">
+        <span class="smp-prog-label">第{{ vp.volume }}卷</span>
+        <div class="smp-prog-bar-wrap">
+          <div
+            class="smp-prog-fill"
+            :style="{
+              width: vp.pct + '%',
+              background: vp.volume === 1 ? '#a0b0f0' : vp.volume === 2 ? '#e07070' : vp.volume === 3 ? '#7ab0f7' : '#5ec49e',
+            }"
+          ></div>
+        </div>
+        <span class="smp-prog-stat">{{ vp.completed }}/{{ vp.total }}</span>
+      </div>
+    </div>
+
     <!-- 星图 -->
     <div class="smp-map">
-      <StarChartMapCore ref="mapRef" @node-select="onNodeSelect" />
+      <StarChartMapCore ref="mapRef" :nodes="starChartNodes" @node-select="onNodeSelect" />
     </div>
 
     <!-- 底部详情Sheet -->
@@ -165,7 +203,7 @@ async function switchToScene() {
               {{ { main: '主线', side: '支线', hidden: '隐藏', boss: 'Boss' }[selectedNodeData.type] }}
             </span>
             <span class="smp-tag lv">Lv.{{ selectedNodeData.minLevel }}+</span>
-            <span class="smp-tag danger">{{ '★'.repeat(selectedNodeData.dangerLevel) }}</span>
+            <span class="smp-tag danger" :style="{ color: dangerTier(selectedNodeData.dangerLevel).color, borderColor: dangerTier(selectedNodeData.dangerLevel).color + '66' }">⚡{{ dangerTier(selectedNodeData.dangerLevel).label }}级</span>
             <span v-if="selectedNodeData.completed" class="smp-done-mark">✓ 已完成</span>
             <span v-else-if="!selectedNodeData.unlocked" class="smp-lock-mark">🔒 未解锁</span>
           </div>
@@ -207,10 +245,10 @@ async function switchToScene() {
   align-items: center;
   gap: 8px;
   padding: 4px 14px;
-  border-bottom: 1px solid #1a242b;
-  background: #0a0e10;
+  border-bottom: 1px solid rgba(26, 38, 80, 0.35);
+  background: rgba(7, 11, 26, 0.6);
   font-size: 11px;
-  color: #4a5a5d;
+  color: var(--color-muted, #5a6688);
   flex-shrink: 0;
 }
 .smp-log-icon { flex-shrink: 0; }
@@ -226,54 +264,96 @@ async function switchToScene() {
   align-items: center;
   gap: 4px;
   padding: 5px 14px;
-  border-bottom: 1px solid #1e2a33;
+  border-bottom: 1px solid rgba(26, 38, 80, 0.45);
   overflow-x: auto;
   flex-shrink: 0;
 }
 .smp-chip {
   padding: 2px 10px;
-  border: 1px solid #28343d;
+  border: 1px solid rgba(38, 56, 120, 0.3);
   border-radius: 3px;
-  background: #0f1519;
-  color: #7e9292;
+  background: rgba(13, 20, 48, 0.5);
+  color: #6a7a9a;
   font-size: 11px;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.15s;
 }
-.smp-chip:hover { border-color: #4a5a5d; color: #c9d8d5; }
+.smp-chip:hover { border-color: rgba(74, 143, 231, 0.35); color: #b0bdd0; }
 .smp-chip.active {
-  border-color: #caa86a;
-  color: #caa86a;
-  background: rgba(202,168,106,0.08);
+  border-color: var(--color-system, #4a8fe7);
+  color: var(--color-system-bright, #7ab0f7);
+  background: rgba(74, 143, 231, 0.1);
 }
-.smp-fsep { color: #1e2a33; margin: 0 3px; font-size: 11px; }
+.smp-fsep { color: rgba(26, 38, 80, 0.5); margin: 0 3px; font-size: 11px; }
 .smp-reset {
   margin-left: auto;
   padding: 2px 10px;
-  border: 1px solid #28343d;
+  border: 1px solid rgba(38, 56, 120, 0.3);
   border-radius: 3px;
   background: transparent;
-  color: #7e9292;
+  color: #6a7a9a;
   font-size: 10px;
   cursor: pointer;
   white-space: nowrap;
 }
 .smp-close {
   padding: 2px 8px;
-  border: 1px solid #28343d;
+  border: 1px solid rgba(38, 56, 120, 0.3);
   border-radius: 3px;
   background: transparent;
-  color: #7e9292;
+  color: #6a7a9a;
   font-size: 12px;
   cursor: pointer;
   transition: all 0.15s;
   line-height: 1;
 }
 .smp-close:hover {
-  color: #d97b6c;
-  border-color: #3a2a28;
-  background: rgba(217, 123, 108, 0.08);
+  color: #e07070;
+  border-color: rgba(200, 80, 80, 0.3);
+  background: rgba(200, 80, 80, 0.08);
+}
+
+/* progress */
+.smp-progress {
+  display: flex;
+  gap: 4px;
+  padding: 3px 14px;
+  border-bottom: 1px solid rgba(26, 38, 80, 0.35);
+  background: rgba(7, 11, 26, 0.5);
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+.smp-prog-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.smp-prog-label {
+  font-size: 9px;
+  color: #5a6688;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.smp-prog-bar-wrap {
+  flex: 1;
+  height: 3px;
+  background: rgba(26, 38, 80, 0.3);
+  border-radius: 2px;
+  overflow: hidden;
+  min-width: 20px;
+}
+.smp-prog-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s;
+}
+.smp-prog-stat {
+  font-size: 9px;
+  color: #6a7a9a;
+  flex-shrink: 0;
 }
 
 /* map */
@@ -284,8 +364,8 @@ async function switchToScene() {
 
 /* sheet */
 .smp-sheet {
-  border-top: 1px solid #28343d;
-  background: #0f1519;
+  border-top: 1px solid rgba(38, 56, 120, 0.35);
+  background: linear-gradient(180deg, rgba(13, 20, 48, 0.98), rgba(7, 11, 26, 0.99));
   padding: 12px 16px 14px;
   flex-shrink: 0;
 }
@@ -305,7 +385,7 @@ async function switchToScene() {
 .smp-sheet-name {
   font-weight: 700;
   font-size: 15px;
-  color: #caa86a;
+  color: var(--color-system-bright, #7ab0f7);
 }
 .smp-tag {
   font-size: 10px;
@@ -313,43 +393,47 @@ async function switchToScene() {
   border-radius: 2px;
   border: 1px solid;
 }
-.smp-tag.main { color: #caa86a; border-color: #554b34; }
-.smp-tag.side { color: #8db8d8; border-color: #2d3a4a; }
-.smp-tag.hidden { color: #98c9bb; border-color: #2a3a35; }
-.smp-tag.boss { color: #d97b6c; border-color: #3a2a28; }
-.smp-tag.lv { color: #8db8d8; border-color: #2d3a4a; }
-.smp-tag.danger { color: #d97b6c; border-color: #3a2a28; font-size: 9px; }
-.smp-done-mark { font-size: 12px; color: #98c9bb; }
-.smp-lock-mark { font-size: 12px; color: #4a5555; }
+.smp-tag.main { color: var(--color-system-bright, #7ab0f7); border-color: rgba(74, 143, 231, 0.3); }
+.smp-tag.side { color: #7ab0f7; border-color: rgba(74, 143, 231, 0.3); }
+.smp-tag.hidden { color: #5ec49e; border-color: rgba(94, 196, 158, 0.3); }
+.smp-tag.boss { color: #e07070; border-color: rgba(200, 80, 80, 0.3); }
+.smp-tag.lv { color: #7ab0f7; border-color: rgba(74, 143, 231, 0.3); }
+.smp-tag.danger { color: #e07070; border-color: rgba(200, 80, 80, 0.3); font-size: 9px; }
+.smp-done-mark { font-size: 12px; color: #5ec49e; }
+.smp-lock-mark { font-size: 12px; color: #5a6688; }
 
 .smp-sheet-actions { display: flex; gap: 8px; flex-shrink: 0; }
 .smp-btn-close {
   padding: 4px 12px;
-  border: 1px solid #28343d;
+  border: 1px solid rgba(38, 56, 120, 0.3);
   border-radius: 3px;
   background: transparent;
-  color: #7e9292;
+  color: #6a7a9a;
   font-size: 12px;
   cursor: pointer;
 }
 .smp-btn-enter {
   padding: 6px 20px;
-  border: 1px solid #caa86a;
+  border: 1px solid var(--color-system, #4a8fe7);
   border-radius: 3px;
-  background: rgba(202,168,106,0.12);
-  color: #caa86a;
+  background: rgba(74, 143, 231, 0.12);
+  color: var(--color-system-bright, #7ab0f7);
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
+  transition: all 0.2s;
 }
-.smp-btn-enter:hover { background: rgba(202,168,106,0.22); }
+.smp-btn-enter:hover {
+  background: rgba(74, 143, 231, 0.22);
+  box-shadow: 0 0 12px rgba(74, 143, 231, 0.15);
+}
 .smp-btn-enter:disabled { opacity: 0.5; cursor: not-allowed; }
 .smp-btn-current {
   padding: 6px 20px;
-  border: 1px solid #98c9bb;
+  border: 1px solid #5ec49e;
   border-radius: 3px;
-  background: rgba(152,201,187,0.08);
-  color: #98c9bb;
+  background: rgba(94, 196, 158, 0.08);
+  color: #5ec49e;
   font-size: 13px;
   cursor: default;
 }
@@ -357,23 +441,23 @@ async function switchToScene() {
 .smp-sheet-desc {
   margin: 0 0 6px;
   font-size: 12px;
-  color: #9aaca8;
+  color: #8898b8;
   line-height: 1.5;
 }
 .smp-sheet-items { display: flex; gap: 6px; flex-wrap: wrap; }
 .smp-item-tag {
   padding: 1px 8px;
-  border: 1px solid #28343d;
+  border: 1px solid rgba(38, 56, 120, 0.3);
   border-radius: 2px;
   font-size: 11px;
-  color: #98c9bb;
-  background: rgba(152,201,187,0.05);
+  color: #5ec49e;
+  background: rgba(94, 196, 158, 0.06);
 }
 
 /* transition */
-.smp-sheet-enter-active { animation: slideUp 0.2s ease-out; }
-.smp-sheet-leave-active { animation: slideUp 0.15s ease-in reverse; }
-@keyframes slideUp {
+.smp-sheet-enter-active { animation: smpSlideUp 0.2s ease-out; }
+.smp-sheet-leave-active { animation: smpSlideUp 0.15s ease-in reverse; }
+@keyframes smpSlideUp {
   from { transform: translateY(100%); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }

@@ -84,27 +84,56 @@ function finish() {
   display: grid;
   place-items: center;
   background: rgba(4, 8, 12, 0.88);
-  backdrop-filter: blur(4px);
-  animation: fadeIn 0.4s ease;
+  backdrop-filter: blur(6px);
+  animation: obFadeIn 0.5s ease;
 }
 
-@keyframes fadeIn {
+@keyframes obFadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
 .onboard-card {
   width: min(460px, 90vw);
-  border: 1px solid #755d2c;
-  border-radius: 12px;
-  background: #141c21;
-  padding: 32px 28px 24px;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(203, 166, 106, 0.12);
+  border: 1px solid rgba(74, 143, 231, 0.3);
+  border-radius: 16px;
+  background: linear-gradient(
+    180deg,
+    rgba(20, 28, 36, 0.98) 0%,
+    rgba(10, 16, 22, 0.99) 100%
+  );
+  padding: 36px 32px 28px;
+  box-shadow:
+    0 12px 48px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(74, 143, 231, 0.08),
+    0 0 40px rgba(74, 143, 231, 0.05);
+  animation: obSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes obSlideUp {
+  from { transform: translateY(24px) scale(0.95); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* 顶部金色装饰线 */
+.onboard-card::before {
+  content: '';
+  display: block;
+  height: 1px;
+  margin: -36px -32px 24px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(74, 143, 231, 0.4) 30%,
+    rgba(74, 143, 231, 0.2) 50%,
+    rgba(74, 143, 231, 0.4) 70%,
+    transparent 100%
+  );
 }
 
 .onboard-step {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   justify-content: center;
   margin-bottom: 24px;
 }
@@ -113,29 +142,31 @@ function finish() {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 1px solid #3b474f;
-  background: #121a1f;
-  transition: background 0.3s, border-color 0.3s;
+  border: 1px solid #334155;
+  background: #0f1720;
+  transition: all 0.3s ease;
 }
 
 .onboard-dot.active {
-  border-color: #cba66a;
-  background: #cba66a;
+  border-color: var(--color-star);
+  background: var(--color-star);
+  box-shadow: 0 0 8px rgba(74, 143, 231, 0.4);
 }
 
 .onboard-title {
   margin: 0 0 14px;
-  color: #cba66a;
+  color: var(--color-star);
   font-size: 20px;
   text-align: center;
   letter-spacing: 4px;
+  text-shadow: 0 0 12px rgba(74, 143, 231, 0.2);
 }
 
 .onboard-body {
   margin: 0 0 28px;
-  color: #95acb6;
-  font-size: 15px;
-  line-height: 1.8;
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1.9;
   text-align: center;
 }
 
@@ -153,26 +184,35 @@ function finish() {
   font-size: 13px;
   cursor: pointer;
   padding: 8px 12px;
+  transition: color 0.2s;
 }
 
 .onboard-skip:hover {
-  color: #95acb6;
+  color: #94a3b8;
 }
 
 .onboard-next {
-  height: 40px;
-  border: 1px solid #cba66a;
-  border-radius: 6px;
-  background: #1c1f1b;
-  color: #cba66a;
-  padding: 0 28px;
+  height: 42px;
+  border: 1px solid rgba(74, 143, 231, 0.4);
+  border-radius: 8px;
+  background: rgba(74, 143, 231, 0.1);
+  color: var(--color-star);
+  padding: 0 32px;
   font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
   letter-spacing: 2px;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
 }
 
 .onboard-next:hover {
-  background: #242a1f;
+  background: rgba(74, 143, 231, 0.2);
+  border-color: var(--color-star);
+  box-shadow: 0 0 16px rgba(74, 143, 231, 0.2);
+  transform: translateY(-1px);
+}
+
+.onboard-next:active {
+  transform: scale(0.97);
 }
 </style>

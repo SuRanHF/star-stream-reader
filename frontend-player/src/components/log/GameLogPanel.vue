@@ -88,13 +88,85 @@ function lineClass(type?: string) {
 }
 </script>
 
+<style scoped>
+.log-panel {
+  background: linear-gradient(
+    175deg,
+    rgba(7, 11, 26, 0.4) 0%,
+    rgba(10, 15, 36, 0.6) 100%
+  );
+}
+
+/* 新日志淡入 */
+.ling-log-line {
+  animation: logFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes logFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 类型标签增强 */
+.ling-log-type {
+  display: inline-block;
+  min-width: 50px;
+  padding: 1px 6px;
+  margin-right: 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-align: center;
+  background: rgba(7, 11, 26, 0.5);
+  border: 1px solid rgba(74, 143, 231, 0.2);
+  color: var(--color-system-bright);
+}
+
+/* 战斗类型 */
+.is-danger .ling-log-type {
+  border-color: rgba(224, 85, 106, 0.35);
+  color: #f09098;
+  box-shadow: 0 0 6px rgba(224, 85, 106, 0.08);
+}
+
+/* 收益类型 */
+.is-income .ling-log-type {
+  border-color: rgba(94, 196, 158, 0.3);
+  color: #80d4a8;
+  box-shadow: 0 0 6px rgba(94, 196, 158, 0.08);
+}
+
+/* 管理类型 */
+.is-admin .ling-log-type {
+  border-color: rgba(160, 128, 224, 0.3);
+  color: #c0b0e8;
+}
+
+/* 空状态 */
+.is-normal:only-child {
+  text-align: center;
+  color: var(--color-muted);
+  font-style: italic;
+  border-left-color: transparent;
+  padding: 32px 16px;
+}
+</style>
+
 <template>
-  <section ref="containerRef" class="ling-log">
+  <section ref="containerRef" class="ling-log log-panel">
     <p v-if="logs.length === 0" class="ling-log-line is-normal">暂无日志。</p>
     <p
-      v-for="log in logs"
+      v-for="(log, idx) in logs"
       :key="log.id || log.createdAt || log.message"
       :class="['ling-log-line', lineClass(log.type)]"
+      :style="{ animationDelay: `${Math.min(idx * 30, 300)}ms` }"
     >
       <span class="ling-log-type">[{{ typeLabel(log.type) }}]</span>
       {{ log.message || '未命名事件' }}

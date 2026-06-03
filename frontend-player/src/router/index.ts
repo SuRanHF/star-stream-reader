@@ -4,9 +4,6 @@ import CreatePlayerView from '@/views/CreatePlayerView.vue';
 import GameView from '@/views/GameView.vue';
 import LoginView from '@/views/LoginView.vue';
 import RegisterView from '@/views/RegisterView.vue';
-import SceneMapDemo from '@/views/SceneMapDemo.vue';
-import IntegrationDemo from '@/views/IntegrationDemo.vue';
-import GameSceneMapPreview from '@/views/GameSceneMapPreview.vue';
 
 const router = createRouter({
   history: createWebHistory(),
@@ -16,9 +13,6 @@ const router = createRouter({
     { path: '/register', component: RegisterView },
     { path: '/create-player', component: CreatePlayerView },
     { path: '/game', component: GameView, meta: { requiresAuth: true } },
-    { path: '/scene-map-demo', component: SceneMapDemo },
-    { path: '/integration-demo', component: IntegrationDemo },
-    { path: '/scene-map-preview', component: GameSceneMapPreview },
   ],
 });
 

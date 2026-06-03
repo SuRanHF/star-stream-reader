@@ -46,32 +46,40 @@ const summaryText = computed(() => {
   display: flex;
   align-items: center;
   gap: 2px;
-  padding: 6px 16px;
-  background: rgba(180, 160, 120, 0.08);
-  border-bottom: 1px solid rgba(180, 160, 120, 0.15);
+  padding: 6px 20px;
+  background: linear-gradient(90deg, rgba(74, 143, 231, 0.06) 0%, rgba(74, 143, 231, 0.02) 100%);
+  border-bottom: 1px solid rgba(74, 143, 231, 0.1);
   font-size: 12px;
-  color: #c0b090;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: #8898b8;
+  letter-spacing: 0.3px;
 }
 .ling-broadcast-icon {
-  color: #c9a86c;
+  color: var(--color-system-bright);
   font-size: 13px;
   margin-right: 4px;
+  text-shadow: 0 0 6px rgba(74, 143, 231, 0.4);
+  animation: pulseGlow 3s ease-in-out infinite;
 }
 .ling-broadcast-label {
   font-weight: 700;
-  color: #c9a86c;
+  color: var(--color-system-bright);
   letter-spacing: 0.5px;
+  text-shadow: 0 0 4px rgba(74, 143, 231, 0.2);
 }
 .ling-broadcast-sep {
-  color: rgba(180, 160, 120, 0.5);
-  margin: 0 2px;
+  color: rgba(74, 143, 231, 0.3);
+  margin: 0 3px;
 }
 .ling-broadcast-text {
-  color: #a0a8b8;
+  color: #7a8ca8;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
 }
 </style>

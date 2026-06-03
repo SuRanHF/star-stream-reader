@@ -376,7 +376,7 @@ const attrs = computed(() => {
 </script>
 
 <template>
-  <div class="ling-side-content">
+  <div class="ling-side-content psp-root">
     <section class="ling-side-section">
       <h3>化身信息</h3>
       <dl class="ling-kv">
@@ -484,8 +484,8 @@ const attrs = computed(() => {
     <section class="ling-side-section">
       <h3>其他</h3>
       <dl class="ling-kv">
-        <div><dt>标识</dt><dd class="gold">无名读者</dd></div>
-        <div><dt>星痕</dt><dd>第四面墙</dd></div>
+        <div><dt>标识</dt><dd class="gold">{{ player?.title || player?.storyGrade || player?.avatarRank || '无名读者' }}</dd></div>
+        <div><dt>星痕</dt><dd>{{ player?.stigma || player?.sigma || '第四面墙' }}</dd></div>
         <div><dt>位置</dt><dd>{{ player?.currentLocationName || player?.currentLocation || player?.currentLocationKey || '未知区域' }}</dd></div>
       </dl>
     </section>
@@ -513,3 +513,177 @@ const attrs = computed(() => {
     </Teleport>
   </div>
 </template>
+
+<style scoped>
+/* ── 面板容器 ── */
+.psp-root {
+  position: relative;
+}
+
+/* 面板顶部蓝色微光装饰 */
+.psp-root::before {
+  content: '';
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: block;
+  height: 1px;
+  margin: 0 -14px 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(74, 143, 231, 0.4) 20%,
+    rgba(74, 143, 231, 0.2) 50%,
+    transparent 100%
+  );
+}
+
+/* ── 分区标题增强 ── */
+.psp-root :deep(.ling-side-section h3) {
+  position: relative;
+  padding-bottom: 8px;
+  color: var(--color-system-bright);
+  font-size: 12px;
+}
+
+/* 标题下方蓝线 */
+.psp-root :deep(.ling-side-section h3::after) {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 28px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(74, 143, 231, 0.4), transparent);
+  transition: width 0.3s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.psp-root :deep(.ling-side-section:hover h3::after) {
+  width: 44px;
+}
+
+/* ── KV 键值对增强 ── */
+.psp-root :deep(.ling-kv div) {
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: background 0.15s;
+}
+
+.psp-root :deep(.ling-kv div:hover) {
+  background: rgba(74, 143, 231, 0.04);
+}
+
+.psp-root :deep(.ling-kv dt) {
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+
+/* 等级蓝色发光 */
+.psp-root :deep(.gold) {
+  text-shadow: 0 0 6px rgba(106, 175, 255, 0.15);
+}
+
+/* ── 进度条增强 ── */
+.psp-root :deep(.ling-progress) {
+  border-radius: 4px;
+  border-color: rgba(26, 38, 80, 0.6);
+}
+
+.psp-root :deep(.ling-progress span) {
+  border-radius: 4px;
+  background: linear-gradient(90deg, rgba(74, 143, 231, 0.5), rgba(74, 143, 231, 0.8), rgba(74, 143, 231, 0.5));
+  background-size: 200% 100%;
+  animation: pspShimmer 3s ease-in-out infinite;
+}
+
+@keyframes pspShimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ── 位阶校准 / 商店按钮 ── */
+.psp-root :deep(.ling-break-btn),
+.psp-root :deep(.ling-market-btn) {
+  border-radius: 5px;
+  letter-spacing: 1px;
+  font-weight: 600;
+  transition: all 0.25s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.psp-root :deep(.ling-break-btn:hover),
+.psp-root :deep(.ling-market-btn:hover) {
+  transform: translateY(-1px);
+}
+
+.psp-root :deep(.ling-break-btn:active),
+.psp-root :deep(.ling-market-btn:active) {
+  transform: scale(0.98);
+}
+
+/* ── 属性分配区增强 ── */
+.psp-root :deep(.ling-alloc-section) {
+  border-radius: 5px;
+  background: rgba(7, 11, 26, 0.5);
+  border-color: rgba(26, 38, 80, 0.5);
+  transition: border-color 0.3s;
+}
+
+.psp-root :deep(.ling-alloc-section:hover) {
+  border-color: rgba(74, 143, 231, 0.2);
+}
+
+.psp-root :deep(.ling-alloc-btn) {
+  letter-spacing: 1px;
+  font-weight: 600;
+  border-radius: 5px;
+  transition: all 0.25s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.psp-root :deep(.ling-alloc-btn:hover) {
+  transform: translateY(-1px);
+}
+
+/* ── 属性列表 ── */
+.psp-root :deep(.ling-attrs .ling-info-btn) {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.psp-root :deep(.ling-attrs div:hover .ling-info-btn) {
+  opacity: 1;
+}
+
+/* ── 装备区增强 ── */
+.psp-root :deep(.ling-equipment-list div) {
+  border-radius: 5px;
+  transition: all 0.25s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.psp-root :deep(.ling-equipment-list div:hover) {
+  transform: translateX(2px);
+}
+
+/* ── 分区最后一项 ── */
+.psp-root :deep(.ling-side-section:last-of-type) {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+/* ── 信息按钮 ── */
+.psp-root :deep(.ling-info-btn) {
+  transition: all 0.2s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)) !important;
+}
+
+/* ── 移动端适配 ── */
+@media (max-width: 760px) {
+  .psp-root {
+    padding: 10px 10px 18px;
+  }
+
+  .psp-root :deep(.ling-side-section) {
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+  }
+}
+</style>

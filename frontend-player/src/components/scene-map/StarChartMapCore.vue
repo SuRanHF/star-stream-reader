@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { starChartNodes, type SceneNode } from './mockData';
+import type { MapNode } from '@/api/exploreApi';
+import { dangerTier } from '@/utils/sceneUtils';
+
+const props = defineProps<{
+  nodes: MapNode[];
+}>();
 
 const VOLUME_COLORS: Record<number, string> = {
-  1: '#caa86a',
-  2: '#d97b6c',
-  3: '#8db8d8',
-  4: '#98c9bb',
+  1: '#a0b0f0',
+  2: '#e07070',
+  3: '#7ab0f7',
+  4: '#5ec49e',
 };
 
 const TYPE_ICONS: Record<string, string> = {
@@ -32,17 +37,17 @@ const dragStart = ref({ x: 0, y: 0 });
 const offset = ref({ x: 0, y: 0 });
 
 const filteredNodes = computed(() => {
-  let nodes = starChartNodes;
-  if (filterVolume.value > 0) nodes = nodes.filter(n => n.volume === filterVolume.value);
-  if (filterType.value !== 'all') nodes = nodes.filter(n => n.type === filterType.value);
-  return nodes;
+  let list = props.nodes;
+  if (filterVolume.value > 0) list = list.filter(n => n.volume === filterVolume.value);
+  if (filterType.value !== 'all') list = list.filter(n => n.type === filterType.value);
+  return list;
 });
 
 const edges = computed(() => {
-  const nodeMap = new Map(starChartNodes.map(n => [n.id, n]));
-  const result: { from: SceneNode; to: SceneNode }[] = [];
+  const nodeMap = new Map(props.nodes.map(n => [n.id, n]));
+  const result: { from: MapNode; to: MapNode }[] = [];
   const seen = new Set<string>();
-  for (const node of starChartNodes) {
+  for (const node of props.nodes) {
     for (const targetId of node.connectedTo) {
       const target = nodeMap.get(targetId);
       if (!target) continue;
@@ -62,7 +67,7 @@ const visibleEdges = computed(() => {
 
 function selectNode(id: string) {
   selectedId.value = selectedId.value === id ? null : id;
-  const node = starChartNodes.find(n => n.id === selectedId.value);
+  const node = props.nodes.find(n => n.id === selectedId.value);
   if (node) emit('node-select', node.name);
   else emit('node-select', '');
 }
@@ -139,21 +144,21 @@ defineExpose({ resetView, setFilterVolume: (v: number) => { filterVolume.value =
       </defs>
 
       <pattern id="grid2" width="60" height="60" patternUnits="userSpaceOnUse">
-        <circle cx="30" cy="30" r="0.8" fill="#28343d" opacity="0.5" />
+        <circle cx="30" cy="30" r="0.8" fill="#3a4a7a" opacity="0.35" />
       </pattern>
       <rect :x="viewBox.x - 200" :y="viewBox.y - 200" :width="viewBox.w + 400" :height="viewBox.h + 400" fill="url(#grid2)" />
 
-      <text x="400" y="530" fill="#caa86a" opacity="0.12" font-size="48" font-weight="900">第一卷</text>
-      <text x="100" y="160" fill="#d97b6c" opacity="0.12" font-size="48" font-weight="900">第二卷</text>
-      <text x="520" y="620" fill="#8db8d8" opacity="0.12" font-size="48" font-weight="900">第三卷</text>
-      <text x="300" y="50" fill="#98c9bb" opacity="0.12" font-size="48" font-weight="900">第四卷</text>
+      <text x="400" y="530" fill="#a0b0f0" opacity="0.1" font-size="48" font-weight="900">第一卷</text>
+      <text x="100" y="160" fill="#e07070" opacity="0.1" font-size="48" font-weight="900">第二卷</text>
+      <text x="520" y="620" fill="#7ab0f7" opacity="0.1" font-size="48" font-weight="900">第三卷</text>
+      <text x="300" y="50" fill="#5ec49e" opacity="0.1" font-size="48" font-weight="900">第四卷</text>
 
       <line
         v-for="(edge, i) in visibleEdges"
         :key="'e' + i"
         :x1="edge.from.x" :y1="edge.from.y"
         :x2="edge.to.x" :y2="edge.to.y"
-        :stroke="VOLUME_COLORS[edge.from.volume] || '#4a5a5d'"
+        :stroke="VOLUME_COLORS[edge.from.volume] || '#4a5a7a'"
         :stroke-opacity="edge.from.unlocked && edge.to.unlocked ? 0.5 : 0.15"
         :stroke-dasharray="edge.from.unlocked && edge.to.unlocked ? 'none' : '6 4'"
         stroke-width="1.5"
@@ -169,22 +174,33 @@ defineExpose({ resetView, setFilterVolume: (v: number) => { filterVolume.value =
       >
         <circle v-if="node.type === 'boss' || node.type === 'hidden'" r="28"
           :fill="node.type === 'boss' ? 'url(#glow-boss2)' : 'url(#glow-hidden2)'" class="snode-glow" />
+        <!-- danger tier ring -->
+        <circle r="19"
+          :fill="'none'"
+          :stroke="dangerTier(node.dangerLevel).color"
+          :stroke-width="2"
+          :stroke-opacity="node.unlocked ? 0.7 : 0.2" />
         <circle r="16"
-          :fill="node.unlocked ? '#11181d' : '#0a0e10'"
-          :stroke="VOLUME_COLORS[node.volume] || '#4a5a5d'"
+          :fill="node.unlocked ? '#0d1428' : '#070b1a'"
+          :stroke="VOLUME_COLORS[node.volume] || '#4a5a7a'"
           :stroke-width="node.id === selectedId ? 3 : 1.5"
           :stroke-opacity="node.unlocked ? 0.9 : 0.3"
           :filter="node.unlocked ? 'url(#star-glow2)' : ''" />
         <text text-anchor="middle" dy="5"
-          :fill="node.unlocked ? (VOLUME_COLORS[node.volume] || '#7e9292') : '#3a4545'"
+          :fill="node.unlocked ? (VOLUME_COLORS[node.volume] || '#6a7a9a') : '#4a5588'"
           font-size="14">{{ TYPE_ICONS[node.type] }}</text>
+        <text text-anchor="middle" dy="-26"
+          :fill="dangerTier(node.dangerLevel).color"
+          :opacity="node.unlocked ? 0.9 : 0.3"
+          font-size="9" font-weight="700">{{ dangerTier(node.dangerLevel).label }}</text>
         <text text-anchor="middle" dy="32"
-          :fill="node.unlocked ? '#c9d8d5' : '#4a5555'"
+          :fill="node.unlocked ? '#d0d8f0' : '#5a6688'"
           font-size="11" opacity="0.9">{{ node.name }}</text>
-        <text v-if="node.completed" text-anchor="middle" dy="-22" fill="#98c9bb" font-size="11">✓</text>
+        <text v-if="node.completed" text-anchor="middle" dy="-22" fill="#5ec49e" font-size="11">✓</text>
+        <text v-if="!node.unlocked" text-anchor="middle" dy="-22" fill="#5a6688" font-size="11">🔒</text>
       </g>
     </svg>
-    <div class="score-hint">🖱 滚轮缩放 · 拖拽平移 · 点击节点</div>
+    <div class="score-hint">🖱 滚轮缩放 · 拖拽平移 · 点击节点选择场景</div>
   </div>
 </template>
 
@@ -196,15 +212,16 @@ defineExpose({ resetView, setFilterVolume: (v: number) => { filterVolume.value =
   overflow: hidden;
   cursor: grab;
   touch-action: none;
+  background: radial-gradient(ellipse at 40% 50%, rgba(13, 20, 48, 0.6) 0%, #070b1a 100%);
 }
 .score-wrap:active { cursor: grabbing; }
 .score-svg { width: 100%; height: 100%; display: block; }
 .snode { cursor: pointer; transition: opacity 0.2s; }
-.snode-locked { opacity: 0.45; }
-.snode-locked:hover { opacity: 0.65; }
-.snode-selected circle:nth-child(2) { stroke-width: 3; }
+.snode-locked { opacity: 0.4; }
+.snode-locked:hover { opacity: 0.6; }
+.snode-selected circle:nth-child(2) { stroke-width: 3; filter: drop-shadow(0 0 6px rgba(74, 143, 231, 0.4)); }
 .score-hint {
   position: absolute; bottom: 8px; right: 12px;
-  font-size: 10px; color: #3a4545; pointer-events: none;
+  font-size: 10px; color: #4a5588; pointer-events: none;
 }
 </style>

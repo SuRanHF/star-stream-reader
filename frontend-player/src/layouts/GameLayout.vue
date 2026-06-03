@@ -18,6 +18,8 @@ import GameNotificationToast from '@/components/notification/GameNotificationToa
 import OnboardingGuide from '@/components/guide/OnboardingGuide.vue';
 import PlayerStatusPanel from '@/components/player/PlayerStatusPanel.vue';
 import DeathOverlay from '@/components/player/DeathOverlay.vue';
+import ScenarioPanel from '@/components/scenario/ScenarioPanel.vue';
+import ConstellationPanel from '@/components/constellation/ConstellationPanel.vue';
 import { realtimeClient } from '@/realtime/realtimeClient';
 import { useAuthStore } from '@/stores/authStore';
 import { useGameStore } from '@/stores/gameStore';
@@ -388,7 +390,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="ling-shell">
+  <div class="ling-shell gl-root">
     <OnboardingGuide />
     <header class="ling-topbar">
       <div class="ling-top-left">
@@ -445,7 +447,18 @@ onBeforeUnmount(() => {
         </template>
         <template v-else>
           <GameLogPanel :logs="gameStore.recentLogs" />
-          <ConnectedPanel v-if="gameStore.activePanel" :panel="gameStore.activePanel" @select-panel="selectPanel" @close-panel="closePanel" />
+          <ConnectedPanel
+            v-if="gameStore.activePanel"
+            :panel="gameStore.activePanel"
+            @select-panel="selectPanel"
+            @close-panel="closePanel"
+          />
+          <div v-else class="ling-placeholder">
+            <div class="ling-placeholder-inner">
+              <ScenarioPanel />
+              <ConstellationPanel v-if="currentLocationKey()" />
+            </div>
+          </div>
         </template>
       </main>
 
@@ -456,7 +469,7 @@ onBeforeUnmount(() => {
     <footer class="ling-bottom" :class="{ 'is-resting': isResting }">
       <div class="ling-action-row" :class="{ 'has-rest': isResting }">
         <button class="ling-action-primary" @click="toggleRest">{{ isResting ? '休息...' : '休息' }}</button>
-        <button class="ling-action-main" :disabled="exploring" @click="enterScene">{{ exploring ? '探索中...' : '进入场景' }}</button>
+        <button class="ling-action-main" :disabled="exploring" @click="enterScene">{{ exploring ? '执行中...' : '执行场景' }}</button>
         <select class="ling-select" aria-label="探索倍率">
           <option value="1">1倍</option>
           <option value="5">5倍</option>
@@ -485,3 +498,96 @@ onBeforeUnmount(() => {
     />
   </div>
 </template>
+
+<style scoped>
+/* ── Shell 边框微光 ── */
+.gl-root {
+  border-color: rgba(26, 38, 80, 0.5);
+}
+
+/* ── 顶栏增强 ── */
+.gl-root :deep(.ling-topbar) {
+  background: linear-gradient(
+    180deg,
+    rgba(13, 20, 48, 0.95) 0%,
+    rgba(10, 15, 36, 0.92) 100%
+  );
+}
+
+/* Logo — 蓝金渐变 */
+.gl-root :deep(.ling-logo) {
+  background: linear-gradient(180deg, #8ec8ff 0%, #6aafff 40%, #4a8fe7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: glLogoGlow 4s ease-in-out infinite;
+}
+
+@keyframes glLogoGlow {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(74, 143, 231, 0.3)); }
+  50% { filter: drop-shadow(0 0 16px rgba(74, 143, 231, 0.5)); }
+}
+
+/* ── 核心操作栏增强 ── */
+.gl-root :deep(.ling-core-btn) {
+  border-radius: 5px;
+  letter-spacing: 1.5px;
+}
+
+/* ── 底部栏增强 ── */
+.gl-root :deep(.ling-bottom) {
+  background: linear-gradient(
+    180deg,
+    rgba(13, 20, 48, 0.95) 0%,
+    rgba(10, 15, 36, 0.92) 100%
+  );
+}
+
+/* 进入场景按钮 */
+.gl-root :deep(.ling-action-main) {
+  font-weight: 600;
+  letter-spacing: 2px;
+  border-radius: var(--radius-md, 6px);
+  transition: all 0.25s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.gl-root :deep(.ling-action-main:hover) {
+  transform: translateY(-1px);
+}
+
+.gl-root :deep(.ling-action-main:active) {
+  transform: scale(0.97);
+}
+
+/* 休息按钮 */
+.gl-root :deep(.ling-action-primary) {
+  border-radius: var(--radius-md, 6px);
+  letter-spacing: 1px;
+  transition: all 0.25s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.gl-root :deep(.ling-action-primary:hover) {
+  transform: translateY(-1px);
+}
+
+/* 下拉选择框 */
+.gl-root :deep(.ling-select) {
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+/* ── 休息状态栏 ── */
+.gl-root :deep(.ling-dot) {
+  box-shadow: 0 0 10px rgba(94, 196, 158, 0.5);
+}
+
+/* ── 拖拽手柄增强 ── */
+.gl-root :deep(.ling-resize-handle:hover) {
+  box-shadow: 0 0 8px rgba(74, 143, 231, 0.12);
+}
+
+/* ── 移动端左侧面板遮罩 ── */
+.gl-root :deep(.ling-left.is-open) {
+  box-shadow: 16px 0 40px rgba(0, 0, 0, 0.6);
+}
+</style>

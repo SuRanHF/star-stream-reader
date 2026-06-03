@@ -94,8 +94,8 @@ async function revive() {
   to { opacity: 1; }
 }
 .do-card {
-  background: #0f131a;
-  border: 1px solid #2a2040;
+  background: #0a0f1f;
+  border: 1px solid #2a1f3d;
   border-radius: 16px;
   padding: 36px 40px;
   text-align: center;
@@ -142,7 +142,7 @@ async function revive() {
   border-left: 2px solid #4c1d95;
   font-style: italic;
 }
-.gold { color: #caa86a; }
+.gold { color: var(--color-star, #6aafff); }
 .red { color: #ef4444; }
 
 .do-cost-box {

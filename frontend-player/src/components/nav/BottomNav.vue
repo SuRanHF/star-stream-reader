@@ -10,6 +10,7 @@ const emit = defineEmits<{
 const items = [
   { key: 'chat', label: '星流频道', panel: 'chat' },
   { key: 'party', label: '队伍', panel: 'party' },
+  { key: 'support', label: '悬赏支援', panel: 'support' },
   { key: 'market', label: '鬼怪商店', panel: 'trade' },
   { key: 'martial', label: '化身战场', panel: 'pk' },
   { key: 'boss', label: '灾厄', panel: 'worldBoss' },
@@ -40,9 +41,49 @@ const items = [
 </template>
 
 <style scoped>
+nav {
+  position: relative;
+}
+
 button {
-  min-height: 42px;
-  min-width: 48px;
-  padding: 8px 6px;
+  position: relative;
+  min-height: 40px;
+  min-width: 44px;
+  padding: 6px 6px;
+  font-size: 12px;
+  letter-spacing: 1px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 活跃项左侧蓝色光条 */
+button.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  border-radius: 0 2px 2px 0;
+  background: linear-gradient(180deg, transparent, var(--color-system), transparent);
+  box-shadow: 0 0 6px rgba(74, 143, 231, 0.4);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+button.active::before {
+  opacity: 1;
+}
+
+/* hover 时左侧微光 */
+button:not(.active):hover::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 1px;
+  border-radius: 0 1px 1px 0;
+  background: rgba(74, 143, 231, 0.25);
+  opacity: 1;
 }
 </style>

@@ -146,19 +146,21 @@ reader-scenario-game/
 ## 当前任务聚焦 (2026-06-03)
 
 **阶段六已完成**: 放置 RPG 核心三系统 — 称号(20 原著) + 剧情推进约束 + 位格/叙事压制战斗
+**技术债务已清理**: 4 个 commit 提交全部 56 文件变更 + 24 个战斗系统单元测试
 
 **剩余技术债务**:
 - [ ] 前端缺少单元测试和 E2E 测试
-- [ ] 大量未提交的变更（50+ 文件修改）
 
 ---
 
 ## 技术债务
 
 - [x] ~~CLAUDE.md 严重过时~~ — 已更新为 Spring Boot + MySQL + Vue 3
+- [x] ~~战斗系统缺少测试~~ — CombatServiceImplTest 24 个单元测试 (位格/叙事/伤害)
 - [ ] 前端缺少单元测试和 E2E 测试
 - [x] ~~frontend-admin 目录不存在~~ — 已搭建，9 个管理页面，构建通过
 - [x] ~~3 个 demo 路由页面~~ — 已清理
 - [x] ~~场景地图 mockData~~ — 已与后端 exploreApi 双向同步，mockData 仅作为位置/坐标/连接的静态参考
 - [x] ~~支援面板缺少导航入口~~ — BottomNav 已添加"悬赏支援"按钮
 - [x] ~~悬赏 API `GET /api/bounty/my/{playerId}` 返回 500~~ — Map.of() 不允许 null 值，改用 LinkedHashMap
+- [x] ~~未提交变更积压~~ — 分 4 个 commit 提交全部变更（50+ 文件）

@@ -211,7 +211,11 @@ public class HelpBountyServiceImpl implements HelpBountyService {
         QueryWrapper<HelpBounty> qw = new QueryWrapper<>();
         qw.eq("owner_id", playerId).eq("status", "pending").orderByDesc("created_at").last("LIMIT 1");
         HelpBounty bounty = bountyMapper.selectOne(qw);
-        if (bounty == null) return Map.of("data", null);
+        if (bounty == null) {
+            Map<String, Object> empty = new LinkedHashMap<>();
+            empty.put("data", null);
+            return empty;
+        }
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("id", bounty.getId());
         data.put("monsterKey", bounty.getMonsterKey());

@@ -8,6 +8,7 @@ import FeedbackManageView from '@/views/FeedbackManageView.vue';
 import LogView from '@/views/LogView.vue';
 import PlayerManageView from '@/views/PlayerManageView.vue';
 import SchedulerView from '@/views/SchedulerView.vue';
+import AdminCrudView from '@/views/AdminCrudView.vue';
 import TradeAuditView from '@/views/TradeAuditView.vue';
 import WorldBossManageView from '@/views/WorldBossManageView.vue';
 
@@ -29,6 +30,7 @@ const router = createRouter({
         { path: 'trade-audit', component: TradeAuditView },
         { path: 'logs', component: LogView },
         { path: 'feedback', component: FeedbackManageView },
+        { path: 'crud', component: AdminCrudView },
       ],
     },
   ],

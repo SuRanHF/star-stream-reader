@@ -46,6 +46,7 @@ Write-Host "`n[5/7] 构建管理后台..." -ForegroundColor Yellow
 Push-Location ..\frontend-admin
 npm install --silent
 $env:VITE_API_BASE_URL = "/api"
+$env:VITE_BASE = "/admin/"
 npx vite build --outDir "$DeployRoot\frontend-admin" 2>&1 | Out-Null
 Pop-Location
 

@@ -20,7 +20,7 @@ cd ..
 
 cd frontend-admin
 npm install --silent
-VITE_API_BASE_URL=/api npx vite build --outDir $DEPLOY_DIR/frontend-admin
+VITE_API_BASE_URL=/api VITE_BASE=/admin/ npx vite build --outDir $DEPLOY_DIR/frontend-admin
 cd ..
 
 cp deploy/reader-game.service /etc/systemd/system/

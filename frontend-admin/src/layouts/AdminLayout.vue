@@ -17,6 +17,7 @@ const menuItems = [
   { path: '/world-boss', label: '世界 Boss', icon: Operation },
   { path: '/scheduler', label: '调度器', icon: DataAnalysis },
   { path: '/trade-audit', label: '交易审计', icon: Wallet },
+  { path: '/crud', label: '数据管理', icon: Document },
   { path: '/feedback', label: '反馈管理', icon: Document },
   { path: '/logs', label: '日志', icon: Document },
 ];

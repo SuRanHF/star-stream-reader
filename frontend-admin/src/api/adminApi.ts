@@ -51,4 +51,43 @@ export const adminApi = {
   modifyPlayerTitle(id: number, action: 'grant' | 'revoke', titleKey: string) {
     return http.post<unknown, ApiRecord>(`/admin/players/${id}/titles`, { action, title_key: titleKey });
   },
+  // World Boss
+  createWorldBoss(body: {
+    bossNo: string;
+    name: string;
+    description: string;
+    maxHp: number;
+    attack: number;
+    defense: number;
+    speed: number;
+    rewardsJson?: string;
+    scheduleCron?: string;
+  }) {
+    return http.post<unknown, ApiRecord>('/world-boss/admin/create', body);
+  },
+  openWorldBoss(bossNo: string) {
+    return http.post<unknown, ApiRecord>('/world-boss/admin/open', { bossNo });
+  },
+  settleWorldBoss(bossNo: string) {
+    return http.post<unknown, ApiRecord>('/world-boss/admin/settle', { bossNo });
+  },
+  // ── 通用 CRUD ──
+  crudEntities() {
+    return http.get<unknown, { key: string; label: string }[]>('/admin/crud-entities');
+  },
+  crudList(entity: string, params?: { search?: string; limit?: number; offset?: number }) {
+    return http.get<unknown, { rows: ApiRecord[]; total: number }>(`/admin/crud/${entity}`, { params });
+  },
+  crudGet(entity: string, id: number) {
+    return http.get<unknown, { row: ApiRecord }>(`/admin/crud/${entity}/${id}`);
+  },
+  crudCreate(entity: string, body: ApiRecord) {
+    return http.post<unknown, { row: ApiRecord }>(`/admin/crud/${entity}`, body);
+  },
+  crudUpdate(entity: string, id: number, body: ApiRecord) {
+    return http.put<unknown, { row: ApiRecord }>(`/admin/crud/${entity}/${id}`, body);
+  },
+  crudDelete(entity: string, id: number) {
+    return http.delete<unknown, { deleted: number }>(`/admin/crud/${entity}/${id}`);
+  },
 };

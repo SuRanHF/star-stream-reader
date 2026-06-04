@@ -8,7 +8,7 @@
 reader-scenario-game/
 ├── springboot-backend/     # Spring Boot 3.2.5 + MySQL + MyBatis-Plus (端口 8080)
 ├── frontend-player/        # Vue 3 + TypeScript + Vite (玩家端, 端口 5173)
-├── frontend-admin/         # Vue 3 + TypeScript + Vite (管理后台, 待建)
+├── frontend-admin/         # Vue 3 + Element Plus + TypeScript + Vite (管理后台, 端口 5174)
 └── docs/                   # 设计文档
 ```
 

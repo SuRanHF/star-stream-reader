@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch, shallowRef } from 'vue';
 import { useUiStore } from '@/stores/uiStore';
 import { useGameStore } from '@/stores/gameStore';
 import { exploreApi, type ExploreResult, type ChoiceResult } from '@/api/exploreApi';
@@ -8,6 +8,16 @@ import { combatApi, type CombatResult } from '@/api/combatApi';
 
 const ui = useUiStore();
 const game = useGameStore();
+
+const props = defineProps<{
+  visible: boolean;
+  result: ExploreResult | null;
+}>();
+
+const emit = defineEmits<{
+  close: [];
+  choiceMade: [];
+}>();
 
 const chosen = ref<ChoiceResult | null>(null);
 const choosing = ref(false);
@@ -21,22 +31,34 @@ const battleMode = computed(() =>
   props.result?.result_type === 'battle'
 );
 
+interface MonsterInfo { name: string; hp: number; attack: number; defense: number; speed: number; type: string; rarity: string; }
+const monsterData = shallowRef<MonsterInfo | null>(null);
+
+watch(battleMode, async (is) => {
+  if (!is) { monsterData.value = null; return; }
+  const mk = props.result?.monster_key;
+  if (!mk) return;
+  try {
+    const list = await combatApi.getMonsters() as Record<string, unknown>[];
+    const m = list.find((x: Record<string, unknown>) => x.monsterKey === mk) as Record<string, unknown> | undefined;
+    if (m) {
+      const s = (m.stats || {}) as Record<string, unknown>;
+      monsterData.value = {
+        name: String(m.name || ''),
+        hp: Number(s.hp || 50), attack: Number(s.attack || 10),
+        defense: Number(s.defense || 3), speed: Number(s.speed || 2),
+        type: String(m.type || '?'), rarity: String(m.rarity || 'common'),
+      };
+    }
+  } catch {}
+});
+
 const monsterName = computed(() =>
   props.result?.result?.name || '未知怪物'
 );
 const monsterDesc = computed(() =>
   props.result?.result?.description || ''
 );
-
-const props = defineProps<{
-  visible: boolean;
-  result: ExploreResult | null;
-}>();
-
-const emit = defineEmits<{
-  close: [];
-  choiceMade: [];
-}>();
 
 const storyMode = computed(() =>
   props.result?.result?.event_type === 'story' && props.result?.result?.choices?.length
@@ -244,10 +266,35 @@ async function selectChoice(index: number) {
             <p class="sst-event-desc">{{ monsterDesc }}</p>
           </div>
 
-          <!-- 战斗前：显示开始按钮 -->
+          <!-- 战斗前：双方属性对比 -->
           <template v-if="battlePhase === 'idle'">
             <div class="sst-battle-preview">
               <div class="sst-battle-monster-icon">👾</div>
+              <div class="sst-battle-vs">
+                <div class="sst-battle-side">
+                  <div class="sst-battle-side-title">🛡 我方</div>
+                  <div class="sst-battle-side-stat">生命 {{ game.player?.hp || '?' }} / {{ game.player?.maxHp || '?' }}</div>
+                  <div class="sst-battle-side-stat">攻击 {{ game.player?.attack || '?' }}</div>
+                  <div class="sst-battle-side-stat">防御 {{ game.player?.defense || '?' }}</div>
+                  <div class="sst-battle-side-stat">速度 {{ game.player?.speed || '?' }}</div>
+                </div>
+                <div class="sst-battle-vs-divider">VS</div>
+                <div class="sst-battle-side">
+                  <div class="sst-battle-side-title">👾 敌方</div>
+                  <template v-if="monsterData">
+                    <div class="sst-battle-side-stat name">{{ monsterData.name }}</div>
+                    <div class="sst-battle-side-stat">生命 {{ monsterData.hp }}</div>
+                    <div class="sst-battle-side-stat">攻击 {{ monsterData.attack }}</div>
+                    <div class="sst-battle-side-stat">防御 {{ monsterData.defense }}</div>
+                    <div class="sst-battle-side-stat">速度 {{ monsterData.speed }}</div>
+                    <div class="sst-battle-side-stat desc">品质: {{ {common:'普通',uncommon:'稀有',rare:'罕见',epic:'史诗',legendary:'传说'}[monsterData.rarity] || monsterData.rarity }}</div>
+                  </template>
+                  <template v-else>
+                    <div class="sst-battle-side-stat name">{{ monsterName }}</div>
+                    <div class="sst-battle-side-stat desc">{{ monsterDesc }}</div>
+                  </template>
+                </div>
+              </div>
               <p class="sst-battle-hint">准备迎战。你可以选择战斗或撤退。</p>
             </div>
             <div class="sst-actions sst-battle-actions">
@@ -279,12 +326,34 @@ async function selectChoice(index: number) {
                   <span>{{ battleResult.monster.name }}</span>
                 </div>
                 <div class="sst-battle-stat-row">
-                  <span>血量变化</span>
-                  <span>{{ battleResult.hpBefore }} → {{ battleResult.hpAfter }}</span>
+                  <span>我方血量</span>
+                  <span>{{ (battleResult as any).playerHpBefore || battleResult.hpBefore }} → {{ (battleResult as any).playerHpAfter || battleResult.hpAfter }}</span>
                 </div>
                 <div class="sst-battle-stat-row">
                   <span>回合数</span>
                   <span>{{ battleResult.totalRounds }}</span>
+                </div>
+              </div>
+              <!-- 战斗过程 -->
+              <div v-if="battleResult.rounds?.length" class="sst-battle-rounds">
+                <div class="sst-battle-rounds-title">⚡ 战斗过程</div>
+                <div v-for="r in battleResult.rounds" :key="r.round" class="sst-battle-round">
+                  <div class="sst-battle-round-num">第 {{ r.round }} 回合</div>
+                  <div v-for="(act, ai) in r.actions" :key="ai" class="sst-battle-action">
+                    <span class="sst-battle-action-who">{{ {monster:'👾敌方',player:'🛡我方'}[act.actor] || act.actor }}</span>
+                    <span class="sst-battle-action-what">
+                      <template v-if="act.type === 'attack'">
+                        攻击造成 <b>{{ act.damage }}</b> 伤害
+                        <span v-if="act.critical" class="sst-battle-crit">暴击!</span>
+                      </template>
+                      <template v-else-if="act.type === 'narrative'">
+                        {{ act.description }}
+                      </template>
+                      <template v-else>
+                        {{ act.description || act.type }}
+                      </template>
+                    </span>
+                  </div>
                 </div>
               </div>
               <div v-if="battleResult.result === 'win'" class="sst-rewards">
@@ -915,5 +984,72 @@ async function selectChoice(index: number) {
 .sst-battle-stat-row span:last-child {
   color: var(--color-text-dim);
   font-weight: 600;
+}
+
+/* 战前属性对比 */
+.sst-battle-vs {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.sst-battle-side {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+.sst-battle-side-title {
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 8px;
+  color: var(--color-star);
+}
+.sst-battle-side-stat {
+  font-size: 12px;
+  color: var(--color-text-dim);
+  line-height: 1.8;
+}
+.sst-battle-side-stat.name { color: var(--color-danger); font-weight: 600; }
+.sst-battle-side-stat.desc { color: #8898b8; font-size: 11px; line-height: 1.5; }
+.sst-battle-vs-divider {
+  display: flex; align-items: center;
+  font-weight: 900; font-size: 16px;
+  color: var(--color-danger);
+}
+
+/* 战斗过程 */
+.sst-battle-rounds {
+  margin-bottom: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.sst-battle-rounds-title {
+  font-weight: 700; font-size: 13px;
+  color: var(--color-star); margin-bottom: 10px;
+}
+.sst-battle-round {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(26,38,80,0.3);
+}
+.sst-battle-round:last-child { border-bottom: none; margin-bottom: 0; }
+.sst-battle-round-num {
+  font-size: 11px; font-weight: 700;
+  color: var(--color-system-bright); margin-bottom: 4px;
+}
+.sst-battle-action {
+  font-size: 12px; color: var(--color-text-dim);
+  padding: 2px 0; display: flex; gap: 8px;
+}
+.sst-battle-action-who {
+  color: var(--color-muted); min-width: 48px; flex-shrink: 0;
+}
+.sst-battle-action-what b { color: var(--color-danger); }
+.sst-battle-crit {
+  color: #ffaa00; font-weight: 700; margin-left: 4px;
 }
 </style>

@@ -716,6 +716,9 @@ button, input, select { font: inherit; }
   color: var(--color-system-bright);
 }
 
+/* 桌面端隐藏手机状态条 */
+.ling-mobile-stats { display: none; }
+
 /* ── 中间面板 ── */
 .ling-placeholder {
   grid-column: 2;

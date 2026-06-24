@@ -97,7 +97,7 @@ public class PlayerServiceImpl implements PlayerService {
         player.setStoryFragments(0);
         player.setUserId(userId);
         player.setCurrentMainChapter("main_ch01_paid_service");
-        player.setCurrentLocation("");
+        player.setCurrentLocation("ruined_station");
         player.setStatsJson(DEFAULT_STATS_JSON);
         player.setStageProgressJson(DEFAULT_STAGE_PROGRESS_JSON);
         player.setHelpDate("");

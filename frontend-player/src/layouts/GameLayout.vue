@@ -453,12 +453,6 @@ onBeforeUnmount(() => {
             @select-panel="selectPanel"
             @close-panel="closePanel"
           />
-          <div v-else class="ling-placeholder">
-            <div class="ling-placeholder-inner">
-              <ScenarioPanel />
-              <ConstellationPanel v-if="currentLocationKey()" />
-            </div>
-          </div>
         </template>
       </main>
 

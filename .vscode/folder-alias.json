@@ -1,4 +1,1567 @@
 {
+  "springboot-backend/src/main": {
+    "description": "📂 主源码"
+  },
+  "springboot-backend/src/main/java": {
+    "description": "☕ Java"
+  },
+  "springboot-backend/src/main/java/com": {
+    "description": "📦 包路径"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai": {
+    "description": "📦 项目包"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame": {
+    "description": "🎮 游戏核心"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/common": {
+    "description": "🧰 公共模块"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/common/BusinessException.java": {
+    "description": "🧰 公共模块 · BusinessException"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/common/ErrorCode.java": {
+    "description": "🧰 公共模块 · ErrorCode"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/common/MapUtils.java": {
+    "description": "🧰 公共模块 · MapUtils"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/common/Result.java": {
+    "description": "🧰 公共模块 · Result"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/config": {
+    "description": "⚡ Spring配置"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/config/Knife4jConfig.java": {
+    "description": "⚡ Spring配置 · Knife4jConfig"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/config/MyBatisPlusConfig.java": {
+    "description": "⚡ Spring配置 · MyBatisPlusConfig"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/config/SchedulerConfig.java": {
+    "description": "⚡ Spring配置 · SchedulerConfig"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/config/WebConfig.java": {
+    "description": "⚡ Spring配置 · WebConfig"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/config/WebSocketConfig.java": {
+    "description": "⚡ Spring配置 · WebSocketConfig"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller": {
+    "description": "📡 接口层"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/AdminController.java": {
+    "description": "📡 接口层 · AdminController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/AdminCrudController.java": {
+    "description": "📡 接口层 · AdminCrudController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/AuthController.java": {
+    "description": "📡 接口层 · AuthController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/AvatarRankController.java": {
+    "description": "📡 接口层 · AvatarRankController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/BroadcastController.java": {
+    "description": "📡 接口层 · BroadcastController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/ChapterController.java": {
+    "description": "📡 接口层 · ChapterController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/ChatController.java": {
+    "description": "📡 接口层 · ChatController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/CombatController.java": {
+    "description": "📡 接口层 · CombatController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/EndingController.java": {
+    "description": "📡 接口层 · EndingController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/EquipmentController.java": {
+    "description": "📡 接口层 · EquipmentController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/ExploreController.java": {
+    "description": "📡 接口层 · ExploreController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/FactionController.java": {
+    "description": "📡 接口层 · FactionController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/FeedbackController.java": {
+    "description": "📡 接口层 · FeedbackController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/FriendController.java": {
+    "description": "📡 接口层 · FriendController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/GameController.java": {
+    "description": "📡 接口层 · GameController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/HelpBountyController.java": {
+    "description": "📡 接口层 · HelpBountyController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/InventoryController.java": {
+    "description": "📡 接口层 · InventoryController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/NarrativeController.java": {
+    "description": "📡 接口层 · NarrativeController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/OnlineController.java": {
+    "description": "📡 接口层 · OnlineController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/PartyController.java": {
+    "description": "📡 接口层 · PartyController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/PkController.java": {
+    "description": "📡 接口层 · PkController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/PlayerController.java": {
+    "description": "📡 接口层 · PlayerController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/QuestController.java": {
+    "description": "📡 接口层 · QuestController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/RankingController.java": {
+    "description": "📡 接口层 · RankingController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/SchedulerController.java": {
+    "description": "📡 接口层 · SchedulerController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/SkillController.java": {
+    "description": "📡 接口层 · SkillController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/StoryController.java": {
+    "description": "📡 接口层 · StoryController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/SystemController.java": {
+    "description": "📡 接口层 · SystemController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/TitleController.java": {
+    "description": "📡 接口层 · TitleController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/TradeController.java": {
+    "description": "📡 接口层 · TradeController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/WorldBossController.java": {
+    "description": "📡 接口层 · WorldBossController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/WorldlineController.java": {
+    "description": "📡 接口层 · WorldlineController"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto": {
+    "description": "📨 请求/响应"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/AttackWorldBossRequest.java": {
+    "description": "📨 请求/响应 · AttackWorldBossRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/AuthResult.java": {
+    "description": "📨 请求/响应 · AuthResult"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/BuyTradeListingRequest.java": {
+    "description": "📨 请求/响应 · BuyTradeListingRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/CancelTradeListingRequest.java": {
+    "description": "📨 请求/响应 · CancelTradeListingRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/ChapterAdvanceRequest.java": {
+    "description": "📨 请求/响应 · ChapterAdvanceRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/ClaimBroadcastRewardRequest.java": {
+    "description": "📨 请求/响应 · ClaimBroadcastRewardRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/ClaimQuestRewardRequest.java": {
+    "description": "📨 请求/响应 · ClaimQuestRewardRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/ClaimWorldBossRewardRequest.java": {
+    "description": "📨 请求/响应 · ClaimWorldBossRewardRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/ContributeBroadcastRequest.java": {
+    "description": "📨 请求/响应 · ContributeBroadcastRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/ContributeFactionRequest.java": {
+    "description": "📨 请求/响应 · ContributeFactionRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/CreateChallengeRequest.java": {
+    "description": "📨 请求/响应 · CreateChallengeRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/CreateEquipmentListingRequest.java": {
+    "description": "📨 请求/响应 · CreateEquipmentListingRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/CreateItemListingRequest.java": {
+    "description": "📨 请求/响应 · CreateItemListingRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/CreatePartyRequest.java": {
+    "description": "📨 请求/响应 · CreatePartyRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/CreatePlayerRequest.java": {
+    "description": "📨 请求/响应 · CreatePlayerRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/CreateWorldBossRequest.java": {
+    "description": "📨 请求/响应 · CreateWorldBossRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/DisbandPartyRequest.java": {
+    "description": "📨 请求/响应 · DisbandPartyRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/EquipItemRequest.java": {
+    "description": "📨 请求/响应 · EquipItemRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/ExploreRequest.java": {
+    "description": "📨 请求/响应 · ExploreRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/HandleFriendRequestRequest.java": {
+    "description": "📨 请求/响应 · HandleFriendRequestRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/JoinFactionRequest.java": {
+    "description": "📨 请求/响应 · JoinFactionRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/JoinPartyRequest.java": {
+    "description": "📨 请求/响应 · JoinPartyRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/KickPartyMemberRequest.java": {
+    "description": "📨 请求/响应 · KickPartyMemberRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/LeaveFactionRequest.java": {
+    "description": "📨 请求/响应 · LeaveFactionRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/LeavePartyRequest.java": {
+    "description": "📨 请求/响应 · LeavePartyRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/LoginRequest.java": {
+    "description": "📨 请求/响应 · LoginRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/MeResult.java": {
+    "description": "📨 请求/响应 · MeResult"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/RankUpRequest.java": {
+    "description": "📨 请求/响应 · RankUpRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/RefreshQuestRequest.java": {
+    "description": "📨 请求/响应 · RefreshQuestRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/RegisterRequest.java": {
+    "description": "📨 请求/响应 · RegisterRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/RepairEquipmentRequest.java": {
+    "description": "📨 请求/响应 · RepairEquipmentRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/ResolveChallengeRequest.java": {
+    "description": "📨 请求/响应 · ResolveChallengeRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/RestRequest.java": {
+    "description": "📨 请求/响应 · RestRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/RunSchedulerTaskRequest.java": {
+    "description": "📨 请求/响应 · RunSchedulerTaskRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/SellItemRequest.java": {
+    "description": "📨 请求/响应 · SellItemRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/SendChatMessageRequest.java": {
+    "description": "📨 请求/响应 · SendChatMessageRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/SendFriendRequestRequest.java": {
+    "description": "📨 请求/响应 · SendFriendRequestRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/StartCombatRequest.java": {
+    "description": "📨 请求/响应 · StartCombatRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/TitleEquipRequest.java": {
+    "description": "📨 请求/响应 · TitleEquipRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/TransferPartyLeaderRequest.java": {
+    "description": "📨 请求/响应 · TransferPartyLeaderRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/UnequipItemRequest.java": {
+    "description": "📨 请求/响应 · UnequipItemRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/UnlockSkillRequest.java": {
+    "description": "📨 请求/响应 · UnlockSkillRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/UseItemRequest.java": {
+    "description": "📨 请求/响应 · UseItemRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity": {
+    "description": "📦 数据库实体"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/AdminActionLog.java": {
+    "description": "📦 数据库实体 · AdminActionLog"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/AvatarRankConfig.java": {
+    "description": "📦 数据库实体 · AvatarRankConfig"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/BattleLog.java": {
+    "description": "📦 数据库实体 · BattleLog"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/BroadcastContribution.java": {
+    "description": "📦 数据库实体 · BroadcastContribution"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/BroadcastEvent.java": {
+    "description": "📦 数据库实体 · BroadcastEvent"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/ChatMessage.java": {
+    "description": "📦 数据库实体 · ChatMessage"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/ConstellationFaction.java": {
+    "description": "📦 数据库实体 · ConstellationFaction"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Ending.java": {
+    "description": "📦 数据库实体 · Ending"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Equipment.java": {
+    "description": "📦 数据库实体 · Equipment"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/EquipmentSet.java": {
+    "description": "📦 数据库实体 · EquipmentSet"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/ExplorationEvent.java": {
+    "description": "📦 数据库实体 · ExplorationEvent"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/FactionContribution.java": {
+    "description": "📦 数据库实体 · FactionContribution"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/FactionSkill.java": {
+    "description": "📦 数据库实体 · FactionSkill"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/FactionWar.java": {
+    "description": "📦 数据库实体 · FactionWar"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Feedback.java": {
+    "description": "📦 数据库实体 · Feedback"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Friend.java": {
+    "description": "📦 数据库实体 · Friend"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/FriendRequest.java": {
+    "description": "📦 数据库实体 · FriendRequest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/HelpBounty.java": {
+    "description": "📦 数据库实体 · HelpBounty"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Item.java": {
+    "description": "📦 数据库实体 · Item"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/ItemMemory.java": {
+    "description": "📦 数据库实体 · ItemMemory"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Location.java": {
+    "description": "📦 数据库实体 · Location"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/LocationEcho.java": {
+    "description": "📦 数据库实体 · LocationEcho"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/MainChapter.java": {
+    "description": "📦 数据库实体 · MainChapter"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Monster.java": {
+    "description": "📦 数据库实体 · Monster"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/NpcGhost.java": {
+    "description": "📦 数据库实体 · NpcGhost"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Party.java": {
+    "description": "📦 数据库实体 · Party"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PartyMember.java": {
+    "description": "📦 数据库实体 · PartyMember"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PkChallenge.java": {
+    "description": "📦 数据库实体 · PkChallenge"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PkRecord.java": {
+    "description": "📦 数据库实体 · PkRecord"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Player.java": {
+    "description": "📦 数据库实体 · Player"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PlayerEquipment.java": {
+    "description": "📦 数据库实体 · PlayerEquipment"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PlayerFaction.java": {
+    "description": "📦 数据库实体 · PlayerFaction"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PlayerInventory.java": {
+    "description": "📦 数据库实体 · PlayerInventory"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PlayerLog.java": {
+    "description": "📦 数据库实体 · PlayerLog"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PlayerNpcEncounter.java": {
+    "description": "📦 数据库实体 · PlayerNpcEncounter"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PlayerQuest.java": {
+    "description": "📦 数据库实体 · PlayerQuest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PlayerSkill.java": {
+    "description": "📦 数据库实体 · PlayerSkill"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PlayerStoryLog.java": {
+    "description": "📦 数据库实体 · PlayerStoryLog"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PlayerTitle.java": {
+    "description": "📦 数据库实体 · PlayerTitle"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Quest.java": {
+    "description": "📦 数据库实体 · Quest"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/QuestProgressLog.java": {
+    "description": "📦 数据库实体 · QuestProgressLog"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Ranking.java": {
+    "description": "📦 数据库实体 · Ranking"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/ScheduledTaskLog.java": {
+    "description": "📦 数据库实体 · ScheduledTaskLog"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Skill.java": {
+    "description": "📦 数据库实体 · Skill"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/SynthesisRecipe.java": {
+    "description": "📦 数据库实体 · SynthesisRecipe"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Title.java": {
+    "description": "📦 数据库实体 · Title"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/TradeListing.java": {
+    "description": "📦 数据库实体 · TradeListing"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/TradeRecord.java": {
+    "description": "📦 数据库实体 · TradeRecord"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/User.java": {
+    "description": "📦 数据库实体 · User"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/WorldBoss.java": {
+    "description": "📦 数据库实体 · WorldBoss"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/WorldBossParticipation.java": {
+    "description": "📦 数据库实体 · WorldBossParticipation"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/WorldState.java": {
+    "description": "📦 数据库实体 · WorldState"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/exception": {
+    "description": "⚠️ 异常处理"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/exception/GlobalExceptionHandler.java": {
+    "description": "⚠️ 异常处理 · GlobalExceptionHandler"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper": {
+    "description": "🗄️ 数据访问"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/AdminActionLogMapper.java": {
+    "description": "🗄️ 数据访问 · AdminActionLogMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/AvatarRankConfigMapper.java": {
+    "description": "🗄️ 数据访问 · AvatarRankConfigMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/BattleLogMapper.java": {
+    "description": "🗄️ 数据访问 · BattleLogMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/BroadcastContributionMapper.java": {
+    "description": "🗄️ 数据访问 · BroadcastContributionMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/BroadcastEventMapper.java": {
+    "description": "🗄️ 数据访问 · BroadcastEventMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/ChatMessageMapper.java": {
+    "description": "🗄️ 数据访问 · ChatMessageMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/ConstellationFactionMapper.java": {
+    "description": "🗄️ 数据访问 · ConstellationFactionMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/EndingMapper.java": {
+    "description": "🗄️ 数据访问 · EndingMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/EquipmentMapper.java": {
+    "description": "🗄️ 数据访问 · EquipmentMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/EquipmentSetMapper.java": {
+    "description": "🗄️ 数据访问 · EquipmentSetMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/ExplorationEventMapper.java": {
+    "description": "🗄️ 数据访问 · ExplorationEventMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/FactionContributionMapper.java": {
+    "description": "🗄️ 数据访问 · FactionContributionMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/FactionSkillMapper.java": {
+    "description": "🗄️ 数据访问 · FactionSkillMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/FactionWarMapper.java": {
+    "description": "🗄️ 数据访问 · FactionWarMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/FeedbackMapper.java": {
+    "description": "🗄️ 数据访问 · FeedbackMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/FriendMapper.java": {
+    "description": "🗄️ 数据访问 · FriendMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/FriendRequestMapper.java": {
+    "description": "🗄️ 数据访问 · FriendRequestMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/HelpBountyMapper.java": {
+    "description": "🗄️ 数据访问 · HelpBountyMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/ItemMapper.java": {
+    "description": "🗄️ 数据访问 · ItemMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/ItemMemoryMapper.java": {
+    "description": "🗄️ 数据访问 · ItemMemoryMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/LocationEchoMapper.java": {
+    "description": "🗄️ 数据访问 · LocationEchoMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/LocationMapper.java": {
+    "description": "🗄️ 数据访问 · LocationMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/MainChapterMapper.java": {
+    "description": "🗄️ 数据访问 · MainChapterMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/MonsterMapper.java": {
+    "description": "🗄️ 数据访问 · MonsterMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/NpcGhostMapper.java": {
+    "description": "🗄️ 数据访问 · NpcGhostMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PartyMapper.java": {
+    "description": "🗄️ 数据访问 · PartyMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PartyMemberMapper.java": {
+    "description": "🗄️ 数据访问 · PartyMemberMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PkChallengeMapper.java": {
+    "description": "🗄️ 数据访问 · PkChallengeMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PkRecordMapper.java": {
+    "description": "🗄️ 数据访问 · PkRecordMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PlayerEquipmentMapper.java": {
+    "description": "🗄️ 数据访问 · PlayerEquipmentMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PlayerFactionMapper.java": {
+    "description": "🗄️ 数据访问 · PlayerFactionMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PlayerInventoryMapper.java": {
+    "description": "🗄️ 数据访问 · PlayerInventoryMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PlayerLogMapper.java": {
+    "description": "🗄️ 数据访问 · PlayerLogMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PlayerMapper.java": {
+    "description": "🗄️ 数据访问 · PlayerMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PlayerNpcEncounterMapper.java": {
+    "description": "🗄️ 数据访问 · PlayerNpcEncounterMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PlayerQuestMapper.java": {
+    "description": "🗄️ 数据访问 · PlayerQuestMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PlayerSkillMapper.java": {
+    "description": "🗄️ 数据访问 · PlayerSkillMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PlayerStoryLogMapper.java": {
+    "description": "🗄️ 数据访问 · PlayerStoryLogMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PlayerTitleMapper.java": {
+    "description": "🗄️ 数据访问 · PlayerTitleMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/QuestMapper.java": {
+    "description": "🗄️ 数据访问 · QuestMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/QuestProgressLogMapper.java": {
+    "description": "🗄️ 数据访问 · QuestProgressLogMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/RankingMapper.java": {
+    "description": "🗄️ 数据访问 · RankingMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/ScheduledTaskLogMapper.java": {
+    "description": "🗄️ 数据访问 · ScheduledTaskLogMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/SkillMapper.java": {
+    "description": "🗄️ 数据访问 · SkillMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/SynthesisRecipeMapper.java": {
+    "description": "🗄️ 数据访问 · SynthesisRecipeMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/TitleMapper.java": {
+    "description": "🗄️ 数据访问 · TitleMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/TradeListingMapper.java": {
+    "description": "🗄️ 数据访问 · TradeListingMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/TradeRecordMapper.java": {
+    "description": "🗄️ 数据访问 · TradeRecordMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/UserMapper.java": {
+    "description": "🗄️ 数据访问 · UserMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/WorldBossMapper.java": {
+    "description": "🗄️ 数据访问 · WorldBossMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/WorldBossParticipationMapper.java": {
+    "description": "🗄️ 数据访问 · WorldBossParticipationMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/WorldStateMapper.java": {
+    "description": "🗄️ 数据访问 · WorldStateMapper"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/ReaderGameApplication.java": {
+    "description": "🎮 游戏启动类"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/security": {
+    "description": "🔐 安全认证"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/security/ConstellationRequiredAspect.java": {
+    "description": "🔐 安全认证 · ConstellationRequiredAspect"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/security/JwtAuthInterceptor.java": {
+    "description": "🔐 安全认证 · JwtAuthInterceptor"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/security/JwtUtil.java": {
+    "description": "🔐 安全认证 · JwtUtil"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/security/LoginUser.java": {
+    "description": "🔐 安全认证 · LoginUser"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/security/LoginUserContext.java": {
+    "description": "🔐 安全认证 · LoginUserContext"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service": {
+    "description": "📋 业务接口"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/AiDirectorService.java": {
+    "description": "📋 业务接口 · AiDirectorService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/AuthService.java": {
+    "description": "📋 业务接口 · AuthService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/AvatarRankService.java": {
+    "description": "📋 业务接口 · AvatarRankService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/BroadcastService.java": {
+    "description": "📋 业务接口 · BroadcastService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/ChapterService.java": {
+    "description": "📋 业务接口 · ChapterService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/ChatService.java": {
+    "description": "📋 业务接口 · ChatService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/CombatService.java": {
+    "description": "📋 业务接口 · CombatService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/EndingService.java": {
+    "description": "📋 业务接口 · EndingService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/EquipmentService.java": {
+    "description": "📋 业务接口 · EquipmentService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/ExploreService.java": {
+    "description": "📋 业务接口 · ExploreService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/FactionService.java": {
+    "description": "📋 业务接口 · FactionService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/FeedbackService.java": {
+    "description": "📋 业务接口 · FeedbackService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/FriendService.java": {
+    "description": "📋 业务接口 · FriendService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/GameBootstrapService.java": {
+    "description": "📋 业务接口 · GameBootstrapService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/HelpBountyService.java": {
+    "description": "📋 业务接口 · HelpBountyService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl": {
+    "description": "⚙️ 业务实现"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/AiDirectorServiceImpl.java": {
+    "description": "⚙️ 业务实现 · AiDirectorServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/AuthServiceImpl.java": {
+    "description": "⚙️ 业务实现 · AuthServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/AvatarRankServiceImpl.java": {
+    "description": "⚙️ 业务实现 · AvatarRankServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/BroadcastServiceImpl.java": {
+    "description": "⚙️ 业务实现 · BroadcastServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/ChapterServiceImpl.java": {
+    "description": "⚙️ 业务实现 · ChapterServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/ChatServiceImpl.java": {
+    "description": "⚙️ 业务实现 · ChatServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/CombatServiceImpl.java": {
+    "description": "⚙️ 业务实现 · CombatServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/EndingServiceImpl.java": {
+    "description": "⚙️ 业务实现 · EndingServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/EquipmentServiceImpl.java": {
+    "description": "⚙️ 业务实现 · EquipmentServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/ExploreServiceImpl.java": {
+    "description": "⚙️ 业务实现 · ExploreServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/FactionServiceImpl.java": {
+    "description": "⚙️ 业务实现 · FactionServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/FeedbackServiceImpl.java": {
+    "description": "⚙️ 业务实现 · FeedbackServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/FriendServiceImpl.java": {
+    "description": "⚙️ 业务实现 · FriendServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/GameBootstrapServiceImpl.java": {
+    "description": "⚙️ 业务实现 · GameBootstrapServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/HelpBountyServiceImpl.java": {
+    "description": "⚙️ 业务实现 · HelpBountyServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/InventoryServiceImpl.java": {
+    "description": "⚙️ 业务实现 · InventoryServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/ItemServiceImpl.java": {
+    "description": "⚙️ 业务实现 · ItemServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/MonsterServiceImpl.java": {
+    "description": "⚙️ 业务实现 · MonsterServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/NarrativeServiceImpl.java": {
+    "description": "⚙️ 业务实现 · NarrativeServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/OnlinePlayerServiceImpl.java": {
+    "description": "⚙️ 业务实现 · OnlinePlayerServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/PartyServiceImpl.java": {
+    "description": "⚙️ 业务实现 · PartyServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/PkServiceImpl.java": {
+    "description": "⚙️ 业务实现 · PkServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/PlayerLogServiceImpl.java": {
+    "description": "⚙️ 业务实现 · PlayerLogServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/PlayerServiceImpl.java": {
+    "description": "⚙️ 业务实现 · PlayerServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/QuestServiceImpl.java": {
+    "description": "⚙️ 业务实现 · QuestServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/RankingServiceImpl.java": {
+    "description": "⚙️ 业务实现 · RankingServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/RecoveryServiceImpl.java": {
+    "description": "⚙️ 业务实现 · RecoveryServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/SchedulerServiceImpl.java": {
+    "description": "⚙️ 业务实现 · SchedulerServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/SkillServiceImpl.java": {
+    "description": "⚙️ 业务实现 · SkillServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/TitleServiceImpl.java": {
+    "description": "⚙️ 业务实现 · TitleServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/TradeServiceImpl.java": {
+    "description": "⚙️ 业务实现 · TradeServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/WorldBossServiceImpl.java": {
+    "description": "⚙️ 业务实现 · WorldBossServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/WorldlineServiceImpl.java": {
+    "description": "⚙️ 业务实现 · WorldlineServiceImpl"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/InventoryService.java": {
+    "description": "📋 业务接口 · InventoryService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/ItemService.java": {
+    "description": "📋 业务接口 · ItemService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/MonsterService.java": {
+    "description": "📋 业务接口 · MonsterService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/NarrativeService.java": {
+    "description": "📋 业务接口 · NarrativeService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/OnlinePlayerService.java": {
+    "description": "📋 业务接口 · OnlinePlayerService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/PartyService.java": {
+    "description": "📋 业务接口 · PartyService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/PkService.java": {
+    "description": "📋 业务接口 · PkService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/PlayerLogService.java": {
+    "description": "📋 业务接口 · PlayerLogService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/PlayerService.java": {
+    "description": "📋 业务接口 · PlayerService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/QuestService.java": {
+    "description": "📋 业务接口 · QuestService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/RankingService.java": {
+    "description": "📋 业务接口 · RankingService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/RecoveryService.java": {
+    "description": "📋 业务接口 · RecoveryService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/SchedulerService.java": {
+    "description": "📋 业务接口 · SchedulerService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/SkillService.java": {
+    "description": "📋 业务接口 · SkillService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/TitleService.java": {
+    "description": "📋 业务接口 · TitleService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/TradeService.java": {
+    "description": "📋 业务接口 · TradeService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/WorldBossService.java": {
+    "description": "📋 业务接口 · WorldBossService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/WorldlineService.java": {
+    "description": "📋 业务接口 · WorldlineService"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo": {
+    "description": "👁️ 视图对象"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/AvatarRankVO.java": {
+    "description": "👁️ 视图对象 · AvatarRankVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/BattleLogVO.java": {
+    "description": "👁️ 视图对象 · BattleLogVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/BroadcastEventVO.java": {
+    "description": "👁️ 视图对象 · BroadcastEventVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/BroadcastSummaryVO.java": {
+    "description": "👁️ 视图对象 · BroadcastSummaryVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/ChapterProgressVO.java": {
+    "description": "👁️ 视图对象 · ChapterProgressVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/ChatMessageVO.java": {
+    "description": "👁️ 视图对象 · ChatMessageVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/ChatSummaryVO.java": {
+    "description": "👁️ 视图对象 · ChatSummaryVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/CombatResultVO.java": {
+    "description": "👁️ 视图对象 · CombatResultVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/CombatRewardVO.java": {
+    "description": "👁️ 视图对象 · CombatRewardVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/CombatRoundVO.java": {
+    "description": "👁️ 视图对象 · CombatRoundVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/CombatStatsVO.java": {
+    "description": "👁️ 视图对象 · CombatStatsVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/EquipmentBonusVO.java": {
+    "description": "👁️ 视图对象 · EquipmentBonusVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/EquipmentVO.java": {
+    "description": "👁️ 视图对象 · EquipmentVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/EquippedSlotsVO.java": {
+    "description": "👁️ 视图对象 · EquippedSlotsVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/ExploreResultVO.java": {
+    "description": "👁️ 视图对象 · ExploreResultVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/FactionContributionVO.java": {
+    "description": "👁️ 视图对象 · FactionContributionVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/FactionRankingVO.java": {
+    "description": "👁️ 视图对象 · FactionRankingVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/FactionSkillVO.java": {
+    "description": "👁️ 视图对象 · FactionSkillVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/FactionSummaryVO.java": {
+    "description": "👁️ 视图对象 · FactionSummaryVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/FactionVO.java": {
+    "description": "👁️ 视图对象 · FactionVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/FactionWarVO.java": {
+    "description": "👁️ 视图对象 · FactionWarVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/FriendRequestVO.java": {
+    "description": "👁️ 视图对象 · FriendRequestVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/FriendSummaryVO.java": {
+    "description": "👁️ 视图对象 · FriendSummaryVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/FriendVO.java": {
+    "description": "👁️ 视图对象 · FriendVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/GameBootstrapVO.java": {
+    "description": "👁️ 视图对象 · GameBootstrapVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/InventoryItemVO.java": {
+    "description": "👁️ 视图对象 · InventoryItemVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/ItemVO.java": {
+    "description": "👁️ 视图对象 · ItemVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/LogEntry.java": {
+    "description": "👁️ 视图对象 · LogEntry"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/LoginVO.java": {
+    "description": "👁️ 视图对象 · LoginVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/MainChapterVO.java": {
+    "description": "👁️ 视图对象 · MainChapterVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/MonsterVO.java": {
+    "description": "👁️ 视图对象 · MonsterVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/OnlineSummaryVO.java": {
+    "description": "👁️ 视图对象 · OnlineSummaryVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PartyMemberVO.java": {
+    "description": "👁️ 视图对象 · PartyMemberVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PartySummaryVO.java": {
+    "description": "👁️ 视图对象 · PartySummaryVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PartyVO.java": {
+    "description": "👁️ 视图对象 · PartyVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PkChallengeVO.java": {
+    "description": "👁️ 视图对象 · PkChallengeVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PkRecordVO.java": {
+    "description": "👁️ 视图对象 · PkRecordVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PkResultVO.java": {
+    "description": "👁️ 视图对象 · PkResultVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PlayerEquipmentVO.java": {
+    "description": "👁️ 视图对象 · PlayerEquipmentVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PlayerFactionVO.java": {
+    "description": "👁️ 视图对象 · PlayerFactionVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PlayerQuestVO.java": {
+    "description": "👁️ 视图对象 · PlayerQuestVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PlayerRankVO.java": {
+    "description": "👁️ 视图对象 · PlayerRankVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PlayerSkillVO.java": {
+    "description": "👁️ 视图对象 · PlayerSkillVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PlayerSummaryVO.java": {
+    "description": "👁️ 视图对象 · PlayerSummaryVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PlayerTitleVO.java": {
+    "description": "👁️ 视图对象 · PlayerTitleVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PlayerVO.java": {
+    "description": "👁️ 视图对象 · PlayerVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/QuestRewardVO.java": {
+    "description": "👁️ 视图对象 · QuestRewardVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/QuestSummaryVO.java": {
+    "description": "👁️ 视图对象 · QuestSummaryVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/QuestVO.java": {
+    "description": "👁️ 视图对象 · QuestVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/RankingVO.java": {
+    "description": "👁️ 视图对象 · RankingVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/RestStateVO.java": {
+    "description": "👁️ 视图对象 · RestStateVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/ScheduledTaskLogVO.java": {
+    "description": "👁️ 视图对象 · ScheduledTaskLogVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/SchedulerSummaryVO.java": {
+    "description": "👁️ 视图对象 · SchedulerSummaryVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/SellItemResultVO.java": {
+    "description": "👁️ 视图对象 · SellItemResultVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/SkillBonusVO.java": {
+    "description": "👁️ 视图对象 · SkillBonusVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/SkillSummaryVO.java": {
+    "description": "👁️ 视图对象 · SkillSummaryVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/SkillVO.java": {
+    "description": "👁️ 视图对象 · SkillVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/TitleVO.java": {
+    "description": "👁️ 视图对象 · TitleVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/TradeBuyResultVO.java": {
+    "description": "👁️ 视图对象 · TradeBuyResultVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/TradeListingVO.java": {
+    "description": "👁️ 视图对象 · TradeListingVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/TradeRecordVO.java": {
+    "description": "👁️ 视图对象 · TradeRecordVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/TradeSummaryVO.java": {
+    "description": "👁️ 视图对象 · TradeSummaryVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/UseItemResultVO.java": {
+    "description": "👁️ 视图对象 · UseItemResultVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/UserVO.java": {
+    "description": "👁️ 视图对象 · UserVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/WorldBossAttackResultVO.java": {
+    "description": "👁️ 视图对象 · WorldBossAttackResultVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/WorldBossParticipationVO.java": {
+    "description": "👁️ 视图对象 · WorldBossParticipationVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/WorldBossRankingVO.java": {
+    "description": "👁️ 视图对象 · WorldBossRankingVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/WorldBossRewardVO.java": {
+    "description": "👁️ 视图对象 · WorldBossRewardVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/WorldBossSummaryVO.java": {
+    "description": "👁️ 视图对象 · WorldBossSummaryVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/WorldBossVO.java": {
+    "description": "👁️ 视图对象 · WorldBossVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/WorldlineSummaryVO.java": {
+    "description": "👁️ 视图对象 · WorldlineSummaryVO"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/websocket": {
+    "description": "🔗 实时通信"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/websocket/GameWebSocketHandler.java": {
+    "description": "🔗 实时通信 · GameWebSocketHandler"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/websocket/WebSocketAuthHandshakeInterceptor.java": {
+    "description": "🔗 实时通信 · WebSocketAuthHandshakeInterceptor"
+  },
+  "springboot-backend/src/main/java/com/huazhenghai/readergame/websocket/WebSocketSessionManager.java": {
+    "description": "🔗 实时通信 · WebSocketSessionManager"
+  },
+  "springboot-backend/src/main/resources": {
+    "description": "📂 资源"
+  },
+  "springboot-backend/src/main/resources/application-dev.yml": {
+    "description": "⚙️ 开发配置"
+  },
+  "springboot-backend/src/main/resources/application-prod.yml": {
+    "description": "⚙️ 生产配置"
+  },
+  "springboot-backend/src/main/resources/application.yml": {
+    "description": "⚙️ 资源配置"
+  },
+  "springboot-backend/src/main/resources/data": {
+    "description": "📊 数据文件"
+  },
+  "springboot-backend/src/main/resources/data/seedNpcGhosts.json": {
+    "description": "📊 数据文件 · seedNpcGhosts"
+  },
+  "springboot-backend/src/main/resources/db": {
+    "description": "🌱 数据库脚本"
+  },
+  "springboot-backend/src/main/resources/db/fix_encoding.sql": {
+    "description": "🌱 数据库脚本 · fix_encoding"
+  },
+  "springboot-backend/src/main/resources/db/fix_encoding_all.sql": {
+    "description": "🌱 数据库脚本 · fix_encoding_all"
+  },
+  "springboot-backend/src/main/resources/db/fix_item_memories.sql": {
+    "description": "🌱 数据库脚本 · fix_item_memories"
+  },
+  "springboot-backend/src/main/resources/db/init.sql": {
+    "description": "🌱 数据库脚本 · init"
+  },
+  "springboot-backend/src/main/resources/db/seed_equipment.sql": {
+    "description": "🌱 数据库脚本 · seed_equipment"
+  },
+  "springboot-backend/src/main/resources/db/seed_explore.json": {
+    "description": "🌱 数据库脚本 · seed_explore"
+  },
+  "springboot-backend/src/main/resources/db/seed_explore.sql": {
+    "description": "🌱 数据库脚本 · seed_explore"
+  },
+  "springboot-backend/src/main/resources/db/seed_growth.sql": {
+    "description": "🌱 数据库脚本 · seed_growth"
+  },
+  "springboot-backend/src/main/resources/db/seed_items.sql": {
+    "description": "🌱 数据库脚本 · seed_items"
+  },
+  "springboot-backend/src/main/resources/db/seed_monsters.sql": {
+    "description": "🌱 数据库脚本 · seed_monsters"
+  },
+  "springboot-backend/src/main/resources/db/seed_skills.sql": {
+    "description": "🌱 数据库脚本 · seed_skills"
+  },
+  "springboot-backend/src/main/resources/db/seed_synthesis_items.sql": {
+    "description": "🌱 数据库脚本 · seed_synthesis_items"
+  },
+  "springboot-backend/src/test": {
+    "description": "🧪 测试"
+  },
+  "springboot-backend/src/test/java": {
+    "description": "☕ Java"
+  },
+  "springboot-backend/src/test/java/com": {
+    "description": "📦 包路径"
+  },
+  "springboot-backend/src/test/java/com/huazhenghai": {
+    "description": "📦 项目包"
+  },
+  "springboot-backend/src/test/java/com/huazhenghai/readergame": {
+    "description": "🎮 游戏核心"
+  },
+  "springboot-backend/src/test/java/com/huazhenghai/readergame/common": {
+    "description": "🧰 公共模块"
+  },
+  "springboot-backend/src/test/java/com/huazhenghai/readergame/common/MapUtilsTest.java": {
+    "description": "🧰 公共模块 · MapUtilsTest"
+  },
+  "springboot-backend/src/test/java/com/huazhenghai/readergame/service": {
+    "description": "📋 业务接口"
+  },
+  "springboot-backend/src/test/java/com/huazhenghai/readergame/service/impl": {
+    "description": "⚙️ 业务实现"
+  },
+  "springboot-backend/src/test/java/com/huazhenghai/readergame/service/impl/CombatServiceImplTest.java": {
+    "description": "⚙️ 业务实现 · CombatServiceImplTest"
+  },
+  "springboot-backend/src/test/java/com/huazhenghai/readergame/SmokeTest.java": {
+    "description": "☕ 游戏核心 · SmokeTest"
+  },
+  "springboot-backend/src/test/resources": {
+    "description": "📂 资源"
+  },
+  "springboot-backend/src/test/resources/application.properties": {
+    "description": "⚙️ 资源配置"
+  },
+  "frontend-player/src/api": {
+    "description": "📡 API接口"
+  },
+  "frontend-player/src/api/authApi.ts": {
+    "description": "📡 API接口 · authApi"
+  },
+  "frontend-player/src/api/bountyApi.ts": {
+    "description": "📡 API接口 · bountyApi"
+  },
+  "frontend-player/src/api/broadcastApi.ts": {
+    "description": "📡 API接口 · broadcastApi"
+  },
+  "frontend-player/src/api/chatApi.ts": {
+    "description": "📡 API接口 · chatApi"
+  },
+  "frontend-player/src/api/combatApi.ts": {
+    "description": "📡 API接口 · combatApi"
+  },
+  "frontend-player/src/api/endingApi.ts": {
+    "description": "📡 API接口 · endingApi"
+  },
+  "frontend-player/src/api/equipmentApi.ts": {
+    "description": "📡 API接口 · equipmentApi"
+  },
+  "frontend-player/src/api/exploreApi.ts": {
+    "description": "📡 API接口 · exploreApi"
+  },
+  "frontend-player/src/api/factionApi.ts": {
+    "description": "📡 API接口 · factionApi"
+  },
+  "frontend-player/src/api/friendApi.ts": {
+    "description": "📡 API接口 · friendApi"
+  },
+  "frontend-player/src/api/gameApi.ts": {
+    "description": "📡 API接口 · gameApi"
+  },
+  "frontend-player/src/api/http.ts": {
+    "description": "📡 API接口 · http"
+  },
+  "frontend-player/src/api/inventoryApi.ts": {
+    "description": "📡 API接口 · inventoryApi"
+  },
+  "frontend-player/src/api/narrativeApi.ts": {
+    "description": "📡 API接口 · narrativeApi"
+  },
+  "frontend-player/src/api/partyApi.ts": {
+    "description": "📡 API接口 · partyApi"
+  },
+  "frontend-player/src/api/pkApi.ts": {
+    "description": "📡 API接口 · pkApi"
+  },
+  "frontend-player/src/api/playerApi.ts": {
+    "description": "📡 API接口 · playerApi"
+  },
+  "frontend-player/src/api/questApi.ts": {
+    "description": "📡 API接口 · questApi"
+  },
+  "frontend-player/src/api/rankingApi.ts": {
+    "description": "📡 API接口 · rankingApi"
+  },
+  "frontend-player/src/api/skillApi.ts": {
+    "description": "📡 API接口 · skillApi"
+  },
+  "frontend-player/src/api/systemApi.ts": {
+    "description": "📡 API接口 · systemApi"
+  },
+  "frontend-player/src/api/titleApi.ts": {
+    "description": "📡 API接口 · titleApi"
+  },
+  "frontend-player/src/api/tradeApi.ts": {
+    "description": "📡 API接口 · tradeApi"
+  },
+  "frontend-player/src/api/worldBossApi.ts": {
+    "description": "📡 API接口 · worldBossApi"
+  },
+  "frontend-player/src/api/worldlineApi.ts": {
+    "description": "📡 API接口 · worldlineApi"
+  },
+  "frontend-player/src/App.vue": {
+    "description": "🟢 根组件 App"
+  },
+  "frontend-player/src/components": {
+    "description": "🧩 组件"
+  },
+  "frontend-player/src/components/broadcast": {
+    "description": "📢 广播"
+  },
+  "frontend-player/src/components/broadcast/BroadcastStrip.vue": {
+    "description": "📢 广播 · BroadcastStrip"
+  },
+  "frontend-player/src/components/chat": {
+    "description": "💬 聊天"
+  },
+  "frontend-player/src/components/chat/ChatPanel.vue": {
+    "description": "💬 聊天 · ChatPanel"
+  },
+  "frontend-player/src/components/common": {
+    "description": "🧰 公共模块"
+  },
+  "frontend-player/src/components/common/GameButton.vue": {
+    "description": "🧰 公共模块 · GameButton"
+  },
+  "frontend-player/src/components/common/GameCard.vue": {
+    "description": "🧰 公共模块 · GameCard"
+  },
+  "frontend-player/src/components/common/GameConfirmDialog.vue": {
+    "description": "🧰 公共模块 · GameConfirmDialog"
+  },
+  "frontend-player/src/components/common/GameInput.vue": {
+    "description": "🧰 公共模块 · GameInput"
+  },
+  "frontend-player/src/components/constellation": {
+    "description": "⭐ 星座"
+  },
+  "frontend-player/src/components/constellation/ConstellationPanel.vue": {
+    "description": "⭐ 星座 · ConstellationPanel"
+  },
+  "frontend-player/src/components/explore": {
+    "description": "🔍 探索"
+  },
+  "frontend-player/src/components/explore/ExplorePanel.vue": {
+    "description": "🔍 探索 · ExplorePanel"
+  },
+  "frontend-player/src/components/explore/ExploreResultDialog.vue": {
+    "description": "🔍 探索 · ExploreResultDialog"
+  },
+  "frontend-player/src/components/explore/StoryLogPanel.vue": {
+    "description": "🔍 探索 · StoryLogPanel"
+  },
+  "frontend-player/src/components/guide": {
+    "description": "📚 新手引导"
+  },
+  "frontend-player/src/components/guide/OnboardingGuide.vue": {
+    "description": "📚 新手引导 · OnboardingGuide"
+  },
+  "frontend-player/src/components/log": {
+    "description": "📝 日志"
+  },
+  "frontend-player/src/components/log/GameLogPanel.vue": {
+    "description": "📝 日志 · GameLogPanel"
+  },
+  "frontend-player/src/components/nav": {
+    "description": "🧭 导航"
+  },
+  "frontend-player/src/components/nav/BottomNav.vue": {
+    "description": "🧭 导航 · BottomNav"
+  },
+  "frontend-player/src/components/notification": {
+    "description": "🔔 通知"
+  },
+  "frontend-player/src/components/notification/GameNotificationToast.vue": {
+    "description": "🔔 通知 · GameNotificationToast"
+  },
+  "frontend-player/src/components/panels": {
+    "description": "🗂️ 面板引擎"
+  },
+  "frontend-player/src/components/panels/ConnectedPanel.vue": {
+    "description": "🗂️ 面板引擎 · ConnectedPanel"
+  },
+  "frontend-player/src/components/player": {
+    "description": "🦸 玩家状态"
+  },
+  "frontend-player/src/components/player/AllocDialog.vue": {
+    "description": "🦸 玩家状态 · AllocDialog"
+  },
+  "frontend-player/src/components/player/DeathOverlay.vue": {
+    "description": "🦸 玩家状态 · DeathOverlay"
+  },
+  "frontend-player/src/components/player/PlayerStatusPanel.vue": {
+    "description": "🦸 玩家状态 · PlayerStatusPanel"
+  },
+  "frontend-player/src/components/player/ResourceBar.vue": {
+    "description": "🦸 玩家状态 · ResourceBar"
+  },
+  "frontend-player/src/components/quest": {
+    "description": "📋 任务"
+  },
+  "frontend-player/src/components/quest/QuestSummaryCard.vue": {
+    "description": "📋 任务 · QuestSummaryCard"
+  },
+  "frontend-player/src/components/scenario": {
+    "description": "📖 剧本场景"
+  },
+  "frontend-player/src/components/scenario/ScenarioPanel.vue": {
+    "description": "📖 剧本场景 · ScenarioPanel"
+  },
+  "frontend-player/src/components/scene-map": {
+    "description": "🗺️ 场景地图"
+  },
+  "frontend-player/src/components/scene-map/mockData.ts": {
+    "description": "🗺️ 场景地图 · mockData"
+  },
+  "frontend-player/src/components/scene-map/SceneMapPanel.vue": {
+    "description": "🗺️ 场景地图 · SceneMapPanel"
+  },
+  "frontend-player/src/components/scene-map/StarChartMap.vue": {
+    "description": "🗺️ 场景地图 · StarChartMap"
+  },
+  "frontend-player/src/components/scene-map/StarChartMapCore.vue": {
+    "description": "🗺️ 场景地图 · StarChartMapCore"
+  },
+  "frontend-player/src/components/scene-map/TreeMap.vue": {
+    "description": "🗺️ 场景地图 · TreeMap"
+  },
+  "frontend-player/src/components/worldline": {
+    "description": "🌀 世界线"
+  },
+  "frontend-player/src/components/worldline/WorldlineStrip.vue": {
+    "description": "🌀 世界线 · WorldlineStrip"
+  },
+  "frontend-player/src/layouts": {
+    "description": "🖼️ 布局"
+  },
+  "frontend-player/src/layouts/GameLayout.vue": {
+    "description": "🖼️ 布局 · GameLayout"
+  },
+  "frontend-player/src/main.ts": {
+    "description": "🔷 入口 main"
+  },
+  "frontend-player/src/realtime": {
+    "description": "🔗 实时通信"
+  },
+  "frontend-player/src/realtime/realtimeClient.ts": {
+    "description": "🔗 实时通信 · realtimeClient"
+  },
+  "frontend-player/src/realtime/realtimeEvents.ts": {
+    "description": "🔗 实时通信 · realtimeEvents"
+  },
+  "frontend-player/src/router": {
+    "description": "🚦 路由"
+  },
+  "frontend-player/src/router/index.ts": {
+    "description": "🚦 路由 · index"
+  },
+  "frontend-player/src/stores": {
+    "description": "🏪 状态管理"
+  },
+  "frontend-player/src/stores/authStore.ts": {
+    "description": "🏪 状态管理 · authStore"
+  },
+  "frontend-player/src/stores/chatStore.ts": {
+    "description": "🏪 状态管理 · chatStore"
+  },
+  "frontend-player/src/stores/gameStore.ts": {
+    "description": "🏪 状态管理 · gameStore"
+  },
+  "frontend-player/src/stores/playerStore.ts": {
+    "description": "🏪 状态管理 · playerStore"
+  },
+  "frontend-player/src/stores/questStore.ts": {
+    "description": "🏪 状态管理 · questStore"
+  },
+  "frontend-player/src/stores/realtimeStore.ts": {
+    "description": "🏪 状态管理 · realtimeStore"
+  },
+  "frontend-player/src/stores/uiStore.ts": {
+    "description": "🏪 状态管理 · uiStore"
+  },
+  "frontend-player/src/stores/worldBossStore.ts": {
+    "description": "🏪 状态管理 · worldBossStore"
+  },
+  "frontend-player/src/styles": {
+    "description": "🎨 样式"
+  },
+  "frontend-player/src/styles/main.css": {
+    "description": "🎨 样式 · main"
+  },
+  "frontend-player/src/styles/theme.css": {
+    "description": "🎨 样式 · theme"
+  },
+  "frontend-player/src/types": {
+    "description": "📐 类型定义"
+  },
+  "frontend-player/src/types/api.ts": {
+    "description": "📐 类型定义 · api"
+  },
+  "frontend-player/src/types/bootstrap.ts": {
+    "description": "📐 类型定义 · bootstrap"
+  },
+  "frontend-player/src/types/player.ts": {
+    "description": "📐 类型定义 · player"
+  },
+  "frontend-player/src/types/realtime.ts": {
+    "description": "📐 类型定义 · realtime"
+  },
+  "frontend-player/src/utils": {
+    "description": "🔧 工具函数"
+  },
+  "frontend-player/src/utils/panelData.ts": {
+    "description": "🔧 工具函数 · panelData"
+  },
+  "frontend-player/src/utils/sceneUtils.ts": {
+    "description": "🔧 工具函数 · sceneUtils"
+  },
+  "frontend-player/src/views": {
+    "description": "📄 页面"
+  },
+  "frontend-player/src/views/CreatePlayerView.vue": {
+    "description": "📄 页面 · CreatePlayerView"
+  },
+  "frontend-player/src/views/GameView.vue": {
+    "description": "📄 页面 · GameView"
+  },
+  "frontend-player/src/views/LoginView.vue": {
+    "description": "📄 页面 · LoginView"
+  },
+  "frontend-player/src/views/RegisterView.vue": {
+    "description": "📄 页面 · RegisterView"
+  },
+  "frontend-player/src/vite-env.d.ts": {
+    "description": "🔷 类型声明 vite-env"
+  },
+  "frontend-player/src/__tests__": {
+    "description": "🧪 单元测试"
+  },
+  "frontend-player/src/__tests__/ExploreResultDialog.test.ts": {
+    "description": "🧪 单元测试 · ExploreResultDialog.test"
+  },
+  "frontend-admin/src/api": {
+    "description": "📡 API接口"
+  },
+  "frontend-admin/src/api/adminApi.ts": {
+    "description": "📡 API接口 · adminApi"
+  },
+  "frontend-admin/src/api/http.ts": {
+    "description": "📡 API接口 · http"
+  },
+  "frontend-admin/src/api/schedulerApi.ts": {
+    "description": "📡 API接口 · schedulerApi"
+  },
+  "frontend-admin/src/App.vue": {
+    "description": "🟢 根组件 App"
+  },
+  "frontend-admin/src/layouts": {
+    "description": "🖼️ 布局"
+  },
+  "frontend-admin/src/layouts/AdminLayout.vue": {
+    "description": "🖼️ 布局 · AdminLayout"
+  },
+  "frontend-admin/src/main.ts": {
+    "description": "🔷 入口 main"
+  },
+  "frontend-admin/src/router": {
+    "description": "🚦 路由"
+  },
+  "frontend-admin/src/router/index.ts": {
+    "description": "🚦 路由 · index"
+  },
+  "frontend-admin/src/stores": {
+    "description": "🏪 状态管理"
+  },
+  "frontend-admin/src/stores/authStore.ts": {
+    "description": "🏪 状态管理 · authStore"
+  },
+  "frontend-admin/src/style.css": {
+    "description": "🎨 样式 style"
+  },
+  "frontend-admin/src/views": {
+    "description": "📄 页面"
+  },
+  "frontend-admin/src/views/AdminCrudView.vue": {
+    "description": "📄 页面 · AdminCrudView"
+  },
+  "frontend-admin/src/views/AdminLoginView.vue": {
+    "description": "📄 页面 · AdminLoginView"
+  },
+  "frontend-admin/src/views/BroadcastManageView.vue": {
+    "description": "📄 页面 · BroadcastManageView"
+  },
+  "frontend-admin/src/views/DashboardView.vue": {
+    "description": "📄 页面 · DashboardView"
+  },
+  "frontend-admin/src/views/FeedbackManageView.vue": {
+    "description": "📄 页面 · FeedbackManageView"
+  },
+  "frontend-admin/src/views/LogView.vue": {
+    "description": "📄 页面 · LogView"
+  },
+  "frontend-admin/src/views/PlayerManageView.vue": {
+    "description": "📄 页面 · PlayerManageView"
+  },
+  "frontend-admin/src/views/SchedulerView.vue": {
+    "description": "📄 页面 · SchedulerView"
+  },
+  "frontend-admin/src/views/TradeAuditView.vue": {
+    "description": "📄 页面 · TradeAuditView"
+  },
+  "frontend-admin/src/views/WorldBossManageView.vue": {
+    "description": "📄 页面 · WorldBossManageView"
+  },
+  "frontend-admin/src/vite-env.d.ts": {
+    "description": "🔷 类型声明 vite-env"
+  },
+  "deploy/application-prod.yml": {
+    "description": "🚀 部署 · application-prod"
+  },
+  "deploy/deploy.ps1": {
+    "description": "🚀 部署 · deploy"
+  },
+  "deploy/deploy.sh": {
+    "description": "🚀 部署 · deploy"
+  },
+  "deploy/nginx.conf": {
+    "description": "🚀 部署 · nginx"
+  },
+  "deploy/reader-game-winsw.xml": {
+    "description": "🚀 部署 · reader-game-winsw"
+  },
+  "deploy/reader-game.service": {
+    "description": "🚀 部署 · reader-game"
+  },
   "springboot-backend": {
     "description": "🔧 后端"
   },
@@ -11,1556 +1574,11 @@
   "deploy": {
     "description": "🚀 部署"
   },
-  "springboot-backend/src/main": {
-    "description": "📂 主源码"
-  },
-  "springboot-backend/src/main/java": {
-    "description": "☕ Java"
-  },
-  "springboot-backend/src/main/java/com": {
-    "description": "📦 com"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai": {
-    "description": "📦 huazhenghai"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame": {
-    "description": "🎮 游戏核心"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/common": {
-    "description": "🧰 通用组件"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/common/BusinessException.java": {
-    "description": "🧰 业务异常"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/common/ErrorCode.java": {
-    "description": "🧰 错误码"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/common/MapUtils.java": {
-    "description": "🧰 Map工具"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/common/Result.java": {
-    "description": "🧰 统一返回"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/config": {
-    "description": "⚡ Spring配置"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/config/Knife4jConfig.java": {
-    "description": "⚡ API文档配置"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/config/MyBatisPlusConfig.java": {
-    "description": "⚡ MyBatis配置"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/config/SchedulerConfig.java": {
-    "description": "⚡ 调度配置"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/config/WebConfig.java": {
-    "description": "⚡ Web/CORS配置"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/config/WebSocketConfig.java": {
-    "description": "⚡ WebSocket配置"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller": {
-    "description": "📡 接口层"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/AdminController.java": {
-    "description": "📡 管理员"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/AdminCrudController.java": {
-    "description": "📡 通用CRUD"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/AuthController.java": {
-    "description": "📡 认证登录"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/AvatarRankController.java": {
-    "description": "📡 位阶"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/BroadcastController.java": {
-    "description": "📡 广播"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/ChapterController.java": {
-    "description": "📡 章节"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/ChatController.java": {
-    "description": "📡 聊天"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/CombatController.java": {
-    "description": "📡 战斗"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/EndingController.java": {
-    "description": "📡 结局"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/EquipmentController.java": {
-    "description": "📡 装备"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/ExploreController.java": {
-    "description": "📡 探索"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/FactionController.java": {
-    "description": "📡 阵营"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/FeedbackController.java": {
-    "description": "📡 反馈"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/FriendController.java": {
-    "description": "📡 好友"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/GameController.java": {
-    "description": "📡 游戏引导"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/HelpBountyController.java": {
-    "description": "📡 互助赏金"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/InventoryController.java": {
-    "description": "📡 背包"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/NarrativeController.java": {
-    "description": "📡 叙事"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/OnlineController.java": {
-    "description": "📡 在线"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/PartyController.java": {
-    "description": "📡 组队"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/PkController.java": {
-    "description": "📡 PvP对战"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/PlayerController.java": {
-    "description": "📡 玩家"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/QuestController.java": {
-    "description": "📡 任务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/RankingController.java": {
-    "description": "📡 排行"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/SchedulerController.java": {
-    "description": "📡 调度"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/SkillController.java": {
-    "description": "📡 技能"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/StoryController.java": {
-    "description": "📡 剧情"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/SystemController.java": {
-    "description": "📡 系统"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/TitleController.java": {
-    "description": "📡 称号"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/TradeController.java": {
-    "description": "📡 交易"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/WorldBossController.java": {
-    "description": "📡 世界BOSS"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/controller/WorldlineController.java": {
-    "description": "📡 世界线"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto": {
-    "description": "📨 请求/响应"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/AttackWorldBossRequest.java": {
-    "description": "☕ AttackWorldBossRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/AuthResult.java": {
-    "description": "☕ AuthResult"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/BuyTradeListingRequest.java": {
-    "description": "☕ BuyTradeListingRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/CancelTradeListingRequest.java": {
-    "description": "☕ CancelTradeListingRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/ChapterAdvanceRequest.java": {
-    "description": "☕ ChapterAdvanceRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/ClaimBroadcastRewardRequest.java": {
-    "description": "☕ ClaimBroadcastRewardRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/ClaimQuestRewardRequest.java": {
-    "description": "☕ ClaimQuestRewardRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/ClaimWorldBossRewardRequest.java": {
-    "description": "☕ ClaimWorldBossRewardRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/ContributeBroadcastRequest.java": {
-    "description": "☕ ContributeBroadcastRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/ContributeFactionRequest.java": {
-    "description": "☕ ContributeFactionRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/CreateChallengeRequest.java": {
-    "description": "☕ CreateChallengeRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/CreateEquipmentListingRequest.java": {
-    "description": "☕ CreateEquipmentListingRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/CreateItemListingRequest.java": {
-    "description": "☕ CreateItemListingRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/CreatePartyRequest.java": {
-    "description": "☕ CreatePartyRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/CreatePlayerRequest.java": {
-    "description": "☕ CreatePlayerRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/CreateWorldBossRequest.java": {
-    "description": "☕ CreateWorldBossRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/DisbandPartyRequest.java": {
-    "description": "☕ DisbandPartyRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/EquipItemRequest.java": {
-    "description": "☕ EquipItemRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/ExploreRequest.java": {
-    "description": "☕ ExploreRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/HandleFriendRequestRequest.java": {
-    "description": "☕ HandleFriendRequestRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/JoinFactionRequest.java": {
-    "description": "☕ JoinFactionRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/JoinPartyRequest.java": {
-    "description": "☕ JoinPartyRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/KickPartyMemberRequest.java": {
-    "description": "☕ KickPartyMemberRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/LeaveFactionRequest.java": {
-    "description": "☕ LeaveFactionRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/LeavePartyRequest.java": {
-    "description": "☕ LeavePartyRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/LoginRequest.java": {
-    "description": "☕ LoginRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/MeResult.java": {
-    "description": "☕ MeResult"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/RankUpRequest.java": {
-    "description": "☕ RankUpRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/RefreshQuestRequest.java": {
-    "description": "☕ RefreshQuestRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/RegisterRequest.java": {
-    "description": "☕ RegisterRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/RepairEquipmentRequest.java": {
-    "description": "☕ RepairEquipmentRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/ResolveChallengeRequest.java": {
-    "description": "☕ ResolveChallengeRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/RestRequest.java": {
-    "description": "☕ RestRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/RunSchedulerTaskRequest.java": {
-    "description": "☕ RunSchedulerTaskRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/SellItemRequest.java": {
-    "description": "☕ SellItemRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/SendChatMessageRequest.java": {
-    "description": "☕ SendChatMessageRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/SendFriendRequestRequest.java": {
-    "description": "☕ SendFriendRequestRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/StartCombatRequest.java": {
-    "description": "☕ StartCombatRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/TitleEquipRequest.java": {
-    "description": "☕ TitleEquipRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/TransferPartyLeaderRequest.java": {
-    "description": "☕ TransferPartyLeaderRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/UnequipItemRequest.java": {
-    "description": "☕ UnequipItemRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/UnlockSkillRequest.java": {
-    "description": "☕ UnlockSkillRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/dto/UseItemRequest.java": {
-    "description": "☕ UseItemRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity": {
-    "description": "📦 数据库实体"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/AdminActionLog.java": {
-    "description": "☕ AdminActionLog"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/AvatarRankConfig.java": {
-    "description": "☕ AvatarRankConfig"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/BattleLog.java": {
-    "description": "📦 战斗日志实体"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/BroadcastContribution.java": {
-    "description": "☕ BroadcastContribution"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/BroadcastEvent.java": {
-    "description": "☕ BroadcastEvent"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/ChatMessage.java": {
-    "description": "📦 聊天消息实体"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/ConstellationFaction.java": {
-    "description": "☕ ConstellationFaction"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Ending.java": {
-    "description": "☕ Ending"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Equipment.java": {
-    "description": "📦 装备实体"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/EquipmentSet.java": {
-    "description": "☕ EquipmentSet"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/ExplorationEvent.java": {
-    "description": "☕ ExplorationEvent"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/FactionContribution.java": {
-    "description": "☕ FactionContribution"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/FactionSkill.java": {
-    "description": "☕ FactionSkill"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/FactionWar.java": {
-    "description": "☕ FactionWar"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Feedback.java": {
-    "description": "☕ Feedback"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Friend.java": {
-    "description": "☕ Friend"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/FriendRequest.java": {
-    "description": "☕ FriendRequest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/HelpBounty.java": {
-    "description": "☕ HelpBounty"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Item.java": {
-    "description": "📦 物品实体"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/ItemMemory.java": {
-    "description": "☕ ItemMemory"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Location.java": {
-    "description": "☕ Location"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/LocationEcho.java": {
-    "description": "☕ LocationEcho"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/MainChapter.java": {
-    "description": "☕ MainChapter"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Monster.java": {
-    "description": "📦 怪物实体"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/NpcGhost.java": {
-    "description": "☕ NpcGhost"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Party.java": {
-    "description": "☕ Party"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PartyMember.java": {
-    "description": "☕ PartyMember"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PkChallenge.java": {
-    "description": "☕ PkChallenge"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PkRecord.java": {
-    "description": "☕ PkRecord"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Player.java": {
-    "description": "📦 玩家实体"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PlayerEquipment.java": {
-    "description": "☕ PlayerEquipment"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PlayerFaction.java": {
-    "description": "☕ PlayerFaction"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PlayerInventory.java": {
-    "description": "☕ PlayerInventory"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PlayerLog.java": {
-    "description": "☕ PlayerLog"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PlayerNpcEncounter.java": {
-    "description": "☕ PlayerNpcEncounter"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PlayerQuest.java": {
-    "description": "☕ PlayerQuest"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PlayerSkill.java": {
-    "description": "☕ PlayerSkill"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PlayerStoryLog.java": {
-    "description": "☕ PlayerStoryLog"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/PlayerTitle.java": {
-    "description": "☕ PlayerTitle"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Quest.java": {
-    "description": "📦 任务实体"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/QuestProgressLog.java": {
-    "description": "☕ QuestProgressLog"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Ranking.java": {
-    "description": "☕ Ranking"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/ScheduledTaskLog.java": {
-    "description": "☕ ScheduledTaskLog"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Skill.java": {
-    "description": "📦 技能实体"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/SynthesisRecipe.java": {
-    "description": "☕ SynthesisRecipe"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/Title.java": {
-    "description": "📦 称号实体"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/TradeListing.java": {
-    "description": "☕ TradeListing"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/TradeRecord.java": {
-    "description": "☕ TradeRecord"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/User.java": {
-    "description": "📦 用户实体"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/WorldBoss.java": {
-    "description": "☕ WorldBoss"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/WorldBossParticipation.java": {
-    "description": "☕ WorldBossParticipation"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/entity/WorldState.java": {
-    "description": "☕ WorldState"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/exception": {
-    "description": "⚠️ 异常处理"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/exception/GlobalExceptionHandler.java": {
-    "description": "⚠️ 全局异常处理"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper": {
-    "description": "🗄️ 数据访问"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/AdminActionLogMapper.java": {
-    "description": "☕ AdminActionLogMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/AvatarRankConfigMapper.java": {
-    "description": "☕ AvatarRankConfigMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/BattleLogMapper.java": {
-    "description": "☕ BattleLogMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/BroadcastContributionMapper.java": {
-    "description": "☕ BroadcastContributionMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/BroadcastEventMapper.java": {
-    "description": "☕ BroadcastEventMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/ChatMessageMapper.java": {
-    "description": "☕ ChatMessageMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/ConstellationFactionMapper.java": {
-    "description": "☕ ConstellationFactionMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/EndingMapper.java": {
-    "description": "☕ EndingMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/EquipmentMapper.java": {
-    "description": "☕ EquipmentMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/EquipmentSetMapper.java": {
-    "description": "☕ EquipmentSetMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/ExplorationEventMapper.java": {
-    "description": "☕ ExplorationEventMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/FactionContributionMapper.java": {
-    "description": "☕ FactionContributionMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/FactionSkillMapper.java": {
-    "description": "☕ FactionSkillMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/FactionWarMapper.java": {
-    "description": "☕ FactionWarMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/FeedbackMapper.java": {
-    "description": "☕ FeedbackMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/FriendMapper.java": {
-    "description": "☕ FriendMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/FriendRequestMapper.java": {
-    "description": "☕ FriendRequestMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/HelpBountyMapper.java": {
-    "description": "☕ HelpBountyMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/ItemMapper.java": {
-    "description": "☕ ItemMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/ItemMemoryMapper.java": {
-    "description": "☕ ItemMemoryMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/LocationEchoMapper.java": {
-    "description": "☕ LocationEchoMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/LocationMapper.java": {
-    "description": "☕ LocationMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/MainChapterMapper.java": {
-    "description": "☕ MainChapterMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/MonsterMapper.java": {
-    "description": "☕ MonsterMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/NpcGhostMapper.java": {
-    "description": "☕ NpcGhostMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PartyMapper.java": {
-    "description": "☕ PartyMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PartyMemberMapper.java": {
-    "description": "☕ PartyMemberMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PkChallengeMapper.java": {
-    "description": "☕ PkChallengeMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PkRecordMapper.java": {
-    "description": "☕ PkRecordMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PlayerEquipmentMapper.java": {
-    "description": "☕ PlayerEquipmentMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PlayerFactionMapper.java": {
-    "description": "☕ PlayerFactionMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PlayerInventoryMapper.java": {
-    "description": "☕ PlayerInventoryMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PlayerLogMapper.java": {
-    "description": "☕ PlayerLogMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PlayerMapper.java": {
-    "description": "☕ PlayerMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PlayerNpcEncounterMapper.java": {
-    "description": "☕ PlayerNpcEncounterMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PlayerQuestMapper.java": {
-    "description": "☕ PlayerQuestMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PlayerSkillMapper.java": {
-    "description": "☕ PlayerSkillMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PlayerStoryLogMapper.java": {
-    "description": "☕ PlayerStoryLogMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/PlayerTitleMapper.java": {
-    "description": "☕ PlayerTitleMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/QuestMapper.java": {
-    "description": "☕ QuestMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/QuestProgressLogMapper.java": {
-    "description": "☕ QuestProgressLogMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/RankingMapper.java": {
-    "description": "☕ RankingMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/ScheduledTaskLogMapper.java": {
-    "description": "☕ ScheduledTaskLogMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/SkillMapper.java": {
-    "description": "☕ SkillMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/SynthesisRecipeMapper.java": {
-    "description": "☕ SynthesisRecipeMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/TitleMapper.java": {
-    "description": "☕ TitleMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/TradeListingMapper.java": {
-    "description": "☕ TradeListingMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/TradeRecordMapper.java": {
-    "description": "☕ TradeRecordMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/UserMapper.java": {
-    "description": "☕ UserMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/WorldBossMapper.java": {
-    "description": "☕ WorldBossMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/WorldBossParticipationMapper.java": {
-    "description": "☕ WorldBossParticipationMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/mapper/WorldStateMapper.java": {
-    "description": "☕ WorldStateMapper"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/ReaderGameApplication.java": {
-    "description": "🎮 启动类"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/security": {
-    "description": "🔐 安全认证"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/security/ConstellationRequiredAspect.java": {
-    "description": "🔐 星座校验"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/security/JwtAuthInterceptor.java": {
-    "description": "🔐 JWT拦截器"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/security/JwtUtil.java": {
-    "description": "🔐 JWT工具"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/security/LoginUser.java": {
-    "description": "🔐 登录用户"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/security/LoginUserContext.java": {
-    "description": "🔐 登录上下文"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service": {
-    "description": "📋 业务接口"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/AiDirectorService.java": {
-    "description": "☕ AiDirectorService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/AuthService.java": {
-    "description": "☕ AuthService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/AvatarRankService.java": {
-    "description": "☕ AvatarRankService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/BroadcastService.java": {
-    "description": "☕ BroadcastService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/ChapterService.java": {
-    "description": "☕ ChapterService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/ChatService.java": {
-    "description": "☕ ChatService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/CombatService.java": {
-    "description": "☕ CombatService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/EndingService.java": {
-    "description": "☕ EndingService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/EquipmentService.java": {
-    "description": "☕ EquipmentService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/ExploreService.java": {
-    "description": "☕ ExploreService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/FactionService.java": {
-    "description": "☕ FactionService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/FeedbackService.java": {
-    "description": "☕ FeedbackService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/FriendService.java": {
-    "description": "☕ FriendService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/GameBootstrapService.java": {
-    "description": "☕ GameBootstrapService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/HelpBountyService.java": {
-    "description": "☕ HelpBountyService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl": {
-    "description": "⚙️ 业务实现"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/AiDirectorServiceImpl.java": {
-    "description": "⚙️ AI导演"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/AuthServiceImpl.java": {
-    "description": "⚙️ 认证业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/AvatarRankServiceImpl.java": {
-    "description": "⚙️ 位阶业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/BroadcastServiceImpl.java": {
-    "description": "⚙️ 广播业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/ChapterServiceImpl.java": {
-    "description": "⚙️ 章节业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/ChatServiceImpl.java": {
-    "description": "⚙️ 聊天业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/CombatServiceImpl.java": {
-    "description": "⚙️ 战斗业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/EndingServiceImpl.java": {
-    "description": "⚙️ 结局业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/EquipmentServiceImpl.java": {
-    "description": "⚙️ 装备业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/ExploreServiceImpl.java": {
-    "description": "⚙️ 探索业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/FactionServiceImpl.java": {
-    "description": "⚙️ 阵营业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/FeedbackServiceImpl.java": {
-    "description": "⚙️ 反馈业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/FriendServiceImpl.java": {
-    "description": "⚙️ 好友业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/GameBootstrapServiceImpl.java": {
-    "description": "⚙️ 游戏引导"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/HelpBountyServiceImpl.java": {
-    "description": "⚙️ 互助业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/InventoryServiceImpl.java": {
-    "description": "⚙️ 背包业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/ItemServiceImpl.java": {
-    "description": "⚙️ 物品业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/MonsterServiceImpl.java": {
-    "description": "⚙️ 怪物业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/NarrativeServiceImpl.java": {
-    "description": "⚙️ 叙事业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/OnlinePlayerServiceImpl.java": {
-    "description": "⚙️ 在线玩家"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/PartyServiceImpl.java": {
-    "description": "⚙️ 组队业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/PkServiceImpl.java": {
-    "description": "⚙️ PvP业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/PlayerLogServiceImpl.java": {
-    "description": "☕ PlayerLogServiceImpl"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/PlayerServiceImpl.java": {
-    "description": "⚙️ 玩家业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/QuestServiceImpl.java": {
-    "description": "⚙️ 任务业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/RankingServiceImpl.java": {
-    "description": "⚙️ 排行业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/RecoveryServiceImpl.java": {
-    "description": "☕ RecoveryServiceImpl"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/SchedulerServiceImpl.java": {
-    "description": "⚙️ 调度业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/SkillServiceImpl.java": {
-    "description": "⚙️ 技能业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/TitleServiceImpl.java": {
-    "description": "⚙️ 称号业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/TradeServiceImpl.java": {
-    "description": "⚙️ 交易业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/WorldBossServiceImpl.java": {
-    "description": "⚙️ 世界BOSS业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/impl/WorldlineServiceImpl.java": {
-    "description": "⚙️ 世界线业务"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/InventoryService.java": {
-    "description": "☕ InventoryService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/ItemService.java": {
-    "description": "☕ ItemService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/MonsterService.java": {
-    "description": "☕ MonsterService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/NarrativeService.java": {
-    "description": "☕ NarrativeService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/OnlinePlayerService.java": {
-    "description": "☕ OnlinePlayerService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/PartyService.java": {
-    "description": "☕ PartyService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/PkService.java": {
-    "description": "☕ PkService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/PlayerLogService.java": {
-    "description": "☕ PlayerLogService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/PlayerService.java": {
-    "description": "☕ PlayerService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/QuestService.java": {
-    "description": "☕ QuestService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/RankingService.java": {
-    "description": "☕ RankingService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/RecoveryService.java": {
-    "description": "☕ RecoveryService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/SchedulerService.java": {
-    "description": "☕ SchedulerService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/SkillService.java": {
-    "description": "☕ SkillService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/TitleService.java": {
-    "description": "☕ TitleService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/TradeService.java": {
-    "description": "☕ TradeService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/WorldBossService.java": {
-    "description": "☕ WorldBossService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/service/WorldlineService.java": {
-    "description": "☕ WorldlineService"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo": {
-    "description": "👁️ 视图对象"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/AvatarRankVO.java": {
-    "description": "☕ AvatarRankVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/BattleLogVO.java": {
-    "description": "👁️ 战斗日志"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/BroadcastEventVO.java": {
-    "description": "☕ BroadcastEventVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/BroadcastSummaryVO.java": {
-    "description": "☕ BroadcastSummaryVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/ChapterProgressVO.java": {
-    "description": "☕ ChapterProgressVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/ChatMessageVO.java": {
-    "description": "☕ ChatMessageVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/ChatSummaryVO.java": {
-    "description": "☕ ChatSummaryVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/CombatResultVO.java": {
-    "description": "👁️ 战斗结果"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/CombatRewardVO.java": {
-    "description": "👁️ 战斗奖励"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/CombatRoundVO.java": {
-    "description": "👁️ 战斗回合"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/CombatStatsVO.java": {
-    "description": "👁️ 战斗属性"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/EquipmentBonusVO.java": {
-    "description": "☕ EquipmentBonusVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/EquipmentVO.java": {
-    "description": "☕ EquipmentVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/EquippedSlotsVO.java": {
-    "description": "☕ EquippedSlotsVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/ExploreResultVO.java": {
-    "description": "☕ ExploreResultVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/FactionContributionVO.java": {
-    "description": "☕ FactionContributionVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/FactionRankingVO.java": {
-    "description": "☕ FactionRankingVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/FactionSkillVO.java": {
-    "description": "☕ FactionSkillVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/FactionSummaryVO.java": {
-    "description": "☕ FactionSummaryVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/FactionVO.java": {
-    "description": "☕ FactionVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/FactionWarVO.java": {
-    "description": "☕ FactionWarVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/FriendRequestVO.java": {
-    "description": "☕ FriendRequestVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/FriendSummaryVO.java": {
-    "description": "☕ FriendSummaryVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/FriendVO.java": {
-    "description": "☕ FriendVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/GameBootstrapVO.java": {
-    "description": "☕ GameBootstrapVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/InventoryItemVO.java": {
-    "description": "☕ InventoryItemVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/ItemVO.java": {
-    "description": "☕ ItemVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/LogEntry.java": {
-    "description": "☕ LogEntry"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/LoginVO.java": {
-    "description": "☕ LoginVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/MainChapterVO.java": {
-    "description": "☕ MainChapterVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/MonsterVO.java": {
-    "description": "👁️ 怪物视图"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/OnlineSummaryVO.java": {
-    "description": "☕ OnlineSummaryVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PartyMemberVO.java": {
-    "description": "☕ PartyMemberVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PartySummaryVO.java": {
-    "description": "☕ PartySummaryVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PartyVO.java": {
-    "description": "☕ PartyVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PkChallengeVO.java": {
-    "description": "☕ PkChallengeVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PkRecordVO.java": {
-    "description": "☕ PkRecordVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PkResultVO.java": {
-    "description": "☕ PkResultVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PlayerEquipmentVO.java": {
-    "description": "☕ PlayerEquipmentVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PlayerFactionVO.java": {
-    "description": "☕ PlayerFactionVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PlayerQuestVO.java": {
-    "description": "☕ PlayerQuestVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PlayerRankVO.java": {
-    "description": "☕ PlayerRankVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PlayerSkillVO.java": {
-    "description": "☕ PlayerSkillVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PlayerSummaryVO.java": {
-    "description": "☕ PlayerSummaryVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PlayerTitleVO.java": {
-    "description": "☕ PlayerTitleVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/PlayerVO.java": {
-    "description": "👁️ 玩家视图"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/QuestRewardVO.java": {
-    "description": "☕ QuestRewardVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/QuestSummaryVO.java": {
-    "description": "☕ QuestSummaryVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/QuestVO.java": {
-    "description": "☕ QuestVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/RankingVO.java": {
-    "description": "☕ RankingVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/RestStateVO.java": {
-    "description": "☕ RestStateVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/ScheduledTaskLogVO.java": {
-    "description": "☕ ScheduledTaskLogVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/SchedulerSummaryVO.java": {
-    "description": "☕ SchedulerSummaryVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/SellItemResultVO.java": {
-    "description": "☕ SellItemResultVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/SkillBonusVO.java": {
-    "description": "☕ SkillBonusVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/SkillSummaryVO.java": {
-    "description": "☕ SkillSummaryVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/SkillVO.java": {
-    "description": "☕ SkillVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/TitleVO.java": {
-    "description": "☕ TitleVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/TradeBuyResultVO.java": {
-    "description": "☕ TradeBuyResultVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/TradeListingVO.java": {
-    "description": "☕ TradeListingVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/TradeRecordVO.java": {
-    "description": "☕ TradeRecordVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/TradeSummaryVO.java": {
-    "description": "☕ TradeSummaryVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/UseItemResultVO.java": {
-    "description": "☕ UseItemResultVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/UserVO.java": {
-    "description": "☕ UserVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/WorldBossAttackResultVO.java": {
-    "description": "☕ WorldBossAttackResultVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/WorldBossParticipationVO.java": {
-    "description": "☕ WorldBossParticipationVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/WorldBossRankingVO.java": {
-    "description": "☕ WorldBossRankingVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/WorldBossRewardVO.java": {
-    "description": "☕ WorldBossRewardVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/WorldBossSummaryVO.java": {
-    "description": "☕ WorldBossSummaryVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/WorldBossVO.java": {
-    "description": "☕ WorldBossVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/vo/WorldlineSummaryVO.java": {
-    "description": "☕ WorldlineSummaryVO"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/websocket": {
-    "description": "🔗 实时通信"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/websocket/GameWebSocketHandler.java": {
-    "description": "🔗 游戏WebSocket"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/websocket/WebSocketAuthHandshakeInterceptor.java": {
-    "description": "🔗 WebSocket认证"
-  },
-  "springboot-backend/src/main/java/com/huazhenghai/readergame/websocket/WebSocketSessionManager.java": {
-    "description": "🔗 WebSocket会话"
-  },
-  "springboot-backend/src/main/resources": {
-    "description": "📂 资源"
-  },
-  "springboot-backend/src/main/resources/application-dev.yml": {
-    "description": "⚙️ application-dev"
-  },
-  "springboot-backend/src/main/resources/application-prod.yml": {
-    "description": "⚙️ application-prod"
-  },
-  "springboot-backend/src/main/resources/application.yml": {
-    "description": "⚙️ application"
-  },
-  "springboot-backend/src/main/resources/data": {
-    "description": "📊 数据文件"
-  },
-  "springboot-backend/src/main/resources/data/seedNpcGhosts.json": {
-    "description": "📋 seedNpcGhosts"
-  },
-  "springboot-backend/src/main/resources/db": {
-    "description": "🌱 数据库脚本"
-  },
-  "springboot-backend/src/main/resources/db/fix_encoding.sql": {
-    "description": "🗃️ fix_encoding"
-  },
-  "springboot-backend/src/main/resources/db/fix_encoding_all.sql": {
-    "description": "🗃️ fix_encoding_all"
-  },
-  "springboot-backend/src/main/resources/db/fix_item_memories.sql": {
-    "description": "🗃️ fix_item_memories"
-  },
-  "springboot-backend/src/main/resources/db/init.sql": {
-    "description": "🗃️ init"
-  },
-  "springboot-backend/src/main/resources/db/seed_equipment.sql": {
-    "description": "🗃️ seed_equipment"
-  },
-  "springboot-backend/src/main/resources/db/seed_explore.json": {
-    "description": "📋 seed_explore"
-  },
-  "springboot-backend/src/main/resources/db/seed_explore.sql": {
-    "description": "🗃️ seed_explore"
-  },
-  "springboot-backend/src/main/resources/db/seed_growth.sql": {
-    "description": "🗃️ seed_growth"
-  },
-  "springboot-backend/src/main/resources/db/seed_items.sql": {
-    "description": "🗃️ seed_items"
-  },
-  "springboot-backend/src/main/resources/db/seed_monsters.sql": {
-    "description": "🗃️ seed_monsters"
-  },
-  "springboot-backend/src/main/resources/db/seed_skills.sql": {
-    "description": "🗃️ seed_skills"
-  },
-  "springboot-backend/src/main/resources/db/seed_synthesis_items.sql": {
-    "description": "🗃️ seed_synthesis_items"
-  },
-  "springboot-backend/src/test": {
-    "description": "🧪 测试"
-  },
-  "springboot-backend/src/test/java": {
-    "description": "☕ Java"
-  },
-  "springboot-backend/src/test/java/com": {
-    "description": "📦 com"
-  },
-  "springboot-backend/src/test/java/com/huazhenghai": {
-    "description": "📦 huazhenghai"
-  },
-  "springboot-backend/src/test/java/com/huazhenghai/readergame": {
-    "description": "🎮 游戏核心"
-  },
-  "springboot-backend/src/test/java/com/huazhenghai/readergame/common": {
-    "description": "🧰 通用组件"
-  },
-  "springboot-backend/src/test/java/com/huazhenghai/readergame/common/MapUtilsTest.java": {
-    "description": "☕ MapUtilsTest"
-  },
-  "springboot-backend/src/test/java/com/huazhenghai/readergame/service": {
-    "description": "📋 业务接口"
-  },
-  "springboot-backend/src/test/java/com/huazhenghai/readergame/service/impl": {
-    "description": "⚙️ 业务实现"
-  },
-  "springboot-backend/src/test/java/com/huazhenghai/readergame/service/impl/CombatServiceImplTest.java": {
-    "description": "☕ CombatServiceImplTest"
-  },
-  "springboot-backend/src/test/java/com/huazhenghai/readergame/SmokeTest.java": {
-    "description": "☕ SmokeTest"
-  },
-  "springboot-backend/src/test/resources": {
-    "description": "📂 资源"
-  },
-  "springboot-backend/src/test/resources/application.properties": {
-    "description": "📄 application"
-  },
-  "frontend-player/src/api": {
-    "description": "📡 API接口"
-  },
-  "frontend-player/src/api/authApi.ts": {
-    "description": "🔷 authApi"
-  },
-  "frontend-player/src/api/bountyApi.ts": {
-    "description": "🔷 bountyApi"
-  },
-  "frontend-player/src/api/broadcastApi.ts": {
-    "description": "🔷 broadcastApi"
-  },
-  "frontend-player/src/api/chatApi.ts": {
-    "description": "🔷 chatApi"
-  },
-  "frontend-player/src/api/combatApi.ts": {
-    "description": "🔷 combatApi"
-  },
-  "frontend-player/src/api/endingApi.ts": {
-    "description": "🔷 endingApi"
-  },
-  "frontend-player/src/api/equipmentApi.ts": {
-    "description": "🔷 equipmentApi"
-  },
-  "frontend-player/src/api/exploreApi.ts": {
-    "description": "🔷 exploreApi"
-  },
-  "frontend-player/src/api/factionApi.ts": {
-    "description": "🔷 factionApi"
-  },
-  "frontend-player/src/api/friendApi.ts": {
-    "description": "🔷 friendApi"
-  },
-  "frontend-player/src/api/gameApi.ts": {
-    "description": "🔷 gameApi"
-  },
-  "frontend-player/src/api/http.ts": {
-    "description": "🔷 http"
-  },
-  "frontend-player/src/api/inventoryApi.ts": {
-    "description": "🔷 inventoryApi"
-  },
-  "frontend-player/src/api/narrativeApi.ts": {
-    "description": "🔷 narrativeApi"
-  },
-  "frontend-player/src/api/partyApi.ts": {
-    "description": "🔷 partyApi"
-  },
-  "frontend-player/src/api/pkApi.ts": {
-    "description": "🔷 pkApi"
-  },
-  "frontend-player/src/api/playerApi.ts": {
-    "description": "🔷 playerApi"
-  },
-  "frontend-player/src/api/questApi.ts": {
-    "description": "🔷 questApi"
-  },
-  "frontend-player/src/api/rankingApi.ts": {
-    "description": "🔷 rankingApi"
-  },
-  "frontend-player/src/api/skillApi.ts": {
-    "description": "🔷 skillApi"
-  },
-  "frontend-player/src/api/systemApi.ts": {
-    "description": "🔷 systemApi"
-  },
-  "frontend-player/src/api/titleApi.ts": {
-    "description": "🔷 titleApi"
-  },
-  "frontend-player/src/api/tradeApi.ts": {
-    "description": "🔷 tradeApi"
-  },
-  "frontend-player/src/api/worldBossApi.ts": {
-    "description": "🔷 worldBossApi"
-  },
-  "frontend-player/src/api/worldlineApi.ts": {
-    "description": "🔷 worldlineApi"
-  },
-  "frontend-player/src/App.vue": {
-    "description": "🟢 App"
-  },
-  "frontend-player/src/components": {
-    "description": "🧩 组件"
-  },
-  "frontend-player/src/components/broadcast": {
-    "description": "📢 广播"
-  },
-  "frontend-player/src/components/broadcast/BroadcastStrip.vue": {
-    "description": "🟢 BroadcastStrip"
-  },
-  "frontend-player/src/components/chat": {
-    "description": "💬 聊天"
-  },
-  "frontend-player/src/components/chat/ChatPanel.vue": {
-    "description": "🟢 ChatPanel"
-  },
-  "frontend-player/src/components/common": {
-    "description": "🧰 通用组件"
-  },
-  "frontend-player/src/components/common/GameButton.vue": {
-    "description": "🟢 GameButton"
-  },
-  "frontend-player/src/components/common/GameCard.vue": {
-    "description": "🟢 GameCard"
-  },
-  "frontend-player/src/components/common/GameConfirmDialog.vue": {
-    "description": "🟢 GameConfirmDialog"
-  },
-  "frontend-player/src/components/common/GameInput.vue": {
-    "description": "🟢 GameInput"
-  },
-  "frontend-player/src/components/constellation": {
-    "description": "⭐ 星座"
-  },
-  "frontend-player/src/components/constellation/ConstellationPanel.vue": {
-    "description": "🟢 ConstellationPanel"
-  },
-  "frontend-player/src/components/explore": {
-    "description": "🔍 探索"
-  },
-  "frontend-player/src/components/explore/ExplorePanel.vue": {
-    "description": "🟢 ExplorePanel"
-  },
-  "frontend-player/src/components/explore/ExploreResultDialog.vue": {
-    "description": "🟢 ExploreResultDialog"
-  },
-  "frontend-player/src/components/explore/StoryLogPanel.vue": {
-    "description": "🟢 StoryLogPanel"
-  },
-  "frontend-player/src/components/guide": {
-    "description": "📚 新手引导"
-  },
-  "frontend-player/src/components/guide/OnboardingGuide.vue": {
-    "description": "🟢 OnboardingGuide"
-  },
-  "frontend-player/src/components/log": {
-    "description": "📝 日志"
-  },
-  "frontend-player/src/components/log/GameLogPanel.vue": {
-    "description": "🟢 GameLogPanel"
-  },
-  "frontend-player/src/components/nav": {
-    "description": "🧭 导航"
-  },
-  "frontend-player/src/components/nav/BottomNav.vue": {
-    "description": "🟢 BottomNav"
-  },
-  "frontend-player/src/components/notification": {
-    "description": "🔔 通知"
-  },
-  "frontend-player/src/components/notification/GameNotificationToast.vue": {
-    "description": "🟢 GameNotificationToast"
-  },
-  "frontend-player/src/components/panels": {
-    "description": "🗂️ 面板引擎"
-  },
-  "frontend-player/src/components/panels/ConnectedPanel.vue": {
-    "description": "🟢 ConnectedPanel"
-  },
-  "frontend-player/src/components/player": {
-    "description": "🦸 玩家状态"
-  },
-  "frontend-player/src/components/player/AllocDialog.vue": {
-    "description": "🟢 AllocDialog"
-  },
-  "frontend-player/src/components/player/DeathOverlay.vue": {
-    "description": "🟢 DeathOverlay"
-  },
-  "frontend-player/src/components/player/PlayerStatusPanel.vue": {
-    "description": "🟢 PlayerStatusPanel"
-  },
-  "frontend-player/src/components/player/ResourceBar.vue": {
-    "description": "🟢 ResourceBar"
-  },
-  "frontend-player/src/components/quest": {
-    "description": "📋 任务"
-  },
-  "frontend-player/src/components/quest/QuestSummaryCard.vue": {
-    "description": "🟢 QuestSummaryCard"
-  },
-  "frontend-player/src/components/scenario": {
-    "description": "📖 剧本场景"
-  },
-  "frontend-player/src/components/scenario/ScenarioPanel.vue": {
-    "description": "🟢 ScenarioPanel"
-  },
-  "frontend-player/src/components/scene-map": {
-    "description": "🗺️ 场景地图"
-  },
-  "frontend-player/src/components/scene-map/mockData.ts": {
-    "description": "🔷 mockData"
-  },
-  "frontend-player/src/components/scene-map/SceneMapPanel.vue": {
-    "description": "🟢 SceneMapPanel"
-  },
-  "frontend-player/src/components/scene-map/StarChartMap.vue": {
-    "description": "🟢 StarChartMap"
-  },
-  "frontend-player/src/components/scene-map/StarChartMapCore.vue": {
-    "description": "🟢 StarChartMapCore"
-  },
-  "frontend-player/src/components/scene-map/TreeMap.vue": {
-    "description": "🟢 TreeMap"
-  },
-  "frontend-player/src/components/worldline": {
-    "description": "🌀 世界线"
-  },
-  "frontend-player/src/components/worldline/WorldlineStrip.vue": {
-    "description": "🟢 WorldlineStrip"
-  },
-  "frontend-player/src/layouts": {
-    "description": "🖼️ 布局"
-  },
-  "frontend-player/src/layouts/GameLayout.vue": {
-    "description": "🟢 GameLayout"
-  },
-  "frontend-player/src/main.ts": {
-    "description": "📂 主源码"
-  },
-  "frontend-player/src/realtime": {
-    "description": "🔗 实时通信"
-  },
-  "frontend-player/src/realtime/realtimeClient.ts": {
-    "description": "🔷 realtimeClient"
-  },
-  "frontend-player/src/realtime/realtimeEvents.ts": {
-    "description": "🔷 realtimeEvents"
-  },
-  "frontend-player/src/router": {
-    "description": "🚦 路由"
-  },
-  "frontend-player/src/router/index.ts": {
-    "description": "🔷 index"
-  },
-  "frontend-player/src/stores": {
-    "description": "🏪 状态管理"
-  },
-  "frontend-player/src/stores/authStore.ts": {
-    "description": "🔷 authStore"
-  },
-  "frontend-player/src/stores/chatStore.ts": {
-    "description": "🔷 chatStore"
-  },
-  "frontend-player/src/stores/gameStore.ts": {
-    "description": "🔷 gameStore"
-  },
-  "frontend-player/src/stores/playerStore.ts": {
-    "description": "🔷 playerStore"
-  },
-  "frontend-player/src/stores/questStore.ts": {
-    "description": "🔷 questStore"
-  },
-  "frontend-player/src/stores/realtimeStore.ts": {
-    "description": "🔷 realtimeStore"
-  },
-  "frontend-player/src/stores/uiStore.ts": {
-    "description": "🔷 uiStore"
-  },
-  "frontend-player/src/stores/worldBossStore.ts": {
-    "description": "🔷 worldBossStore"
-  },
-  "frontend-player/src/styles": {
-    "description": "🎨 样式"
-  },
-  "frontend-player/src/styles/main.css": {
-    "description": "📂 主源码"
-  },
-  "frontend-player/src/styles/theme.css": {
-    "description": "🎨 theme"
-  },
-  "frontend-player/src/types": {
-    "description": "📐 类型定义"
-  },
-  "frontend-player/src/types/api.ts": {
-    "description": "📡 API接口"
-  },
-  "frontend-player/src/types/bootstrap.ts": {
-    "description": "🔷 bootstrap"
-  },
-  "frontend-player/src/types/player.ts": {
-    "description": "🦸 玩家状态"
-  },
-  "frontend-player/src/types/realtime.ts": {
-    "description": "🔗 实时通信"
-  },
-  "frontend-player/src/utils": {
-    "description": "🔧 工具函数"
-  },
-  "frontend-player/src/utils/panelData.ts": {
-    "description": "🔷 panelData"
-  },
-  "frontend-player/src/utils/sceneUtils.ts": {
-    "description": "🔷 sceneUtils"
-  },
-  "frontend-player/src/views": {
-    "description": "📄 页面"
-  },
-  "frontend-player/src/views/CreatePlayerView.vue": {
-    "description": "🟢 CreatePlayerView"
-  },
-  "frontend-player/src/views/GameView.vue": {
-    "description": "🟢 GameView"
-  },
-  "frontend-player/src/views/LoginView.vue": {
-    "description": "🟢 LoginView"
-  },
-  "frontend-player/src/views/RegisterView.vue": {
-    "description": "🟢 RegisterView"
-  },
-  "frontend-player/src/vite-env.d.ts": {
-    "description": "🔷 vite-env.d"
-  },
-  "frontend-player/src/__tests__": {
-    "description": "📁 单元测试"
-  },
-  "frontend-player/src/__tests__/ExploreResultDialog.test.ts": {
-    "description": "🔷 ExploreResultDialog.test"
-  },
-  "frontend-admin/src/api": {
-    "description": "📡 API接口"
-  },
-  "frontend-admin/src/api/adminApi.ts": {
-    "description": "🔷 adminApi"
-  },
-  "frontend-admin/src/api/http.ts": {
-    "description": "🔷 http"
-  },
-  "frontend-admin/src/api/schedulerApi.ts": {
-    "description": "🔷 schedulerApi"
-  },
-  "frontend-admin/src/App.vue": {
-    "description": "🟢 App"
-  },
-  "frontend-admin/src/layouts": {
-    "description": "🖼️ 布局"
-  },
-  "frontend-admin/src/layouts/AdminLayout.vue": {
-    "description": "🟢 AdminLayout"
-  },
-  "frontend-admin/src/main.ts": {
-    "description": "📂 主源码"
-  },
-  "frontend-admin/src/router": {
-    "description": "🚦 路由"
-  },
-  "frontend-admin/src/router/index.ts": {
-    "description": "🔷 index"
-  },
-  "frontend-admin/src/stores": {
-    "description": "🏪 状态管理"
-  },
-  "frontend-admin/src/stores/authStore.ts": {
-    "description": "🔷 authStore"
-  },
-  "frontend-admin/src/style.css": {
-    "description": "🎨 style"
-  },
-  "frontend-admin/src/views": {
-    "description": "📄 页面"
-  },
-  "frontend-admin/src/views/AdminCrudView.vue": {
-    "description": "🟢 AdminCrudView"
-  },
-  "frontend-admin/src/views/AdminLoginView.vue": {
-    "description": "🟢 AdminLoginView"
-  },
-  "frontend-admin/src/views/BroadcastManageView.vue": {
-    "description": "🟢 BroadcastManageView"
-  },
-  "frontend-admin/src/views/DashboardView.vue": {
-    "description": "🟢 DashboardView"
-  },
-  "frontend-admin/src/views/FeedbackManageView.vue": {
-    "description": "🟢 FeedbackManageView"
-  },
-  "frontend-admin/src/views/LogView.vue": {
-    "description": "🟢 LogView"
-  },
-  "frontend-admin/src/views/PlayerManageView.vue": {
-    "description": "🟢 PlayerManageView"
-  },
-  "frontend-admin/src/views/SchedulerView.vue": {
-    "description": "🟢 SchedulerView"
-  },
-  "frontend-admin/src/views/TradeAuditView.vue": {
-    "description": "🟢 TradeAuditView"
-  },
-  "frontend-admin/src/views/WorldBossManageView.vue": {
-    "description": "🟢 WorldBossManageView"
-  },
-  "frontend-admin/src/vite-env.d.ts": {
-    "description": "🔷 vite-env.d"
-  },
   "CLAUDE.md": {
-    "description": "📝 CLAUDE"
+    "description": "📝 项目说明"
   },
   "kill-all.bat": {
-    "description": "💻 kill-all"
+    "description": "⏹️ 一键杀死"
   },
   "package-lock.json": {
     "description": "📋 package-lock"
@@ -1569,30 +1587,15 @@
     "description": "📋 package"
   },
   "PLAN-2026-06-03.md": {
-    "description": "📝 PLAN-2026-06-03"
+    "description": "📝 开发计划 06-03"
   },
   "PLAN-2026-06-04.md": {
-    "description": "📝 PLAN-2026-06-04"
+    "description": "📝 开发计划 06-04"
   },
   "README.md": {
-    "description": "📝 README"
+    "description": "📝 项目说明"
   },
   "start-all.bat": {
-    "description": "💻 start-all"
-  },
-  "springboot-backend/pom.xml": {
-    "description": "📰 Maven配置"
-  },
-  "frontend-player/vite.config.ts": {
-    "description": "⚡ Vite配置"
-  },
-  "frontend-admin/vite.config.ts": {
-    "description": "⚡ Vite配置"
-  },
-  "frontend-player/package.json": {
-    "description": "📋 依赖配置"
-  },
-  "frontend-admin/package.json": {
-    "description": "📋 依赖配置"
+    "description": "▶️ 一键启动"
   }
 }

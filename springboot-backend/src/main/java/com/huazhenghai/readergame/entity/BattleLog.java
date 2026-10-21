@@ -16,6 +16,12 @@ public class BattleLog {
     @TableField("player_id")
     private Long playerId;
 
+    @TableField("request_key")
+    private String requestKey;
+
+    @TableField("request_action")
+    private String requestAction;
+
     @TableField("monster_key")
     private String monsterKey;
 
@@ -37,6 +43,9 @@ public class BattleLog {
     @TableField("drops_json")
     private String dropsJson;
 
+    @TableField("result_json")
+    private String resultJson;
+
     @TableField("created_at")
     private LocalDateTime createdAt;
 
@@ -46,6 +55,12 @@ public class BattleLog {
 
     public Long getPlayerId() { return playerId; }
     public void setPlayerId(Long playerId) { this.playerId = playerId; }
+
+    public String getRequestKey() { return requestKey; }
+    public void setRequestKey(String requestKey) { this.requestKey = requestKey; }
+
+    public String getRequestAction() { return requestAction; }
+    public void setRequestAction(String requestAction) { this.requestAction = requestAction; }
 
     public String getMonsterKey() { return monsterKey; }
     public void setMonsterKey(String monsterKey) { this.monsterKey = monsterKey; }
@@ -70,6 +85,9 @@ public class BattleLog {
 
     public String getDropsJson() { return dropsJson; }
     public void setDropsJson(String dropsJson) { this.dropsJson = dropsJson; }
+
+    public String getResultJson() { return resultJson; }
+    public void setResultJson(String resultJson) { this.resultJson = resultJson; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

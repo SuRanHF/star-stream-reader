@@ -1,6 +1,8 @@
 package com.huazhenghai.readergame.dto;
 
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 public class ResolveChallengeRequest {
 
@@ -12,6 +14,10 @@ public class ResolveChallengeRequest {
 
     private boolean accept;
 
+    @NotBlank(message = "requestKey 不能为空")
+    @Size(max = 64, message = "requestKey 长度不能超过 64")
+    private String requestKey;
+
     public Long getChallengeId() { return challengeId; }
     public void setChallengeId(Long challengeId) { this.challengeId = challengeId; }
 
@@ -20,4 +26,6 @@ public class ResolveChallengeRequest {
 
     public boolean isAccept() { return accept; }
     public void setAccept(boolean accept) { this.accept = accept; }
+    public String getRequestKey() { return requestKey; }
+    public void setRequestKey(String requestKey) { this.requestKey = requestKey; }
 }

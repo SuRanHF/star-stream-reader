@@ -20,7 +20,7 @@ VALUES
 
 ('geumho_station', '金湖站',
  '第一个相对安全的避难所。幸存者们在这里建立了临时据点，微弱但持久的烛光照亮了黑暗的地下通道。',
- '{"required_level":3}',
+ '{"required_level":3,"prerequisite_events":["station_first_trace"]}',
  '{"story":15,"side_story":10,"resource":25,"opportunity":15,"boss_clue":10,"empty":25}',
  3, 2, 'F', 0),
 
@@ -32,13 +32,13 @@ VALUES
 
 ('chungmuro', '忠武路',
  '"十王"团体控制的地铁站。铁王座上的统治者用铁腕手段维持秩序——但秩序从来不是免费的。',
- '{"required_level":5}',
+ '{"required_level":5,"prerequisite_events_any":["geumho_shelter_first","geumho_shelter_story"]}',
  '{"story":20,"side_story":5,"resource":20,"opportunity":10,"boss_clue":20,"hidden":5,"empty":20}',
  5, 4, 'E', 0),
 
 ('dongdaemun', '东大门',
  '站外盘踞着强大的恶灵"火焰巨人"。这里曾是首尔最繁华的商业区，现在是最危险的战场之一。',
- '{"required_level":8}',
+ '{"required_level":8,"prerequisite_events_any":["chungmuro_tenkings_arrival","chungmuro_revelation_story"]}',
  '{"story":15,"side_story":10,"resource":20,"opportunity":10,"boss_clue":20,"hidden":5,"empty":20}',
  8, 6, 'E', 0),
 
@@ -56,7 +56,7 @@ VALUES
 
 ('gangnam_station', '江南站',
  '首尔最大的地下城入口。高等级的怪物和丰厚的奖励等待着勇敢的读者。但越深入黑暗，越容易迷失。',
- '{"required_level":12}',
+ '{"required_level":12,"prerequisite_events_any":["gwangjin_bridge_crossing","gwangjin_bridge_trap_story"]}',
  '{"story":15,"side_story":8,"resource":25,"opportunity":10,"boss_clue":17,"hidden":5,"empty":20}',
  12, 8, 'D', 0),
 
@@ -69,7 +69,7 @@ VALUES
 -- 第二卷·恶魔世界 ---
 ('demon_gate', '恶魔之门',
  '通往恶魔世界的次元裂缝。穿过这道门，将进入完全不同的异世界。72柱恶魔中的强者统治着这片土地。',
- '{"required_level":18}',
+ '{"required_level":18,"prerequisite_events_any":["gangnam_entrance_discovery","gangnam_dungeon_gate_story"]}',
  '{"story":15,"side_story":10,"resource":20,"opportunity":10,"boss_clue":20,"hidden":5,"empty":20}',
  18, 8, 'C', 0);
 
@@ -143,7 +143,7 @@ VALUES
    {
      "label": "用故事碎片交换情报 (消耗1碎片)",
      "consequence_text": "男人接过碎片，在蜡烛下仔细端详。\"好东西。\"他递给你一张地铁路线图，上面标注了忠武路和东庙的位置。\"忠武路——那边有'十王'，不好惹。东庙——我哥们在那里开了个市场，报我的名字有折扣。\"",
-     "rewards_override": {"coins":20,"items":[{"itemKey":"subway_map_fragment","quantity":1,"dropRate":1.0}]},
+     "rewards_override": {"storyFragments":-1,"coins":20,"items":[{"itemKey":"subway_map_fragment","quantity":1,"dropRate":1.0}]},
      "unlock_locations": ["dongmyo"],
      "title_bias": {"title_information_broker": 1}
    },
@@ -227,7 +227,7 @@ VALUES
    {
      "label": "拒绝下跪——"我不会向任何人跪下。"",
      "consequence_text": "铁王大笑了三声——然后一拳砸过来。你躲开了，但冲击波震得你踉跄后退。\"有意思！\"他的笑容很残忍。\"很久没人敢在忠武路站着了。来吧——让我看看你有多少分量。\"一场硬仗在所难免。",
-     "risks_json": {"damagePercent":15},
+     "risks": {"damagePercent":15,"monsterKey":"iron_king_trial","battleName":"铁王的钢铁化试炼","battleDescription":"冲击波造成了约最大生命15%的伤害。铁王释放的钢铁化投影挡在前方；你可以迎战，也可以撤退。撤退不会撤销这次个人剧情选择。"},
      "rewards_override": {"storyFragments":6,"exp":200,"coins":80},
      "unlock_events": ["chungmuro_shadow_king_story"],
      "title_bias": {"title_defiant": 3}
@@ -359,7 +359,7 @@ VALUES
      "label": "准备战斗——"我来打倒它。"",
      "consequence_text": "猎人挑起眉。\"你？一个人？\"但当他看到你的表情后，他把背上的巨剑递给了你。\"这剑叫'星陨'——曾经砍倒过一个星座。但记住——\"他顿了顿，\"打败火之主——未必意味着你就会比它更好。有时候——杀死怪物的人会变成新的怪物。\"",
      "risks_json": {"monsterKey":"flame_giant"},
-     "rewards_override": {"storyFragments":8,"exp":400,"coins":120,"equipment":[{"equipmentKey":"starfall_sword","dropRate":1.0}]},
+     "rewards_override": {"storyFragments":8,"exp":400,"coins":120,"equipment":[{"equipmentKey":"starfall_blade","dropRate":1.0}]},
      "title_bias": {"title_giant_slayer": 4}
    }
  ]',
@@ -644,7 +644,25 @@ VALUES
      "title_bias": {"title_world_walker": 5}
    }
  ]',
- '你踏入恶魔之门——旧世界在身后合上，新世界在眼前翻开。恶魔的目录上多了一个名字：你的。');
+ '你踏入恶魔之门——旧世界在身后合上，新世界在眼前翻开。恶魔的目录上多了一个名字：你的。'),
+
+('ending_old_dream_promise', 'story', 'vol12_finale', 'demon_gate',
+ '履行终局约定',
+ '恶魔之门深处的喧嚣渐渐远去。你终于理解，眼前这场梦境并非可以随意唤醒的幻象；它承载着无数世界与故事。你曾许下承诺：让最古老的梦结束。现在，轮到你亲自面对这句话。',
+ 100, 0, 0,
+ '{}',
+ '{"storyPityReset":true}',
+ '[{"label":"履行约定，终结最古老的梦","consequence_text":"你兑现了先前的承诺。旧梦终于结束，世界的故事抵达了它的终点；而终点之后，留下一个无人接替的位置。","unlock_events":["ending_dream_continuation_choice"],"set_story_flags":{"ending_old_dream_ended":true}}]',
+ '你履行约定，让最古老的梦结束。一个空缺随之出现。'),
+
+('ending_dream_continuation_choice', 'story', 'vol12_finale', 'demon_gate',
+ '是否延续梦境',
+ '最古老的梦已经结束，取代它的位置如今空了出来。你获得了接续梦境的资格。倘若梦境不再延续，世界的时间便会停在此刻。你必须决定自己的时间线将走向哪里。',
+ 100, 0, 0,
+ '{}',
+ '{"storyPityReset":true}',
+ '[{"label":"接续梦境，让世界继续前行","consequence_text":"你选择延续梦境，成为新的最古老之梦。你将无法再以原来的身份陪伴众人；但一部分记忆化作拥有自主意识的分身，留在他们身边继续生活。你仍能以星光注视那段故事，而自己的旅程从此没有终点。","set_story_flags":{"ending_dream_continued":true,"ending_new_oldest_dream":true}},{"label":"不再接续，让世界停在此刻","consequence_text":"你没有接替空缺。梦境不再延续，世界的时间就此停止；所有人都留在故事的最后一刻，再也等不到下一页。","set_story_flags":{"ending_world_frozen":true}}]',
+ '你站在梦境的空缺前，决定由谁承担故事继续存在的代价。');
 
 
 -- ============================================================
@@ -987,17 +1005,38 @@ VALUES
      "label": ""你是谁？为什么我能看到你？"",
      "consequence_text": "\"我是被遗忘的春天的守护者。\"她伸出手，黑色的花瓣在指尖旋转。\"我的双眼在亿万年前被献祭给了太阳——从那以后，我只能通过被选中的人的眼睛来观察世界。你——\"她转向你，即使被丝带蒙住眼，你仍感到被什么东西洞穿了。\"你是被'星流'选中的读者。你的眼睛能看到的，远比你意识到的更多。所以我才能借用你的视线。\"",
      "rewards_override": {"storyFragments":7,"channelHeat":50,"exp":150,"coins":50},
-     "unlock_events": ["darkest_spring_abyss_gate"],
+     "unlock_events": ["darkest_spring_abyss_gate", "darkest_spring_story_stitch"],
      "title_bias": {"title_queens_witness": 3}
    },
    {
      "label": ""这朵花——它为什么会在这里？"",
      "consequence_text": "\"它不是'在这里'。它哪里都不在——又无处不在。\"她的手轻轻拂过花瓣，黑色的光随之流转。\"这朵花是我的牢笼，也是我的力量。只要它盛开，春天就永远不会真正消失。世界可以毁灭无数次——但春天总会回来。这就是我的职责。被遗忘的职责。\"\n\n幻象开始消散，但她最后的话回荡在空气中：\"去恶魔之门。那里的裂缝足够宽——宽到能让你听到我的完整故事。\"",
      "rewards_override": {"coins":40,"items":[{"itemKey":"深渊花瓣","quantity":1,"dropRate":1.0}]},
+     "unlock_events": ["darkest_spring_abyss_gate", "darkest_spring_story_stitch"],
      "title_bias": {"title_abyss_touched": 2}
    }
  ]',
  '在首尔森林最深处的灰色谷地，一朵黑色的花盛开着。它的守护者——蒙着眼睛的女神——借用了你的视线。'),
+
+('darkest_spring_story_stitch', 'story', 'vol2_dark_spring', 'seoul_forest',
+ '交错的两段记录',
+ '李智慧的日记末页写着请继续，晦日钟声又预示着世界线可能改变。你意识到两段记录似乎在彼此回应，却没有证据证明其中一段会吞没另一段。你可以选择把它们并置，或分别保存。',
+ 8, 0, 0,
+ '{}',
+ '{}',
+ '[
+   {
+     "label": "把两段记录写在同一页",
+     "consequence_text": "你把日记末页的‘请继续’和晦日钟声的警告写在同一页。两段叙事在你的时间线里相互接续，形成一条新的个人理解。",
+     "set_story_flags": {"story_dark_spring_interwoven": true}
+   },
+   {
+     "label": "分别保存，不替它们下结论",
+     "consequence_text": "你把两份记录分别封存，拒绝让其中一段改写另一段。它们仍各自保留原貌，你决定暂时不替它们下结论。",
+     "set_story_flags": {"story_dark_spring_separated": true}
+   }
+ ]',
+ '你发现李智慧日记与晦日钟声之间的呼应，并决定如何记录在自己的时间线上。'),
 
 -- --- 恶魔之门·深渊的女神 ---
 ('darkest_spring_abyss_gate', 'story', 'vol2_dark_spring', 'demon_gate',
@@ -1048,3 +1087,233 @@ VALUES
  '女神将她的本质——"晦日之种"——托付给你。接受还是拒绝，将定义你和晦日之春之间永恒的关系。');
 -- Phase 2 探索种子数据 初始化完成
 -- ============================================================
+
+-- Apply personal choice gates after all events have been inserted.
+UPDATE `exploration_events`
+SET `required_conditions_json` = JSON_SET(
+    COALESCE(`required_conditions_json`, JSON_OBJECT()),
+    '$.choice_unlockers', JSON_ARRAY(JSON_OBJECT(
+        'event_key', 'geumho_shelter_story', 'choice_indices', JSON_ARRAY(1)
+    ))
+)
+WHERE `event_key` = 'geumho_underground_story';
+
+UPDATE `exploration_events`
+SET `required_conditions_json` = JSON_SET(
+    COALESCE(`required_conditions_json`, JSON_OBJECT()),
+    '$.choice_unlockers', JSON_ARRAY(JSON_OBJECT(
+        'event_key', 'geumho_underground_story', 'choice_indices', JSON_ARRAY(1)
+    ))
+)
+WHERE `event_key` = 'chungmuro_iron_king_story';
+
+UPDATE `exploration_events`
+SET `required_conditions_json` = JSON_SET(
+    COALESCE(`required_conditions_json`, JSON_OBJECT()),
+    '$.choice_unlockers', JSON_ARRAY(JSON_OBJECT(
+        'event_key', 'chungmuro_iron_king_story', 'choice_indices', JSON_ARRAY(0, 1)
+    ))
+)
+WHERE `event_key` = 'chungmuro_shadow_king_story';
+
+UPDATE `exploration_events`
+SET `required_conditions_json` = JSON_SET(
+    COALESCE(`required_conditions_json`, JSON_OBJECT()),
+    '$.choice_unlockers', JSON_ARRAY(JSON_OBJECT(
+        'event_key', 'chungmuro_iron_king_story', 'choice_indices', JSON_ARRAY(1)
+    ))
+)
+WHERE `event_key` = 'chungmuro_underground_resistance';
+
+UPDATE `exploration_events`
+SET `required_conditions_json` = JSON_SET(
+    COALESCE(`required_conditions_json`, JSON_OBJECT()),
+    '$.choice_unlockers', JSON_ARRAY(JSON_OBJECT(
+        'event_key', 'chungmuro_shadow_king_story', 'choice_indices', JSON_ARRAY(0, 1)
+    ))
+)
+WHERE `event_key` = 'chungmuro_conspiracy_story';
+
+UPDATE `exploration_events`
+SET `required_conditions_json` = JSON_SET(
+    COALESCE(`required_conditions_json`, JSON_OBJECT()),
+    '$.choice_unlockers', JSON_ARRAY(JSON_OBJECT(
+        'event_key', 'chungmuro_conspiracy_story', 'choice_indices', JSON_ARRAY(0, 1)
+    ))
+)
+WHERE `event_key` = 'chungmuro_revelation_story';
+
+UPDATE `exploration_events`
+SET `required_conditions_json` = JSON_SET(
+    COALESCE(`required_conditions_json`, JSON_OBJECT()),
+    '$.choice_unlockers', JSON_ARRAY(JSON_OBJECT(
+        'event_key', 'dongdaemun_flame_giant_story', 'choice_indices', JSON_ARRAY(0)
+    ))
+)
+WHERE `event_key` = 'dongdaemun_missing_chapter_story';
+
+UPDATE `exploration_events`
+SET `required_conditions_json` = JSON_SET(
+    COALESCE(`required_conditions_json`, JSON_OBJECT()),
+    '$.choice_unlockers', JSON_ARRAY(JSON_OBJECT(
+        'event_key', 'chungmuro_underground_resistance', 'choice_indices', JSON_ARRAY(0)
+    ))
+)
+WHERE `event_key` = 'myeongdong_library_story';
+
+UPDATE `exploration_events`
+SET `required_conditions_json` = JSON_SET(
+    COALESCE(`required_conditions_json`, JSON_OBJECT()),
+    '$.choice_unlockers', JSON_ARRAY(JSON_OBJECT(
+        'event_key', 'myeongdong_library_story', 'choice_indices', JSON_ARRAY(0)
+    ))
+)
+WHERE `event_key` = 'myeongdong_forbidden_story';
+
+UPDATE `exploration_events`
+SET `required_conditions_json` = JSON_SET(
+    COALESCE(`required_conditions_json`, JSON_OBJECT()),
+    '$.choice_unlockers', JSON_ARRAY(JSON_OBJECT(
+        'event_key', 'gangnam_dungeon_gate_story', 'choice_indices', JSON_ARRAY(0)
+    ))
+)
+WHERE `event_key` = 'gangnam_deep_floor_story';
+
+UPDATE `exploration_events`
+SET `required_conditions_json` = JSON_SET(
+    COALESCE(`required_conditions_json`, JSON_OBJECT()),
+    '$.choice_unlockers', JSON_ARRAY(JSON_OBJECT(
+        'event_key', 'gangnam_deep_floor_story', 'choice_indices', JSON_ARRAY(1)
+    ))
+)
+WHERE `event_key` = 'gangnam_memory_wall_story';
+
+UPDATE `exploration_events`
+SET `required_conditions_json` = JSON_SET(
+    COALESCE(`required_conditions_json`, JSON_OBJECT()),
+    '$.choice_unlockers', JSON_ARRAY(JSON_OBJECT(
+        'event_key', 'darkest_spring_first_omen', 'choice_indices', JSON_ARRAY(1)
+    ))
+)
+WHERE `event_key` = 'darkest_spring_forest_vision';
+
+UPDATE `exploration_events`
+SET `required_conditions_json` = JSON_OBJECT(
+    'required_events', JSON_ARRAY('darkest_spring_first_omen', 'darkest_spring_forest_vision'),
+    'required_side_events', JSON_ARRAY('geumho_echo_whisper'),
+    'choice_unlockers', JSON_ARRAY(JSON_OBJECT(
+        'event_key', 'darkest_spring_forest_vision', 'choice_indices', JSON_ARRAY(0, 1)
+    ))
+)
+WHERE `event_key` = 'darkest_spring_story_stitch';
+
+UPDATE `exploration_events`
+SET `required_conditions_json` = JSON_SET(
+    COALESCE(`required_conditions_json`, JSON_OBJECT()),
+    '$.choice_unlockers', JSON_ARRAY(JSON_OBJECT(
+        'event_key', 'darkest_spring_forest_vision', 'choice_indices', JSON_ARRAY(0, 1)
+    ))
+)
+WHERE `event_key` = 'darkest_spring_abyss_gate';
+
+UPDATE `exploration_events`
+SET `required_conditions_json` = JSON_SET(
+    COALESCE(`required_conditions_json`, JSON_OBJECT()),
+    '$.personal_contexts', JSON_ARRAY(
+        JSON_OBJECT(
+            'story_flag', 'story_dark_spring_interwoven',
+            'text', '你记得那次把日记末页与钟声警告并置的选择；它们在你的记录中接成了一条线。'
+        ),
+        JSON_OBJECT(
+            'story_flag', 'story_dark_spring_separated',
+            'text', '你曾选择把日记与钟声分开保存；此刻你仍能分清哪些是读到的，哪些是推想。'
+        )
+    )
+)
+WHERE `event_key` = 'darkest_spring_abyss_gate';
+
+UPDATE `exploration_events`
+SET `choices_json` = JSON_SET(
+    COALESCE(`choices_json`, JSON_ARRAY()),
+    '$[0].unlock_events', JSON_ARRAY('darkest_spring_abyss_gate', 'darkest_spring_story_stitch'),
+    '$[1].unlock_events', JSON_ARRAY('darkest_spring_abyss_gate', 'darkest_spring_story_stitch')
+)
+WHERE `event_key` = 'darkest_spring_forest_vision';
+
+UPDATE `exploration_events`
+SET `required_conditions_json` = JSON_SET(
+    COALESCE(`required_conditions_json`, JSON_OBJECT()),
+    '$.choice_unlockers', JSON_ARRAY(JSON_OBJECT(
+        'event_key', 'darkest_spring_abyss_gate', 'choice_indices', JSON_ARRAY(1)
+    ))
+)
+WHERE `event_key` = 'darkest_spring_seed_of_hope';
+
+UPDATE `exploration_events`
+SET `required_conditions_json` = JSON_OBJECT(
+    'required_events', JSON_ARRAY('demon_gate_first_step_story')
+)
+WHERE `event_key` = 'ending_old_dream_promise';
+
+UPDATE `exploration_events`
+SET `required_conditions_json` = JSON_OBJECT(
+    'required_events', JSON_ARRAY('ending_old_dream_promise'),
+    'choice_unlockers', JSON_ARRAY(JSON_OBJECT(
+        'event_key', 'ending_old_dream_promise', 'choice_indices', JSON_ARRAY(0)
+    )),
+    'personal_contexts', JSON_ARRAY(
+        JSON_OBJECT(
+            'story_flag', 'oldest_dream_location',
+            'text', '你想起白发读者曾让你看见的病房与沉睡少年。眼前这个终点，因此不再只是一个抽象的故事结尾。'
+        ),
+        JSON_OBJECT(
+            'story_flag', 'oldest_dream_last_page',
+            'text', '你记得最古之梦说过：最后一页还没有写出来，而你正在用自己的选择写下它。'
+        )
+    )
+)
+WHERE `event_key` = 'ending_dream_continuation_choice';
+
+INSERT INTO `exploration_events`
+(`event_key`, `event_type`, `stage_key`, `location_key`, `name`, `description`, `weight`,
+ `stamina_cost`, `repeatable`, `required_conditions_json`, `rewards_json`,
+ `progress_effects_json`, `choices_json`, `log_template`)
+VALUES
+('last_wall_echo_personal_story', 'story', 'vol12_finale', 'demon_gate', '终墙的个人回响',
+ '终局选择落定后，最后一道墙上映出一段战斗回声：第三次回归的刘众赫与隐密的谋略家并肩，传说共鸣，混沌力量沿黑天魔刀暴涨。这是原著人物的故事，不会由你取代或改写。你可以让自己的时间线映照出一场虚构的回声遭遇；若进入，首次攻击额外造成 15% 伤害（最多 8 点），这是本游戏的平衡改编，不是原著数值。',
+ 100, 0, 0,
+ JSON_OBJECT(
+     'required_events', JSON_ARRAY('ending_dream_continuation_choice'),
+     'personal_contexts', JSON_ARRAY(
+         JSON_OBJECT('story_flag', 'ending_new_oldest_dream',
+             'text', '你选择接续梦境。终墙的光影没有把你的选择改写成原著人物的经历，只为你的时间线留下另一段回声。'),
+         JSON_OBJECT('story_flag', 'ending_world_frozen',
+             'text', '你选择让世界停在此刻。这里不是世界恢复运转，而是终局留下的一段个人回声；它不会撤销你的结局选择。')
+     )
+ ),
+ JSON_OBJECT(), JSON_OBJECT(),
+ JSON_ARRAY(
+     JSON_OBJECT(
+         'label', '走入回声，与鬼怪之王的影像交手',
+         'consequence_text', '你进入一场只属于自己时间线的战斗模拟。首次攻击额外造成 15% 伤害，最多 8 点；这项数值是本游戏改编，不是原著设定，战斗中仍可撤退。',
+         'risks', JSON_OBJECT('monsterKey', 'last_wall_dokkaebi_echo'),
+         'set_story_flags', JSON_OBJECT('story_final_wall_echo_attuned', true)
+     ),
+     JSON_OBJECT(
+         'label', '只记录回声，不介入原著之战',
+         'consequence_text', '你记下最后一道墙上的光影，不让自己的行动冒充刘众赫与隐密的谋略家的经历。',
+         'set_story_flags', JSON_OBJECT('story_final_wall_echo_observed', true)
+     )
+ ),
+ '你在自己的时间线里读到终墙战斗的回声，并决定是否进入一场个人遭遇。')
+ON DUPLICATE KEY UPDATE
+ `event_type` = VALUES(`event_type`),
+ `stage_key` = VALUES(`stage_key`),
+ `location_key` = VALUES(`location_key`),
+ `name` = VALUES(`name`),
+ `description` = VALUES(`description`),
+ `required_conditions_json` = VALUES(`required_conditions_json`),
+ `rewards_json` = VALUES(`rewards_json`),
+ `progress_effects_json` = VALUES(`progress_effects_json`),
+ `choices_json` = VALUES(`choices_json`),
+ `log_template` = VALUES(`log_template`);

@@ -954,7 +954,7 @@
     "encounter_weight": 0.04,
     "is_unique": 1,
     "location_keys": [
-      "abyss_rift"
+      "demon_gate"
     ],
     "dialogue_tree": [
       {

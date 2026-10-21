@@ -163,167 +163,95 @@ ORV 世界作为背景设定，玩家通过探索触发事件、战斗、收集�
 
 ## 技术栈
 
-- 后端：Node.js + Express
-- 数据库：SQLite（sql.js，同步 API）
-- 前端：HTML + CSS + Vanilla JavaScript
-- 调度引擎：60s 心跳自动驱动（放送生成/结算、世界线衰减、PK 过期、阵营战）
-- 更新历史：`data/changelog.json` 驱动，前端按版本比对 localStorage，未读新版本弹出更新弹窗
+- 后端：Java 17 + Spring Boot 3.5.0 + MyBatis-Plus 3.5.7
+- 数据库：MySQL 8.0（表结构见 `springboot-backend/src/main/resources/db/init.sql` 和 `db/migrations/`）
+- 前端：Vue 3 + TypeScript + Vite + Pinia + Vue Router + TanStack Vue Query + Axios + TailwindCSS
+- 认证：JWT（jjwt 0.12.3）+ BCrypt 密码加密
+- 实时通信：WebSocket（聊天/通知/状态推送）
+- 接口文档：Knife4j（Swagger 增强，/doc.html）
+- 后端接口按 Controller / Service / Mapper 分层；开发环境可通过 Knife4j 查看接口文档
 
-## Phase 9B Vue 前端重构
+## 前端项目
 
-当前 Spring Boot 迁移版本位于 `springboot-backend/`。`public/` 旧前端继续作为 legacy 保留，不删除、不移动、不再作为新功能开发目标。
+- `frontend-player/`：Vue 3 玩家端，端口5173
+- `frontend-admin/`：管理后台，Element Plus + TypeScript，端口5174
 
-新增正式前端：
-
-- `frontend-player/`：玩家端，Vue 3 + Vite + TypeScript + Pinia + Vue Router + TanStack Vue Query + Axios + Tailwind CSS。
-- `frontend-admin/`：后台端，Vue 3 + Vite + TypeScript + Pinia + Vue Router + Axios + Element Plus。
-
-本地启动：
+## 本地启动
 
 ```bash
+# 1. 初始化数据库表（执行 springboot-backend/src/main/resources/db/init.sql），再导入所需的 db/seed_*.sql 种子数据
+#    新增 NPC 残影奖励时，需一并执行 seed_narrative_items.sql；探索/故事奖励还需 seed_exploration_reward_items.sql
+#    已有数据库升级时，按文件名顺序执行 db/migrations/ 下尚未应用的 SQL；本轮新增探索奖励物品定义迁移
+
+# 2. 在终端一启动后端（端口3174）
 cd springboot-backend
 mvn spring-boot:run
 
+# 3. 在终端二（从仓库根目录开始）启动玩家端（端口5173）
 cd frontend-player
-pnpm install
-pnpm dev
+npm install
+npm run dev
 
+# 4. 在终端三（从仓库根目录开始）启动管理后台（端口5174）
 cd frontend-admin
-pnpm install
-pnpm dev
+npm install
+npm run dev
 ```
 
-如果本机没有 pnpm，可以在两个前端目录中使用 `npm install`、`npm run dev`、`npm run build`。
+前端Vite已配置API代理（`/api` → `localhost:3174`，`/ws` → WebSocket代理），开发环境无需额外配置环境变量。
 
-玩家端环境变量：
+## 一键启动
 
 ```bash
-VITE_API_BASE_URL=http://localhost:8080/api
-VITE_WS_BASE_URL=ws://localhost:8080/ws/game
+# Windows：仓库根目录的一键入口；已占用端口不会被强制结束
+start-all.bat
+kill-all.bat               # 只停止能确认属于本项目的服务
 ```
 
-后台端环境变量：
-
-```bash
-VITE_API_BASE_URL=http://localhost:8080/api
-```
-
-生产配置先保留占位域名，部署时再替换 `frontend-player/.env.production` 中的 WebSocket 域名。
-
-## 安装与运行
-
-```bash
-npm install         # 安装依赖
-npm start           # 启动服务器 (localhost:3000)
-npm test            # 运行冒烟测试 (299 测试点)
-npm run reset-db    # 重置数据库
-```
+本地地址：玩家端 `http://localhost:5173/game`、管理后台 `http://localhost:5174`、后端 `http://localhost:3174`。启动器不会强制结束端口占用进程；管理端端口以 `frontend-admin/package.json` 中的 5174 为准。
 
 ## 项目结构
 
 ```
-/server.js                    # Express 入口、中间件、路由、seed
-/db/
-  init.sql                    # 完整 schema (34 张表)
-  database.js                 # 连接管理与迁移
-/middleware/
-  authMiddleware.js           # JWT 认证 + 玩家归属校验
-/routes/                      # REST API 路由层 (20+ 路由文件)
-/services/                    # 业务逻辑层 (25+ 服务文件)
-  playerService.js            # 玩家 CRUD、JSON 字段管理
-  storyService.js             # 章节获取、选项校验、效果应用
-  chapterService.js           # 主线阶段系统 (状态机/推进/目标检查)
-  exploreService.js           # 探索事件系统 (概率/保底/奖励/风险/世界线修正)
-  combatService.js            # 回合制自动战斗
-  pkService.js                # PvP 对战 (叙事压制/评分)
-  titleService.js             # 称号解锁/效果聚合
-  endingService.js            # 结局条件评估
-  broadcastService.js         # 星流放送 (创建/参与/贡献/结算)
-  schedulerService.js         # 全服调度引擎 (60s 心跳)
-  worldlineService.js         # 世界线偏移 (共享状态/阈值/衰减/异常点)
-  worldStateService.js        # 世界状态聚合
-  factionService.js           # 星座阵营 (贡献/排行榜/周战/领域加成)
-  tradeService.js             # 交易市场 (挂单/购买/取消)
-  partyService.js             # 组队 Boss 讨伐
-  chatService.js              # 聊天频道
-  friendService.js            # 好友系统
-  narrativeService.js         # 碎片化叙事 (物品记忆/地点回响/NPC残影)
-  avatarRankService.js        # 化身位阶 (升阶/限制/回归)
-  aiDirectorService.js        # AI 导演 (放送草案生成)
-  inventoryService.js         # 背包系统
-  skillService.js             # 技能系统
-/data/                        # 种子数据
-  seedStory.js                # 章节与选择
-  seedMainChapters.js         # 主线阶段定义
-  seedTitles.js               # 称号定义
-  seedEndings.js              # 结局定义
-  seedLocations.js            # 探索地图 (10 地点)
-  seedMonsters.js             # 怪物数据 (37 怪物)
-  seedItems.js                # 道具数据 (26 物品)
-  seedEquipment.js            # 装备数据
-  seedSkills.js               # 技能数据
-  seedExplorationEvents.js    # 探索事件池 (42 事件)
-  seedNarrative.js            # 碎片化叙事 (20+ 物品记忆/10 地点回响/12 NPC 残影)
-  changelog.json              # 更新历史
-/public/                      # 前端
-  index.html                  # 主页面 (暗黑沉浸式布局)
-  styles.css                  # 样式 (深色 + 金色/青绿点缀)
-  /src/
-    main.js                   # 入口
-    api.js                    # fetch 封装
-    ui.js                     # DOM 渲染
-    gameClient.js             # 游戏状态机
-    storage.js                # localStorage 缓存
-AGENTS.md                     # LLM 辅助开发指令
-CONTRIBUTING.md               # 贡献指南 (含 UI 保护规则)
+springboot-backend/           # Java Spring Boot 后端
+  src/main/java/.../
+    controller/               # REST 控制器
+    service/impl/             # 业务逻辑实现
+    mapper/                   # MyBatis-Plus映射接口
+    entity/                   # 数据库实体
+    security/                 # JWT认证 (JwtUtil + JwtAuthInterceptor)
+    config/                   # WebConfig/CORS/MyBatisPlus分页
+  src/main/resources/db/
+    init.sql                  # 数据库建表语句
+    seed_*.sql               # 种子数据 (装备/技能/怪物/事件/合成等)
+frontend-player/              # Vue 3 玩家端
+  src/
+    views/GameView.vue        # 游戏主页面
+    layouts/GameLayout.vue    # 三栏布局 (状态+日志+导航)
+    components/panels/ConnectedPanel.vue  # 通用面板引擎 (23子面板)
+    stores/gameStore.ts       # 核心状态管理
+    styles/theme.css          # 深空主题 CSS变量体系
+    realtime/realtimeClient.ts # WebSocket客户端 (断线重连)
+frontend-admin/               # Vue 3 管理后台 (Element Plus)
+docs/                         # 设计文档
+  game-design.md              # 游戏设计完整文档
+  PLAN-*.md                   # 开发计划
+scripts/                      # 启动脚本
+  start-all.bat               # 一键启动
+  start-all.ps1               # 仅启动空闲端口上的服务
+  kill-all.bat                # 一键停止
+  kill-all.ps1                # 仅停止可验证为本项目的进程
+start-all.bat                 # 根目录兼容入口，转发到 scripts/start-all.ps1
+kill-all.bat                  # 根目录兼容入口，转发到 scripts/kill-all.ps1
 ```
 
-## 数据库表 (30+ 张)
+## 数据库与接口文档
 
-`chapters`, `choices`, `titles`, `endings`, `locations`, `monsters`, `items`, `equipment`, `skills`, `main_chapters`, `players`, `player_inventory`, `player_equipment`, `player_skills`, `battle_logs`, `exploration_logs`, `pk_records`, `rankings`, `broadcast_events`, `broadcast_participation`, `broadcast_contributions`, `world_state`, `constellation_factions`, `faction_contributions`, `faction_wars`, `trade_listings`, `parties`, `party_members`, `item_memories`, `location_echoes`, `npc_ghosts`, `player_npc_encounters`, `chat_messages`, `friend_relations`
+数据库结构以 `springboot-backend/src/main/resources/db/init.sql` 和 `db/migrations/` 中的迁移脚本为准。
 
-## API 列表
+## API 文档
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/api/auth/login` | 创建/登录玩家 |
-| GET | `/api/player/:id` | 获取玩家完整状态 |
-| POST | `/api/player/reset/:id` | 重置进度 |
-| POST | `/api/player/peer-revive` | 复活其他玩家 |
-| GET | `/api/player/dead-list` | 冥界玩家列表 |
-| GET | `/api/story/current/:playerId` | 获取当前章节与选项 |
-| POST | `/api/story/choose` | 执行选择 |
-| GET | `/api/chapter/status/:playerId` | 获取阶段总览 |
-| POST | `/api/chapter/advance` | 阶段推进 |
-| POST | `/api/explore` | 执行探索 |
-| GET | `/api/explore/locations/:playerId` | 已解锁地图 |
-| GET | `/api/explore/progress/:playerId` | 阶段进度 |
-| GET/POST | `/api/combat/*` | 战斗系统 |
-| GET | `/api/titles/:playerId` | 已解锁称号 |
-| GET | `/api/endings/:playerId` | 可达成结局 |
-| GET | `/api/inventory/:playerId` | 背包 |
-| POST | `/api/inventory/use` | 使用道具 |
-| GET/POST | `/api/equipment/*` | 装备系统 |
-| GET/POST | `/api/skills/*` | 技能系统 |
-| GET | `/api/pk/opponents/:playerId` | PK 对手 |
-| POST | `/api/pk/challenge` | PK 挑战 |
-| GET/POST | `/api/broadcast/*` | 星流放送 |
-| GET | `/api/worldline/status` | 世界线状态 |
-| GET | `/api/worldline/history` | 世界线历史 |
-| GET | `/api/factions` | 阵营列表 |
-| GET | `/api/factions/:key` | 阵营详情 |
-| GET/POST | `/api/trade/*` | 交易市场 |
-| GET/POST | `/api/party/*` | 组队讨伐 |
-| GET/POST | `/api/chat/*` | 聊天频道 |
-| GET/POST | `/api/friends/*` | 好友系统 |
-| GET | `/api/narrative/*` | 碎片化叙事 |
-| GET | `/api/rankings/*` | 排行榜 |
-| GET | `/api/avatar-rank/:playerId` | 位阶详情 |
-| POST | `/api/avatar-rank/:playerId/prestige` | 回归 |
-| GET | `/api/version` | 版本检测 |
-| GET | `/api/changelog` | 更新历史 |
-| POST | `/api/feedback` | 提交反馈 |
-| POST | `/api/heartbeat` | 心跳（在线标记） |
+本地启动后端后，可在 `http://localhost:3174/doc.html` 查看当前 Controller 实际提供的接口，避免手工维护过期路由清单。
 
 ---
 

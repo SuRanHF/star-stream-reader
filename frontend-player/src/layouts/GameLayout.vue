@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, provide, ref, onBeforeUnmount, onMounted, watch } from 'vue';
+import { computed, nextTick, provide, ref, onBeforeUnmount, onMounted, watch } from 'vue';
+import { useQueryClient } from '@tanstack/vue-query';
+import { BookOpen, Map, Settings, Sparkles } from 'lucide-vue-next';
 
 import { useRouter } from 'vue-router';
 import type { ApiRecord } from '@/types/api';
 import { broadcastApi } from '@/api/broadcastApi';
-import { exploreApi } from '@/api/exploreApi';
+import { exploreApi, type ExploreResult } from '@/api/exploreApi';
 import { gameApi } from '@/api/gameApi';
 import { playerApi } from '@/api/playerApi';
 import GameLogPanel from '@/components/log/GameLogPanel.vue';
@@ -18,18 +20,20 @@ import GameNotificationToast from '@/components/notification/GameNotificationToa
 import OnboardingGuide from '@/components/guide/OnboardingGuide.vue';
 import PlayerStatusPanel from '@/components/player/PlayerStatusPanel.vue';
 import DeathOverlay from '@/components/player/DeathOverlay.vue';
-import ScenarioPanel from '@/components/scenario/ScenarioPanel.vue';
-import ConstellationPanel from '@/components/constellation/ConstellationPanel.vue';
 import { realtimeClient } from '@/realtime/realtimeClient';
 import { useAuthStore } from '@/stores/authStore';
 import { useGameStore } from '@/stores/gameStore';
 import { useUiStore } from '@/stores/uiStore';
 import type { PlayerStats } from '@/types/player';
+import { getExperienceProgress } from '@/utils/experienceProgress';
+import { clearPendingExploreRequestKey, getPendingExploreRequestKey } from '@/utils/exploreRequestKey';
+import { formatExploreResultLogs, isInteractiveExploreResult } from '@/utils/gameLog';
 
 const router = useRouter();
 const authStore = useAuthStore();
 const gameStore = useGameStore();
 const uiStore = useUiStore();
+const queryClient = useQueryClient();
 
 const isDead = computed(() => {
   const p = gameStore.player as Record<string, unknown> | null;
@@ -88,7 +92,7 @@ const staminaRecovered = computed(() => Math.max(0, numberValue(stats.value.stam
 
 const hpPercent = computed(() => percent(stats.value.hp, stats.value.maxHp));
 const staminaPercent = computed(() => percent(stats.value.stamina, stats.value.maxStamina));
-const expPercent = computed(() => percent(stats.value.exp, stats.value.maxExp));
+const expPercent = computed(() => getExperienceProgress(stats.value.exp, stats.value.level).percent);
 
 const mobileMetrics = computed(() => [
   { label: '血', value: `${hpPercent.value}%`, tone: 'red' },
@@ -100,12 +104,18 @@ const mobileMetrics = computed(() => [
 ]);
 
 function selectPanel(panel: string) {
+  headerMoreOpen.value = false;
+  const isClosing = gameStore.activePanel === panel;
+  if (isMobile.value) {
+    // 手机上打开功能面板时收起操作栏，把可视高度让给面板内容；再次点击同一入口则恢复操作栏。
+    actionBarCollapsed.value = !isClosing;
+  }
   if (panel === 'logout') {
     void logout();
     return;
   }
   // 同面板再点一次 = 关闭
-  if (gameStore.activePanel === panel) {
+  if (isClosing) {
     gameStore.setActivePanel('');
     return;
   }
@@ -114,15 +124,12 @@ function selectPanel(panel: string) {
 
 function closePanel() {
   gameStore.setActivePanel('');
+  if (isMobile.value) actionBarCollapsed.value = false;
 }
 
 function currentLocationKey() {
   const p = gameStore.player as Record<string, unknown> | null;
   return String(gameStore.player?.currentLocationKey || gameStore.player?.currentLocation || p?.['current_location'] || '');
-}
-
-function currentLocationDisplayName() {
-  return String(gameStore.player?.currentLocationName || gameStore.player?.currentLocationKey || gameStore.player?.currentLocation || '');
 }
 
 function numberValue(value: unknown) {
@@ -147,6 +154,164 @@ function worldlineValue(): string {
   return compact((s as Record<string, unknown>).worldLineShift);
 }
 
+type HeaderNavItem = {
+  key: string;
+  label: string;
+  panel: string;
+  title?: string;
+};
+
+// 只借用参考站的分组布局；按钮名称和功能都来自星流读者现有面板。
+const headerPrimaryItems: HeaderNavItem[] = [
+  { key: 'map', label: '场景地图', panel: 'scene-map' },
+  { key: 'hidden-scene', label: '隐藏场景', panel: 'hiddenScene' },
+  { key: 'world-boss', label: '灾厄', panel: 'worldBoss' },
+  { key: 'ranking', label: '化身排行', panel: 'ranking' },
+  { key: 'story', label: '故事记录', panel: 'history' },
+  { key: 'faction', label: '星座阵营', panel: 'faction' },
+];
+
+const headerSystemItems: HeaderNavItem[] = [
+  { key: 'guide', label: '说明', panel: 'guide' },
+  { key: 'chat', label: '星流频道', panel: 'chat' },
+  { key: 'trade', label: '鬼怪商店', panel: 'trade' },
+  { key: 'skills', label: '技能图谱', panel: 'skills' },
+  { key: 'pk', label: '化身战场', panel: 'pk' },
+  { key: 'quests', label: '场景试炼', panel: 'quests' },
+  { key: 'party', label: '队伍', panel: 'party' },
+  { key: 'support', label: '悬赏支援', panel: 'support' },
+];
+
+const headerExtraItems: HeaderNavItem[] = [
+  { key: 'inventory', label: '背包', panel: 'inventory' },
+  { key: 'synthesis', label: '合成', panel: 'synthesis' },
+  { key: 'equipment', label: '装备', panel: 'equipment' },
+  { key: 'friends', label: '私信', panel: 'friends' },
+  { key: 'titles', label: '档案', panel: 'titles' },
+  { key: 'constellation', label: '星座', panel: 'constellation' },
+  { key: 'notice', label: '星流公告', panel: 'notice' },
+  { key: 'underworld', label: '冥界', panel: 'underworld' },
+  { key: 'feedback', label: '鬼怪反馈', panel: 'feedback' },
+  { key: 'system', label: '系统', panel: 'system' },
+];
+
+const headerNavItems = [...headerPrimaryItems, ...headerSystemItems, ...headerExtraItems];
+const headerVisibleCount = ref(headerNavItems.length);
+const headerNavElement = ref<HTMLElement | null>(null);
+const headerMeasureElement = ref<HTMLElement | null>(null);
+const visibleHeaderKeys = computed(() => new Set(
+  headerNavItems.slice(0, headerVisibleCount.value).map((item) => item.key),
+));
+const visibleHeaderPrimaryItems = computed(() => headerPrimaryItems.filter((item) => visibleHeaderKeys.value.has(item.key)));
+const visibleHeaderSystemItems = computed(() => headerSystemItems.filter((item) => visibleHeaderKeys.value.has(item.key)));
+const visibleHeaderExtraItems = computed(() => headerExtraItems.filter((item) => visibleHeaderKeys.value.has(item.key)));
+const headerOverflowItems = computed(() => headerNavItems.slice(headerVisibleCount.value));
+
+const headerMoreSectionCatalog: Array<{ label: string; items: HeaderNavItem[] }> = [
+  {
+    label: '探索',
+    items: [
+      { key: 'more-map', label: '场景地图', panel: 'scene-map' },
+      { key: 'more-hidden-scene', label: '隐藏场景', panel: 'hiddenScene' },
+      { key: 'more-world-boss', label: '灾厄', panel: 'worldBoss' },
+      { key: 'more-ranking', label: '化身排行', panel: 'ranking' },
+      { key: 'more-history', label: '故事记录', panel: 'history' },
+      { key: 'more-pk', label: '化身战场', panel: 'pk' },
+      { key: 'more-quests', label: '场景试炼', panel: 'quests' },
+    ],
+  },
+  {
+    label: '角色',
+    items: [
+      { key: 'more-inventory', label: '背包', panel: 'inventory' },
+      { key: 'more-equipment', label: '装备', panel: 'equipment' },
+      { key: 'more-synthesis', label: '合成', panel: 'synthesis' },
+      { key: 'more-skills', label: '技能图谱', panel: 'skills' },
+      { key: 'more-faction', label: '星座阵营', panel: 'faction' },
+      { key: 'more-constellation', label: '星座', panel: 'constellation' },
+      { key: 'more-titles', label: '档案', panel: 'titles' },
+    ],
+  },
+  {
+    label: '社交',
+    items: [
+      { key: 'more-chat', label: '星流频道', panel: 'chat' },
+      { key: 'more-friends', label: '私信', panel: 'friends' },
+      { key: 'more-party', label: '队伍', panel: 'party' },
+      { key: 'more-support', label: '悬赏支援', panel: 'support' },
+      { key: 'more-trade', label: '鬼怪商店', panel: 'trade' },
+    ],
+  },
+  {
+    label: '其他',
+    items: [
+      { key: 'more-notice', label: '星流公告', panel: 'notice' },
+      { key: 'more-underworld', label: '冥界', panel: 'underworld' },
+      { key: 'more-feedback', label: '鬼怪反馈', panel: 'feedback' },
+      { key: 'more-guide', label: '说明', panel: 'guide' },
+      { key: 'more-system', label: '系统', panel: 'system' },
+    ],
+  },
+];
+
+// 顶栏收纳项只在对应入口被折叠后留在“更多”中；角色专属的其他快捷入口仍保留。
+const headerMoreSections = computed(() => {
+  const overflowKeys = new Set(headerOverflowItems.value.map((item) => item.key));
+  return headerMoreSectionCatalog
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((menuItem) => {
+        const headerItem = headerNavItems.find((item) => item.label === menuItem.label && item.panel === menuItem.panel);
+        return !headerItem || overflowKeys.has(headerItem.key);
+      }),
+    }))
+    .filter((section) => section.items.length > 0);
+});
+
+function updateHeaderVisibleCount() {
+  if (window.innerWidth <= 760) return;
+  const nav = headerNavElement.value;
+  const measure = headerMeasureElement.value;
+  if (!nav || !measure || nav.clientWidth <= 0) return;
+
+  const groups = Array.from(measure.children).filter((element): element is HTMLElement => element instanceof HTMLElement);
+  const navGap = Number.parseFloat(getComputedStyle(nav).columnGap) || 0;
+  const groupMetrics = groups.map((group) => {
+    const style = getComputedStyle(group);
+    const buttons = Array.from(group.querySelectorAll<HTMLElement>(':scope > .ling-core-btn'));
+    return {
+      widths: buttons.map((button) => button.getBoundingClientRect().width),
+      gap: Number.parseFloat(style.columnGap) || 0,
+      shell: (Number.parseFloat(style.paddingLeft) || 0)
+        + (Number.parseFloat(style.paddingRight) || 0)
+        + (Number.parseFloat(style.borderLeftWidth) || 0)
+        + (Number.parseFloat(style.borderRightWidth) || 0),
+    };
+  });
+
+  const requiredWidth = (count: number) => {
+    let offset = 0;
+    let visibleGroups = 0;
+    let width = 0;
+    for (const group of groupMetrics) {
+      const visibleInGroup = Math.max(0, Math.min(group.widths.length, count - offset));
+      offset += group.widths.length;
+      if (visibleInGroup === 0) continue;
+      visibleGroups += 1;
+      width += group.shell
+        + group.widths.slice(0, visibleInGroup).reduce((total, buttonWidth) => total + buttonWidth, 0)
+        + group.gap * (visibleInGroup - 1);
+    }
+    return width + navGap * Math.max(0, visibleGroups - 1);
+  };
+
+  let nextCount = headerNavItems.length;
+  while (nextCount > 0 && requiredWidth(nextCount) > nav.clientWidth + 0.5) nextCount -= 1;
+  headerVisibleCount.value = nextCount;
+}
+
+let headerResizeObserver: ResizeObserver | null = null;
+
 async function logout() {
   realtimeClient.disconnect();
   authStore.logout();
@@ -157,9 +322,126 @@ async function logout() {
 const exploreResult = ref<any>(null);
 const showExploreResult = ref(false);
 const exploring = ref(false);
+const pendingStories = ref<ExploreResult[]>([]);
+let pendingStoryRefreshId = 0;
+const pendingBattles = ref<ExploreResult[]>([]);
+const pendingBattlesLoaded = ref(false);
+let pendingBattleRefreshId = 0;
+
+async function refreshPendingStories() {
+  const id = Number(gameStore.player?.id || gameStore.player?.playerId || 0);
+  if (!id) return;
+  const refreshId = ++pendingStoryRefreshId;
+  try {
+    const response = await exploreApi.getPendingStories(id);
+    if (refreshId !== pendingStoryRefreshId) return;
+    pendingStories.value = response.pending_stories || [];
+  } catch {
+    // 待选剧情读取失败不影响当前探索；服务端状态会在下次刷新时重新读取。
+  }
+}
+
+function queuePendingStory(result: ExploreResult) {
+  if (result.result_type !== 'story' || !result.result.event_key || !result.result.choices?.length) return;
+  // 忽略较早发出的启动查询，避免它的旧快照覆盖刚触发的新剧情。
+  pendingStoryRefreshId += 1;
+  const existingIndex = pendingStories.value.findIndex((entry) => entry.result.event_key === result.result.event_key);
+  if (existingIndex >= 0) pendingStories.value.splice(existingIndex, 1, result);
+  else pendingStories.value.push(result);
+}
+
+function resumePendingStory() {
+  const pending = pendingStories.value[0];
+  if (!pending) return;
+  exploreResult.value = pending;
+  showExploreResult.value = true;
+}
+
+async function refreshPendingBattles() {
+  const id = Number(gameStore.player?.id || gameStore.player?.playerId || 0);
+  if (!id) return;
+  const refreshId = ++pendingBattleRefreshId;
+  try {
+    const response = await exploreApi.getPendingBattles(id);
+    if (refreshId !== pendingBattleRefreshId) return;
+    pendingBattles.value = (response.pending_battles || [])
+      .filter((entry) => entry.result_type === 'battle' && Boolean(entry.monster_key));
+    if (!exploreResult.value && pendingBattles.value.length) {
+      exploreResult.value = pendingBattles.value[0];
+      showExploreResult.value = true;
+    }
+  } catch {
+    // Pending combat recovery is best-effort; a later scene action retries it.
+  } finally {
+    if (refreshId === pendingBattleRefreshId) pendingBattlesLoaded.value = true;
+  }
+}
+
+function queuePendingBattle(result: ExploreResult) {
+  if (result.result_type !== 'battle' || !result.monster_key) return;
+  // Invalidate a stale startup snapshot so it cannot erase this just-received encounter.
+  pendingBattleRefreshId += 1;
+  pendingBattlesLoaded.value = true;
+  const existingIndex = pendingBattles.value.findIndex((entry) =>
+    result.request_key
+      ? entry.request_key === result.request_key
+      : entry.result.event_key === result.result.event_key,
+  );
+  if (existingIndex >= 0) pendingBattles.value.splice(existingIndex, 1, result);
+  else pendingBattles.value.push(result);
+}
+
+function resumePendingBattle() {
+  const pending = pendingBattles.value[0];
+  if (!pending) return;
+  exploreResult.value = pending;
+  showExploreResult.value = true;
+}
+
+function onBattleResolved(encounterKey: string, acknowledged: boolean) {
+  if (!acknowledged) return;
+  pendingBattles.value = pendingBattles.value.filter((entry) =>
+    entry.request_key !== encounterKey && entry.result.event_key !== encounterKey,
+  );
+  invalidateQuestPanel();
+}
+
+function onStoryChoiceMade(eventKey: string, pendingBattle?: ExploreResult) {
+  pendingStories.value = pendingStories.value.filter((entry) => entry.result.event_key !== eventKey);
+  if (pendingBattle?.result_type === 'battle' && pendingBattle.monster_key) {
+    queuePendingBattle(pendingBattle);
+    exploreResult.value = pendingBattle;
+    showExploreResult.value = true;
+  }
+  void refreshPendingStories();
+}
+
+function selectedConstellationKey() {
+  const stats = gameStore.player?.stats || gameStore.player?.statsJson || {};
+  const constellation = stats.constellation;
+  return typeof constellation === 'string' ? constellation.trim() : '';
+}
+
+watch(selectedConstellationKey, (constellationKey) => {
+  if (!constellationKey) {
+    pendingBattlesLoaded.value = false;
+    return;
+  }
+  void refreshPendingStories();
+  void refreshPendingBattles();
+}, { immediate: true });
 
 async function enterScene() {
   if (exploring.value) return;
+  if (isResting.value) {
+    await uiStore.showAlert('休息中无法探索', '请先结束当前休息状态，再执行场景。休息期间生命、体力与经验仍会持续恢复。');
+    return;
+  }
+  if (!pendingBattlesLoaded.value) await refreshPendingBattles();
+  if (pendingBattles.value.length) {
+    resumePendingBattle();
+    return;
+  }
   const id = Number(gameStore.player?.id || gameStore.player?.playerId || 0);
   const locationKey = currentLocationKey();
   if (!id || !locationKey) {
@@ -167,14 +449,47 @@ async function enterScene() {
     await uiStore.showAlert('提示', '请在星图上选择场景并点击「切换到此场景」。');
     return;
   }
-  if (!(await uiStore.showConfirm('探索确认', `进入「${currentLocationDisplayName()}」探索？`))) return;
+  const previousLatestLogId = Math.max(0, ...gameStore.recentLogs
+    .map((entry) => Number(entry.id))
+    .filter((value) => Number.isFinite(value) && value > 0));
+  const requestKey = getPendingExploreRequestKey(id, locationKey);
   exploring.value = true;
   try {
-    const payload = await exploreApi.startExplore(id, locationKey);
-    const bootstrap = await gameApi.getBootstrap();
-    gameStore.applyBootstrap(bootstrap);
-    exploreResult.value = payload;
-    showExploreResult.value = true;
+    const payload = await exploreApi.startExplore(id, locationKey, requestKey);
+    clearPendingExploreRequestKey(id, locationKey, requestKey);
+    invalidateQuestPanel();
+    if (payload.player) gameStore.patchPlayer(payload.player);
+
+    let bootstrapRefreshed = false;
+    try {
+      const bootstrap = await gameApi.getBootstrap();
+      gameStore.applyBootstrap(bootstrap);
+      bootstrapRefreshed = true;
+    } catch {
+      // 探索接口已经结算；刷新失败不能把已扣体力的行动误报为失败。
+    }
+
+    const eventKey = payload.result?.event_key;
+    const persistedResult = bootstrapRefreshed && eventKey
+      ? [...gameStore.recentLogs].reverse().find((entry) =>
+        entry.metadata?.kind === 'exploration_result'
+        && entry.metadata.eventKey === eventKey
+        && Number(entry.id) > previousLatestLogId,
+      )
+      : undefined;
+    if (!payload.request_replayed && !persistedResult) {
+      gameStore.appendRecentLogs(formatExploreResultLogs(payload, gameStore.inventorySummary));
+    }
+
+    if (isInteractiveExploreResult(payload)) {
+      exploreResult.value = payload;
+      showExploreResult.value = true;
+      queuePendingBattle(payload);
+      queuePendingStory(payload);
+    } else {
+      exploreResult.value = null;
+      showExploreResult.value = false;
+    }
   } catch (error) {
     await uiStore.showAlert('错误', error instanceof Error ? error.message : '进入场景失败');
   } finally {
@@ -187,12 +502,19 @@ function onExploreClose() {
   exploreResult.value = null;
 }
 
+function invalidateQuestPanel() {
+  const playerId = Number(gameStore.player?.id || gameStore.player?.playerId || 0);
+  if (!playerId) return;
+  // 桌面任务面板可与探索同时打开；刷新任务查询以同步进度和可领取状态。
+  void queryClient.invalidateQueries({ queryKey: ['feature-panel', 'quests', playerId] });
+}
+
 async function toggleRest() {
   const id = Number(gameStore.player?.id || gameStore.player?.playerId || 0);
   if (!id) return;
   try {
     if (isResting.value) {
-      if (!(await uiStore.showConfirm('待机确认', '结束当前待机状态？'))) return;
+      if (!(await uiStore.showConfirm('休息确认', '结束当前休息状态？'))) return;
       await playerApi.stopRest(id);
     } else {
       await playerApi.startRest(id);
@@ -207,40 +529,56 @@ async function toggleRest() {
 async function finishAction() {
   const id = Number(gameStore.player?.id || gameStore.player?.playerId || 0);
   if (!id) return;
-  if (!(await uiStore.showConfirm('行动确认', '结束当前行动？'))) return;
+  if (!(await uiStore.showConfirm('休息确认', '结束当前休息状态？'))) return;
   try {
     await playerApi.stopRest(id);
     const payload = await gameApi.getBootstrap();
     gameStore.applyBootstrap(payload);
   } catch (error) {
-    await uiStore.showAlert('错误', error instanceof Error ? error.message : '结束行动失败');
+    await uiStore.showAlert('错误', error instanceof Error ? error.message : '结束休息失败');
   }
 }
 
 // ─── 左右面板拖拽调整宽度 ───
 const isMobile = ref(window.innerWidth <= 760);
 const leftPanelWidth = ref(240);
-const rightPanelWidth = ref(72);
-const resizingSide = ref<'left' | 'right' | null>(null);
-
-// ─── 场景地图模式：日志面板高度拖拽 ───
-const logPanelHeight = ref(180);
-const resizingLogPanel = ref(false);
-let logResizeStartY = 0;
-let logResizeStartHeight = 0;
+const desktopPlayerPanelCollapsed = ref(false);
+const resizingSide = ref<'left' | null>(null);
+const headerMoreOpen = ref(false);
+const actionBarCollapsed = ref(false);
+const isLightTheme = ref(document.documentElement.dataset.theme === 'light');
+const isInlineChat = ref(window.innerWidth >= 1025);
 
 function checkMobile() {
   isMobile.value = window.innerWidth <= 760;
+  isInlineChat.value = window.innerWidth >= 1025;
   if (isMobile.value) {
     leftPanelWidth.value = 240;
-    rightPanelWidth.value = 72;
   }
 }
 window.addEventListener('resize', checkMobile);
 
+function toggleRolePanel() {
+  if (isMobile.value) {
+    uiStore.toggleRightSummary();
+    return;
+  }
+  desktopPlayerPanelCollapsed.value = !desktopPlayerPanelCollapsed.value;
+}
+
 const frameGridStyle = computed(() => {
   if (isMobile.value) return undefined;
-  return { gridTemplateColumns: `${leftPanelWidth.value}px 8px minmax(0, 1fr) 8px ${rightPanelWidth.value}px` };
+  const hasSidePanel = Boolean(gameStore.activePanel);
+  const sidePanelWidth = panelGridResized.value
+    ? `minmax(260px, min(${panelGridMaxPct.value * 100}vw, 520px))`
+    : isInlineChat.value
+      ? 'clamp(360px, 24vw, 520px)'
+      : '360px';
+  return {
+    '--ling-left-width': desktopPlayerPanelCollapsed.value ? '0px' : `${leftPanelWidth.value}px`,
+    '--ling-resize-width': desktopPlayerPanelCollapsed.value ? '0px' : '8px',
+    ...(hasSidePanel ? { '--ling-side-width': sidePanelWidth } : {}),
+  };
 });
 
 function startLeftResize(e: MouseEvent) {
@@ -252,22 +590,9 @@ function startLeftResize(e: MouseEvent) {
   e.preventDefault();
 }
 
-function startRightResize(e: MouseEvent) {
-  resizingSide.value = 'right';
-  document.addEventListener('mousemove', doResize);
-  document.addEventListener('mouseup', stopResize);
-  document.body.style.cursor = 'col-resize';
-  document.body.style.userSelect = 'none';
-  e.preventDefault();
-}
-
 function doResize(e: MouseEvent) {
   if (!resizingSide.value) return;
-  if (resizingSide.value === 'left') {
-    leftPanelWidth.value = Math.max(200, Math.min(500, e.clientX));
-  } else {
-    rightPanelWidth.value = Math.max(52, Math.min(300, window.innerWidth - e.clientX));
-  }
+  leftPanelWidth.value = Math.max(200, Math.min(500, e.clientX));
 }
 
 function stopResize() {
@@ -278,55 +603,69 @@ function stopResize() {
   document.body.style.userSelect = '';
 }
 
-function startLogResize(e: MouseEvent) {
-  resizingLogPanel.value = true;
-  logResizeStartY = e.clientY;
-  logResizeStartHeight = logPanelHeight.value;
-  document.addEventListener('mousemove', doLogResize);
-  document.addEventListener('mouseup', stopLogResize);
-  document.body.style.cursor = 'row-resize';
-  document.body.style.userSelect = 'none';
-  e.preventDefault();
+function toggleHeaderMore() {
+  headerMoreOpen.value = !headerMoreOpen.value;
 }
 
-function doLogResize(e: MouseEvent) {
-  if (!resizingLogPanel.value) return;
-  const delta = e.clientY - logResizeStartY;
-  logPanelHeight.value = Math.max(80, Math.min(500, logResizeStartHeight + delta));
+function closeHeaderMoreOnOutsideClick(event: MouseEvent) {
+  if (!headerMoreOpen.value) return;
+  const menuWrap = document.querySelector('.ling-header-more-wrap');
+  const target = event.target;
+  if (menuWrap && target instanceof Node && !menuWrap.contains(target)) {
+    headerMoreOpen.value = false;
+  }
 }
 
-function stopLogResize() {
-  resizingLogPanel.value = false;
-  document.removeEventListener('mousemove', doLogResize);
-  document.removeEventListener('mouseup', stopLogResize);
-  document.body.style.cursor = '';
-  document.body.style.userSelect = '';
+function closeHeaderMoreOnEscape(event: KeyboardEvent) {
+  if (event.key === 'Escape') headerMoreOpen.value = false;
+}
+
+function toggleTheme() {
+  isLightTheme.value = !isLightTheme.value;
+  const nextTheme = isLightTheme.value ? 'light' : 'dark';
+  document.documentElement.dataset.theme = nextTheme;
+  localStorage.setItem('lingverse.player.theme', nextTheme);
+  headerMoreOpen.value = false;
+}
+
+function toggleActionBar() {
+  actionBarCollapsed.value = !actionBarCollapsed.value;
 }
 
 // ─── 中间面板（ConnectedPanel）grid 列宽拖拽 → 日志和面板同步缩放 ───
-const panelGridMaxPct = ref(0.42);
+// 普通功能抽屉对齐灵界桌面宽度；336px 仅用于传音栏和紧凑断点。
+const panelGridMaxPct = ref(0.24);
+const panelGridResized = ref(false);
 let panelResizeStartPct = 0;
 
 function startPanelGridResize() {
-  panelResizeStartPct = panelGridMaxPct.value;
+  const defaultWidth = isInlineChat.value
+    ? Math.max(360, Math.min(window.innerWidth * 0.24, 520))
+    : 360;
+  panelResizeStartPct = panelGridResized.value
+    ? panelGridMaxPct.value
+    : defaultWidth / window.innerWidth;
 }
 
 function doPanelGridResize(deltaX: number, containerWidth: number) {
-  const deltaPct = deltaX / (containerWidth || 1000);
-  panelGridMaxPct.value = Math.max(0.25, Math.min(0.65, panelResizeStartPct - deltaPct));
+  if (isMobile.value) return;
+  const viewportWidth = window.innerWidth || containerWidth || 1000;
+  const deltaPct = deltaX / (containerWidth || viewportWidth);
+  panelGridMaxPct.value = Math.max(
+    260 / viewportWidth,
+    Math.min(520 / viewportWidth, panelResizeStartPct - deltaPct),
+  );
+  panelGridResized.value = true;
 }
 
 provide('startPanelGridResize', startPanelGridResize);
 provide('doPanelGridResize', doPanelGridResize);
 
 const mainGridStyle = computed(() => {
-  if (gameStore.activePanel === 'scene-map') return undefined;
-  if (!gameStore.activePanel) {
-    return { gridTemplateColumns: 'minmax(0, 1fr)' };
+  if (isInlineChat.value && !gameStore.activePanel) {
+    return { gridTemplateColumns: 'minmax(0, 1fr) minmax(300px, 336px)' };
   }
-  return {
-    gridTemplateColumns: `minmax(0, 1fr) minmax(280px, ${panelGridMaxPct.value * 100}%)`,
-  };
+  return { gridTemplateColumns: 'minmax(0, 1fr)' };
 });
 
 // ─── 轮询兜底（30秒刷新广播和世界Boss状态）───
@@ -369,15 +708,32 @@ watch(isResting, (resting) => {
 }, { immediate: true });
 
 onMounted(() => {
+  void pollServerState();
   pollTimer = setInterval(pollServerState, 30000);
+  document.addEventListener('click', closeHeaderMoreOnOutsideClick);
+  document.addEventListener('keydown', closeHeaderMoreOnEscape);
+  window.addEventListener('resize', updateHeaderVisibleCount);
+  void nextTick(() => {
+    updateHeaderVisibleCount();
+    if (typeof ResizeObserver !== 'undefined') {
+      headerResizeObserver = new ResizeObserver(updateHeaderVisibleCount);
+      if (headerNavElement.value) headerResizeObserver.observe(headerNavElement.value);
+      const header = headerNavElement.value?.closest('.ling-topbar');
+      if (header) headerResizeObserver.observe(header);
+    }
+    if ('fonts' in document) void document.fonts.ready.then(updateHeaderVisibleCount);
+  });
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', checkMobile);
+  window.removeEventListener('resize', updateHeaderVisibleCount);
+  headerResizeObserver?.disconnect();
+  headerResizeObserver = null;
+  document.removeEventListener('click', closeHeaderMoreOnOutsideClick);
+  document.removeEventListener('keydown', closeHeaderMoreOnEscape);
   document.removeEventListener('mousemove', doResize);
   document.removeEventListener('mouseup', stopResize);
-  document.removeEventListener('mousemove', doLogResize);
-  document.removeEventListener('mouseup', stopLogResize);
   if (pollTimer) {
     clearInterval(pollTimer);
     pollTimer = null;
@@ -390,23 +746,89 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="ling-shell gl-root">
+  <div class="ling-shell game-page gl-root lingverse-replica-shell">
     <OnboardingGuide />
-    <header class="ling-topbar">
+    <header class="ling-topbar game-header lingverse-replica-header">
       <div class="ling-top-left">
-        <button class="ling-mobile-role" @click="uiStore.toggleRightSummary">角色</button>
-        <h1 class="ling-logo">星流</h1>
-        <span class="ling-pill ling-realm">{{ avatarRankLabel(gameStore.player?.avatarRank || gameStore.player?.storyGrade) }}</span>
-        <small class="ling-top-worldline">偏移 {{ worldlineValue() }}</small>
-        <button :class="['ling-core-btn', { active: gameStore.activePanel === 'scene-map' }]" @click="selectPanel('scene-map')">场景地图</button>
-        <button :class="['ling-core-btn', { active: gameStore.activePanel === 'inventory' }]" @click="selectPanel('inventory')">背包</button>
-        <button :class="['ling-core-btn', { active: gameStore.activePanel === 'synthesis' }]" @click="selectPanel('synthesis')">合成</button>
-        <button :class="['ling-core-btn', { active: gameStore.activePanel === 'equipment' }]" @click="selectPanel('equipment')">装备</button>
-        <button :class="['ling-core-btn', { active: gameStore.activePanel === 'skills' }]" @click="selectPanel('skills')">技能</button>
-        <button :class="['ling-core-btn', { active: gameStore.activePanel === 'friends' }]" @click="selectPanel('friends')">同伴</button>
-        <button :class="['ling-core-btn', { active: gameStore.activePanel === 'faction' }]" @click="selectPanel('faction')">阵营</button>
-        <button :class="['ling-core-btn', { active: gameStore.activePanel === 'constellation' }]" @click="selectPanel('constellation')">星座</button>
-        <button :class="['ling-core-btn', { active: gameStore.activePanel === 'system' }]" @click="selectPanel('system')">设置</button>
+        <button
+          class="ling-role-toggle btn-icon"
+          :aria-expanded="isMobile ? uiStore.rightSummaryOpen : !desktopPlayerPanelCollapsed"
+          aria-controls="playerPanel"
+          :title="isMobile ? '切换角色面板' : (desktopPlayerPanelCollapsed ? '展开角色面板' : '收起角色面板')"
+          @click="toggleRolePanel"
+        >角色</button>
+        <div class="ling-logo-block">
+          <span class="ling-logo-mark" aria-hidden="true"></span>
+          <h1 class="ling-logo">星流</h1>
+        </div>
+        <div class="ling-header-meta">
+          <span class="ling-pill ling-realm">{{ avatarRankLabel(gameStore.player?.avatarRank || gameStore.player?.storyGrade) }}</span>
+          <small class="ling-top-worldline">偏移 {{ worldlineValue() }}</small>
+        </div>
+      </div>
+
+      <div class="ling-top-right">
+        <div class="ling-header-player-card">
+          <span class="ling-header-player" :title="String(gameStore.playerName || '未命名化身')">{{ gameStore.playerName || '未命名化身' }}</span>
+        </div>
+        <nav ref="headerNavElement" class="ling-header-nav" aria-label="游戏入口">
+          <div v-if="visibleHeaderPrimaryItems.length" class="ling-header-group ling-header-group-primary" aria-label="主线入口">
+            <button
+              v-for="item in visibleHeaderPrimaryItems"
+              :key="item.key"
+              :class="['ling-core-btn', { active: gameStore.activePanel === item.panel }]"
+              :title="item.title || item.label"
+              @click="selectPanel(item.panel)"
+            >{{ item.label }}</button>
+          </div>
+          <div v-if="visibleHeaderSystemItems.length" class="ling-header-group ling-header-group-systems" aria-label="常用系统">
+            <button
+              v-for="item in visibleHeaderSystemItems"
+              :key="item.key"
+              :class="['ling-core-btn', { active: gameStore.activePanel === item.panel }]"
+              :title="item.title || item.label"
+              @click="selectPanel(item.panel)"
+            >{{ item.label }}</button>
+          </div>
+          <div v-if="visibleHeaderExtraItems.length" class="ling-header-group ling-header-group-extra" aria-label="辅助入口">
+            <button
+              v-for="item in visibleHeaderExtraItems"
+              :key="item.key"
+              :class="['ling-core-btn', { active: gameStore.activePanel === item.panel }]"
+              :title="item.title || item.label"
+              @click="selectPanel(item.panel)"
+            >{{ item.label }}</button>
+          </div>
+        </nav>
+        <div ref="headerMeasureElement" class="ling-header-nav ling-header-measure" aria-hidden="true">
+          <div class="ling-header-group ling-header-group-primary">
+            <button v-for="item in headerPrimaryItems" :key="item.key" class="ling-core-btn">{{ item.label }}</button>
+          </div>
+          <div class="ling-header-group ling-header-group-systems">
+            <button v-for="item in headerSystemItems" :key="item.key" class="ling-core-btn">{{ item.label }}</button>
+          </div>
+          <div class="ling-header-group ling-header-group-extra">
+            <button v-for="item in headerExtraItems" :key="item.key" class="ling-core-btn">{{ item.label }}</button>
+          </div>
+        </div>
+        <div class="ling-header-more-wrap">
+          <button class="ling-core-btn ling-header-more" :aria-expanded="headerMoreOpen" @click="toggleHeaderMore">更多 ▾</button>
+          <div v-if="headerMoreOpen" class="ling-header-more-menu" role="menu">
+            <template v-for="section in headerMoreSections" :key="section.label">
+              <span class="ling-header-more-section" role="separator">{{ section.label }}</span>
+              <button
+                v-for="item in section.items"
+                :key="item.key"
+                class="ling-core-btn"
+                :title="item.title || item.label"
+                @click="selectPanel(item.panel)"
+              >{{ item.label }}</button>
+            </template>
+            <span class="ling-header-more-section" role="separator">显示</span>
+            <button class="ling-core-btn" @click="toggleTheme">{{ isLightTheme ? '夜间' : '日间' }}</button>
+            <button class="ling-core-btn ling-header-logout" @click="selectPanel('logout')">退出</button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -422,65 +844,161 @@ onBeforeUnmount(() => {
       </span>
     </div>
 
-    <div class="ling-frame" :style="frameGridStyle">
-      <aside class="ling-left" :class="{ 'is-open': uiStore.rightSummaryOpen }" :style="isMobile ? undefined : { width: leftPanelWidth + 'px' }">
-        <PlayerStatusPanel :player="gameStore.player" @player-updated="(data: unknown) => { if (data) { gameStore.patchPlayer(data as ApiRecord) } else { gameStore.reloadPlayer() } }" />
+    <div :class="['ling-frame', 'game-body', { 'has-side-panel': !isMobile && Boolean(gameStore.activePanel) }]" :style="frameGridStyle">
+      <aside
+        id="playerPanel"
+        class="ling-left player-panel"
+        :class="{ 'is-open': uiStore.rightSummaryOpen, 'is-collapsed': !isMobile && desktopPlayerPanelCollapsed }"
+        :style="isMobile ? undefined : { width: desktopPlayerPanelCollapsed ? '0px' : leftPanelWidth + 'px' }"
+      >
+        <PlayerStatusPanel
+          :player="gameStore.player"
+          @player-updated="(data: unknown) => { if (data) { gameStore.patchPlayer(data as ApiRecord) } else { gameStore.reloadPlayer() } }"
+          @open-panel="selectPanel"
+        />
       </aside>
-      <div v-if="!isMobile" class="ling-resize-handle" @mousedown="startLeftResize"></div>
+      <div v-if="!isMobile && !desktopPlayerPanelCollapsed" class="ling-resize-handle" @mousedown="startLeftResize"></div>
 
-      <main class="ling-main" :style="mainGridStyle">
-        <template v-if="gameStore.activePanel === 'scene-map'">
-          <div class="ling-scene-map-wrap">
-            <GameLogPanel
-              class="ling-log--resizable"
-              :logs="gameStore.recentLogs"
-              :style="{ height: logPanelHeight + 'px', flexShrink: 0 }"
-            />
-            <div
-              class="ling-log-resize-handle"
-              @mousedown="startLogResize"
-            ></div>
-            <div class="ling-scene-map-body">
-              <SceneMapPanel @close-panel="closePanel" />
-            </div>
+      <main :class="['ling-main', 'main-panel', { 'has-feature-panel': Boolean(gameStore.activePanel) }]" :style="mainGridStyle">
+        <GameLogPanel
+          v-if="!isMobile || !gameStore.activePanel"
+          class="log-area log-area--log"
+          :logs="gameStore.recentLogs"
+          :inventory="gameStore.inventorySummary"
+          :titles="gameStore.titles"
+          @select-tab="selectPanel"
+        />
+        <ConnectedPanel
+          v-if="isInlineChat && !gameStore.activePanel"
+          class="ling-inline-chat"
+          panel="chat"
+          @select-panel="selectPanel"
+          @close-panel="closePanel"
+        />
+        <div v-if="isMobile && gameStore.activePanel === 'scene-map'" class="ling-mobile-scene-map">
+          <SceneMapPanel @close-panel="closePanel" />
+        </div>
+        <ConnectedPanel
+          v-else-if="isMobile && gameStore.activePanel"
+          :panel="gameStore.activePanel"
+          @select-panel="selectPanel"
+          @close-panel="closePanel"
+        />
+        <footer
+          v-if="!isMobile || !gameStore.activePanel"
+          class="ling-bottom action-bar"
+          :class="{ 'is-resting': isResting, 'is-collapsed': actionBarCollapsed }"
+        >
+      <button
+        type="button"
+        class="action-bar-collapse"
+        :aria-expanded="!actionBarCollapsed"
+        aria-controls="playerActionBarBody"
+        @click="toggleActionBar"
+      >
+        <span>{{ actionBarCollapsed ? '展开操作' : '收起操作' }}</span>
+        <span class="action-bar-collapse-ic" aria-hidden="true"></span>
+      </button>
+
+      <div v-show="!actionBarCollapsed" id="playerActionBarBody" class="action-bar-body">
+        <div class="action-bar-controls">
+          <div class="action-group action-group--primary">
+            <button class="ling-action-primary btn-action--primary" @click="toggleRest">
+              <Sparkles class="action-icon" :size="15" :stroke-width="1.8" aria-hidden="true" />
+              <span>{{ isResting ? '休息中...' : '休息' }}</span>
+            </button>
+            <button
+              class="ling-action-main btn-action--primary"
+              :disabled="exploring"
+              :title="isResting ? '休息期间不能探索，请先结束休息' : undefined"
+              :aria-label="isResting ? '休息期间不能执行场景，请先结束休息' : undefined"
+              @click="enterScene"
+            >
+              <Map class="action-icon" :size="15" :stroke-width="1.8" aria-hidden="true" />
+              <span>{{ exploring ? '执行中...' : '执行场景' }}</span>
+            </button>
+            <button
+              v-if="pendingStories.length"
+              type="button"
+              class="ling-action-primary btn-action--primary ling-action-pending-story"
+              :aria-label="`继续处理待选剧情，${pendingStories.length} 个`"
+              @click="resumePendingStory"
+            >
+              <BookOpen class="action-icon" :size="15" :stroke-width="1.8" aria-hidden="true" />
+              <span>继续剧情 · {{ pendingStories.length }}</span>
+            </button>
+            <button
+              v-if="pendingBattles.length && !showExploreResult"
+              type="button"
+              class="ling-action-primary btn-action--primary ling-action-pending-battle"
+              :aria-label="`继续处理待战斗遭遇，${pendingBattles.length} 个`"
+              @click="resumePendingBattle"
+            >
+              <Sparkles class="action-icon" :size="15" :stroke-width="1.8" aria-hidden="true" />
+              <span>继续遭遇 · {{ pendingBattles.length }}</span>
+            </button>
           </div>
-        </template>
-        <template v-else>
-          <GameLogPanel :logs="gameStore.recentLogs" />
-          <ConnectedPanel
-            v-if="gameStore.activePanel"
-            :panel="gameStore.activePanel"
-            @select-panel="selectPanel"
-            @close-panel="closePanel"
-          />
-        </template>
-      </main>
-
-      <div v-if="!isMobile" class="ling-resize-handle" @mousedown="startRightResize"></div>
-      <BottomNav :active="gameStore.activePanel" @select="selectPanel" />
-    </div>
-
-    <footer class="ling-bottom" :class="{ 'is-resting': isResting }">
-      <div class="ling-action-row" :class="{ 'has-rest': isResting }">
-        <button class="ling-action-primary" @click="toggleRest">{{ isResting ? '休息...' : '休息' }}</button>
-        <button class="ling-action-main" :disabled="exploring" @click="enterScene">{{ exploring ? '执行中...' : '执行场景' }}</button>
-        <select class="ling-select" aria-label="探索倍率">
-          <option value="1">1倍</option>
-          <option value="5">5倍</option>
-          <option value="10">10倍</option>
-        </select>
-        <label class="ling-check"><input type="checkbox" /> 概率修正</label>
-        <label class="ling-check"><input type="checkbox" /> 自动行动</label>
-        <span class="ling-help">ⓘ</span>
+          <div class="action-group action-group--tools">
+            <select class="ling-select explore-multiplier-trigger" aria-label="探索倍率">
+              <option value="1">×1</option>
+              <option value="5">×5</option>
+              <option value="10">×10</option>
+            </select>
+            <label class="ling-check"><input type="checkbox" /> 概率修正</label>
+            <label class="ling-check"><input type="checkbox" /> 自动行动</label>
+            <button type="button" class="btn-setting" title="自动处理设置" aria-label="自动处理设置"><Settings :size="15" :stroke-width="1.8" aria-hidden="true" /></button>
+          </div>
+        </div>
+        <BottomNav :active="gameStore.activePanel" @select="selectPanel" />
       </div>
-      <div v-if="isResting" class="ling-footer-status">
+      <div v-if="isResting && !isMobile" class="ling-footer-status ling-rest-card" aria-live="polite">
+        <span class="ling-rest-orb" aria-hidden="true"><Sparkles :size="18" :stroke-width="1.7" /></span>
+        <div class="ling-rest-body">
+          <div class="ling-rest-title-row">
+            <div class="ling-rest-title">
+              <strong>休息中</strong>
+              <span>生命、体力与经验持续恢复 · 结束休息后可继续探索</span>
+            </div>
+            <button class="ling-finish" @click="finishAction">结束休息</button>
+          </div>
+          <div class="ling-rest-stats">
+            <span class="ling-rest-stat">生命 <b>+1/{{ restHpInterval }}秒</b></span>
+            <span class="ling-rest-stat">体力 <b>+1/{{ restStaminaInterval }}秒</b></span>
+            <span class="ling-rest-stat">经验 <b>+1/30秒</b></span>
+            <span class="ling-rest-stat ling-rest-stat-total">累计：生命 <b>+{{ hpRecovered }}</b> · 体力 <b>+{{ staminaRecovered }}</b> · 经验 <b>+{{ expRecovered }}</b></span>
+          </div>
+        </div>
+      </div>
+      <div v-else-if="isResting" class="ling-footer-status">
         <span class="ling-dot ling-dot-active"></span>
         <span>休息中</span>
         <span>恢复: HP <b>+1/{{ restHpInterval }}秒</b> 体力 <b>+1/{{ restStaminaInterval }}秒</b> 经验 <b>+1/30秒</b></span>
         <span>已恢复: HP <b>+{{ hpRecovered }}</b> 体力 <b>+{{ staminaRecovered }}</b> 经验 <b>+{{ expRecovered }}</b></span>
-        <button class="ling-finish" @click="finishAction">结束行动</button>
+        <span>结束休息后可继续探索</span>
+        <button class="ling-finish" @click="finishAction">结束休息</button>
       </div>
-    </footer>
+      <div v-else class="ling-footer-status is-idle">
+        <span class="ling-dot ling-dot-active"></span>
+        <span>行动就绪</span>
+        <span>位置：{{ gameStore.player?.currentLocationName || gameStore.player?.currentLocation || '未知场景' }} · 可开始探索或打开功能面板</span>
+      </div>
+        </footer>
+      </main>
+
+      <aside v-if="!isMobile && gameStore.activePanel" class="ling-side-panel">
+        <SceneMapPanel
+          v-if="gameStore.activePanel === 'scene-map'"
+          @close-panel="closePanel"
+        />
+        <ConnectedPanel
+          v-else
+          :panel="gameStore.activePanel"
+          @select-panel="selectPanel"
+          @close-panel="closePanel"
+        />
+      </aside>
+
+    </div>
 
     <DeathOverlay v-if="isDead" />
     <GameNotificationToast />
@@ -489,99 +1007,35 @@ onBeforeUnmount(() => {
       :visible="showExploreResult"
       :result="exploreResult"
       @close="onExploreClose"
+      @choice-made="onStoryChoiceMade"
+      @battle-resolved="onBattleResolved"
     />
   </div>
 </template>
 
 <style scoped>
-/* ── Shell 边框微光 ── */
-.gl-root {
-  border-color: rgba(26, 38, 80, 0.5);
-}
-
-/* ── 顶栏增强 ── */
-.gl-root :deep(.ling-topbar) {
-  background: linear-gradient(
-    180deg,
-    rgba(13, 20, 48, 0.95) 0%,
-    rgba(10, 15, 36, 0.92) 100%
-  );
-}
-
-/* Logo — 蓝金渐变 */
+/* 这层只保留组件自身的状态，不再给原站式外壳叠加渐变、浮起或呼吸动画。 */
 .gl-root :deep(.ling-logo) {
-  background: linear-gradient(180deg, #8ec8ff 0%, #6aafff 40%, #4a8fe7 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: glLogoGlow 4s ease-in-out infinite;
+  background: none !important;
+  color: var(--color-star) !important;
+  -webkit-text-fill-color: currentColor;
+  animation: none !important;
+  filter: none !important;
+  text-shadow: none !important;
 }
 
-@keyframes glLogoGlow {
-  0%, 100% { filter: drop-shadow(0 0 8px rgba(74, 143, 231, 0.3)); }
-  50% { filter: drop-shadow(0 0 16px rgba(74, 143, 231, 0.5)); }
-}
-
-/* ── 核心操作栏增强 ── */
+.gl-root :deep(.ling-action-main),
+.gl-root :deep(.ling-action-primary),
 .gl-root :deep(.ling-core-btn) {
-  border-radius: 5px;
-  letter-spacing: 1.5px;
+  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
 }
 
-/* ── 底部栏增强 ── */
-.gl-root :deep(.ling-bottom) {
-  background: linear-gradient(
-    180deg,
-    rgba(13, 20, 48, 0.95) 0%,
-    rgba(10, 15, 36, 0.92) 100%
-  );
-}
-
-/* 进入场景按钮 */
-.gl-root :deep(.ling-action-main) {
-  font-weight: 600;
-  letter-spacing: 2px;
-  border-radius: var(--radius-md, 6px);
-  transition: all 0.25s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
-}
-
-.gl-root :deep(.ling-action-main:hover) {
-  transform: translateY(-1px);
-}
-
-.gl-root :deep(.ling-action-main:active) {
-  transform: scale(0.97);
-}
-
-/* 休息按钮 */
-.gl-root :deep(.ling-action-primary) {
-  border-radius: var(--radius-md, 6px);
-  letter-spacing: 1px;
-  transition: all 0.25s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
-}
-
+.gl-root :deep(.ling-action-main:hover),
 .gl-root :deep(.ling-action-primary:hover) {
-  transform: translateY(-1px);
+  transform: none;
 }
 
-/* 下拉选择框 */
-.gl-root :deep(.ling-select) {
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-/* ── 休息状态栏 ── */
-.gl-root :deep(.ling-dot) {
-  box-shadow: 0 0 10px rgba(94, 196, 158, 0.5);
-}
-
-/* ── 拖拽手柄增强 ── */
-.gl-root :deep(.ling-resize-handle:hover) {
-  box-shadow: 0 0 8px rgba(74, 143, 231, 0.12);
-}
-
-/* ── 移动端左侧面板遮罩 ── */
-.gl-root :deep(.ling-left.is-open) {
-  box-shadow: 16px 0 40px rgba(0, 0, 0, 0.6);
+@media (min-width: 761px) {
+  .gl-root :deep(.ling-role-toggle) { display: inline-flex; }
 }
 </style>

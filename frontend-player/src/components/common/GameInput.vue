@@ -23,25 +23,25 @@ const emit = defineEmits<{
       class="w-full rounded-md border px-3.5 py-2.5 text-sm outline-none transition-all duration-200 placeholder:text-muted/50"
       style="
         border-color: var(--color-border);
-        background: rgba(6, 10, 14, 0.7);
+        background: var(--color-input);
         color: var(--color-text);
       "
       :style="{
         '--focus-border': 'var(--color-star)',
-        '--focus-glow': 'rgba(74, 143, 231, 0.15)',
+        '--focus-glow': 'var(--color-system-glow-soft)',
       } as Record<string, string>"
       @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
       @focus="(e: FocusEvent) => {
         const el = e.target as HTMLInputElement;
         el.style.borderColor = 'var(--color-star)';
-        el.style.boxShadow = '0 0 0 3px rgba(74, 143, 231, 0.1)';
-        el.style.background = 'rgba(8, 14, 18, 0.9)';
+        el.style.boxShadow = '0 0 0 3px var(--color-focus-ring)';
+        el.style.background = 'var(--color-surface)';
       }"
       @blur="(e: FocusEvent) => {
         const el = e.target as HTMLInputElement;
         el.style.borderColor = 'var(--color-border)';
         el.style.boxShadow = 'none';
-        el.style.background = 'rgba(6, 10, 14, 0.7)';
+        el.style.background = 'var(--color-input)';
       }"
     />
   </label>

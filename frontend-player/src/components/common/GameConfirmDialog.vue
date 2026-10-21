@@ -46,7 +46,7 @@ const ui = useUiStore();
   position: fixed;
   inset: 0;
   z-index: 999;
-  background: rgba(4, 8, 18, 0.7);
+  background: rgba(var(--color-void-rgb), 0.7);
   backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
@@ -58,13 +58,13 @@ const ui = useUiStore();
   to { opacity: 1; }
 }
 .ling-dialog-box {
-  background: linear-gradient(180deg, rgba(13, 20, 48, 0.97), rgba(7, 11, 26, 0.98));
+  background: linear-gradient(180deg, var(--color-topbar), var(--color-void));
   border: 1px solid var(--color-system-border);
   border-radius: var(--radius-lg);
   padding: 26px 30px;
   min-width: 320px;
   max-width: 420px;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(74, 143, 231, 0.08);
+  box-shadow: var(--shadow-float), 0 0 0 1px var(--color-system-glow-soft);
   animation: lingDialogSlideIn 0.25s var(--ease-out-expo);
 }
 @keyframes lingDialogSlideIn {
@@ -76,7 +76,7 @@ const ui = useUiStore();
   font-size: 15px;
   font-weight: 700;
   margin: 0 0 12px;
-  text-shadow: 0 0 8px rgba(74, 143, 231, 0.2);
+  text-shadow: 0 0 8px var(--color-system-glow);
 }
 .ling-dialog-msg {
   color: var(--color-text-dim);
@@ -109,12 +109,12 @@ const ui = useUiStore();
   background: rgba(255,255,255,0.02);
 }
 .ling-dialog-btn-ok {
-  background: rgba(74, 143, 231, 0.1);
+  background: var(--color-system-bg);
   border-color: var(--color-system-border);
   color: var(--color-system-bright);
 }
 .ling-dialog-btn-ok:hover {
-  background: rgba(74, 143, 231, 0.2);
+  background: rgba(var(--color-system-rgb), 0.2);
   border-color: var(--color-system);
   box-shadow: var(--glow-system);
 }
@@ -122,7 +122,7 @@ const ui = useUiStore();
   list-style: none;
   padding: 12px 14px;
   margin: 0 0 18px;
-  background: rgba(7, 11, 26, 0.4);
+  background: rgba(var(--color-void-rgb), 0.4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
 }
@@ -132,7 +132,7 @@ const ui = useUiStore();
   gap: 8px;
   padding: 7px 0;
   font-size: 12px;
-  border-bottom: 1px solid rgba(26, 38, 80, 0.4);
+  border-bottom: 1px solid var(--color-border);
 }
 .ling-dialog-details li:last-child { border-bottom: none; }
 .ling-detail-check { width: 18px; font-weight: 700; flex-shrink: 0; }

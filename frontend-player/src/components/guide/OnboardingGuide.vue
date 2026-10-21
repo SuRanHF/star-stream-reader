@@ -83,7 +83,7 @@ function finish() {
   z-index: 1000;
   display: grid;
   place-items: center;
-  background: rgba(4, 8, 12, 0.88);
+  background: var(--color-overlay);
   backdrop-filter: blur(6px);
   animation: obFadeIn 0.5s ease;
 }
@@ -95,18 +95,18 @@ function finish() {
 
 .onboard-card {
   width: min(460px, 90vw);
-  border: 1px solid rgba(74, 143, 231, 0.3);
-  border-radius: 16px;
+  border: 1px solid var(--color-star-border);
+  border-radius: var(--radius-lg);
   background: linear-gradient(
     180deg,
-    rgba(20, 28, 36, 0.98) 0%,
-    rgba(10, 16, 22, 0.99) 100%
+    var(--color-panel-elevated) 0%,
+    var(--color-void) 100%
   );
   padding: 36px 32px 28px;
   box-shadow:
     0 12px 48px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(74, 143, 231, 0.08),
-    0 0 40px rgba(74, 143, 231, 0.05);
+    0 0 0 1px var(--color-star-glow),
+    var(--glow-star);
   animation: obSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -124,9 +124,9 @@ function finish() {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(74, 143, 231, 0.4) 30%,
-    rgba(74, 143, 231, 0.2) 50%,
-    rgba(74, 143, 231, 0.4) 70%,
+    var(--color-star-border) 30%,
+    var(--color-star-glow) 50%,
+    var(--color-star-border) 70%,
     transparent 100%
   );
 }
@@ -142,15 +142,15 @@ function finish() {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 1px solid #334155;
-  background: #0f1720;
+  border: 1px solid var(--color-border);
+  background: var(--color-control);
   transition: all 0.3s ease;
 }
 
 .onboard-dot.active {
   border-color: var(--color-star);
   background: var(--color-star);
-  box-shadow: 0 0 8px rgba(74, 143, 231, 0.4);
+  box-shadow: var(--glow-star);
 }
 
 .onboard-title {
@@ -159,12 +159,12 @@ function finish() {
   font-size: 20px;
   text-align: center;
   letter-spacing: 4px;
-  text-shadow: 0 0 12px rgba(74, 143, 231, 0.2);
+  text-shadow: var(--glow-star);
 }
 
 .onboard-body {
   margin: 0 0 28px;
-  color: #94a3b8;
+  color: var(--color-text-dim);
   font-size: 14px;
   line-height: 1.9;
   text-align: center;
@@ -180,7 +180,7 @@ function finish() {
 .onboard-skip {
   border: 0;
   background: none;
-  color: #5d727b;
+  color: var(--color-muted);
   font-size: 13px;
   cursor: pointer;
   padding: 8px 12px;
@@ -188,14 +188,14 @@ function finish() {
 }
 
 .onboard-skip:hover {
-  color: #94a3b8;
+  color: var(--color-text-dim);
 }
 
 .onboard-next {
   height: 42px;
-  border: 1px solid rgba(74, 143, 231, 0.4);
-  border-radius: 8px;
-  background: rgba(74, 143, 231, 0.1);
+  border: 1px solid var(--color-star-border);
+  border-radius: var(--radius-md);
+  background: var(--color-star-bg);
   color: var(--color-star);
   padding: 0 32px;
   font-size: 14px;
@@ -206,9 +206,9 @@ function finish() {
 }
 
 .onboard-next:hover {
-  background: rgba(74, 143, 231, 0.2);
+  background: var(--color-star-glow);
   border-color: var(--color-star);
-  box-shadow: 0 0 16px rgba(74, 143, 231, 0.2);
+  box-shadow: var(--glow-star);
   transform: translateY(-1px);
 }
 

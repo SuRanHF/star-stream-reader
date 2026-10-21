@@ -3,7 +3,7 @@
 -- titles + avatar_rank_configs + main_chapters 初始数据
 -- ============================================================
 
--- === 称号种子 (6个基础称号) ===
+-- === 称号种子 (7个基础称号) ===
 
 INSERT IGNORE INTO `titles` (`title_key`, `name`, `category`, `rarity`, `description`, `unlock_conditions_json`, `effects_json`, `enabled`)
 VALUES
@@ -12,6 +12,12 @@ VALUES
  '完成第一次探索的记录者。',
  '{"exploreCount": 1}',
  '{"staminaBonus": 5}',
+ 1),
+
+('growth_novice', '初露锋芒', 'growth', 'common',
+ '达到等级5，开始在星流的记录中留下自己的名字。',
+ '{}',
+ '{}',
  1),
 
 ('station_witness', '车站见证者', 'reader', 'common',
@@ -47,7 +53,7 @@ VALUES
 
 -- === ORV 原著称号 (20 个) ===
 -- 叙事阵营: reader(读者) / king(王者) / abyss(深渊) / starstream(星流) / combat(战斗)
--- 克制链: reader→abyss→king→starstream→reader, combat无克制
+-- strong_against_json / weak_against_json 保留旧数据兼容；当前战斗不读取它们，不代表原著通用克制链。
 
 INSERT IGNORE INTO `titles` (`title_key`, `name`, `category`, `rarity`, `description`, `unlock_conditions_json`, `effects_json`, `tags_json`, `strong_against_json`, `weak_against_json`, `enabled`)
 VALUES
@@ -238,7 +244,7 @@ VALUES
  '[]',
  '[]',
  1);
--- === 化身位阶种子 (F→A 6个基础位阶) ===
+-- === 化身位阶种子 (F→SSS 共9个基础位阶) ===
 
 INSERT IGNORE INTO `avatar_rank_configs` (`rank_key`, `rank_name`, `display_name`, `description`, `order_num`, `next_rank_key`, `requirements_json`, `rewards_json`, `enabled`)
 VALUES
@@ -280,9 +286,32 @@ VALUES
 
 ('A', '故事承载者', 'A级·故事承载者',
  '拥有完整故事路线，能够在星流中留下显著痕迹。',
- 6, NULL,
+ 6, 'S',
  '[{"type":"levelMin","value":30,"label":"等级达到30"},{"type":"rareTitleRequired","value":true,"label":"拥有至少一个稀有称号"},{"type":"worldLineShiftMin","value":10,"label":"世界线偏移≥10"}]',
  '{"storyGrade":"notable","stats":{"maxHp":50,"attack":10,"defense":10},"log":"你的故事终于拥有了足以被星流承认的重量。从此刻起，你是真正的故事承载者。"}',
+ 1),
+
+-- === 化身位阶种子 (S/SS/SSS 高阶位阶) ===
+
+('S', '星流观测者', 'S级·星流观测者',
+ '你的存在已经能够影响星流的走向。星座们不再只是旁观——它们开始认真对待你的每一个选择。',
+ 7, 'SS',
+ '[{"type":"levelMin","value":40,"label":"等级达到40"},{"type":"titlesCountMin","value":5,"label":"拥有至少5个称号"},{"type":"channelHeatMin","value":500,"label":"频道热度≥500"},{"type":"explorationsByLocation","locationKey":"demon_gate","count":5,"label":"探索恶魔之门≥5次"}]',
+ '{"storyGrade":"remarkable","stats":{"maxHp":80,"attack":15,"defense":15,"speed":10},"channelHeat":100,"log":"星流开始回应你的呼唤。你不再只是故事中的角色——你是能够改变剧本走向的观测者。"}',
+ 1),
+
+('SS', '剧本改写者', 'SS级·剧本改写者',
+ '你拥有了改写剧本的力量。预言不再是终点——而是新的起点。星流审查者无法理解你是如何做到的。',
+ 8, 'SSS',
+ '[{"type":"levelMin","value":50,"label":"等级达到50"},{"type":"epicTitleRequired","value":true,"label":"拥有至少一个史诗(epic)称号"},{"type":"worldLineShiftMin","value":25,"label":"世界线偏移≥25"},{"type":"channelHeatMin","value":800,"label":"频道热度≥800"}]',
+ '{"storyGrade":"legendary","stats":{"maxHp":120,"attack":25,"defense":20,"speed":15,"insight":5,"willpower":5},"channelHeat":200,"log":"剧本开始回应你的意志。你不是在阅读故事——你是在书写它。每一个选择都在星流中留下了永恒的痕迹。"}',
+ 1),
+
+('SSS', '全知超越者', 'SSS级·全知超越者',
+ '你已超越了故事本身的边界。回归不再是终点——而是新的开始。全知的代价是永恒的责任，但你已经准备好了。',
+ 9, NULL,
+ '[{"type":"levelMin","value":60,"label":"等级达到60"},{"type":"legendaryTitleRequired","value":true,"label":"拥有至少一个传说(legendary)称号"},{"type":"channelHeatMin","value":1000,"label":"频道热度≥1000"},{"type":"titlesCountMin","value":10,"label":"拥有至少10个称号"}]',
+ '{"storyGrade":"mythic","stats":{"maxHp":200,"attack":40,"defense":35,"speed":25,"insight":10,"willpower":10},"channelHeat":500,"log":"你已经读完了那本书——然后合上了它。不是因为结局已定，而是因为你已经准备好书写新的故事。全知不是终点，而是永恒的起点。回归的大门已经为你敞开。"}',
  1);
 
 -- === 主线阶段种子 (3个基础阶段) ===
@@ -314,5 +343,47 @@ VALUES
  '{"requiredPreviousChapter":"main_ch02_contract","avatarRankMin":"C","worldLineShiftMin":10}',
  '{}',
  '{"coins":200,"storyFragments":20,"channelHeat":50}',
+ 'main_ch04_abyss_awakening',
+ 1);
+
+
+-- === 主线阶段种子 (补充4个进阶阶段) ===
+
+INSERT IGNORE INTO `main_chapters` (`chapter_key`, `name`, `description`, `order_num`, `unlock_conditions_json`, `completion_conditions_json`, `rewards_json`, `next_chapter_key`, `enabled`)
+VALUES
+
+('main_ch04_abyss_awakening', '第四阶段：深渊觉醒',
+ '当深渊之门被推开，隐藏在剧本背后的真相开始浮现。觉醒者必须直面自己的极限。',
+ 4,
+ '{"requiredPreviousChapter":"main_ch03_kings_conflict","avatarRankMin":"B","worldLineShiftMin":20}',
+ '{"locationExploreCount":{"demon_gate":3},"epicTitleRequired":true}',
+ '{"coins":200,"storyFragments":25,"channelHeat":60}',
+ 'main_ch05_starstream_convergence',
+ 1),
+
+('main_ch05_starstream_convergence', '第五阶段：星流汇聚',
+ '星流中的所有故事线开始交汇，传说中的称号持有者被卷入不可逆转的命运漩涡。',
+ 5,
+ '{"requiredPreviousChapter":"main_ch04_abyss_awakening","avatarRankMin":"A","channelHeatMin":500}',
+ '{"legendaryTitleRequired":true,"hiddenEventsTriggeredMin":3}',
+ '{"coins":300,"storyFragments":40,"channelHeat":100}',
+ 'main_ch06_final_script',
+ 1),
+
+('main_ch06_final_script', '第六阶段：最终剧本',
+ '最终剧本已翻开——这是属于你的故事的终章，也是新世界的序章。',
+ 6,
+ '{"requiredPreviousChapter":"main_ch05_starstream_convergence","avatarRankMin":"S"}',
+ '{"worldLineShiftMin":50,"titlesCountMin":5}',
+ '{"coins":500,"storyFragments":60,"channelHeat":200}',
+ 'main_ch07_omniscient',
+ 1),
+
+('main_ch07_omniscient', '第七阶段：全知之路',
+ '全知之路是最后的试炼——唯有超越故事本身的存在，才能抵达剧本的彼岸。',
+ 7,
+ '{"requiredPreviousChapter":"main_ch06_final_script","avatarRankMin":"SS"}',
+ '{"avatarRankMin":"SSS","titlesCountMin":8}',
+ '{"coins":1000,"storyFragments":100,"channelHeat":500}',
  NULL,
  1);

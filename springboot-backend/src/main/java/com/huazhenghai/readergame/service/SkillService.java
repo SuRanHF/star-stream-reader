@@ -17,7 +17,7 @@ public interface SkillService {
     List<SkillVO> evaluateUnlockableSkills(Long playerId);
 
     /** 解锁技能 (含条件校验、资源扣除、事务) */
-    PlayerSkillVO unlockSkill(Long playerId, String skillKey, Long userId);
+    PlayerSkillVO unlockSkill(Long playerId, String skillKey, Long userId, String requestKey);
 
     /** 计算已解锁技能的被动效果加成 (动态计算，不写入 stats_json) */
     Map<String, Object> calculateSkillBonus(Long playerId);

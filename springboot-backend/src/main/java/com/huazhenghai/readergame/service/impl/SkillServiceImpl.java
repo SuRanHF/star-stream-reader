@@ -12,6 +12,8 @@ import com.huazhenghai.readergame.mapper.PlayerMapper;
 import com.huazhenghai.readergame.mapper.PlayerSkillMapper;
 import com.huazhenghai.readergame.mapper.SkillMapper;
 import com.huazhenghai.readergame.service.PlayerLogService;
+import com.huazhenghai.readergame.service.PlayerActionReceiptService;
+import com.huazhenghai.readergame.service.PlayerResourceTransactionService;
 import com.huazhenghai.readergame.service.SkillService;
 import com.huazhenghai.readergame.vo.*;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,11 @@ public class SkillServiceImpl implements SkillService {
     private static final List<String> RANK_ORDER = List.of(
             "F", "E", "D", "C", "B", "A", "S", "SS", "SSS", "EX");
 
+    /** 位阶开放的技能槽数量，与 README 中的成长规则保持一致。 */
+    private static final Map<String, Integer> SKILL_SLOTS_BY_RANK = Map.of(
+            "F", 0, "E", 0, "D", 1, "C", 2, "B", 3,
+            "A", 4, "S", 4, "SS", 5, "SSS", 5, "EX", 5);
+
     // effects_json 中可累加到 bonus 的数值字段
     private static final Set<String> NUMERIC_EFFECTS = Set.of(
             "attack", "defense", "speed", "maxHp", "maxStamina",
@@ -38,17 +45,23 @@ public class SkillServiceImpl implements SkillService {
     private final SkillMapper skillMapper;
     private final PlayerSkillMapper playerSkillMapper;
     private final PlayerLogService playerLogService;
+    private final PlayerActionReceiptService actionReceiptService;
+    private final PlayerResourceTransactionService resourceTransactionService;
     private final ObjectMapper objectMapper;
 
     public SkillServiceImpl(PlayerMapper playerMapper,
                             SkillMapper skillMapper,
                             PlayerSkillMapper playerSkillMapper,
                             PlayerLogService playerLogService,
+                            PlayerActionReceiptService actionReceiptService,
+                            PlayerResourceTransactionService resourceTransactionService,
                             ObjectMapper objectMapper) {
         this.playerMapper = playerMapper;
         this.skillMapper = skillMapper;
         this.playerSkillMapper = playerSkillMapper;
         this.playerLogService = playerLogService;
+        this.actionReceiptService = actionReceiptService;
+        this.resourceTransactionService = resourceTransactionService;
         this.objectMapper = objectMapper;
     }
 
@@ -87,6 +100,7 @@ public class SkillServiceImpl implements SkillService {
         Map<String, Object> stats = parseJsonMap(player.getStatsJson());
         Map<String, Object> stageProgress = parseJsonMap(player.getStageProgressJson());
         Set<String> ownedKeys = getOwnedSkillKeys(playerId);
+        if (Boolean.TRUE.equals(stats.get("isResting"))) return Collections.emptyList();
 
         List<Skill> allEnabled = skillMapper.selectList(
                 new QueryWrapper<Skill>().eq("enabled", 1));
@@ -94,22 +108,29 @@ public class SkillServiceImpl implements SkillService {
         List<SkillVO> unlockable = new ArrayList<>();
         for (Skill skill : allEnabled) {
             if (ownedKeys.contains(skill.getSkillKey())) continue;
-            if (checkUnlockConditions(skill, player, stats, stageProgress)) {
-                SkillVO vo = toSkillVO(skill);
-                vo.setUnlockable(true);
-                unlockable.add(vo);
-            }
+            if (!checkUnlockConditions(skill, player, stats, stageProgress)) continue;
+            if (skillCostFailure(skill, player) != null) continue;
+
+            SkillVO vo = toSkillVO(skill);
+            vo.setUnlockable(true);
+            unlockable.add(vo);
         }
         return unlockable;
     }
 
     @Override
     @Transactional
-    public PlayerSkillVO unlockSkill(Long playerId, String skillKey, Long userId) {
-        validateOwnership(playerId, userId);
+    public PlayerSkillVO unlockSkill(Long playerId, String skillKey, Long userId, String requestKey) {
+        Player player = lockOwnedPlayerForUpdate(playerId, userId);
+        if (skillKey == null || skillKey.isBlank())
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "技能标识不能为空");
+
+        Map<String, Object> requestPayload = Map.of("playerId", playerId, "skillKey", skillKey);
+        PlayerSkillVO replay = actionReceiptService.findReplay(
+                playerId, "skill.unlock", requestKey, requestPayload, PlayerSkillVO.class);
+        if (replay != null) return replay;
 
         // 检查休息状态
-        Player player = playerMapper.selectById(playerId);
         Map<String, Object> stats = parseJsonMap(player.getStatsJson());
         if (Boolean.TRUE.equals(stats.get("isResting"))) {
             throw new BusinessException(ErrorCode.PLAYER_RESTING, "休息中无法解锁技能");
@@ -134,22 +155,21 @@ public class SkillServiceImpl implements SkillService {
         if (!checkUnlockConditions(skill, player, stats, stageProgress))
             throw new BusinessException(ErrorCode.SKILL_NOT_UNLOCKED, "不满足技能解锁条件");
 
-        // 扣除消耗
+        // 扣除消耗前复用候选列表的资源校验，避免“显示可学习、点击后才发现资源不足”。
+        String costFailure = skillCostFailure(skill, player);
+        if (costFailure != null)
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_ENOUGH, costFailure);
+
         Map<String, Object> cost = parseJsonMap(skill.getCostJson());
-        if (!cost.isEmpty()) {
-            int coinsCost = toInt(cost.get("coins"), 0);
-            int fragsCost = toInt(cost.get("storyFragments"), 0);
-
-            if (coinsCost > 0 && player.getCoins() < coinsCost)
-                throw new BusinessException(ErrorCode.RESOURCE_NOT_ENOUGH,
-                        "金币不足，需要 " + coinsCost + " 金币");
-            if (fragsCost > 0 && player.getStoryFragments() < fragsCost)
-                throw new BusinessException(ErrorCode.RESOURCE_NOT_ENOUGH,
-                        "故事碎片不足，需要 " + fragsCost + " 碎片");
-
-            if (coinsCost > 0) player.setCoins(player.getCoins() - coinsCost);
-            if (fragsCost > 0) player.setStoryFragments(player.getStoryFragments() - fragsCost);
-        }
+        int coinsCost = toInt(cost.get("coins"), 0);
+        int fragsCost = toInt(cost.get("storyFragments"), 0);
+        int coinsBefore = player.getCoins() != null ? player.getCoins() : 0;
+        int fragmentsBefore = player.getStoryFragments() != null ? player.getStoryFragments() : 0;
+        int coinsAfter = coinsCost > 0 ? Math.subtractExact(coinsBefore, coinsCost) : coinsBefore;
+        int fragmentsAfter = fragsCost > 0
+                ? Math.subtractExact(fragmentsBefore, fragsCost) : fragmentsBefore;
+        if (coinsCost > 0) player.setCoins(coinsAfter);
+        if (fragsCost > 0) player.setStoryFragments(fragmentsAfter);
 
         // 插入 player_skills
         PlayerSkill ps = new PlayerSkill();
@@ -158,24 +178,50 @@ public class SkillServiceImpl implements SkillService {
         ps.setLevel(1);
         ps.setEquipped(0);
         ps.setUnlockedAt(java.time.LocalDateTime.now());
-        playerSkillMapper.insert(ps);
+        if (playerSkillMapper.insert(ps) <= 0)
+            throw new IllegalStateException("保存技能解锁记录失败");
 
         // 更新玩家资源
-        playerMapper.updateById(player);
+        if ((coinsCost > 0 || fragsCost > 0) && playerMapper.updateById(player) <= 0)
+            throw new IllegalStateException("保存技能解锁资源扣除失败");
 
-        // 写日志
-        playerLogService.addLog(playerId, "skill_unlock", "习得技能: " + skill.getName());
+        String transactionGroupId = java.util.UUID.nameUUIDFromBytes(
+                ("skill-unlock:" + playerId + ":" + skillKey)
+                        .getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
+        Map<String, Object> resourceMetadata = Map.of("skillKey", skillKey);
+        recordSkillCost(playerId, skillKey, transactionGroupId, "coins", coinsCost,
+                coinsBefore, coinsAfter, resourceMetadata);
+        recordSkillCost(playerId, skillKey, transactionGroupId, "story_fragments", fragsCost,
+                fragmentsBefore, fragmentsAfter, resourceMetadata);
 
-        return toPlayerSkillVO(skill, ps);
+        // 日志保留实际扣费，方便玩家核对成长资源去向。
+        Map<String, Object> logMetadata = new LinkedHashMap<>();
+        logMetadata.put("kind", "skill_unlock");
+        logMetadata.put("skillKey", skillKey);
+        logMetadata.put("costs", Map.of("coins", coinsCost, "storyFragments", fragsCost));
+        playerLogService.addLog(playerId, "skill_unlock", "习得技能: " + skill.getName(), logMetadata);
+
+        PlayerSkillVO result = toPlayerSkillVO(skill, ps);
+        actionReceiptService.record(playerId, "skill.unlock", requestKey, requestPayload, result);
+        return result;
+    }
+
+    private void recordSkillCost(Long playerId, String skillKey, String transactionGroupId,
+                                 String resourceKey, long cost, long balanceBefore,
+                                 long balanceAfter, Map<String, Object> metadata) {
+        if (cost <= 0) return;
+        resourceTransactionService.record(new PlayerResourceTransactionService.Change(
+                playerId, "currency", resourceKey, -cost, balanceBefore, balanceAfter,
+                "skill_unlock", skillKey, transactionGroupId,
+                transactionGroupId + ":currency:" + resourceKey, metadata));
     }
 
     @Override
     @Transactional
     public PlayerSkillVO equipSkill(Long playerId, String skillKey, Long userId) {
-        validateOwnership(playerId, userId);
+        Player player = lockOwnedPlayerForUpdate(playerId, userId);
 
         // 检查休息状态
-        Player player = playerMapper.selectById(playerId);
         Map<String, Object> stats = parseJsonMap(player.getStatsJson());
         if (Boolean.TRUE.equals(stats.get("isResting"))) {
             throw new BusinessException(ErrorCode.PLAYER_RESTING, "休息中无法装备技能");
@@ -193,14 +239,29 @@ public class SkillServiceImpl implements SkillService {
                 new QueryWrapper<Skill>().eq("skill_key", skillKey));
         if (skill == null)
             throw new BusinessException(ErrorCode.SKILL_NOT_FOUND, "技能不存在");
+        if (!isEnabledSkill(skill))
+            throw new BusinessException(ErrorCode.SKILL_DISABLED, "技能已被禁用，无法装备");
 
         // 已装备则无需操作
         if (ps.getEquipped() != null && ps.getEquipped() == 1) {
             return toPlayerSkillVO(skill, ps);
         }
 
+        String rank = Objects.toString(stats.get("avatarRank"), "F").toUpperCase(Locale.ROOT);
+        int slotLimit = getSkillSlotLimit(rank);
+        QueryWrapper<PlayerSkill> equippedQuery = new QueryWrapper<>();
+        equippedQuery.eq("player_id", playerId).eq("equipped", 1);
+        int equippedCount = playerSkillMapper.selectCount(equippedQuery).intValue();
+        if (equippedCount >= slotLimit) {
+            String message = slotLimit == 0
+                    ? "当前位阶「" + rank + "」尚未开放技能槽，请先晋升至D级。"
+                    : "当前位阶「" + rank + "」开放的" + slotLimit + "个技能槽已占满，请先卸下技能或提升位阶。";
+            throw new BusinessException(ErrorCode.SKILL_SLOT_FULL, message);
+        }
+
         ps.setEquipped(1);
-        playerSkillMapper.updateById(ps);
+        if (playerSkillMapper.updateById(ps) <= 0)
+            throw new IllegalStateException("保存技能装备状态失败");
         playerLogService.addLog(playerId, "skill_equip", "装备技能: " + skill.getName());
         return toPlayerSkillVO(skill, ps);
     }
@@ -208,7 +269,7 @@ public class SkillServiceImpl implements SkillService {
     @Override
     @Transactional
     public PlayerSkillVO unequipSkill(Long playerId, String skillKey, Long userId) {
-        validateOwnership(playerId, userId);
+        lockOwnedPlayerForUpdate(playerId, userId);
 
         // 查找玩家技能记录
         QueryWrapper<PlayerSkill> psQuery = new QueryWrapper<>();
@@ -229,7 +290,8 @@ public class SkillServiceImpl implements SkillService {
         }
 
         ps.setEquipped(0);
-        playerSkillMapper.updateById(ps);
+        if (playerSkillMapper.updateById(ps) <= 0)
+            throw new IllegalStateException("保存技能卸下状态失败");
         playerLogService.addLog(playerId, "skill_unequip", "卸下技能: " + skill.getName());
         return toPlayerSkillVO(skill, ps);
     }
@@ -244,7 +306,7 @@ public class SkillServiceImpl implements SkillService {
         for (PlayerSkill ps : psList) {
             Skill skill = skillMapper.selectOne(
                     new QueryWrapper<Skill>().eq("skill_key", ps.getSkillKey()));
-            if (skill == null) continue;
+            if (!isEnabledSkill(skill)) continue;
 
             Map<String, Object> effects = parseJsonMap(skill.getEffectsJson());
             for (Map.Entry<String, Object> entry : effects.entrySet()) {
@@ -269,7 +331,7 @@ public class SkillServiceImpl implements SkillService {
         for (PlayerSkill ps : psList) {
             Skill skill = skillMapper.selectOne(
                     new QueryWrapper<Skill>().eq("skill_key", ps.getSkillKey()));
-            if (skill == null) continue;
+            if (!isEnabledSkill(skill)) continue;
 
             String skillName = skill.getName() != null ? skill.getName() : ps.getSkillKey();
             Map<String, Object> effects = parseJsonMap(skill.getEffectsJson());
@@ -300,20 +362,32 @@ public class SkillServiceImpl implements SkillService {
         Set<String> owned = getOwnedSkillKeys(playerId);
         int ownedCount = owned.size();
         List<SkillVO> unlockable = evaluateUnlockableSkills(playerId);
+        Player player = playerMapper.selectById(playerId);
+        Map<String, Object> stats = player == null
+                ? Collections.emptyMap() : parseJsonMap(player.getStatsJson());
+        String rank = Objects.toString(stats.get("avatarRank"), "F").toUpperCase(Locale.ROOT);
+        QueryWrapper<PlayerSkill> equippedQuery = new QueryWrapper<>();
+        equippedQuery.eq("player_id", playerId).eq("equipped", 1);
+        int equippedCount = playerSkillMapper.selectCount(equippedQuery).intValue();
         boolean hasRare = false;
 
         if (ownedCount > 0) {
             for (String key : owned) {
                 Skill skill = skillMapper.selectOne(
                         new QueryWrapper<Skill>().eq("skill_key", key));
-                if (skill != null && isRare(skill.getRarity())) {
+                if (isEnabledSkill(skill) && isRare(skill.getRarity())) {
                     hasRare = true;
                     break;
                 }
             }
         }
 
-        return new SkillSummaryVO(ownedCount, unlockable.size(), hasRare);
+        return new SkillSummaryVO(ownedCount, unlockable.size(), hasRare,
+                equippedCount, getSkillSlotLimit(rank));
+    }
+
+    private int getSkillSlotLimit(String rank) {
+        return SKILL_SLOTS_BY_RANK.getOrDefault(rank, 0);
     }
 
     // ─── 辅助方法 ───
@@ -324,6 +398,15 @@ public class SkillServiceImpl implements SkillService {
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "玩家不存在");
         if (!player.getUserId().equals(userId))
             throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此玩家");
+    }
+
+    private Player lockOwnedPlayerForUpdate(Long playerId, Long userId) {
+        Player player = playerMapper.selectByIdForUpdate(playerId);
+        if (player == null)
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "玩家不存在");
+        if (!Objects.equals(player.getUserId(), userId))
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此玩家");
+        return player;
     }
 
     private boolean checkUnlockConditions(Skill skill, Player player,
@@ -377,6 +460,19 @@ public class SkillServiceImpl implements SkillService {
         return true;
     }
 
+    /** 返回学习消耗不足的原因；返回 null 表示当前资源足够。 */
+    private String skillCostFailure(Skill skill, Player player) {
+        Map<String, Object> cost = parseJsonMap(skill.getCostJson());
+        int coinsCost = toInt(cost.get("coins"), 0);
+        int fragsCost = toInt(cost.get("storyFragments"), 0);
+
+        if (coinsCost > 0 && toInt(player.getCoins(), 0) < coinsCost)
+            return "星币不足，需要 " + coinsCost + " 星币";
+        if (fragsCost > 0 && toInt(player.getStoryFragments(), 0) < fragsCost)
+            return "故事碎片不足，需要 " + fragsCost + " 故事碎片";
+        return null;
+    }
+
     private int compareRank(String current, String required) {
         int curIdx = RANK_ORDER.indexOf(current);
         int reqIdx = RANK_ORDER.indexOf(required);
@@ -399,6 +495,10 @@ public class SkillServiceImpl implements SkillService {
             case "rare", "epic", "legendary" -> true;
             default -> false;
         };
+    }
+
+    private boolean isEnabledSkill(Skill skill) {
+        return skill != null && Objects.equals(skill.getEnabled(), 1);
     }
 
     @SuppressWarnings("unchecked")

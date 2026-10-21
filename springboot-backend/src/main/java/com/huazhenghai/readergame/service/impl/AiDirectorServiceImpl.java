@@ -2,9 +2,18 @@ package com.huazhenghai.readergame.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.huazhenghai.readergame.entity.PkRecord;
+import com.huazhenghai.readergame.entity.PlayerLog;
+import com.huazhenghai.readergame.entity.WorldBoss;
+import com.huazhenghai.readergame.mapper.PkRecordMapper;
+import com.huazhenghai.readergame.mapper.PlayerLogMapper;
+import com.huazhenghai.readergame.mapper.PlayerMapper;
+import com.huazhenghai.readergame.mapper.WorldBossMapper;
 import com.huazhenghai.readergame.service.AiDirectorService;
 import com.huazhenghai.readergame.service.OnlinePlayerService;
 import com.huazhenghai.readergame.service.WorldlineService;
+import com.huazhenghai.readergame.vo.WorldlineSummaryVO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +24,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -24,7 +34,14 @@ public class AiDirectorServiceImpl implements AiDirectorService {
 
     private final WorldlineService worldlineService;
     private final OnlinePlayerService onlinePlayerService;
+    private final PlayerMapper playerMapper;
+    private final WorldBossMapper worldBossMapper;
+    private final PkRecordMapper pkRecordMapper;
+    private final PlayerLogMapper playerLogMapper;
     private final ObjectMapper objectMapper;
+
+    private static final int RECENT_EXPLORATION_DAYS = 30;
+    private static final int RECENT_EXPLORATION_LOG_LIMIT = 5000;
 
     @Value("${app.ai-director.llm-api-key:}")
     private String llmApiKey;
@@ -38,25 +55,32 @@ public class AiDirectorServiceImpl implements AiDirectorService {
     @Value("${app.ai-director.llm-base-url:}")
     private String llmBaseUrl;
 
-    public AiDirectorServiceImpl(WorldlineService worldlineService, OnlinePlayerService onlinePlayerService, ObjectMapper objectMapper) {
+    public AiDirectorServiceImpl(WorldlineService worldlineService, OnlinePlayerService onlinePlayerService,
+                                 PlayerMapper playerMapper, WorldBossMapper worldBossMapper,
+                                 PkRecordMapper pkRecordMapper, PlayerLogMapper playerLogMapper,
+                                 ObjectMapper objectMapper) {
         this.worldlineService = worldlineService;
         this.onlinePlayerService = onlinePlayerService;
+        this.playerMapper = playerMapper;
+        this.worldBossMapper = worldBossMapper;
+        this.pkRecordMapper = pkRecordMapper;
+        this.playerLogMapper = playerLogMapper;
         this.objectMapper = objectMapper;
     }
 
     // ─── allowed types from Node.js BroadcastService ───
     private static final List<String> ALLOWED_EVENT_TYPES = List.of(
             "exploration_drive", "world_boss", "pk_tournament", "disaster",
-            "story_hunt", "stage_support", "opportunity_rain", "broadcast_station_cleanup",
+            "story_hunt", "opportunity_rain", "broadcast_station_cleanup",
             "broadcast_pk_spark");
 
     private static final List<String> ALLOWED_CONTRIBUTION_TYPES = List.of(
-            "explore_location", "trigger_story", "defeat_boss", "kill_monster",
-            "win_pk", "complete_stage", "exploration", "pk", "combat");
+            "explore_location", "trigger_story", "defeat_boss", "kill_monster", "win_pk");
 
     @Override
     public Map<String, Object> generateBroadcastDraft() {
         Map<String, Object> state = buildWorldState();
+        if (state == null) return null;
 
         if (llmApiKey != null && !llmApiKey.isBlank()) {
             try {
@@ -64,10 +88,7 @@ public class AiDirectorServiceImpl implements AiDirectorService {
                 Map<String, Object> parsed = parseAIResponse(response);
                 if (parsed != null) {
                     parsed.put("generatedBy", "ai:" + llmProvider + ":" + llmModel);
-                    parsed.put("worldStateSnapshot", Map.of(
-                            "activePlayers", state.getOrDefault("activePlayers", 0),
-                            "averageLevel", state.getOrDefault("averageLevel", 1),
-                            "timestamp", java.time.LocalDateTime.now().toString()));
+                    parsed.put("worldStateSnapshot", buildWorldStateSnapshot(state));
                     return parsed;
                 }
             } catch (Exception e) {
@@ -75,7 +96,9 @@ public class AiDirectorServiceImpl implements AiDirectorService {
             }
         }
 
-        return fallbackBroadcastGenerator(state);
+        Map<String, Object> draft = fallbackBroadcastGenerator(state);
+        if (draft != null) draft.put("worldStateSnapshot", buildWorldStateSnapshot(state));
+        return draft;
     }
 
     @Override
@@ -83,8 +106,7 @@ public class AiDirectorServiceImpl implements AiDirectorService {
         int activePlayers = toInt(state.get("activePlayers"), 1);
         int averageLevel = toInt(state.get("averageLevel"), 1);
         int totalBossKills = toInt(state.get("totalBossKills"), 0);
-        int totalPlayers = toInt(state.get("totalPlayers"), 0);
-        double worldLineShift = toDouble(state.get("averageWorldLineShift"), 0);
+        double worldLineShift = toDouble(state.get("worldlineShift"), 0);
 
         @SuppressWarnings("unchecked")
         Map<String, Object> pkStats = (Map<String, Object>) state.getOrDefault("recentPkStats", Map.of());
@@ -92,9 +114,6 @@ public class AiDirectorServiceImpl implements AiDirectorService {
 
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> locationStats = (List<Map<String, Object>>) state.getOrDefault("locationExplorationStats", List.of());
-
-        @SuppressWarnings("unchecked")
-        Map<String, Object> stageDist = (Map<String, Object>) state.getOrDefault("currentStageDistribution", Map.of());
 
         // Rule 1: Low level players → exploration drive
         if (averageLevel < 5 && activePlayers >= 1) {
@@ -148,8 +167,7 @@ public class AiDirectorServiceImpl implements AiDirectorService {
                     120, Map.of("min_level", 3),
                     List.of(
                             Map.of("type", "explore_location", "target", Math.max(30, activePlayers * 5), "label", "全服探索净化", "score_per_unit", 1),
-                            Map.of("type", "trigger_story", "target", Math.max(5, activePlayers), "label", "触发剧情事件", "score_per_unit", 3),
-                            Map.of("type", "complete_stage", "target", 1, "label", "推进主线阶段", "score_per_unit", 10)),
+                            Map.of("type", "trigger_story", "target", Math.max(5, activePlayers), "label", "触发剧情事件", "score_per_unit", 3)),
                     Map.of("coins", 400, "storyFragments", 18),
                     Map.of("coins", 800, "storyFragments", 40),
                     Map.of("coins", 1500, "storyFragments", 30),
@@ -173,30 +191,6 @@ public class AiDirectorServiceImpl implements AiDirectorService {
                     "仅探索了 " + locationStats.size() + " 个地图，适合发布剧情狩猎任务");
         }
 
-        // Rule 6: Stage support — most players at same stage
-        String dominantStage = null;
-        int dominantCount = 0;
-        for (Map.Entry<String, Object> e : stageDist.entrySet()) {
-            int count = toInt(e.getValue(), 0);
-            if (count > dominantCount) {
-                dominantCount = count;
-                dominantStage = e.getKey();
-            }
-        }
-        if (dominantStage != null && dominantCount >= Math.max(2, totalPlayers * 0.5)) {
-            return buildEvent("stage_support",
-                    "星座祝福：前进之路",
-                    "星座们注意到大量化身正停留在同一阶段。为了缓解瓶颈，星之流启动了阶段突破支援。完成你的阶段目标、触发你的剧情事件——星座将额外奖赏那些勇敢推进的人。",
-                    90, Map.of("min_level", 1),
-                    List.of(
-                            Map.of("type", "trigger_story", "target", Math.max(5, activePlayers * 2), "label", "触发剧情事件", "score_per_unit", 3),
-                            Map.of("type", "complete_stage", "target", Math.max(1, (int) (activePlayers * 0.3)), "label", "推进主线阶段", "score_per_unit", 15)),
-                    Map.of("coins", 200, "storyFragments", 5),
-                    Map.of("coins", 500, "storyFragments", 35),
-                    Map.of("coins", 1000, "storyFragments", 55),
-                    dominantStage + " 阶段有 " + dominantCount + " 名玩家，适合阶段支援任务");
-        }
-
         // Rule 7: Default — opportunity rain
         return buildEvent("opportunity_rain",
                 "星流恩赐：机遇之雨",
@@ -217,26 +211,85 @@ public class AiDirectorServiceImpl implements AiDirectorService {
     private Map<String, Object> buildWorldState() {
         Map<String, Object> state = new LinkedHashMap<>();
         try {
-            var ws = worldlineService.getWorldlineSummary();
-            state.put("activePlayers", onlinePlayerService.getOnlineSummary().getOnlineCount());
-            state.put("averageLevel", 3); // placeholder, can be enhanced
-            state.put("totalBossKills", 0);
-            state.put("totalPlayers", 1);
-            state.put("averageWorldLineShift", ws.getWorldlineShift());
-            state.put("recentPkStats", Map.of("last24h", 0));
-            state.put("locationExplorationStats", List.of());
-            state.put("currentStageDistribution", Map.of());
+            long totalPlayers = playerMapper.selectCount(null);
+            int totalLevel = 0;
+            int playersWithLevel = 0;
+            for (String statsJson : playerMapper.selectStatsJsonForWorldAggregation()) {
+                try {
+                    int level = objectMapper.readTree(statsJson).path("level").asInt(0);
+                    if (level > 0) {
+                        totalLevel = Math.addExact(totalLevel, level);
+                        playersWithLevel++;
+                    }
+                } catch (Exception malformedStats) {
+                    log.debug("Skipping malformed player stats in aggregate");
+                }
+            }
+
+            QueryWrapper<WorldBoss> killedBosses = new QueryWrapper<>();
+            killedBosses.isNotNull("killed_at");
+            long totalBossKills = worldBossMapper.selectCount(killedBosses);
+
+            QueryWrapper<PkRecord> recentPk = new QueryWrapper<>();
+            recentPk.ge("created_at", LocalDateTime.now().minusHours(24));
+            long pkCount24h = pkRecordMapper.selectCount(recentPk);
+
+            state.put("activePlayers", Math.max(0, onlinePlayerService.getOnlineSummary().getOnlineCount()));
+            state.put("averageLevel", playersWithLevel == 0 ? 1 : Math.round((float) totalLevel / playersWithLevel));
+            state.put("totalPlayers", totalPlayers);
+            state.put("totalBossKills", totalBossKills);
+            state.put("worldlineShift", worldlineService.getWorldlineSummary().getWorldlineShift());
+            state.put("recentPkStats", Map.of("last24h", pkCount24h));
+            state.put("locationExplorationStats", getRecentExplorationLocationStats());
         } catch (Exception e) {
-            state.put("activePlayers", 1);
-            state.put("averageLevel", 1);
-            state.put("totalBossKills", 0);
-            state.put("totalPlayers", 1);
-            state.put("averageWorldLineShift", 0.0);
-            state.put("recentPkStats", Map.of("last24h", 0));
-            state.put("locationExplorationStats", List.of());
-            state.put("currentStageDistribution", Map.of());
+            log.warn("Could not build an authoritative public-world snapshot; skipping AI broadcast", e);
+            return null;
         }
         return state;
+    }
+
+    private List<Map<String, Object>> getRecentExplorationLocationStats() {
+        QueryWrapper<PlayerLog> query = new QueryWrapper<>();
+        query.in("type", List.of("exploration", "story"))
+                .ge("created_at", LocalDateTime.now().minusDays(RECENT_EXPLORATION_DAYS))
+                .orderByDesc("id")
+                .last("LIMIT " + RECENT_EXPLORATION_LOG_LIMIT);
+        List<PlayerLog> logs = playerLogMapper.selectList(query);
+        if (logs == null || logs.isEmpty()) return List.of();
+
+        Map<String, Integer> countByLocation = new HashMap<>();
+        for (PlayerLog logEntry : logs) {
+            try {
+                Map<String, Object> metadata = objectMapper.readValue(logEntry.getMetadataJson(),
+                        new TypeReference<LinkedHashMap<String, Object>>() {});
+                if (!"exploration_result".equals(metadata.get("kind"))) continue;
+                Object location = metadata.get("requestLocationKey");
+                if (location instanceof String locationKey && !locationKey.isBlank()) {
+                    countByLocation.merge(locationKey, 1, Integer::sum);
+                }
+            } catch (Exception malformedMetadata) {
+                // Legacy or non-exploration logs do not participate in the aggregate.
+            }
+        }
+
+        return countByLocation.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed()
+                        .thenComparing(Map.Entry::getKey))
+                .map(entry -> Map.<String, Object>of("location_key", entry.getKey(), "c", entry.getValue()))
+                .toList();
+    }
+
+    private Map<String, Object> buildWorldStateSnapshot(Map<String, Object> state) {
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("activePlayers", state.getOrDefault("activePlayers", 0));
+        snapshot.put("totalPlayers", state.getOrDefault("totalPlayers", 0));
+        snapshot.put("averageLevel", state.getOrDefault("averageLevel", 1));
+        snapshot.put("totalBossKills", state.getOrDefault("totalBossKills", 0));
+        snapshot.put("recentPkStats", state.getOrDefault("recentPkStats", Map.of()));
+        snapshot.put("locationExplorationStats", state.getOrDefault("locationExplorationStats", List.of()));
+        snapshot.put("worldlineShift", state.getOrDefault("worldlineShift", 0));
+        snapshot.put("timestamp", LocalDateTime.now().toString());
+        return snapshot;
     }
 
     // ─── LLM integration ───
@@ -250,10 +303,13 @@ public class AiDirectorServiceImpl implements AiDirectorService {
                 "1. eventType 必须在允许列表中\n" +
                 "2. durationMinutes 必须在 15-180 之间\n" +
                 "3. 每个 objective 必须有 type 和 label(中文描述)\n" +
+                "3a. objective.type 只能是 explore_location(完成探索)、trigger_story(触发个人故事事件)、kill_monster(战斗胜利击杀普通怪物)、defeat_boss(击破世界首领)、win_pk(PK胜利)；每种类型最多出现一次\n" +
+                "3b. target 表示该类有效行动次数；不要要求无法由这些行动推进的目标；score_per_unit 是该目标对参与者贡献分的权重\n" +
                 "4. 不允许包含外部网站链接\n" +
                 "5. 任务必须能被玩家参与和完成\n" +
                 "6. description 用中文，2000 字符以内\n" +
-                "7. reason 用中文解释为什么选择这个任务\n\n" +
+                "7. reason 用中文解释为什么选择这个任务\n" +
+                "8. 只能依据上面的公开聚合数据；不得推断或使用任何玩家的剧情选择、个人旗标、路线或私人阶段进度来改变公共事件\n\n" +
                 "## 输出格式\n请只输出以下 JSON，不要输出任何其他文字：\n\n" +
                 "{\n  \"eventType\": \"exploration_drive\",\n  \"title\": \"中文标题\",\n  \"description\": \"中文描述\",\n  \"durationMinutes\": 60,\n  \"objectives\": [{\"type\": \"explore_location\", \"target\": 50, \"label\": \"全服累计探索 50 次\", \"score_per_unit\": 1}],\n  \"rewards\": {\"participation\": {\"coins\": 200, \"storyFragments\": 5}, \"completion\": {\"coins\": 500, \"storyFragments\": 10}, \"ranking\": {\"coins\": 800, \"storyFragments\": 15}},\n  \"reason\": \"...\"\n}";
     }

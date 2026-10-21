@@ -38,6 +38,6 @@ public class WorldlineController {
     @GetMapping("/history")
     @Operation(summary = "获取世界线变更历史")
     public Result<List<Map<String, Object>>> getWorldlineHistory() {
-        return Result.ok(java.util.Collections.emptyList());
+        return Result.ok(worldlineService.getWorldlineHistory());
     }
 }

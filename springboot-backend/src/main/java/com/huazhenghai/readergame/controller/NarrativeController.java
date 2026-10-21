@@ -54,8 +54,10 @@ public class NarrativeController {
         String ghostKey = MapUtils.getStringRequired(body, "ghostKey");
         int nodeIndex = MapUtils.getIntOrDefault(body, "nodeIndex", 0);
         int choiceIndex = MapUtils.getIntOrDefault(body, "choiceIndex", 0);
+        String requestKey = MapUtils.getString(body, "requestKey");
 
-        Map<String, Object> result = narrativeService.processNpcGhostEncounter(playerId, ghostKey, nodeIndex, choiceIndex);
+        Map<String, Object> result = narrativeService.processNpcGhostEncounter(
+                playerId, ghostKey, nodeIndex, choiceIndex, requestKey);
         if (result.containsKey("error")) {
             return Result.fail("NARRATIVE_ERROR", String.valueOf(result.get("error")));
         }

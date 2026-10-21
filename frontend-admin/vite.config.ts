@@ -12,5 +12,13 @@ export default defineConfig({
   },
   server: {
     port: 3175,
+    // 允许樱花内网穿透(Sakura Frp)的域名访问，否则 Vite 会拦截 DNS 重绑定
+    allowedHosts: ['.nyat.app', '.natfrp.cloud', '.sakurafrp.com'],
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3174',
+        changeOrigin: true,
+      },
+    },
   },
 });

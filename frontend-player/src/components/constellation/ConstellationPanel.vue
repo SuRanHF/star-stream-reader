@@ -3,7 +3,6 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { http } from '@/api/http';
 import { useGameStore } from '@/stores/gameStore';
 import { useUiStore } from '@/stores/uiStore';
-import { playerApi } from '@/api/playerApi';
 import { gameApi } from '@/api/gameApi';
 
 const game = useGameStore();
@@ -109,10 +108,6 @@ async function changeConstellation(key: string) {
   }
 }
 
-const playerConst = computed(() => {
-  const s = game.player?.stats as Record<string, unknown> | undefined;
-  return String(s?.constellation || '');
-});
 </script>
 
 <template>
@@ -176,25 +171,25 @@ const playerConst = computed(() => {
   color: var(--color-muted);
   margin-bottom: 8px;
   padding-bottom: 6px;
-  border-bottom: 1px solid rgba(26, 38, 80, 0.4);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .csp-card {
   padding: 10px 12px;
   border-radius: 6px;
   border: 1px solid var(--color-border);
-  background: rgba(7, 11, 26, 0.4);
+  background: var(--color-card);
   margin-bottom: 6px;
   transition: all 0.2s;
 }
 
 .csp-card.is-active {
-  border-color: rgba(74, 143, 231, 0.25);
-  background: rgba(74, 143, 231, 0.04);
+  border-color: var(--color-star-border);
+  background: var(--color-star-bg);
 }
 
 .csp-card:hover {
-  border-color: rgba(74, 143, 231, 0.3);
+  border-color: var(--color-star-border);
 }
 
 .csp-card-top {
@@ -226,7 +221,7 @@ const playerConst = computed(() => {
 
 .csp-favor {
   font-size: 10px;
-  color: #e0556a;
+  color: var(--color-danger);
   letter-spacing: 1px;
   flex-shrink: 0;
 }
@@ -238,7 +233,7 @@ const playerConst = computed(() => {
 .csp-comment {
   margin: 6px 0 0;
   font-size: 11px;
-  color: #9088b8;
+  color: var(--color-text-dim);
   line-height: 1.5;
   font-style: italic;
   padding-left: 24px;
@@ -261,7 +256,7 @@ const playerConst = computed(() => {
   padding: 4px 12px;
   border: 1px solid var(--color-system);
   border-radius: 4px;
-  background: rgba(74, 143, 231, 0.08);
+  background: var(--color-system-bg);
   color: var(--color-system-bright);
   font-size: 11px;
   cursor: pointer;
@@ -269,7 +264,7 @@ const playerConst = computed(() => {
 }
 
 .csp-switch-btn:hover:not(:disabled) {
-  background: rgba(74, 143, 231, 0.18);
+  background: var(--color-system-glow);
   border-color: var(--color-system-bright);
 }
 

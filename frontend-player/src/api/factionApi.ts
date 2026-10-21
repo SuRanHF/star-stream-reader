@@ -20,9 +20,6 @@ export const factionApi = {
   leave(playerId: number) {
     return http.post<unknown, ApiRecord>('/factions/leave', { playerId });
   },
-  contribute(playerId: number, factionKey: string, contributionType: string, value: number) {
-    return http.post<unknown, ApiRecord>('/factions/contribute', { playerId, factionKey, contributionType, value });
-  },
   getFactionSkills(factionKey: string) {
     return http.get<unknown, ApiRecord[]>(`/factions/${factionKey}/skills`);
   },

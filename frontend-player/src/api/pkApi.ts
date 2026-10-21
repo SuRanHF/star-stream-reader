@@ -1,5 +1,6 @@
 import { http } from './http';
 import type { ApiRecord } from '@/types/api';
+import { withStableActionRequest } from '@/utils/stableActionRequest';
 
 export const pkApi = {
   getOpponents(playerId: number) {
@@ -12,6 +13,9 @@ export const pkApi = {
     return http.post<unknown, ApiRecord>('/pk/challenge', { attackerId, defenderId, mode });
   },
   resolve(challengeId: number, accept: boolean, playerId: number) {
-    return http.post<unknown, ApiRecord>('/pk/challenge/resolve', { challengeId, accept, playerId });
+    return withStableActionRequest(`pk:resolve:${challengeId}:${playerId}`, (requestKey) =>
+      http.post<unknown, ApiRecord>('/pk/challenge/resolve', {
+        challengeId, accept, playerId, requestKey,
+      }));
   },
 };

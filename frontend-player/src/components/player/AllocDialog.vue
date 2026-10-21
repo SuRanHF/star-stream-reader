@@ -109,7 +109,7 @@ const STAT_LABELS: Record<string, string> = {
   atk: '攻击',
   def: '防御',
   spd: '速度',
-  crit: '暴击',
+  crit: '暴击率',
 };
 
 const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
@@ -178,7 +178,7 @@ const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background: rgba(4, 8, 18, 0.7);
+  background: var(--color-overlay);
   backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
@@ -190,13 +190,13 @@ const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
   to { opacity: 1; }
 }
 .ap-card {
-  background: linear-gradient(180deg, rgba(13, 20, 48, 0.97), rgba(7, 11, 26, 0.98));
+  background: linear-gradient(180deg, var(--color-panel-elevated), var(--color-void));
   border: 1px solid var(--color-system-border);
   border-radius: var(--radius-lg);
   padding: 28px 32px;
   min-width: 340px;
   max-width: 400px;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(74, 143, 231, 0.06);
+  box-shadow: var(--shadow-float), 0 0 0 1px var(--color-star-glow);
   animation: apSlideIn 0.3s var(--ease-out-expo);
 }
 @keyframes apSlideIn {
@@ -208,14 +208,14 @@ const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
   font-size: 17px;
   font-weight: 700;
   margin: 0 0 16px;
-  text-shadow: 0 0 8px rgba(74, 143, 231, 0.2);
+  text-shadow: var(--glow-star);
 }
 .ap-free-points {
   font-size: 13px;
   color: var(--color-text-dim);
   margin-bottom: 16px;
   padding: 10px 14px;
-  background: rgba(7, 11, 26, 0.4);
+  background: var(--color-log);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
 }
@@ -235,7 +235,7 @@ const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
 }
 .ap-stat-label {
   font-size: 13px;
-  color: #b0bcc8;
+  color: var(--color-text-dim);
   min-width: 40px;
 }
 .ap-stepper {
@@ -250,15 +250,15 @@ const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
   width: 34px;
   height: 34px;
   border: none;
-  background: rgba(13, 20, 48, 0.7);
-  color: #a0b0c8;
+  background: var(--color-control);
+  color: var(--color-text);
   font-size: 18px;
   cursor: pointer;
   transition: background 0.15s;
   flex-shrink: 0;
 }
 .ap-step-btn:hover:not(:disabled) {
-  background: rgba(26, 38, 80, 0.6);
+  background: var(--color-star-glow);
 }
 .ap-step-btn:disabled {
   opacity: 0.3;
@@ -270,8 +270,8 @@ const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
   text-align: center;
   font-size: 15px;
   font-weight: 700;
-  color: #d0d8f0;
-  background: rgba(7, 11, 26, 0.6);
+  color: var(--color-text-dim);
+  background: var(--color-log);
   border: none;
   border-left: 1px solid var(--color-border);
   border-right: 1px solid var(--color-border);
@@ -286,7 +286,7 @@ const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
 }
 .ap-input:disabled { opacity: 0.5; }
 .ap-input:focus {
-  background: rgba(13, 20, 48, 0.8);
+  background: var(--color-control);
   box-shadow: inset 0 0 0 1px var(--color-system);
 }
 
@@ -304,7 +304,7 @@ const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
   padding: 0 10px;
   border: 1px solid var(--color-border);
   border-radius: 5px;
-  background: rgba(13, 20, 48, 0.6);
+  background: var(--color-control);
   color: var(--color-text-dim);
   font-size: 11px;
   cursor: pointer;
@@ -312,7 +312,7 @@ const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
   margin-left: auto;
 }
 .ap-reset-btn:hover:not(:disabled) {
-  background: rgba(26, 38, 80, 0.5);
+  background: var(--color-star-glow);
   border-color: var(--color-border-bright);
 }
 .ap-reset-btn:disabled {
@@ -334,20 +334,20 @@ const statKeys = ['atk', 'def', 'spd', 'crit'] as const;
   transition: all 0.15s;
 }
 .ap-btn-cancel {
-  background: rgba(26, 38, 80, 0.4);
+  background: var(--color-control);
   color: var(--color-text-dim);
 }
 .ap-btn-cancel:hover:not(:disabled) {
-  background: rgba(26, 38, 80, 0.6);
+  background: var(--color-star-glow);
 }
 .ap-btn-ok {
-  background: rgba(74, 143, 231, 0.12);
+  background: var(--color-system-bg);
   border: 1px solid var(--color-system-border);
   color: var(--color-system-bright);
   font-weight: 600;
 }
 .ap-btn-ok:hover:not(:disabled) {
-  background: rgba(74, 143, 231, 0.22);
+  background: var(--color-system-glow);
   border-color: var(--color-system);
   box-shadow: var(--glow-system);
 }

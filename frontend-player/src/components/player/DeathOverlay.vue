@@ -83,7 +83,7 @@ async function revive() {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: rgba(0, 0, 0, 0.9);
+  background: var(--color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -94,16 +94,16 @@ async function revive() {
   to { opacity: 1; }
 }
 .do-card {
-  background: #0a0f1f;
-  border: 1px solid #2a1f3d;
-  border-radius: 16px;
+  background: linear-gradient(180deg, var(--color-panel-elevated), var(--color-void));
+  border: 1px solid var(--color-danger-glow);
+  border-radius: var(--radius-lg);
   padding: 36px 40px;
   text-align: center;
   max-width: 480px;
   width: calc(100% - 40px);
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 0 80px rgba(139, 92, 246, 0.12), 0 0 200px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-float), var(--glow-danger);
   animation: doSlideIn 0.5s ease;
 }
 @keyframes doSlideIn {
@@ -116,7 +116,7 @@ async function revive() {
   filter: grayscale(0.3);
 }
 .do-title {
-  color: #c4b5fd;
+  color: var(--color-danger-bright);
   font-size: 22px;
   font-weight: 800;
   margin: 0 0 20px;
@@ -128,7 +128,7 @@ async function revive() {
   margin-bottom: 20px;
 }
 .do-narrative p {
-  color: #94a3b8;
+  color: var(--color-text-dim);
   font-size: 13px;
   line-height: 2;
   margin: 0 0 10px;
@@ -137,18 +137,18 @@ async function revive() {
   margin-bottom: 0;
 }
 .do-quote {
-  color: #a78bfa !important;
+  color: var(--color-danger-bright) !important;
   padding-left: 12px;
-  border-left: 2px solid #4c1d95;
+  border-left: 2px solid var(--color-danger);
   font-style: italic;
 }
-.gold { color: var(--color-star, #6aafff); }
-.red { color: #ef4444; }
+.gold { color: var(--color-star); }
+.red { color: var(--color-danger); }
 
 .do-cost-box {
-  background: rgba(15, 13, 20, 0.6);
-  border: 1px solid #1e1430;
-  border-radius: 10px;
+  background: var(--color-log);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   padding: 14px 18px;
   margin-bottom: 20px;
 }
@@ -158,14 +158,14 @@ async function revive() {
   align-items: center;
   padding: 6px 0;
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--color-text-dim);
 }
 .do-cost-row + .do-cost-row {
   border-top: 1px solid rgba(255,255,255,0.04);
 }
 
 .do-error {
-  color: #ef4444;
+  color: var(--color-danger);
   font-size: 13px;
   margin: 0 0 12px;
 }
@@ -173,10 +173,10 @@ async function revive() {
 .do-revive-btn {
   width: 100%;
   padding: 14px 0;
-  border: 1px solid #4c1d95;
-  border-radius: 10px;
-  background: rgba(139, 92, 246, 0.1);
-  color: #c4b5fd;
+  border: 1px solid var(--color-danger-border, var(--color-danger-glow));
+  border-radius: var(--radius-md);
+  background: var(--color-danger-glow);
+  color: var(--color-danger-bright);
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;
@@ -185,9 +185,9 @@ async function revive() {
   letter-spacing: 0.03em;
 }
 .do-revive-btn:hover:not(:disabled) {
-  background: rgba(139, 92, 246, 0.22);
-  color: #ddd6fe;
-  border-color: #7c3aed;
+  background: rgba(var(--color-danger-rgb), 0.22);
+  color: var(--color-text-bright);
+  border-color: var(--color-danger);
 }
 .do-revive-btn:disabled {
   opacity: 0.35;
@@ -195,7 +195,7 @@ async function revive() {
 }
 
 .do-hint {
-  color: #6b7280;
+  color: var(--color-muted);
   font-size: 12px;
   line-height: 1.6;
   margin: 0;

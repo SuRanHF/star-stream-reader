@@ -4,6 +4,17 @@ import type { ApiResponse } from '@/types/api';
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || '/api';
 
+export class ApiHttpError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code?: string,
+  ) {
+    super(message);
+    this.name = 'ApiHttpError';
+  }
+}
+
 export const http = axios.create({
   baseURL,
   timeout: 15000,
@@ -38,6 +49,13 @@ http.interceptors.response.use(
       }
     }
     const message = error.response?.data?.error?.message || error.message || '网络请求失败';
+    if (error.response) {
+      return Promise.reject(new ApiHttpError(
+        message,
+        error.response.status,
+        error.response.data?.error?.code,
+      ));
+    }
     return Promise.reject(new Error(message));
   },
 );

@@ -7,6 +7,7 @@ export interface LogEntry {
   type?: string;
   createdAt?: string;
   timestamp?: string;
+  metadata?: Record<string, unknown>;
   [key: string]: unknown;
 }
 

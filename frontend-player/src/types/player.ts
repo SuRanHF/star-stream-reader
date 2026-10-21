@@ -25,6 +25,9 @@ export interface Player {
   coins?: number;
   storyFragments?: number;
   story_fragments?: number;
+  titles?: unknown[];
+  stageProgress?: Record<string, unknown>;
+  stage_progress?: Record<string, unknown>;
   stats?: PlayerStats;
   statsJson?: PlayerStats;
   [key: string]: unknown;

@@ -1,6 +1,7 @@
 import { http } from './http';
 import type { ApiRecord } from '@/types/api';
 import type { Player } from '@/types/player';
+import { withStableActionRequest } from '@/utils/stableActionRequest';
 
 export const playerApi = {
   createPlayer(payload: { playerName: string }) {
@@ -25,10 +26,12 @@ export const playerApi = {
     return http.get<unknown, ApiRecord[]>('/player/dead-list');
   },
   revive(playerId: number, method = 'coins') {
-    return http.post<unknown, ApiRecord>('/player/revive', { playerId, method });
+    return withStableActionRequest(`player:revive:${playerId}:${method}`, (requestKey) =>
+      http.post<unknown, ApiRecord>('/player/revive', { playerId, method, requestKey }));
   },
   peerRevive(reviverId: number, targetId: number, method = 'coins') {
-    return http.post<unknown, ApiRecord>('/player/peer-revive', { reviverId, targetId, method });
+    return withStableActionRequest(`player:peer-revive:${reviverId}:${targetId}:${method}`, (requestKey) =>
+      http.post<unknown, ApiRecord>('/player/peer-revive', { reviverId, targetId, method, requestKey }));
   },
   getConstellations() {
     return http.get<unknown, ApiRecord>('/player/constellations');
@@ -40,9 +43,15 @@ export const playerApi = {
     return http.post<unknown, ApiRecord>('/player/change-constellation', { playerId, constellationKey });
   },
   allocatePoints(playerId: number, atk: number, def: number, spd: number, crit: number) {
-    return http.post<unknown, Player>('/player/allocate-points', { playerId, atk, def, spd, crit });
+    return withStableActionRequest(
+      `player:allocate-points:${playerId}:${atk}:${def}:${spd}:${crit}`,
+      (requestKey) => http.post<unknown, Player>(
+        '/player/allocate-points', { playerId, atk, def, spd, crit, requestKey },
+      ),
+    );
   },
   resetAllocation(playerId: number) {
-    return http.post<unknown, Player>('/player/reset-allocation', { playerId });
+    return withStableActionRequest(`player:reset-allocation:${playerId}`, (requestKey) =>
+      http.post<unknown, Player>('/player/reset-allocation', { playerId, requestKey }));
   },
 };

@@ -13,7 +13,13 @@ import com.huazhenghai.readergame.mapper.LocationMapper;
 import com.huazhenghai.readergame.mapper.PlayerLogMapper;
 import com.huazhenghai.readergame.mapper.PlayerMapper;
 import com.huazhenghai.readergame.service.PlayerService;
+import com.huazhenghai.readergame.service.PlayerLogService;
+import com.huazhenghai.readergame.service.PlayerMaxHpProjectionService;
+import com.huazhenghai.readergame.service.PlayerCombatStatsProjection;
+import com.huazhenghai.readergame.service.CombatService;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -27,17 +33,28 @@ import java.util.*;
 @Service
 public class PlayerServiceImpl implements PlayerService {
 
+    private static final Logger log = LoggerFactory.getLogger(PlayerServiceImpl.class);
+
     private final PlayerMapper playerMapper;
     private final PlayerLogMapper playerLogMapper;
+    private final PlayerLogService playerLogService;
+    private final PlayerMaxHpProjectionService maxHpProjectionService;
+    private final CombatService combatService;
     private final LocationMapper locationMapper;
     private final ObjectMapper objectMapper;
 
     public PlayerServiceImpl(PlayerMapper playerMapper,
                              PlayerLogMapper playerLogMapper,
+                             PlayerLogService playerLogService,
+                             PlayerMaxHpProjectionService maxHpProjectionService,
+                             CombatService combatService,
                              LocationMapper locationMapper,
                              ObjectMapper objectMapper) {
         this.playerMapper = playerMapper;
         this.playerLogMapper = playerLogMapper;
+        this.playerLogService = playerLogService;
+        this.maxHpProjectionService = maxHpProjectionService;
+        this.combatService = combatService;
         this.locationMapper = locationMapper;
         this.objectMapper = objectMapper;
     }
@@ -46,7 +63,7 @@ public class PlayerServiceImpl implements PlayerService {
 
     private static final String DEFAULT_STATS_JSON =
         "{" +
-        "\"level\":1,\"exp\":0,\"maxExp\":100,\"hp\":100,\"maxHp\":100," +
+        "\"level\":1,\"exp\":0,\"maxExp\":100,\"hp\":100,\"maxHp\":100,\"maxHpConstellationBonus\":0," +
         "\"attack\":10,\"defense\":5,\"speed\":3," +
         "\"critRate\":0.0,\"critDamage\":1.5," +
         "\"stamina\":50,\"maxStamina\":50," +
@@ -263,13 +280,22 @@ public class PlayerServiceImpl implements PlayerService {
         stats.put("attack", 10 + allocAtk + constAtk);
         stats.put("defense", 5 + allocDef + constDef);
         stats.put("speed", 3 + allocSpd + constSpd);
-        stats.put("maxHp", 100 + constMaxHp);
+        stats.put("maxHp", maxHpProjectionService.projectForRead(stats));
         stats.put("critRate", allocCrit * 0.02 + constCrit);
 
         // 上限校验: 当前 HP 不能超过 maxHp
-        int calcMaxHp = 100 + constMaxHp;
+        int calcMaxHp = toInt(stats.get("maxHp"), 100);
         if (stats.get("hp") instanceof Number hpNum && hpNum.intValue() > calcMaxHp) {
             stats.put("hp", calcMaxHp);
+        }
+
+        try {
+            PlayerCombatStatsProjection.apply(stats, combatService.calculateCombatPower(player.getId()));
+        } catch (Exception exception) {
+            log.warn("Player combat stat projection failed for player {}; returning the legacy non-combat view",
+                    player.getId(), exception);
+            stats.put("combatProjection", false);
+            stats.remove("combatBonusSources");
         }
 
         String currentLocationKey = player.getCurrentLocation();
@@ -312,24 +338,7 @@ public class PlayerServiceImpl implements PlayerService {
      * 获取玩家最近的 N 条日志.
      */
     private List<LogEntry> getRecentLogs(Long playerId, int limit) {
-        QueryWrapper<PlayerLog> query = new QueryWrapper<>();
-        query.eq("player_id", playerId)
-             .orderByDesc("created_at")
-             .last("LIMIT " + limit);
-        List<PlayerLog> logs = playerLogMapper.selectList(query);
-
-        List<LogEntry> result = new ArrayList<>();
-        for (PlayerLog log : logs) {
-            result.add(new LogEntry(
-                    log.getId(),
-                    log.getMessage(),
-                    log.getType(),
-                    log.getCreatedAt()
-            ));
-        }
-        // 按时间正序返回
-        Collections.reverse(result);
-        return result;
+        return playerLogService.getRecentLogs(playerId, limit);
     }
 
     /**

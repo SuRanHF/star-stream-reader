@@ -1,18 +1,14 @@
 -- ============================================================
 -- 全量编码修复脚本
--- 修复 equipment, quests, skills, player_logs 中的乱码
+-- 修复 equipment, quests, skills 中的乱码
 -- 使用 Python + pymysql 执行，确保 UTF-8 编码正确
+-- 仅更新静态定义；不删除玩家装备、任务进度、技能记录或历程日志。
 -- ============================================================
 
 -- ============================================================
 -- Phase 1: 修复 equipment 表
--- 删除乱码行后重新插入正确数据 (来源 seed_equipment.sql)
+-- 按 equipment_key 修复名称/描述，保留引用记录及现有数值、掉落平衡和启用状态。
 -- ============================================================
-DELETE FROM `player_equipment` WHERE `equipment_key` IN
-  ('broken_pipe', 'station_guard_coat', 'cracked_watcher_badge', 'reader_scrap_blade', 'abyss_touched_relic');
-DELETE FROM `equipment` WHERE `equipment_key` IN
-  ('broken_pipe', 'station_guard_coat', 'cracked_watcher_badge', 'reader_scrap_blade', 'abyss_touched_relic');
-
 INSERT INTO `equipment` (`equipment_key`, `name`, `slot`, `rarity`, `description`, `base_stats_json`, `special_effects_json`, `max_durability`, `repair_cost`, `sell_price`, `enabled`)
 VALUES
 
@@ -49,16 +45,15 @@ VALUES
  '世界线偏移后残留的异常遗物。',
  '{"worldLineShift":2,"willpower":2}',
  '{"narrativePressureBonus":0.02}',
- 100, 40, 60, 1);
+ 100, 40, 60, 1)
+ON DUPLICATE KEY UPDATE
+  `name` = VALUES(`name`),
+  `description` = VALUES(`description`);
 
 -- ============================================================
 -- Phase 2: 修复 quests 表
--- 删除乱码行后重新插入正确数据 (来源 init.sql)
+-- 按 quest_key 修复显示文本；保留所有玩家任务实例、进度日志及现行任务目标/奖励配置。
 -- ============================================================
-DELETE FROM `player_quests`;
-DELETE FROM `quest_progress_logs`;
-DELETE FROM `quests`;
-
 INSERT INTO `quests` (`quest_key`, `title`, `description`, `quest_type`, `category`, `target_type`, `target_value`, `rewards_json`, `reset_cycle`, `sort_order`) VALUES
 ('daily_explore_3',    '探索世界',     '进行3次探索',           'daily',  'explore',    'explore_count',          3,  '{"coins":50,"exp":20}',                'daily',  1),
 ('daily_combat_3',     '战斗修行',     '赢得3场战斗',           'daily',  'combat',     'combat_win_count',        3,  '{"coins":60,"exp":25}',                'daily',  2),
@@ -66,16 +61,21 @@ INSERT INTO `quests` (`quest_key`, `title`, `description`, `quest_type`, `catego
 ('weekly_pk_5',        '擂台争霸',     '参与5次PK',             'weekly', 'pk',         'pk_participate_count',    5,  '{"coins":200,"exp":80,"storyFragments":3}',  'weekly', 1),
 ('weekly_boss_3',      '世界Boss挑战', '参与3次世界Boss攻击',   'weekly', 'world_boss', 'world_boss_attack_count', 3,  '{"coins":250,"exp":100,"storyFragments":5}', 'weekly', 2),
 ('achv_level_5',       '初露锋芒',     '达到5级',               'achievement', 'growth', 'level_reach',         5,  '{"coins":500,"exp":150,"titleKey":"growth_novice"}',        'none',   1),
-('achv_rank_C',        '位阶晋升',     '达到Avatar Rank C',     'achievement', 'growth', 'avatar_rank_reach',   1,  '{"coins":1000,"exp":300,"storyFragments":10}',              'none',   2);
+('achv_rank_C',        '位阶晋升',     '达到Avatar Rank C',     'achievement', 'growth', 'avatar_rank_reach',   1,  '{"coins":1000,"exp":300,"storyFragments":10}',              'none',   2),
+('daily_trade_sell_1', '交易周转',     '成功出售1件物品或装备', 'daily', 'trade', 'trade_sell_count', 1,
+ '{"coins":30,"exp":10}', 'daily', 4),
+('weekly_pk_win_3',    '擂台胜者',     '赢得3场玩家对战',       'weekly', 'pk', 'pk_win_count', 3,
+ '{"coins":120,"exp":50,"storyFragments":2}', 'weekly', 3),
+('achv_faction_contribution_50', '阵营功勋', '累计向所属阵营贡献50点', 'achievement', 'faction',
+ 'faction_contribution_value', 50, '{"coins":200,"exp":80,"storyFragments":3}', 'none', 3)
+ON DUPLICATE KEY UPDATE
+  `title` = VALUES(`title`),
+  `description` = VALUES(`description`);
 
 -- ============================================================
 -- Phase 3: 修复 skills 表
--- 删除乱码行后重新插入正确数据 (来源 seed_skills.sql)
+-- 按 skill_key 修复显示文本；保留玩家已学技能及现行技能效果、成本和启用状态。
 -- ============================================================
-DELETE FROM `player_skills` WHERE `skill_key` IN
-  ('steady_breath', 'emergency_focus', 'reader_observation', 'iron_resolve', 'station_survival', 'narrative_pressure_seed');
-DELETE FROM `skills`;
-
 INSERT INTO `skills` (`skill_key`, `name`, `type`, `rarity`, `description`, `unlock_conditions_json`, `effects_json`, `cost_json`, `cooldown_seconds`, `enabled`) VALUES
 
 ('steady_breath', '稳定呼吸', 'passive', 'common',
@@ -118,14 +118,16 @@ INSERT INTO `skills` (`skill_key`, `name`, `type`, `rarity`, `description`, `unl
  '{"avatarRankMin": "D", "channelHeatMin": 100}',
  '{"narrativePressureBonus": 0.03, "worldLineShift": 1}',
  '{"coins": 300, "storyFragments": 15}',
- 0, 1);
+ 0, 1)
+ON DUPLICATE KEY UPDATE
+  `name` = VALUES(`name`),
+  `description` = VALUES(`description`);
 
 -- ============================================================
--- Phase 4: 清理 player_logs 中的乱码记录
--- 删除 message 中包含明显乱码特征的记录
--- 乱码特征: 非 UTF-8 连续字节序列
+-- Phase 4: player_logs 安全边界
+-- 不按固定数据库自增 ID 删除日志。ID 会因数据库不同而指向不同玩家历程；
+-- 需要人工先查询确认具体乱码内容，再使用单独审核过的修复操作。
 -- ============================================================
-DELETE FROM `player_logs` WHERE id IN (12, 13, 14, 16, 38, 40, 52, 73, 76, 77, 78, 79, 80);
 
 -- ============================================================
 -- Phase 5: 修复 locations 中 broken_market 与 broken_mall 重名问题

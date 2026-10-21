@@ -5,10 +5,15 @@ import com.huazhenghai.readergame.common.BusinessException;
 import com.huazhenghai.readergame.common.ErrorCode;
 import com.huazhenghai.readergame.common.MapUtils;
 import com.huazhenghai.readergame.common.Result;
+import com.huazhenghai.readergame.common.ResourceBalance;
 import com.huazhenghai.readergame.dto.CreatePlayerRequest;
+import com.huazhenghai.readergame.dto.ResetAllocationRequest;
+import com.huazhenghai.readergame.dto.ReviveRequest;
+import com.huazhenghai.readergame.dto.PeerReviveRequest;
 import com.huazhenghai.readergame.dto.RestRequest;
 import com.huazhenghai.readergame.vo.PlayerVO;
 import com.huazhenghai.readergame.vo.RestStateVO;
+import com.huazhenghai.readergame.vo.PkChallengeVO;
 import com.huazhenghai.readergame.entity.Location;
 import com.huazhenghai.readergame.entity.Player;
 import com.huazhenghai.readergame.entity.PlayerFaction;
@@ -19,16 +24,28 @@ import com.huazhenghai.readergame.mapper.PlayerMapper;
 import com.huazhenghai.readergame.security.LoginUser;
 import com.huazhenghai.readergame.security.LoginUserContext;
 import com.huazhenghai.readergame.service.PlayerService;
+import com.huazhenghai.readergame.service.PlayerLogService;
+import com.huazhenghai.readergame.service.PlayerMaxHpProjectionService;
 import com.huazhenghai.readergame.service.RecoveryService;
+import com.huazhenghai.readergame.service.PkService;
+import com.huazhenghai.readergame.service.PlayerActionReceiptService;
+import com.huazhenghai.readergame.service.PlayerResourceTransactionService;
+import com.huazhenghai.readergame.service.PlayerStaminaProjectionService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 
 /**
  * 玩家控制器.
@@ -44,26 +61,44 @@ public class PlayerController {
 
     private final PlayerService playerService;
     private final RecoveryService recoveryService;
+    private final PlayerMaxHpProjectionService maxHpProjectionService;
     private final PlayerMapper playerMapper;
     private final PlayerFactionMapper playerFactionMapper;
     private final ConstellationFactionMapper constellationFactionMapper;
     private final LocationMapper locationMapper;
     private final ObjectMapper objectMapper;
+    private final PkService pkService;
+    private final PlayerLogService playerLogService;
+    private final PlayerActionReceiptService actionReceiptService;
+    private final PlayerResourceTransactionService resourceTransactionService;
+    private final PlayerStaminaProjectionService staminaProjectionService;
 
     public PlayerController(PlayerService playerService,
                             RecoveryService recoveryService,
+                            PlayerMaxHpProjectionService maxHpProjectionService,
                             PlayerMapper playerMapper,
                             PlayerFactionMapper playerFactionMapper,
                             ConstellationFactionMapper constellationFactionMapper,
                             LocationMapper locationMapper,
-                            ObjectMapper objectMapper) {
+                            ObjectMapper objectMapper,
+                            PkService pkService,
+                            PlayerLogService playerLogService,
+                            PlayerActionReceiptService actionReceiptService,
+                            PlayerResourceTransactionService resourceTransactionService,
+                            PlayerStaminaProjectionService staminaProjectionService) {
         this.playerService = playerService;
         this.recoveryService = recoveryService;
+        this.maxHpProjectionService = maxHpProjectionService;
         this.playerMapper = playerMapper;
         this.playerFactionMapper = playerFactionMapper;
         this.constellationFactionMapper = constellationFactionMapper;
         this.locationMapper = locationMapper;
         this.objectMapper = objectMapper;
+        this.pkService = pkService;
+        this.playerLogService = playerLogService;
+        this.actionReceiptService = actionReceiptService;
+        this.resourceTransactionService = resourceTransactionService;
+        this.staminaProjectionService = staminaProjectionService;
     }
 
     /**
@@ -92,6 +127,7 @@ public class PlayerController {
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "尚未创建角色");
         }
         PlayerVO vo = playerService.getPlayer(player.getId());
+        applyEffectiveMaxStamina(vo, player.getId());
         return Result.ok(vo);
     }
 
@@ -117,6 +153,7 @@ public class PlayerController {
         }
 
         PlayerVO vo = playerService.getPlayer(playerId);
+        applyEffectiveMaxStamina(vo, playerId);
         return Result.ok(vo);
     }
 
@@ -158,7 +195,8 @@ public class PlayerController {
         vo.setHp(toInt(stats.get("hp"), 100));
         vo.setMaxHp(toInt(stats.get("maxHp"), 100));
         vo.setStamina(toInt(stats.get("stamina"), 50));
-        vo.setMaxStamina(toInt(stats.get("maxStamina"), 50));
+        vo.setMaxStamina(staminaProjectionService.projectMaxStamina(
+                playerId, toInt(stats.get("maxStamina"), 50)));
         Object lastRecoveryAt = stats.get("lastRecoveryAt");
         vo.setLastRecoveryAt(lastRecoveryAt != null ? lastRecoveryAt.toString() : null);
         vo.setHpIntervalSeconds(toInt(stats.get("hpIntervalSeconds"), 1));
@@ -174,6 +212,24 @@ public class PlayerController {
     private int toInt(Object val, int defaultVal) {
         if (val instanceof Number) return ((Number) val).intValue();
         return defaultVal;
+    }
+
+    private void applyEffectiveMaxStamina(PlayerVO playerVO, Long playerId) {
+        if (playerVO == null || playerVO.getStats() == null) return;
+        Map<String, Object> stats = new LinkedHashMap<>(playerVO.getStats());
+        int storedMax = toInt(stats.get("maxStamina"), 50);
+        stats.put("maxStamina", staminaProjectionService.projectMaxStamina(playerId, storedMax));
+        playerVO.setStats(stats);
+    }
+
+    private int readExactIntOrDefault(Map<String, Object> body, String key) {
+        Object value = body.get(key);
+        if (value == null) return 0;
+        try {
+            return new BigDecimal(String.valueOf(value)).intValueExact();
+        } catch (NumberFormatException | ArithmeticException exception) {
+            throw new BusinessException(ErrorCode.INVALID_FORMAT, key + " 必须是 32 位整数");
+        }
     }
 
     /** 修复异常属性到基准值 (防负数/坏数据) */
@@ -317,6 +373,7 @@ public class PlayerController {
         }
         stats.put("constellation", constellationKey);
         stats.put("constellationFavor", 100);
+        maxHpProjectionService.normalizeForPersistence(stats);
         try {
             player.setStatsJson(objectMapper.writeValueAsString(stats));
         } catch (Exception e) {
@@ -341,11 +398,12 @@ public class PlayerController {
 
     @PostMapping("/change-constellation")
     @Operation(summary = "更换背后星（消耗故事碎片）")
+    @Transactional
     public Result<Map<String, Object>> changeConstellation(@RequestBody Map<String, Object> body) {
         Long playerId = MapUtils.getLong(body, "playerId");
         String newConstellationKey = MapUtils.getStringRequired(body, "constellationKey");
         Long userId = LoginUserContext.get().getUserId();
-        Player player = playerMapper.selectById(playerId);
+        Player player = playerMapper.selectByIdForUpdate(playerId);
         if (player == null) {
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "玩家不存在");
         }
@@ -366,20 +424,50 @@ public class PlayerController {
         int storyFragments = player.getStoryFragments() != null ? player.getStoryFragments() : 0;
         int cost = 200;
         if (storyFragments < cost) {
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_ENOUGH, "故事碎片不足，更换背后星需要 " + cost + " 碎片（当前: " + storyFragments + "）");
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_ENOUGH,
+                    "故事碎片不足，更换背后星需要 " + cost + " 故事碎片（当前: " + storyFragments + "）");
         }
         int currentFavor = stats.get("constellationFavor") instanceof Number
                 ? ((Number) stats.get("constellationFavor")).intValue() : 0;
         int newFavor = Math.max(50, currentFavor / 2);
-        player.setStoryFragments(storyFragments - cost);
+        Map<String, Object> logMetadata = new LinkedHashMap<>();
+        logMetadata.put("fromConstellation", currentConstellation);
+        logMetadata.put("toConstellation", newConstellationKey);
+        logMetadata.put("resource", "storyFragments");
+        logMetadata.put("cost", cost);
+        logMetadata.put("favorBefore", currentFavor);
+        logMetadata.put("favorAfter", newFavor);
+        int storyFragmentsAfter = ResourceBalance.applyDelta("故事碎片", storyFragments, -cost);
+        player.setStoryFragments(storyFragmentsAfter);
+        maxHpProjectionService.normalizeForPersistence(stats);
         stats.put("constellation", newConstellationKey);
         stats.put("constellationFavor", newFavor);
+        maxHpProjectionService.normalizeForPersistence(stats);
         try {
             player.setStatsJson(objectMapper.writeValueAsString(stats));
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.SERVER_ERROR, "更新星座失败");
         }
-        playerMapper.updateById(player);
+        if (playerMapper.updateById(player) <= 0)
+            throw new IllegalStateException("保存背后星更换和故事碎片扣除失败");
+
+        logMetadata.put("storyFragmentsBefore", storyFragments);
+        logMetadata.put("storyFragmentsAfter", storyFragmentsAfter);
+        String transactionGroupId = "constellation-change:" + playerId + ":" + UUID.randomUUID();
+        boolean ledgerInserted = resourceTransactionService.record(
+                new PlayerResourceTransactionService.Change(
+                        playerId, "currency", "story_fragments", -cost,
+                        storyFragments, storyFragmentsAfter, "constellation_change",
+                        newConstellationKey, transactionGroupId,
+                        transactionGroupId + ":story_fragments", logMetadata));
+        if (!ledgerInserted) throw new IllegalStateException("背后星更换故事碎片流水写入失败");
+
+        Map<String, Object> previousConstellation = buildConstellationResult(currentConstellation);
+        Map<String, Object> nextConstellation = buildConstellationResult(newConstellationKey);
+        String logMessage = "更换背后星「" + previousConstellation.get("name") + "」→「"
+                + nextConstellation.get("name") + "」，消耗 " + cost + " 故事碎片，好感度 "
+                + currentFavor + "→" + newFavor;
+        playerLogService.addLog(playerId, "constellation_change", logMessage, logMetadata);
 
         // Switch faction to new constellation
         String nebulaKey = getNebulaKey(newConstellationKey);
@@ -539,27 +627,43 @@ public class PlayerController {
 
     @PostMapping("/revive")
     @Operation(summary = "自我复活")
-    public Result<Map<String, Object>> revivePlayer(@RequestBody Map<String, Object> body) {
-        Long playerId = MapUtils.getLong(body, "playerId");
+    @Transactional
+    public Result<Map<String, Object>> revivePlayer(@Valid @RequestBody ReviveRequest request) {
+        Long playerId = request.getPlayerId();
         Long userId = LoginUserContext.get().getUserId();
-        validatePlayerOwnership(playerId, userId);
-        String method = MapUtils.getString(body, "method");
-        if (method == null) method = "coins";
-        Player player = playerMapper.selectById(playerId);
+        Player player = playerMapper.selectByIdForUpdate(playerId);
         if (player == null) throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "玩家不存在");
+        if (!Objects.equals(player.getUserId(), userId))
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此玩家");
+
+        String method = request.getMethod();
+        if (method == null) method = "coins";
+        if (!"coins".equals(method) && !"title".equals(method))
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "复活方式不合法");
+
+        String requestKey = request.getRequestKey();
+        Map<String, Object> requestPayload = Map.of("playerId", playerId, "method", method);
+        Map<String, Object> replay = actionReceiptService.findReplay(
+                playerId, "player.revive", requestKey, requestPayload, Map.class);
+        if (replay != null) return Result.ok(replay);
 
         Map<String, Object> stats = parseJsonMap(player.getStatsJson());
         if (!Boolean.TRUE.equals(stats.get("isDead"))) {
             throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "玩家未死亡");
         }
 
+        int coinsBefore = player.getCoins() != null ? player.getCoins() : 0;
+        int coinsAfter = coinsBefore;
+        int cost = 0;
+        int level = Math.max(1, toInt(stats.get("level"), 1));
         if ("coins".equals(method)) {
-            int level = toInt(stats.get("level"), 1);
-            int cost = 100 * level;
-            if (player.getCoins() < cost) {
-                throw new BusinessException(ErrorCode.RESOURCE_NOT_ENOUGH, "金币不足，需要 " + cost + " 金币");
+            cost = Math.multiplyExact(100, level);
+            if (coinsBefore < cost) {
+                throw new BusinessException(ErrorCode.RESOURCE_NOT_ENOUGH,
+                        "星币不足，需要 " + cost + " 星币");
             }
-            player.setCoins(player.getCoins() - cost);
+            coinsAfter = Math.subtractExact(coinsBefore, cost);
+            player.setCoins(coinsAfter);
         }
         // title sacrifice method: just revive (title is handled by frontend)
 
@@ -571,60 +675,122 @@ public class PlayerController {
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.SERVER_ERROR, "更新状态失败");
         }
-        playerMapper.updateById(player);
+        if (playerMapper.updateById(player) <= 0)
+            throw new IllegalStateException("保存复活状态失败");
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("message", "你从冥界归来了。HP已恢复至" + (maxHp / 2) + "点，请休息恢复更多生命值。");
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        metadata.put("method", method);
+        metadata.put("level", level);
+        metadata.put("hpAfter", maxHp / 2);
+        if (cost > 0) {
+            metadata.put("cost", cost);
+            metadata.put("coinsBefore", coinsBefore);
+            metadata.put("coinsAfter", coinsAfter);
+            String transactionGroupId = "revive:" + playerId + ":" + UUID.nameUUIDFromBytes(
+                    (playerId + ":" + requestKey).getBytes(StandardCharsets.UTF_8));
+            resourceTransactionService.record(new PlayerResourceTransactionService.Change(
+                    playerId, "currency", "coins", -cost, coinsBefore, coinsAfter,
+                    "self_revive", String.valueOf(playerId), transactionGroupId,
+                    transactionGroupId + ":coins", metadata));
+        }
+        playerLogService.addLog(playerId, "player_revive", result.get("message").toString(), metadata);
+        actionReceiptService.record(playerId, "player.revive", requestKey, requestPayload, result);
         return Result.ok(result);
     }
 
     @PostMapping("/peer-revive")
     @Operation(summary = "复活其他玩家")
-    public Result<Map<String, Object>> peerRevive(@RequestBody Map<String, Object> body) {
-        Long reviverId = MapUtils.getLong(body, "reviverId");
-        Long targetId = MapUtils.getLong(body, "targetId");
-        Long userId = LoginUserContext.get().getUserId();
-        validatePlayerOwnership(reviverId, userId);
-        String method = (String) body.getOrDefault("method", "coins");
+    @Transactional
+    public Result<Map<String, Object>> peerRevive(@Valid @RequestBody PeerReviveRequest request) {
+        Long reviverId = request.getReviverId();
+        Long targetId = request.getTargetId();
+        if (Objects.equals(reviverId, targetId))
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "不能通过援救接口复活自己");
 
-        Player reviver = playerMapper.selectById(reviverId);
-        Player target = playerMapper.selectById(targetId);
+        Long userId = LoginUserContext.get().getUserId();
+        Long firstPlayerId = Math.min(reviverId, targetId);
+        Long secondPlayerId = Math.max(reviverId, targetId);
+        Player firstPlayer = playerMapper.selectByIdForUpdate(firstPlayerId);
+        Player secondPlayer = playerMapper.selectByIdForUpdate(secondPlayerId);
+        Player reviver = Objects.equals(firstPlayerId, reviverId) ? firstPlayer : secondPlayer;
+        Player target = Objects.equals(firstPlayerId, targetId) ? firstPlayer : secondPlayer;
+        if (reviver == null) throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "施救者不存在");
+        if (!Objects.equals(reviver.getUserId(), userId))
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此施救者");
         if (target == null) throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "目标玩家不存在");
+
+        String method = request.getMethod();
+        if (method == null) method = "coins";
+        if (!"coins".equals(method) && !"title".equals(method))
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "复活方式不合法");
+        String requestKey = request.getRequestKey();
+        Map<String, Object> requestPayload = Map.of(
+                "reviverId", reviverId, "targetId", targetId, "method", method);
+        Map<String, Object> replay = actionReceiptService.findReplay(
+                reviverId, "player.peer-revive", requestKey, requestPayload, Map.class);
+        if (replay != null) return Result.ok(replay);
 
         Map<String, Object> targetStats = parseJsonMap(target.getStatsJson());
         if (!Boolean.TRUE.equals(targetStats.get("isDead"))) {
             throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "目标玩家未死亡");
         }
 
+        int coinsBefore = reviver.getCoins() != null ? reviver.getCoins() : 0;
+        int coinsAfter = coinsBefore;
+        int cost = 0;
+        int level = Math.max(1, toInt(targetStats.get("level"), 1));
         if ("coins".equals(method)) {
-            int level = toInt(targetStats.get("level"), 1);
-            String constellation = (String) targetStats.getOrDefault("constellation", "");
-            double multiplier = "queen_of_underworld".equals(constellation) ? 0.5 : 1.0;
-            int cost = (int) Math.round(100 * level * multiplier);
-            if (reviver.getCoins() < cost) {
-                throw new BusinessException(ErrorCode.RESOURCE_NOT_ENOUGH, "金币不足，需要 " + cost + " 金币");
+            String constellation = String.valueOf(targetStats.getOrDefault("constellation", ""));
+            double multiplier = "queen_of_darkest_spring".equals(constellation) ? 0.5 : 1.0;
+            cost = Math.toIntExact(Math.round(100L * level * multiplier));
+            if (coinsBefore < cost) {
+                throw new BusinessException(ErrorCode.RESOURCE_NOT_ENOUGH, "星币不足，需要 " + cost + " 星币");
             }
-            reviver.setCoins(reviver.getCoins() - cost);
-            playerMapper.updateById(reviver);
-            targetStats.put("isDead", false);
-            int maxHp = toInt(targetStats.get("maxHp"), 100);
-            targetStats.put("hp", maxHp / 2);
-        } else {
-            // title sacrifice: just revive
-            targetStats.put("isDead", false);
-            int maxHp = toInt(targetStats.get("maxHp"), 100);
-            targetStats.put("hp", maxHp / 2);
+            coinsAfter = Math.subtractExact(coinsBefore, cost);
+            reviver.setCoins(coinsAfter);
         }
 
+        targetStats.put("isDead", false);
+        int maxHp = toInt(targetStats.get("maxHp"), 100);
+        int hpAfter = maxHp / 2;
+        targetStats.put("hp", hpAfter);
         try {
             target.setStatsJson(objectMapper.writeValueAsString(targetStats));
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.SERVER_ERROR, "更新状态失败");
         }
-        playerMapper.updateById(target);
+        if (playerMapper.updateById(target) <= 0)
+            throw new IllegalStateException("保存被援救玩家的复活状态失败");
+        if (cost > 0 && playerMapper.updateById(reviver) <= 0)
+            throw new IllegalStateException("保存施救者的星币扣除失败");
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("message", "你从冥界拉回了一位玩家。");
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        metadata.put("method", method);
+        metadata.put("reviverId", reviverId);
+        metadata.put("targetId", targetId);
+        metadata.put("targetLevel", level);
+        metadata.put("hpAfter", hpAfter);
+        if (cost > 0) {
+            metadata.put("cost", cost);
+            metadata.put("coinsBefore", coinsBefore);
+            metadata.put("coinsAfter", coinsAfter);
+            String transactionGroupId = "peer-revive:" + reviverId + ":" + UUID.nameUUIDFromBytes(
+                    (reviverId + ":" + targetId + ":" + requestKey).getBytes(StandardCharsets.UTF_8));
+            resourceTransactionService.record(new PlayerResourceTransactionService.Change(
+                    reviverId, "currency", "coins", -cost, coinsBefore, coinsAfter,
+                    "peer_revive", String.valueOf(targetId), transactionGroupId,
+                    transactionGroupId + ":coins", metadata));
+        }
+        String reviverLog = "你援救了「" + target.getPlayerName() + "」";
+        if (cost > 0) reviverLog += "，消耗 " + cost + " 星币";
+        playerLogService.addLog(reviverId, "peer_revive_sent", reviverLog, metadata);
+        playerLogService.addLog(targetId, "peer_revived", "「"
+                + reviver.getPlayerName() + "」将你从冥界拉回。", metadata);
+        actionReceiptService.record(reviverId, "player.peer-revive", requestKey, requestPayload, result);
         return Result.ok(result);
     }
 
@@ -632,18 +798,33 @@ public class PlayerController {
 
     @PostMapping("/allocate-points")
     @Operation(summary = "分配自由属性点")
+    @Transactional
     public Result<PlayerVO> allocatePoints(@RequestBody Map<String, Object> body) {
         Long playerId = MapUtils.getLong(body, "playerId");
         Long userId = LoginUserContext.get().getUserId();
-        validatePlayerOwnership(playerId, userId);
-        int atk = MapUtils.getIntOrDefault(body, "atk", 0);
-        int def = MapUtils.getIntOrDefault(body, "def", 0);
-        int spd = MapUtils.getIntOrDefault(body, "spd", 0);
-        int crit = MapUtils.getIntOrDefault(body, "crit", 0);
-        int total = atk + def + spd + crit;
+        String requestKey = MapUtils.getStringRequired(body, "requestKey");
+        if (requestKey.length() > 64)
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "requestKey 长度不能超过 64");
 
-        Player player = playerMapper.selectById(playerId);
+        int atk = readExactIntOrDefault(body, "atk");
+        int def = readExactIntOrDefault(body, "def");
+        int spd = readExactIntOrDefault(body, "spd");
+        int crit = readExactIntOrDefault(body, "crit");
+
+        Player player = playerMapper.selectByIdForUpdate(playerId);
         if (player == null) throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "玩家不存在");
+        if (!Objects.equals(player.getUserId(), userId))
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此玩家");
+
+        Map<String, Object> requestPayload = Map.of(
+                "playerId", playerId, "atk", atk, "def", def, "spd", spd, "crit", crit);
+        PlayerVO replay = actionReceiptService.findReplay(
+                playerId, "player.allocate-points", requestKey, requestPayload, PlayerVO.class);
+        if (replay != null) return Result.ok(replay);
+
+        if (atk < 0 || def < 0 || spd < 0 || crit < 0)
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "分配属性点不能为负数");
+        long total = (long) atk + def + spd + crit;
 
         Map<String, Object> stats = parseJsonMap(player.getStatsJson());
         repairBaseStats(stats);
@@ -651,15 +832,21 @@ public class PlayerController {
         if (total <= 0) throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "请至少分配1点");
         if (total > freePoints) throw new BusinessException(ErrorCode.RESOURCE_NOT_ENOUGH, "自由属性点不足");
 
-        stats.put("allocatedAtk", toInt(stats.get("allocatedAtk"), 0) + atk);
-        stats.put("allocatedDef", toInt(stats.get("allocatedDef"), 0) + def);
-        stats.put("allocatedSpd", toInt(stats.get("allocatedSpd"), 0) + spd);
-        stats.put("allocatedCrit", toInt(stats.get("allocatedCrit"), 0) + crit);
-        stats.put("freePoints", freePoints - total);
+        stats.put("allocatedAtk", ResourceBalance.applySignedDelta(
+                "攻击分配点", toInt(stats.get("allocatedAtk"), 0), atk));
+        stats.put("allocatedDef", ResourceBalance.applySignedDelta(
+                "防御分配点", toInt(stats.get("allocatedDef"), 0), def));
+        stats.put("allocatedSpd", ResourceBalance.applySignedDelta(
+                "速度分配点", toInt(stats.get("allocatedSpd"), 0), spd));
+        stats.put("allocatedCrit", ResourceBalance.applySignedDelta(
+                "暴击分配点", toInt(stats.get("allocatedCrit"), 0), crit));
+        int pointsSpent = Math.toIntExact(total);
+        int freePointsAfter = ResourceBalance.applyDelta("自由属性点", freePoints, -pointsSpent);
+        stats.put("freePoints", freePointsAfter);
         // Update actual stats (1点=1属性, 暴击1点=2%=0.02)
-        stats.put("attack", toInt(stats.get("attack"), 10) + atk);
-        stats.put("defense", toInt(stats.get("defense"), 5) + def);
-        stats.put("speed", toInt(stats.get("speed"), 3) + spd);
+        stats.put("attack", ResourceBalance.applySignedDelta("攻击", toInt(stats.get("attack"), 10), atk));
+        stats.put("defense", ResourceBalance.applySignedDelta("防御", toInt(stats.get("defense"), 5), def));
+        stats.put("speed", ResourceBalance.applySignedDelta("速度", toInt(stats.get("speed"), 3), spd));
         stats.put("critRate", toDouble(stats.get("critRate"), 0.0) + crit * 0.02);
 
         try {
@@ -667,19 +854,48 @@ public class PlayerController {
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.SERVER_ERROR, "更新属性失败");
         }
-        playerMapper.updateById(player);
+        if (playerMapper.updateById(player) <= 0)
+            throw new IllegalStateException("保存属性分配失败");
 
-        return Result.ok(playerService.getPlayer(playerId));
+        String transactionGroupId = "alloc:" + UUID.nameUUIDFromBytes(
+                (playerId + ":" + requestKey).getBytes(StandardCharsets.UTF_8));
+        Map<String, Object> resourceMetadata = Map.of(
+                "requestKey", requestKey, "atk", atk, "def", def, "spd", spd, "crit", crit);
+        boolean ledgerInserted = resourceTransactionService.record(
+                new PlayerResourceTransactionService.Change(
+                        playerId, "progress", "free_points", -pointsSpent, freePoints, freePointsAfter,
+                        "attribute_allocation", String.valueOf(playerId), transactionGroupId,
+                        transactionGroupId + ":free-points", resourceMetadata));
+        if (!ledgerInserted) throw new IllegalStateException("记录自由属性点支出流水失败");
+
+        String message = "已分配属性点：攻击 " + atk + "、防御 " + def + "、速度 " + spd + "、暴击 " + crit;
+        Map<String, Object> logMetadata = new LinkedHashMap<>(resourceMetadata);
+        logMetadata.put("kind", "attribute_allocate");
+        logMetadata.put("freePointsBefore", freePoints);
+        logMetadata.put("freePointsAfter", freePointsAfter);
+        playerLogService.addLog(playerId, "attribute_allocate", message, logMetadata);
+
+        PlayerVO result = playerService.getPlayer(playerId);
+        actionReceiptService.record(playerId, "player.allocate-points", requestKey, requestPayload, result);
+        return Result.ok(result);
     }
 
     @PostMapping("/reset-allocation")
     @Operation(summary = "重置全部属性分配")
-    public Result<PlayerVO> resetAllocation(@RequestBody Map<String, Object> body) {
-        Long playerId = MapUtils.getLong(body, "playerId");
+    @Transactional
+    public Result<PlayerVO> resetAllocation(@Valid @RequestBody ResetAllocationRequest request) {
+        Long playerId = request.getPlayerId();
         Long userId = LoginUserContext.get().getUserId();
-        validatePlayerOwnership(playerId, userId);
-        Player player = playerMapper.selectById(playerId);
+        Player player = playerMapper.selectByIdForUpdate(playerId);
         if (player == null) throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "玩家不存在");
+        if (!Objects.equals(player.getUserId(), userId))
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此玩家");
+
+        String requestKey = request.getRequestKey();
+        Map<String, Object> requestPayload = Map.of("playerId", playerId);
+        PlayerVO replay = actionReceiptService.findReplay(
+                playerId, "player.reset-allocation", requestKey, requestPayload, PlayerVO.class);
+        if (replay != null) return Result.ok(replay);
 
         Map<String, Object> stats = parseJsonMap(player.getStatsJson());
         repairBaseStats(stats);
@@ -687,19 +903,35 @@ public class PlayerController {
         int allocatedDef = toInt(stats.get("allocatedDef"), 0);
         int allocatedSpd = toInt(stats.get("allocatedSpd"), 0);
         int allocatedCrit = toInt(stats.get("allocatedCrit"), 0);
-        int totalAlloc = allocatedAtk + allocatedDef + allocatedSpd + allocatedCrit;
-        if (totalAlloc <= 0) throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "没有已分配的属性点");
+        if (allocatedAtk < 0 || allocatedDef < 0 || allocatedSpd < 0 || allocatedCrit < 0)
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "属性分配数据无效，无法重置");
+        long totalAllocLong = (long) allocatedAtk + allocatedDef + allocatedSpd + allocatedCrit;
+        if (totalAllocLong <= 0)
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "没有已分配的属性点");
+        if (totalAllocLong > Integer.MAX_VALUE)
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "属性分配数据超出可重置范围");
+        int totalAlloc = (int) totalAllocLong;
 
-        int cost = Math.max(50, totalAlloc * 20);
-        if (player.getCoins() < cost) throw new BusinessException(ErrorCode.RESOURCE_NOT_ENOUGH, "金币不足，需要 " + cost + " 金币");
+        long costLong = Math.max(50L, totalAllocLong * 20L);
+        if (costLong > Integer.MAX_VALUE)
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "属性重置费用超出可保存范围");
+        int cost = (int) costLong;
+        int coinsBefore = player.getCoins() != null ? player.getCoins() : 0;
+        if (coinsBefore < cost)
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_ENOUGH, "星币不足，需要 " + cost + " 星币");
 
-        player.setCoins(player.getCoins() - cost);
+        int freePointsBefore = toInt(stats.get("freePoints"), 0);
+        if (freePointsBefore < 0)
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "自由属性点数据无效，无法重置");
+        int freePointsAfter = ResourceBalance.applyDelta("自由属性点", freePointsBefore, totalAllocLong);
+        int coinsAfter = ResourceBalance.applyDelta("星币", coinsBefore, -(long) cost);
+        player.setCoins(coinsAfter);
         // Reset allocated stats
         stats.put("allocatedAtk", 0);
         stats.put("allocatedDef", 0);
         stats.put("allocatedSpd", 0);
         stats.put("allocatedCrit", 0);
-        stats.put("freePoints", toInt(stats.get("freePoints"), 0) + totalAlloc);
+        stats.put("freePoints", freePointsAfter);
         // Revert actual stats (1点=1属性, 暴击1点=0.02)
         stats.put("attack", toInt(stats.get("attack"), 10) - allocatedAtk);
         stats.put("defense", toInt(stats.get("defense"), 5) - allocatedDef);
@@ -711,9 +943,32 @@ public class PlayerController {
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.SERVER_ERROR, "重置属性失败");
         }
-        playerMapper.updateById(player);
+        if (playerMapper.updateById(player) <= 0)
+            throw new IllegalStateException("保存属性重置与星币扣除失败");
 
-        return Result.ok(playerService.getPlayer(playerId));
+        String transactionGroupId = "respec:" + playerId + ":" + UUID.nameUUIDFromBytes(
+                (playerId + ":" + requestKey).getBytes(StandardCharsets.UTF_8));
+        Map<String, Object> resourceMetadata = new LinkedHashMap<>();
+        resourceMetadata.put("allocatedAtk", allocatedAtk);
+        resourceMetadata.put("allocatedDef", allocatedDef);
+        resourceMetadata.put("allocatedSpd", allocatedSpd);
+        resourceMetadata.put("allocatedCrit", allocatedCrit);
+        resourceMetadata.put("totalPoints", totalAlloc);
+        resourceMetadata.put("cost", cost);
+        resourceTransactionService.record(new PlayerResourceTransactionService.Change(
+                playerId, "currency", "coins", -cost, coinsBefore, coinsAfter,
+                "attribute_respec", String.valueOf(playerId), transactionGroupId,
+                transactionGroupId + ":coins", resourceMetadata));
+
+        Map<String, Object> logMetadata = new LinkedHashMap<>(resourceMetadata);
+        logMetadata.put("coinsBefore", coinsBefore);
+        logMetadata.put("coinsAfter", coinsAfter);
+        playerLogService.addLog(playerId, "attribute_reset",
+                "重置属性分配 " + totalAlloc + " 点，消耗 " + cost + " 星币", logMetadata);
+
+        PlayerVO result = playerService.getPlayer(playerId);
+        actionReceiptService.record(playerId, "player.reset-allocation", requestKey, requestPayload, result);
+        return Result.ok(result);
     }
 
     @PostMapping("/reset/{playerId}")
@@ -738,6 +993,7 @@ public class PlayerController {
         stats.put("exp", 0);
         stats.put("hp", 100);
         stats.put("maxHp", 100);
+        stats.put(PlayerMaxHpProjectionService.APPLIED_CONSTELLATION_BONUS_KEY, 0);
         stats.put("attack", 10);
         stats.put("defense", 5);
         stats.put("speed", 3);
@@ -814,7 +1070,8 @@ public class PlayerController {
         validatePlayerOwnership(playerId, userId);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("success", true);
-        result.put("pendingChallenges", java.util.Collections.emptyList());
+        List<PkChallengeVO> pendingChallenges = pkService.getPendingChallenges(playerId, userId);
+        result.put("pendingChallenges", pendingChallenges);
         return Result.ok(result);
     }
 }

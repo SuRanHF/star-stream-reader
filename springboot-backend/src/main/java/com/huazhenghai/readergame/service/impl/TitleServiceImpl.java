@@ -162,6 +162,12 @@ public class TitleServiceImpl implements TitleService {
 
     @Override
     public void grantTitle(Long playerId, String titleKey) {
+        Title title = titleMapper.selectOne(
+                new QueryWrapper<Title>().eq("title_key", titleKey));
+        if (title == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "称号配置不存在: " + titleKey);
+        }
+
         QueryWrapper<PlayerTitle> ow = new QueryWrapper<>();
         ow.eq("player_id", playerId).eq("title_key", titleKey);
         if (playerTitleMapper.selectCount(ow) > 0) return;

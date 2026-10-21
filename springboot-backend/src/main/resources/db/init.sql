@@ -113,6 +113,57 @@ CREATE TABLE IF NOT EXISTS `player_logs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家事件日志表';
 
 -- ============================================================
+-- 3.1 玩家资源流水表 (player_resource_transactions)
+-- 追加式账本：与玩家历程分离，记录真实资源余额变更
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `player_resource_transactions` (
+    `id`                    BIGINT       NOT NULL AUTO_INCREMENT,
+    `player_id`             BIGINT       NOT NULL,
+    `resource_type`         VARCHAR(32)  NOT NULL COMMENT 'currency / item / equipment / experience / energy / vitality / progress',
+    `resource_key`          VARCHAR(100) NOT NULL COMMENT 'coins / story_fragments / 具体物品或进度键',
+    `amount`                BIGINT       NOT NULL COMMENT '有符号变化量',
+    `balance_before`        BIGINT       NOT NULL,
+    `balance_after`         BIGINT       NOT NULL,
+    `source_type`           VARCHAR(64)  NOT NULL COMMENT 'explore / combat / quest / shop 等动作来源',
+    `source_id`             VARCHAR(128) DEFAULT NULL COMMENT '事件、任务、战斗或业务记录键',
+    `transaction_group_id`  VARCHAR(64)  DEFAULT NULL COMMENT '关联同一动作或玩家间转账的流水组',
+    `idempotency_key`       VARCHAR(160) NOT NULL,
+    `metadata_json`         JSON         DEFAULT NULL,
+    `created_at`            DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_resource_player_idempotency` (`player_id`, `idempotency_key`),
+    KEY `idx_resource_player_created` (`player_id`, `created_at`, `id`),
+    KEY `idx_resource_source` (`source_type`, `source_id`),
+
+    CONSTRAINT `fk_resource_transaction_player`
+        FOREIGN KEY (`player_id`) REFERENCES `players` (`id`)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家资源变更账本';
+
+-- ============================================================
+-- 3.2 玩家操作回执表 (player_action_receipts)
+-- 成功写操作的请求级幂等回执，与业务变更同事务提交
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `player_action_receipts` (
+    `id`                BIGINT       NOT NULL AUTO_INCREMENT,
+    `player_id`         BIGINT       NOT NULL,
+    `action_type`       VARCHAR(40)  NOT NULL,
+    `idempotency_key`   VARCHAR(64)  NOT NULL,
+    `request_hash`      CHAR(64)     NOT NULL,
+    `response_json`     JSON         NOT NULL,
+    `created_at`        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_action_receipt_player_action_key` (`player_id`, `action_type`, `idempotency_key`),
+    KEY `idx_action_receipt_created` (`created_at`),
+
+    CONSTRAINT `fk_action_receipt_player`
+        FOREIGN KEY (`player_id`) REFERENCES `players` (`id`)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家写操作幂等回执';
+
+-- ============================================================
 -- 4. 反馈表 (feedbacks)
 -- 玩家提交的 bug 反馈、建议等
 -- ============================================================
@@ -391,7 +442,7 @@ CREATE TABLE IF NOT EXISTS `equipment` (
     `id`                   BIGINT       NOT NULL AUTO_INCREMENT,
     `equipment_key`        VARCHAR(100) NOT NULL,
     `name`                 VARCHAR(100) NOT NULL,
-    `slot`                 VARCHAR(50)  NOT NULL COMMENT 'weapon / armor / accessory / relic',
+    `slot`                 VARCHAR(50)  NOT NULL COMMENT 'weapon / armor / helmet / accessory / relic',
     `rarity`               VARCHAR(30)  NOT NULL DEFAULT 'common' COMMENT 'common / uncommon / rare / epic / legendary',
     `description`          TEXT         DEFAULT NULL,
     `base_stats_json`      JSON         DEFAULT NULL COMMENT '基础属性加成 JSON',
@@ -500,7 +551,7 @@ CREATE TABLE IF NOT EXISTS `player_skills` (
     `player_id`        BIGINT       NOT NULL,
     `skill_key`        VARCHAR(100) NOT NULL,
     `level`            INT          NOT NULL DEFAULT 1,
-    `equipped`         TINYINT      NOT NULL DEFAULT 0 COMMENT '暂未使用，预留后续技能槽功能',
+    `equipped`         TINYINT      NOT NULL DEFAULT 0 COMMENT '是否占用一个技能槽',
     `unlocked_at`      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `metadata_json`    JSON         DEFAULT NULL,
     `created_at`       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -553,6 +604,8 @@ CREATE TABLE IF NOT EXISTS `monsters` (
 CREATE TABLE IF NOT EXISTS `battle_logs` (
     `id`                    BIGINT       NOT NULL AUTO_INCREMENT,
     `player_id`             BIGINT       NOT NULL,
+    `request_key`           VARCHAR(64)  DEFAULT NULL COMMENT '战斗请求幂等键',
+    `request_action`        VARCHAR(20)  DEFAULT NULL COMMENT 'fight / attack / flee',
     `monster_key`           VARCHAR(100) NOT NULL,
     `result`                VARCHAR(30)  NOT NULL COMMENT 'win / lose / escape / draw',
     `rounds`                INT          NOT NULL DEFAULT 0,
@@ -561,9 +614,11 @@ CREATE TABLE IF NOT EXISTS `battle_logs` (
     `rounds_json`           JSON         DEFAULT NULL COMMENT '每回合详情',
     `rewards_json`          JSON         DEFAULT NULL COMMENT '获得的奖励',
     `drops_json`            JSON         DEFAULT NULL COMMENT '掉落物品',
+    `result_json`           JSON         DEFAULT NULL COMMENT '可重放的战斗结算响应',
     `created_at`            DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_bl_player_request` (`player_id`, `request_key`),
     INDEX `idx_bl_player_id`   (`player_id`),
     INDEX `idx_bl_monster_key` (`monster_key`),
     INDEX `idx_bl_result`     (`result`),
@@ -738,6 +793,22 @@ CREATE TABLE IF NOT EXISTS `world_states` (
     INDEX      `idx_ws_status`   (`status`),
     INDEX      `idx_ws_level`    (`level`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='世界状态表';
+
+-- 世界线数值变更历史，用于展示灾厄、放送和定时衰减造成的影响
+CREATE TABLE IF NOT EXISTS `worldline_change_logs` (
+    `id`             BIGINT       NOT NULL AUTO_INCREMENT,
+    `state_key`      VARCHAR(100) NOT NULL,
+    `state_name`     VARCHAR(100) DEFAULT NULL,
+    `value_key`      VARCHAR(100) NOT NULL,
+    `change_amount`  DOUBLE       NOT NULL,
+    `before_value`   DOUBLE       NOT NULL,
+    `after_value`    DOUBLE       NOT NULL,
+    `cause`          VARCHAR(255) DEFAULT NULL,
+    `created_at`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    INDEX `idx_wcl_created_at` (`created_at`),
+    INDEX `idx_wcl_state_key` (`state_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='世界线变更历史';
 
 -- ============================================================
 -- Phase 7 (broadcast + worldline) 初始化完成
@@ -938,6 +1009,7 @@ CREATE TABLE IF NOT EXISTS `party_members` (
     `player_id`         BIGINT       NOT NULL,
     `role`              VARCHAR(30)  NOT NULL DEFAULT 'member' COMMENT 'leader / member',
     `status`            VARCHAR(30)  NOT NULL DEFAULT 'active' COMMENT 'active / left / kicked',
+    `ready`             TINYINT      NOT NULL DEFAULT 0 COMMENT '0未准备 / 1已准备',
     `joined_at`         DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `left_at`           DATETIME     NULL,
     `created_at`        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -954,6 +1026,20 @@ CREATE TABLE IF NOT EXISTS `party_members` (
         FOREIGN KEY (`player_id`) REFERENCES `players` (`id`)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='队伍成员表';
+
+-- 已存在数据库的队伍准备状态迁移
+DROP PROCEDURE IF EXISTS add_party_ready_col;
+DELIMITER //
+CREATE PROCEDURE add_party_ready_col()
+BEGIN
+    IF NOT EXISTS (SELECT * FROM information_schema.COLUMNS
+                   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'party_members' AND COLUMN_NAME = 'ready') THEN
+        ALTER TABLE `party_members` ADD COLUMN `ready` TINYINT NOT NULL DEFAULT 0 COMMENT '0未准备 / 1已准备' AFTER `status`;
+    END IF;
+END //
+DELIMITER ;
+CALL add_party_ready_col();
+DROP PROCEDURE IF EXISTS add_party_ready_col;
 
 -- ============================================================
 -- Phase 8D (party) 初始化完成
@@ -1023,6 +1109,13 @@ CREATE TABLE IF NOT EXISTS `world_bosses` (
     INDEX `idx_wb_end_at`             (`end_at`),
     INDEX `idx_wb_killed_at`          (`killed_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='世界Boss表';
+
+-- 世界Boss每日场次幂等记录：同一游戏日期最多开启一场系统首领
+CREATE TABLE IF NOT EXISTS `world_boss_daily_runs` (
+    `run_date`   DATE         NOT NULL,
+    `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`run_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='世界Boss每日场次记录';
 
 -- 36. 世界Boss参与表 (world_boss_participation)
 CREATE TABLE IF NOT EXISTS `world_boss_participation` (
@@ -1180,6 +1273,31 @@ CREATE TABLE IF NOT EXISTS `faction_skills` (
     INDEX `idx_fs_unlock_level`         (`unlock_level`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='阵营技能定义表';
 
+CREATE TABLE IF NOT EXISTS `player_faction_skills` (
+    `id`          BIGINT       NOT NULL AUTO_INCREMENT,
+    `player_id`   BIGINT       NOT NULL,
+    `faction_key` VARCHAR(100) NOT NULL,
+    `skill_key`   VARCHAR(100) NOT NULL,
+    `level`       INT          NOT NULL DEFAULT 1,
+    `learned_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `created_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_pfs_player_skill` (`player_id`, `skill_key`),
+    INDEX `idx_pfs_faction` (`faction_key`),
+    CONSTRAINT `fk_pfs_player` FOREIGN KEY (`player_id`) REFERENCES `players` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家阵营技能学习记录';
+
+INSERT IGNORE INTO `faction_skills` (`faction_key`, `skill_key`, `name`, `description`, `unlock_level`, `effects_json`, `cost_json`, `enabled`) VALUES
+('nebula_abyss', 'abyss_gaze', '深渊凝视', '从世界线的裂隙中捕捉危险征兆。', 1, '{"insight":2,"critRate":0.02}', '{"reputation":50,"coins":100}', 1),
+('nebula_abyss', 'truth_sight', '真相视界', '看穿被故事遮蔽的细节。', 2, '{"insight":4,"worldLineShift":1}', '{"reputation":100,"coins":200}', 1),
+('nebula_eden', 'eden_light', '伊甸微光', '以理想结局的微光守护身躯。', 1, '{"maxHp":20,"defense":3}', '{"reputation":50,"coins":100}', 1),
+('nebula_eden', 'ancient_might', '古老神威', '借星流起源的力量强化攻击。', 2, '{"attack":8,"willpower":2}', '{"reputation":100,"coins":200}', 1),
+('nebula_vagrant', 'vagrant_step', '流浪步', '不被任何固定路线束缚的移动方式。', 1, '{"speed":4,"staminaCostReduce":0.05}', '{"reputation":50,"coins":100}', 1),
+('nebula_vagrant', 'lucky_strike', '幸运突袭', '在世界线交错处寻找意外的破绽。', 2, '{"luck":5,"critRate":0.03}', '{"reputation":100,"coins":200}', 1),
+('nebula_starstream', 'archive_blessing', '档案祝福', '从无数被记录的故事中获得洞察。', 1, '{"insight":2,"storyEventBonus":0.05}', '{"reputation":50,"coins":100}', 1),
+('nebula_starstream', 'watcher_grace', '观测者恩典', '观测者的注视让星流奖励更稳定。', 2, '{"channelHeatGainRate":0.1,"defense":2}', '{"reputation":100,"coins":200}', 1);
+
 -- constellation_factions seed data (8 ORV constellations)
 INSERT IGNORE INTO `constellation_factions` (`faction_key`, `name`, `constellation_name`, `description`, `alignment`, `ideology`, `level`, `exp`, `member_count`, `total_contribution`, `buffs_json`, `unlocks_json`, `enabled`) VALUES
 ('nebula_abyss',      '深渊观测所',   '深渊观测所',   '深渊中观测星流的古老组织。成员在暗处守望世界线的流动，洞悉故事背后的真相。攻击加成由每日贡献决定。',            'abyss',   '深渊洞察',     1, 0, 0, 0, '{"atk":20}', '{"skill_1":"abyss_gaze","skill_2":"truth_sight"}', 1),
@@ -1275,7 +1393,7 @@ CREATE TABLE IF NOT EXISTS `quest_progress_logs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='任务进度日志表';
 
 -- ============================================================
--- Phase 8H seed: 7 quest definitions
+-- Phase 8H seed: 10 quest definitions
 -- ============================================================
 INSERT IGNORE INTO `quests` (`quest_key`, `title`, `description`, `quest_type`, `category`, `target_type`, `target_value`, `rewards_json`, `reset_cycle`, `sort_order`) VALUES
 ('daily_explore_3',    '探索世界',     '进行3次探索',           'daily',  'explore',    'explore_count',          3,  '{"coins":50,"exp":20}',                'daily',  1),
@@ -1284,7 +1402,10 @@ INSERT IGNORE INTO `quests` (`quest_key`, `title`, `description`, `quest_type`, 
 ('weekly_pk_5',        '擂台争霸',     '参与5次PK',             'weekly', 'pk',         'pk_participate_count',    5,  '{"coins":200,"exp":80,"storyFragments":3}',  'weekly', 1),
 ('weekly_boss_3',      '世界Boss挑战', '参与3次世界Boss攻击',   'weekly', 'world_boss', 'world_boss_attack_count', 3,  '{"coins":250,"exp":100,"storyFragments":5}', 'weekly', 2),
 ('achv_level_5',       '初露锋芒',     '达到5级',               'achievement', 'growth', 'level_reach',         5,  '{"coins":500,"exp":150,"titleKey":"growth_novice"}',        'none',   1),
-('achv_rank_C',        '位阶晋升',     '达到Avatar Rank C',     'achievement', 'growth', 'avatar_rank_reach',   1,  '{"coins":1000,"exp":300,"storyFragments":10}',              'none',   2);
+('achv_rank_C',        '位阶晋升',     '达到Avatar Rank C',     'achievement', 'growth', 'avatar_rank_reach',   1,  '{"coins":1000,"exp":300,"storyFragments":10}',              'none',   2),
+('daily_trade_sell_1', '交易周转',     '成功出售1件物品或装备', 'daily',  'trade',      'trade_sell_count',        1,  '{"coins":30,"exp":10}',                  'daily',   4),
+('weekly_pk_win_3',    '擂台胜者',     '赢得3场玩家对战',       'weekly', 'pk',         'pk_win_count',            3,  '{"coins":120,"exp":50,"storyFragments":2}', 'weekly', 3),
+('achv_faction_contribution_50', '阵营功勋', '累计向所属阵营贡献50点', 'achievement', 'faction', 'faction_contribution_value', 50, '{"coins":200,"exp":80,"storyFragments":3}', 'none', 3);
 
 -- ============================================================
 -- Phase 8H (quest) 初始化完成
@@ -1499,35 +1620,15 @@ CREATE TABLE IF NOT EXISTS `endings` (
     UNIQUE KEY `uk_endings_key` (`ending_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='结局定义表';
 
--- 7 seed endings (ORV adaptation)
+-- Seed only the source-aligned finale and its explicitly hypothetical refusal branch.
 INSERT IGNORE INTO `endings` (`ending_key`, `name`, `description`, `priority`, `conditions_json`, `is_hidden`) VALUES
-('end_survivor', '普通幸存者结局',
- '你活了下来。不是作为魔王，不是作为救世主，不是作为任何特殊的存在——仅仅是作为一个幸存者。你在废墟中找到了其他活下来的人，一起在残破的首尔重建家园。夜晚，你偶尔仰望星空，知道那些星座仍在注视着什么。但你已经不再是他们的焦点。活着本身，就是最好的剧本。也许有一天，会有另一个读者翻开你的故事。',
- 1, '{"flags":{"entered_castle":true}}', 0),
+('end_continue_dream', '接续之梦：新的最古老之梦',
+ '你履行约定，让最古老的梦结束。世界出现了无人接替的空缺，你选择继续延续梦境，并成为新的最古老之梦。你不能再以原来的身份陪伴同行者；但一部分记忆化作拥有自主意识的分身，留在他们身边继续生活。你仍能以星光注视那段故事，而自己的旅程从此没有终点。',
+ 5, '{"flags":{"ending_new_oldest_dream":true}}', 0),
 
-('end_collapse', '世界线崩坏结局',
- '你的行动撕裂了星之流的剧本。愤怒的鬼怪们试图关闭你的频道，但太迟了——整个频道系统开始崩溃。剧本叠加在剧本之上，时间线交织在一起。你看到了刘众赫的无数次轮回同时在你眼前展开。然后——一切归于空白。星之流安静了下来。你听到了一个声音，从很远很远的地方传来：「也许下一个读者会做出不同的选择。」你闭上了眼睛。这本书从未被合上。它只是在等待下一个人来翻开它。',
- 2, '{"permanent_flags":{"绝对王座拥有者":true},"stats":{"cruelty":{"min":4}}}', 0),
-
-('end_lonely_reader', '孤独读者结局',
- '你选择了继续读下去——不顾一切地，孤注一掷地。你拒绝了魔王之路，拒绝了救世主之名，拒绝了与刘众赫并肩的机会。你独自走向那道墙。墙上写着每一个人的故事——还有你自己的。你看到了第3150章。那不是结局。那是一面镜子。镜子里的人不是金独子——是正在读这段文字的你。你终于懂得了：你不是故事中的角色，但你是故事所以存在的理由。你在图书馆的最深处坐了下来，拿起一本空白的书。是时候写下你自己的故事了。',
- 3, '{"titles":["title_lonely_reader"],"stats":{"insight":{"min":10}}}', 0),
-
-('end_demon_king', '魔王结局',
- '你成为了新的魔王。在星之流所有频道的注视下，你走上了那座由黑暗力量构成的高塔。但你坐下的时候，不是为了统治——而是为了守护。魔王的力量从你身上流过，每一道暗影都在你的意志下化为壁垒。刘众赫站在你身后，一言不发。韩秀英在笔记本上飞快地写着什么——「他原本只是一个读者。但他选择了成为故事的一部分。不是为了成为主角——而是为了改变主角无法改变的东西。」星座频道一个接一个地安静下来。不是因为恐惧，而是因为敬畏。你是魔王——不是毁灭者，而是守护者。',
- 4, '{"titles":["title_demon_king"],"flags":{"merged_dream":true}}', 0),
-
-('end_savior', '救世主结局',
- '你没有成为魔王，没有走孤独的读者之路，也没有与主角并肩作战。你选择了最不可能的路——唤醒那个最古老的梦。你走到了做梦的少年面前。那个在病床上躺了数千年的少年。你让他看到了另一种可能性。不是一个结局，不是一个剧本——而是成千上万个故事，每一个都因为读者的选择而不同。「醒来吧，」你说，「你的梦已经够长了。」少年睁开了眼睛。星之流崩塌了。化作星座们化为流星坠入天际。而你回到了你所爱的人身边。刘众赫放下了他的剑。「你是怎么做到的？」他问。「我没有做到什么，」你说，「我只是读到了终点，然后翻了一页。」',
- 5, '{"flags":{"woke_dreamer":true},"stats":{"bond":{"min":6}}}', 0),
-
-('end_companion', '永恒回歸结局',
- '你和刘众赫一起走到了最后。不是作为追随者和主角，而是作为同伴。在最后的墙面前，你做了一个选择：不是拯救世界，而是拯救彼此。刘众赫看着你。「活了这么多次轮回，我从来没有见过像你这样的人。」「因为我读了你的故事，」你说，「3149章。每一章。比任何人都了解你。」他沉默了很久。然后他做了一个在无数次轮回中从未做过的事——他笑了。不是苦笑，不是冷笑——是真的笑了。星之流崩塌了。但你们还在。一个读者和他的主角，走在回家的路上。也许这就是结局该有的样子。不是惊天动地的，不是拯救一切的。只是两个人，和一个没有尽头的故事。',
- 5, '{"titles":["title_story_bearer"],"flags":{"accepted_fate":true},"stats":{"bond":{"min":8}}}', 0),
-
-('end_true', '真结局：全知读者视角',
- '你翻开了第3150章。内容不是文字。不是一个结局。甚至不是一个故事。它是一面镜子——干净、明亮、完整。镜子里照出的不是你。镜子里照出的是——正在阅读这段文字的「你」本人。你终于理解了。「全知读者视角」从来不是金独子的能力。它是你的能力。你抬起头。韩秀英、刘众赫、金独子——他们都在看着你。跨越了故事与现实的边界，他们朝你微笑。韩秀英的笔停了。刘众赫的剑放下了。金独子向你点了点头。然后你翻到了最后一页。那页上只有一行字：「谢谢你的阅读。现在，请写下属于你自己的故事。」\n\n你深吸一口气。窗外是阳光。地铁到站了。但你没有合上书。因为你终于懂了——故事没有尽头。只要你还在阅读，它就一直活着。',
- 10, '{"titles":["title_true_reader","title_final_chapter_reader"],"permanent_flags":{"终章读者":true},"stats":{"insight":{"min":12}}}', 1);
+('end_frozen_world', '停滞的世界线（假设分支）',
+ '你已经让最古老的梦结束，却选择不接替空缺。梦境无法继续，世界的时间就此停止；所有人都停留在故事的最后一刻，等不到下一页。这是你个人时间线中对终局选择的另一种回答。',
+ 4, '{"flags":{"ending_world_frozen":true}}', 0);
 
 -- ============================================================
 -- Phase 9F (ending) 初始化完成
@@ -1552,6 +1653,7 @@ CREATE TABLE IF NOT EXISTS `player_story_logs` (
     `created_at`       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     INDEX `idx_psl_player`    (`player_id`),
+    INDEX `idx_psl_discovery_first` (`player_id`, `event_key`, `created_at`, `choice_index`),
     INDEX `idx_psl_location`  (`location_key`),
     INDEX `idx_psl_created`   (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家故事日志表';

@@ -11,13 +11,18 @@ import com.huazhenghai.readergame.security.LoginUserContext;
 import com.huazhenghai.readergame.service.AvatarRankService;
 import com.huazhenghai.readergame.service.EquipmentService;
 import com.huazhenghai.readergame.service.FeedbackService;
+import com.huazhenghai.readergame.service.PlayerActionReceiptService;
+import com.huazhenghai.readergame.service.PlayerMaxHpProjectionService;
+import com.huazhenghai.readergame.service.PlayerResourceTransactionService;
 import com.huazhenghai.readergame.websocket.WebSocketSessionManager;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -46,6 +51,8 @@ public class AdminController {
     private final ObjectMapper objectMapper;
     private final WebSocketSessionManager sessionManager;
     private final EquipmentService equipmentService;
+    private final PlayerResourceTransactionService resourceTransactionService;
+    private final PlayerActionReceiptService actionReceiptService;
 
     @Value("${admin.key:}")
     private String adminKey;
@@ -67,7 +74,9 @@ public class AdminController {
                            LocationMapper locationMapper,
                            ObjectMapper objectMapper,
                            WebSocketSessionManager sessionManager,
-                           EquipmentService equipmentService) {
+                           EquipmentService equipmentService,
+                           PlayerResourceTransactionService resourceTransactionService,
+                           PlayerActionReceiptService actionReceiptService) {
         this.playerMapper = playerMapper;
         this.playerLogMapper = playerLogMapper;
         this.itemMapper = itemMapper;
@@ -86,6 +95,8 @@ public class AdminController {
         this.objectMapper = objectMapper;
         this.sessionManager = sessionManager;
         this.equipmentService = equipmentService;
+        this.resourceTransactionService = resourceTransactionService;
+        this.actionReceiptService = actionReceiptService;
     }
 
     // ─── 认证 ───
@@ -253,6 +264,9 @@ public class AdminController {
             stats.put("isResting", Boolean.TRUE.equals(body.get("isResting")));
             statsChanged = true;
         }
+        if (body.containsKey("maxHp")) {
+            PlayerMaxHpProjectionService.markCurrentBonusAsApplied(stats);
+        }
         if (body.containsKey("avatarRank")) {
             String rank = (String) body.get("avatarRank");
             stats.put("avatarRank", rank);
@@ -361,6 +375,9 @@ public class AdminController {
             if (toInt(stats.get("hp"), 0) > toInt(stats.get("maxHp"), 100))
                 stats.put("hp", stats.get("maxHp"));
         }
+        if (changed.contains("maxHp")) {
+            PlayerMaxHpProjectionService.markCurrentBonusAsApplied(stats);
+        }
         if (stats.containsKey("stamina") && stats.containsKey("maxStamina")) {
             if (toInt(stats.get("stamina"), 0) > toInt(stats.get("maxStamina"), 50))
                 stats.put("stamina", stats.get("maxStamina"));
@@ -380,50 +397,169 @@ public class AdminController {
     // ─── 6. 资源更新 ───
 
     @PatchMapping("/players/{id}/resources")
+    @Transactional
     public Result<Map<String, Object>> updateResources(@PathVariable Long id,
                                                         @RequestBody Map<String, Object> body,
                                                         HttpServletRequest request) {
         String admin = checkAdmin(request);
         if (admin == null) return forbidden();
 
-        Player p = playerMapper.selectById(id);
+        if (body == null) return Result.fail("INVALID_VALUE", "请求内容不能为空");
+        String requestKey = body.get("requestKey") instanceof String value ? value.trim() : null;
+        if (requestKey == null || requestKey.isEmpty() || requestKey.length() > 64)
+            return Result.fail("INVALID_VALUE", "requestKey 必须为 1 到 64 个字符");
+        String reason = body.get("reason") instanceof String value ? value.trim() : null;
+        if (reason == null || reason.isEmpty() || reason.length() > 200)
+            return Result.fail("INVALID_VALUE", "reason 必填且不能超过 200 个字符");
+
+        List<String> resourceKeys = List.of("coins", "story_fragments", "constellationFavor", "abyssMark");
+        Set<String> allowedKeys = new HashSet<>(resourceKeys);
+        allowedKeys.add("requestKey");
+        allowedKeys.add("reason");
+        for (String key : body.keySet()) {
+            if (!allowedKeys.contains(key)) return Result.fail("INVALID_VALUE", "不支持调整资源字段: " + key);
+        }
+
+        Map<String, Integer> requestedValues = new LinkedHashMap<>();
+        for (String key : resourceKeys) {
+            if (!body.containsKey(key)) continue;
+            try {
+                requestedValues.put(key, parseNonNegativeResource(body.get(key), key));
+            } catch (IllegalArgumentException exception) {
+                return Result.fail("INVALID_VALUE", exception.getMessage());
+            }
+        }
+        if (requestedValues.isEmpty()) return Result.fail("NO_CHANGES", "没有提供有效的资源字段");
+
+        Map<String, Object> requestPayload = new LinkedHashMap<>();
+        requestPayload.put("playerId", id);
+        requestPayload.put("operator", admin);
+        requestPayload.put("reason", reason);
+        requestPayload.put("resources", requestedValues);
+
+        // 先锁角色，再检查回执：相同请求并发到达时，后一个请求会在前一个提交后读到回执。
+        Player p = playerMapper.selectByIdForUpdate(id);
         if (p == null) return Result.fail("PLAYER_NOT_FOUND", "玩家不存在");
 
-        List<String> changed = new ArrayList<>();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> replay = actionReceiptService.findReplay(
+                id, "admin.resources-adjust", requestKey, requestPayload, Map.class);
+        if (replay != null) return Result.ok(replay);
 
-        if (body.containsKey("coins")) {
-            int val = toInt(body.get("coins"), 0);
-            if (val < 0) return Result.fail("INVALID_VALUE", "coins 必须为非负整数");
-            p.setCoins(val);
-            changed.add("coins");
-        }
-        if (body.containsKey("story_fragments")) {
-            int val = toInt(body.get("story_fragments"), 0);
-            if (val < 0) return Result.fail("INVALID_VALUE", "story_fragments 必须为非负整数");
-            p.setStoryFragments(val);
-            changed.add("story_fragments");
-        }
-        if (body.containsKey("constellationFavor")) {
-            int val = toInt(body.get("constellationFavor"), 0);
-            if (val < 0) return Result.fail("INVALID_VALUE", "constellationFavor 必须为非负数字");
-            p.setConstellationFavor(val);
-            changed.add("constellationFavor");
-        }
-        if (body.containsKey("abyssMark")) {
-            int val = toInt(body.get("abyssMark"), 0);
-            if (val < 0) return Result.fail("INVALID_VALUE", "abyssMark 必须为非负数字");
-            p.setAbyssMark(val);
-            changed.add("abyssMark");
+        List<String> changed = new ArrayList<>(requestedValues.keySet());
+        Map<String, Map<String, Object>> adjustments = new LinkedHashMap<>();
+        for (Map.Entry<String, Integer> entry : requestedValues.entrySet()) {
+            String key = entry.getKey();
+            int before = readResourceBalance(p, key);
+            int after = entry.getValue();
+            adjustments.put(key, Map.of("before", before, "after", after, "delta", (long) after - before));
+            writeResourceBalance(p, key, after);
         }
 
-        if (changed.isEmpty()) return Result.fail("NO_CHANGES", "没有提供有效的资源字段");
+        if (playerMapper.updateById(p) <= 0) throw new IllegalStateException("保存管理员资源校正失败");
+        AdminActionLog auditLog = recordResourceAdjustmentAudit(admin, id, reason, requestKey, adjustments);
 
-        playerMapper.updateById(p);
-        addPlayerLog(id, "[管理员] 资源已调整: " + String.join(", ", changed));
-        logAction(admin, "update_resources", id, Map.of("changed", changed));
+        for (Map.Entry<String, Map<String, Object>> entry : adjustments.entrySet()) {
+            String key = entry.getKey();
+            Map<String, Object> values = entry.getValue();
+            long before = ((Number) values.get("before")).longValue();
+            long after = ((Number) values.get("after")).longValue();
+            long delta = after - before;
+            if (delta == 0) continue;
+
+            String resourceType = switch (key) {
+                case "coins", "story_fragments" -> "currency";
+                case "abyssMark", "constellationFavor" -> "progress";
+                default -> throw new IllegalStateException("未配置资源流水类型: " + key);
+            };
+            String resourceKey = switch (key) {
+                case "constellationFavor" -> "constellation_favor";
+                case "abyssMark" -> "abyss_mark";
+                default -> key;
+            };
+            Map<String, Object> metadata = new LinkedHashMap<>();
+            metadata.put("operator", admin);
+            metadata.put("reason", reason);
+            metadata.put("requestKey", requestKey);
+            metadata.put("adminActionLogId", auditLog.getId());
+            if (!resourceTransactionService.record(new PlayerResourceTransactionService.Change(
+                    id, resourceType, resourceKey, delta, before, after,
+                    "admin_resource_adjustment", String.valueOf(auditLog.getId()), requestKey,
+                    "admin-resource:" + requestKey + ":" + key, metadata))) {
+                throw new IllegalStateException("管理员资源流水已存在但操作回执缺失，拒绝重复校正");
+            }
+        }
+
+        addPlayerLog(id, "[管理员:" + admin + "] 资源校正，原因：" + reason + "；涉及字段：" + String.join(", ", changed));
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("player", buildPlayerFull(p));
+        result.put("changed", changed);
+        result.put("adjustments", adjustments);
+        actionReceiptService.record(id, "admin.resources-adjust", requestKey, requestPayload, result);
         pushStatsUpdated(id);
 
-        return Result.ok(Map.of("player", buildPlayerFull(p), "changed", changed));
+        return Result.ok(result);
+    }
+
+    private int parseNonNegativeResource(Object value, String key) {
+        if (!(value instanceof Number number)) throw new IllegalArgumentException(key + " 必须为非负整数");
+        try {
+            int parsed = new BigDecimal(number.toString()).intValueExact();
+            if (parsed < 0) throw new IllegalArgumentException(key + " 必须为非负整数");
+            return parsed;
+        } catch (NumberFormatException | ArithmeticException exception) {
+            throw new IllegalArgumentException(key + " 必须为范围内的非负整数");
+        }
+    }
+
+    private int readResourceBalance(Player player, String key) {
+        return switch (key) {
+            case "coins" -> player.getCoins() == null ? 0 : player.getCoins();
+            case "story_fragments" -> player.getStoryFragments() == null ? 0 : player.getStoryFragments();
+            case "constellationFavor" -> player.getConstellationFavor() == null ? 0 : player.getConstellationFavor();
+            case "abyssMark" -> player.getAbyssMark() == null ? 0 : player.getAbyssMark();
+            default -> throw new IllegalArgumentException("不支持调整资源字段: " + key);
+        };
+    }
+
+    private void writeResourceBalance(Player player, String key, int value) {
+        switch (key) {
+            case "coins" -> player.setCoins(value);
+            case "story_fragments" -> player.setStoryFragments(value);
+            case "constellationFavor" -> player.setConstellationFavor(value);
+            case "abyssMark" -> player.setAbyssMark(value);
+            default -> throw new IllegalArgumentException("不支持调整资源字段: " + key);
+        }
+    }
+
+    private AdminActionLog recordResourceAdjustmentAudit(String admin, Long playerId, String reason,
+                                                           String requestKey,
+                                                           Map<String, Map<String, Object>> adjustments) {
+        AdminActionLog entry = new AdminActionLog();
+        entry.setAction("update_resources");
+        entry.setTargetId(playerId);
+        entry.setCreatedAt(LocalDateTime.now());
+
+        LoginUser user = LoginUserContext.get();
+        if (user != null && "admin".equals(user.getRole()) && user.getUserId() != null) {
+            entry.setAdminUserId(user.getUserId());
+        }
+
+        Map<String, Object> details = new LinkedHashMap<>();
+        details.put("operator", admin);
+        details.put("operatorUserId", user != null && "admin".equals(user.getRole()) ? user.getUserId() : null);
+        details.put("authMethod", "admin-key".equals(admin) ? "ADMIN_KEY" : "LOGIN_USER");
+        details.put("playerId", playerId);
+        details.put("reason", reason);
+        details.put("requestKey", requestKey);
+        details.put("resources", adjustments);
+        try {
+            entry.setDetails(objectMapper.writeValueAsString(details));
+        } catch (Exception exception) {
+            throw new IllegalStateException("管理员资源审计内容序列化失败", exception);
+        }
+        if (adminActionLogMapper.insert(entry) <= 0) throw new IllegalStateException("管理员资源审计写入失败");
+        return entry;
     }
 
     // ─── 7. 进度更新 ───
@@ -674,6 +810,7 @@ public class AdminController {
     // ─── 9. 快捷操作 ───
 
     @PostMapping("/players/{id}/quick-action")
+    @Transactional
     public Result<Map<String, Object>> quickAction(@PathVariable Long id,
                                                     @RequestBody Map<String, Object> body,
                                                     HttpServletRequest request) {
@@ -746,97 +883,201 @@ public class AdminController {
     }
 
     private Result<Map<String, Object>> fillRankRequirements(Long playerId, String admin) {
-        try {
-            var info = avatarRankService.getAvatarRankInfo(playerId);
-            if (info.isMaxRank()) return Result.fail("MAX_RANK", "已达最高位阶，无法填充条件");
+        Player p = playerMapper.selectByIdForUpdate(playerId);
+        if (p == null) return Result.fail("PLAYER_NOT_FOUND", "玩家不存在");
 
-            Player p = playerMapper.selectById(playerId);
-            Map<String, Object> stats = parseJsonMap(p.getStatsJson());
-            Map<String, Object> stageProgress = parseJsonMap(p.getStageProgressJson());
+        var info = avatarRankService.getAvatarRankInfo(playerId);
+        if (info.isMaxRank()) return Result.fail("MAX_RANK", "已达最高位阶，无法填充条件");
 
-            var reqs = info.getRequirements();
-            if (reqs != null) {
-                for (var req : reqs) {
-                    switch (req.getType()) {
-                        case "levelMin" -> stats.put("level", Math.max(toInt(stats.get("level"), 1), req.getRequired()));
-                        case "storyFragmentsMin" -> p.setStoryFragments(Math.max(
-                                p.getStoryFragments() != null ? p.getStoryFragments() : 0, req.getRequired()));
-                        case "channelHeatMin" -> stats.put("channelHeat", Math.max(
-                                toInt(stats.get("channelHeat"), 0), req.getRequired()));
-                        case "titlesCountMin" -> {
-                            long count = playerTitleMapper.selectCount(
-                                    new QueryWrapper<com.huazhenghai.readergame.entity.PlayerTitle>()
-                                            .eq("player_id", playerId));
-                            String[] pool = {"first_explorer", "station_witness", "story_fragment_collector",
-                                    "starstream_observed", "boss_trace_hunter"};
-                            int pi = 0;
-                            while (count < req.getRequired() && pi < pool.length) {
-                                var exists = playerTitleMapper.selectOne(
-                                        new QueryWrapper<com.huazhenghai.readergame.entity.PlayerTitle>()
-                                                .eq("player_id", playerId).eq("title_key", pool[pi]));
-                                if (exists == null) {
-                                    var pt = new com.huazhenghai.readergame.entity.PlayerTitle();
-                                    pt.setPlayerId(playerId);
-                                    pt.setTitleKey(pool[pi]);
-                                    pt.setUnlockedAt(java.time.LocalDateTime.now());
-                                    playerTitleMapper.insert(pt);
-                                    count++;
-                                }
-                                pi++;
-                            }
-                        }
-                        case "worldLineShiftMin" -> stats.put("worldLineShift", Math.max(
-                                toInt(stats.get("worldLineShift"), 0), req.getRequired()));
-                        case "explorationsByLocation" -> {
-                            @SuppressWarnings("unchecked")
-                            Map<String, Object> byLoc = (Map<String, Object>)
-                                    stageProgress.computeIfAbsent("explorationsByLocation", k -> new LinkedHashMap<>());
-                            String locKey = req.getReqKey() != null ? req.getReqKey() : "any";
-                            byLoc.put(locKey, Math.max(toInt(byLoc.get(locKey), 0), req.getRequired()));
-                        }
-                        case "storyEventsTriggeredMin" -> {
-                            @SuppressWarnings("unchecked")
-                            List<String> triggered = (List<String>)
-                                    stageProgress.computeIfAbsent("storyEventsTriggered", k -> new ArrayList<>());
-                            while (triggered.size() < req.getRequired()) {
-                                triggered.add("admin_placeholder_event_" + triggered.size());
-                            }
-                        }
-                        case "bossClue" -> {
-                            @SuppressWarnings("unchecked")
-                            Map<String, Object> clues = (Map<String, Object>)
-                                    stageProgress.computeIfAbsent("bossClues", k -> new LinkedHashMap<>());
-                            String bossKey = req.getReqKey() != null ? req.getReqKey() : "unknown_boss";
-                            clues.put(bossKey, Math.max(toInt(clues.get(bossKey), 0), req.getRequired()));
-                        }
-                        case "pkRatingMin" -> stats.put("rating", Math.max(
-                                toInt(stats.get("rating"), 1000), req.getRequired()));
-                        case "rareTitleRequired" -> {
+        Map<String, Object> stats = parseJsonMap(p.getStatsJson());
+        Map<String, Object> statsBefore = new LinkedHashMap<>(stats);
+        Map<String, Object> stageProgress = parseJsonMap(p.getStageProgressJson());
+        Map<String, Object> stageProgressBefore = new LinkedHashMap<>(stageProgress);
+        int storyFragmentsBefore = p.getStoryFragments() == null ? 0 : p.getStoryFragments();
+        List<String> titlesAdded = new ArrayList<>();
+        List<Map<String, Object>> requirements = new ArrayList<>();
+
+        var reqs = info.getRequirements();
+        if (reqs != null) {
+            for (var req : reqs) {
+                Map<String, Object> requirement = new LinkedHashMap<>();
+                requirement.put("type", req.getType());
+                requirement.put("required", req.getRequired());
+                if (req.getReqKey() != null) requirement.put("key", req.getReqKey());
+                requirements.add(requirement);
+
+                switch (req.getType()) {
+                    case "levelMin" -> stats.put("level", Math.max(toInt(stats.get("level"), 1), req.getRequired()));
+                    case "storyFragmentsMin" -> p.setStoryFragments(Math.max(
+                            p.getStoryFragments() != null ? p.getStoryFragments() : 0, req.getRequired()));
+                    case "channelHeatMin" -> stats.put("channelHeat", Math.max(
+                            toInt(stats.get("channelHeat"), 0), req.getRequired()));
+                    case "titlesCountMin" -> {
+                        long count = playerTitleMapper.selectCount(
+                                new QueryWrapper<com.huazhenghai.readergame.entity.PlayerTitle>()
+                                        .eq("player_id", playerId));
+                        String[] pool = {"first_explorer", "station_witness", "story_fragment_collector",
+                                "starstream_observed", "boss_trace_hunter"};
+                        int pi = 0;
+                        while (count < req.getRequired() && pi < pool.length) {
                             var exists = playerTitleMapper.selectOne(
                                     new QueryWrapper<com.huazhenghai.readergame.entity.PlayerTitle>()
-                                            .eq("player_id", playerId).eq("title_key", "boss_trace_hunter"));
+                                            .eq("player_id", playerId).eq("title_key", pool[pi]));
                             if (exists == null) {
                                 var pt = new com.huazhenghai.readergame.entity.PlayerTitle();
                                 pt.setPlayerId(playerId);
-                                pt.setTitleKey("boss_trace_hunter");
+                                pt.setTitleKey(pool[pi]);
                                 pt.setUnlockedAt(java.time.LocalDateTime.now());
-                                playerTitleMapper.insert(pt);
+                                if (playerTitleMapper.insert(pt) <= 0)
+                                    throw new IllegalStateException("管理员补齐位阶条件时称号写入失败");
+                                titlesAdded.add(pool[pi]);
+                                count++;
                             }
+                            pi++;
+                        }
+                    }
+                    case "worldLineShiftMin" -> stats.put("worldLineShift", Math.max(
+                            toInt(stats.get("worldLineShift"), 0), req.getRequired()));
+                    case "explorationsByLocation" -> {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> byLoc = (Map<String, Object>)
+                                stageProgress.computeIfAbsent("explorationsByLocation", k -> new LinkedHashMap<>());
+                        String locKey = req.getReqKey() != null ? req.getReqKey() : "any";
+                        byLoc.put(locKey, Math.max(toInt(byLoc.get(locKey), 0), req.getRequired()));
+                    }
+                    case "storyEventsTriggeredMin" -> {
+                        @SuppressWarnings("unchecked")
+                        List<String> triggered = (List<String>)
+                                stageProgress.computeIfAbsent("storyEventsTriggered", k -> new ArrayList<>());
+                        while (triggered.size() < req.getRequired()) {
+                            triggered.add("admin_placeholder_event_" + triggered.size());
+                        }
+                    }
+                    case "bossClue" -> {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> clues = (Map<String, Object>)
+                                stageProgress.computeIfAbsent("bossClues", k -> new LinkedHashMap<>());
+                        String bossKey = req.getReqKey() != null ? req.getReqKey() : "unknown_boss";
+                        clues.put(bossKey, Math.max(toInt(clues.get(bossKey), 0), req.getRequired()));
+                    }
+                    case "pkRatingMin" -> stats.put("rating", Math.max(
+                            toInt(stats.get("rating"), 1000), req.getRequired()));
+                    case "rareTitleRequired" -> {
+                        var exists = playerTitleMapper.selectOne(
+                                new QueryWrapper<com.huazhenghai.readergame.entity.PlayerTitle>()
+                                        .eq("player_id", playerId).eq("title_key", "boss_trace_hunter"));
+                        if (exists == null) {
+                            var pt = new com.huazhenghai.readergame.entity.PlayerTitle();
+                            pt.setPlayerId(playerId);
+                            pt.setTitleKey("boss_trace_hunter");
+                            pt.setUnlockedAt(java.time.LocalDateTime.now());
+                            if (playerTitleMapper.insert(pt) <= 0)
+                                throw new IllegalStateException("管理员补齐位阶条件时称号写入失败");
+                            titlesAdded.add("boss_trace_hunter");
                         }
                     }
                 }
             }
-
-            try { p.setStatsJson(objectMapper.writeValueAsString(stats)); } catch (Exception ignored) {}
-            try { p.setStageProgressJson(objectMapper.writeValueAsString(stageProgress)); } catch (Exception ignored) {}
-            playerMapper.updateById(p);
-            addPlayerLog(playerId, "[管理员] 位阶条件已一键满足");
-            logAction(admin, "fill_rank_reqs", playerId, Map.of());
-
-            return Result.ok(Map.of("player", buildPlayerFull(p), "message", "位阶条件已一键满足"));
-        } catch (Exception e) {
-            return Result.fail("SERVER_ERROR", e.getMessage());
         }
+
+        try {
+            p.setStatsJson(objectMapper.writeValueAsString(stats));
+            p.setStageProgressJson(objectMapper.writeValueAsString(stageProgress));
+        } catch (Exception exception) {
+            throw new IllegalStateException("管理员补齐位阶条件时状态序列化失败", exception);
+        }
+        if (playerMapper.updateById(p) <= 0)
+            throw new IllegalStateException("管理员补齐位阶条件时玩家状态保存失败");
+
+        String transactionGroupId = "arr:" + playerId + ":" + UUID.randomUUID();
+        Map<String, Map<String, Object>> resourceChanges = new LinkedHashMap<>();
+        addAdminResourceChange(resourceChanges, "story_fragments", "currency",
+                storyFragmentsBefore, p.getStoryFragments() == null ? 0 : p.getStoryFragments());
+        addAdminResourceChange(resourceChanges, "channel_heat", "progress",
+                toInt(statsBefore.get("channelHeat"), 0), toInt(stats.get("channelHeat"), 0));
+        addAdminResourceChange(resourceChanges, "world_line_shift", "progress",
+                toInt(statsBefore.get("worldLineShift"), 0), toInt(stats.get("worldLineShift"), 0));
+
+        Map<String, Object> audit = new LinkedHashMap<>();
+        audit.put("operator", admin);
+        audit.put("operatorUserId", currentAdminUserId());
+        audit.put("authMethod", "admin-key".equals(admin) ? "ADMIN_KEY" : "LOGIN_USER");
+        audit.put("requirements", requirements);
+        audit.put("statsChanges", diffMaps(statsBefore, stats));
+        audit.put("stageProgressChanges", diffMaps(stageProgressBefore, stageProgress));
+        audit.put("resourceChanges", resourceChanges);
+        audit.put("titlesAdded", titlesAdded);
+        AdminActionLog auditLog = recordRankRequirementsAudit(playerId, audit);
+
+        for (Map.Entry<String, Map<String, Object>> entry : resourceChanges.entrySet()) {
+            String resourceKey = entry.getKey();
+            Map<String, Object> change = entry.getValue();
+            Map<String, Object> metadata = new LinkedHashMap<>();
+            metadata.put("operator", admin);
+            metadata.put("adminActionLogId", auditLog.getId());
+            metadata.put("requirements", requirements);
+            boolean inserted = resourceTransactionService.record(new PlayerResourceTransactionService.Change(
+                    playerId, (String) change.get("resourceType"), resourceKey,
+                    ((Number) change.get("delta")).longValue(),
+                    ((Number) change.get("before")).longValue(),
+                    ((Number) change.get("after")).longValue(),
+                    "admin_rank_requirements", String.valueOf(playerId), transactionGroupId,
+                    transactionGroupId + ":" + resourceKey, metadata));
+            if (!inserted) throw new IllegalStateException("管理员补齐条件资源流水已存在，拒绝重复写入");
+        }
+
+        addPlayerLog(playerId, "[管理员:" + admin + "] 位阶条件已一键满足；资源变化：" + resourceChanges.keySet());
+        return Result.ok(Map.of("player", buildPlayerFull(p), "message", "位阶条件已一键满足"));
+    }
+
+    private void addAdminResourceChange(Map<String, Map<String, Object>> changes, String resourceKey,
+                                        String resourceType, long before, long after) {
+        long delta = after - before;
+        if (delta == 0) return;
+        Map<String, Object> change = new LinkedHashMap<>();
+        change.put("resourceType", resourceType);
+        change.put("before", before);
+        change.put("after", after);
+        change.put("delta", delta);
+        changes.put(resourceKey, change);
+    }
+
+    private Map<String, Map<String, Object>> diffMaps(Map<String, Object> before, Map<String, Object> after) {
+        Map<String, Map<String, Object>> changes = new LinkedHashMap<>();
+        Set<String> keys = new LinkedHashSet<>(before.keySet());
+        keys.addAll(after.keySet());
+        for (String key : keys) {
+            Object oldValue = before.get(key);
+            Object newValue = after.get(key);
+            if (Objects.deepEquals(oldValue, newValue)) continue;
+            Map<String, Object> change = new LinkedHashMap<>();
+            change.put("before", oldValue);
+            change.put("after", newValue);
+            changes.put(key, change);
+        }
+        return changes;
+    }
+
+    private Long currentAdminUserId() {
+        LoginUser user = LoginUserContext.get();
+        return user != null && "admin".equals(user.getRole()) ? user.getUserId() : null;
+    }
+
+    private AdminActionLog recordRankRequirementsAudit(Long playerId, Map<String, Object> details) {
+        AdminActionLog entry = new AdminActionLog();
+        entry.setAction("fill_rank_reqs");
+        entry.setTargetType("player");
+        entry.setTargetId(playerId);
+        entry.setAdminUserId(currentAdminUserId());
+        entry.setCreatedAt(LocalDateTime.now());
+        try {
+            entry.setDetails(objectMapper.writeValueAsString(details));
+        } catch (Exception exception) {
+            throw new IllegalStateException("管理员位阶条件审计序列化失败", exception);
+        }
+        if (adminActionLogMapper.insert(entry) <= 0)
+            throw new IllegalStateException("管理员位阶条件审计写入失败");
+        return entry;
     }
 
     private Result<Map<String, Object>> forceRankUp(Long playerId, Long userId, String admin) {

@@ -191,6 +191,9 @@ public class SchedulerServiceImpl implements SchedulerService {
             taskLog.setAffectedCount(affected);
         } catch (Exception e) {
             taskLog.setStatus("failed");
+            if (e instanceof PartialTaskFailureException partialFailure) {
+                taskLog.setAffectedCount(partialFailure.getAffectedCount());
+            }
             taskLog.setErrorMessage(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
             taskLog.setMessage(taskName + " 执行失败");
             log.error("Scheduler task {} failed", taskName, e);
@@ -321,40 +324,74 @@ public class SchedulerServiceImpl implements SchedulerService {
     }
 
     private int expireWorldBosses() {
-        try {
-            QueryWrapper<WorldBoss> qw = new QueryWrapper<>();
-            qw.eq("status", "active").lt("end_at", LocalDateTime.now());
-            List<WorldBoss> expired = worldBossMapper.selectList(qw);
-            for (WorldBoss boss : expired) {
-                boss.setStatus("expired");
-                boss.setUpdatedAt(LocalDateTime.now());
-                worldBossMapper.updateById(boss);
-                try { worldBossService.settleBoss(boss.getBossNo()); } catch (Exception ignored) {}
+        LocalDateTime now = LocalDateTime.now();
+        QueryWrapper<WorldBoss> qw = new QueryWrapper<>();
+        qw.and(status -> status.eq("status", "expired")
+                .or(active -> active.eq("status", "active").lt("end_at", now)));
+        List<WorldBoss> candidates = worldBossMapper.selectList(qw);
+        int completedCount = 0;
+        int newlyExpiredCount = 0;
+        List<String> failures = new ArrayList<>();
+
+        for (WorldBoss boss : candidates) {
+            try {
+                if ("active".equals(boss.getStatus())) {
+                    UpdateWrapper<WorldBoss> expire = new UpdateWrapper<>();
+                    expire.eq("boss_no", boss.getBossNo())
+                            .eq("status", "active")
+                            .lt("end_at", now)
+                            .set("status", "expired")
+                            .set("updated_at", now);
+                    int updated = worldBossMapper.update(null, expire);
+                    if (updated > 0) {
+                        newlyExpiredCount += updated;
+                        boss.setStatus("expired");
+                        boss.setUpdatedAt(now);
+                    }
+                }
+                // Expired rows are deliberately included on every tick until settlement succeeds.
+                worldBossService.settleBoss(boss.getBossNo());
+                completedCount++;
+            } catch (Exception e) {
+                failures.add(boss.getBossNo());
+                log.warn("Failed to expire/settle world boss {}; it will be retried", boss.getBossNo(), e);
             }
-            if (!expired.isEmpty()) {
-                pushWorldBossUpdate();
-                pushSystemAnnouncement("世界Boss", "世界Boss讨伐时限已过，请等待下次机会。");
-            }
-            return expired.size();
-        } catch (Exception e) {
-            log.warn("expireWorldBosses failed: {}", e.getMessage());
-            return 0;
         }
+
+        if (newlyExpiredCount > 0 || completedCount > 0) {
+            pushWorldBossUpdate();
+        }
+        if (newlyExpiredCount > 0) {
+            pushSystemAnnouncement("世界Boss", "世界Boss讨伐时限已过，请等待下次机会。");
+        }
+        throwIfBossSettlementFailed("过期", completedCount, failures);
+        return completedCount;
     }
 
     private int settleKilledWorldBosses() {
-        try {
-            QueryWrapper<WorldBoss> qw = new QueryWrapper<>();
-            qw.eq("status", "killed");
-            List<WorldBoss> killed = worldBossMapper.selectList(qw);
-            for (WorldBoss boss : killed) {
-                try { worldBossService.settleBoss(boss.getBossNo()); } catch (Exception ignored) {}
+        QueryWrapper<WorldBoss> qw = new QueryWrapper<>();
+        qw.eq("status", "killed");
+        List<WorldBoss> killed = worldBossMapper.selectList(qw);
+        int completedCount = 0;
+        List<String> failures = new ArrayList<>();
+        for (WorldBoss boss : killed) {
+            try {
+                worldBossService.settleBoss(boss.getBossNo());
+                completedCount++;
+            } catch (Exception e) {
+                failures.add(boss.getBossNo());
+                log.warn("Failed to settle killed world boss {}; it will be retried", boss.getBossNo(), e);
             }
-            return killed.size();
-        } catch (Exception e) {
-            log.warn("settleKilledWorldBosses failed: {}", e.getMessage());
-            return 0;
         }
+        throwIfBossSettlementFailed("击杀结算", completedCount, failures);
+        return completedCount;
+    }
+
+    private void throwIfBossSettlementFailed(String operation, int completedCount, List<String> failures) {
+        if (failures.isEmpty()) return;
+        throw new PartialTaskFailureException("世界Boss" + operation + "失败 " + failures.size()
+                + " 个（" + String.join(", ", failures) + "）；已完成 " + completedCount + " 个，失败项将重试",
+                completedCount);
     }
 
     // ─── internal ───
@@ -424,6 +461,19 @@ public class SchedulerServiceImpl implements SchedulerService {
             "generateAiBroadcast",
             "settleFactionDaily"
     );
+
+    private static final class PartialTaskFailureException extends RuntimeException {
+        private final int affectedCount;
+
+        private PartialTaskFailureException(String message, int affectedCount) {
+            super(message);
+            this.affectedCount = affectedCount;
+        }
+
+        private int getAffectedCount() {
+            return affectedCount;
+        }
+    }
 
     private ScheduledTaskLogVO toVO(ScheduledTaskLog e) {
         ScheduledTaskLogVO vo = new ScheduledTaskLogVO();

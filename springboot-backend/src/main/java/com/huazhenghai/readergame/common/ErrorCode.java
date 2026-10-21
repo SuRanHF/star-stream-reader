@@ -78,6 +78,9 @@ public final class ErrorCode {
     /** 无可用探索事件 */
     public static final String NO_AVAILABLE_EVENT = "NO_AVAILABLE_EVENT";
 
+    /** 存在尚未处理的战斗遭遇 */
+    public static final String PENDING_BATTLE_UNRESOLVED = "PENDING_BATTLE_UNRESOLVED";
+
     /** 事件不存在 */
     public static final String EVENT_NOT_FOUND = "EVENT_NOT_FOUND";
 
@@ -140,6 +143,9 @@ public final class ErrorCode {
 
     /** 技能已被禁用 */
     public static final String SKILL_DISABLED = "SKILL_DISABLED";
+
+    /** 位阶开放的技能槽已占满 */
+    public static final String SKILL_SLOT_FULL = "SKILL_SLOT_FULL";
 
     /** 资源不足 */
     public static final String RESOURCE_NOT_ENOUGH = "RESOURCE_NOT_ENOUGH";

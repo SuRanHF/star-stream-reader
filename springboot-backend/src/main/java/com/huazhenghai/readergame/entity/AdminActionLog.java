@@ -18,12 +18,13 @@ public class AdminActionLog {
 
     private String action;
 
-    @TableField("target_type")
+    @TableField(exist = false)
     private String targetType;
 
-    @TableField("target_id")
+    @TableField("target_player_id")
     private Long targetId;
 
+    @TableField("payload_json")
     private String details;
 
     @TableField("created_at")

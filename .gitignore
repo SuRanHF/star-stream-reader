@@ -21,3 +21,29 @@ public/fonts/*.woff2
 *.jpg
 !.gitkeep
 .playwright-mcp/
+
+# Local-only source/reference material and personal study documents
+/reference/
+/txt/
+/面试准备_*.md
+/docs/答辩_*.md
+/docs/答辩准备文档*.md
+/docs/*阶段理论题*.doc*
+/docs/实习报告_游戏.md
+/docs/项目问题20问.md
+/docs/原著设定索引.md
+/docs/原著与游戏设定映射.md
+
+# One-off local browser diagnostics and live account scripts
+/frontend-player/e2e/_inspect_*.py
+/frontend-player/e2e/*.mjs
+/frontend-player/pnpm-lock.yaml
+/frontend-player/pnpm-workspace.yaml
+/scripts/download-lingverse-assets.ps1
+
+# Machine-specific editor and workspace state
+/.vscode/folder-alias.json
+/.vscode/folder-alias-selected-presets.json
+/folder-alias.json
+/knowledge-base/.obsidian/workspace.json
+/springboot-backend/.settings/

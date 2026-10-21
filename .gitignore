@@ -7,6 +7,13 @@ data/admin-actions.json
 .env
 .env.*
 .claude/settings.local.json
+
+# Local-only AI coding instructions and development plans
+/.claude/
+/CLAUDE.md
+/PLAN-*.md
+/docs/*计划*.md
+
 dist/
 build/
 *.tsbuildinfo

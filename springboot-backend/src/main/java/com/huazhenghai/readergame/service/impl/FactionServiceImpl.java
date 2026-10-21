@@ -9,11 +9,14 @@ import com.huazhenghai.readergame.common.ErrorCode;
 import com.huazhenghai.readergame.entity.*;
 import com.huazhenghai.readergame.mapper.*;
 import com.huazhenghai.readergame.service.FactionService;
+import com.huazhenghai.readergame.service.PlayerActionReceiptService;
+import com.huazhenghai.readergame.service.PlayerResourceTransactionService;
 import com.huazhenghai.readergame.service.QuestService;
 import com.huazhenghai.readergame.vo.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -30,29 +33,38 @@ public class FactionServiceImpl implements FactionService {
     private final FactionContributionMapper contributionMapper;
     private final FactionWarMapper warMapper;
     private final FactionSkillMapper skillMapper;
+    private final PlayerFactionSkillMapper playerSkillMapper;
     private final PlayerMapper playerMapper;
     private final PlayerLogMapper playerLogMapper;
     private final ObjectMapper objectMapper;
     private final QuestService questService;
+    private final PlayerActionReceiptService actionReceiptService;
+    private final PlayerResourceTransactionService resourceTransactionService;
 
     public FactionServiceImpl(ConstellationFactionMapper factionMapper,
                                PlayerFactionMapper playerFactionMapper,
                                FactionContributionMapper contributionMapper,
                                FactionWarMapper warMapper,
                                FactionSkillMapper skillMapper,
+                               PlayerFactionSkillMapper playerSkillMapper,
                                PlayerMapper playerMapper,
                                PlayerLogMapper playerLogMapper,
                                ObjectMapper objectMapper,
-                               QuestService questService) {
+                               QuestService questService,
+                               PlayerActionReceiptService actionReceiptService,
+                               PlayerResourceTransactionService resourceTransactionService) {
         this.factionMapper = factionMapper;
         this.playerFactionMapper = playerFactionMapper;
         this.contributionMapper = contributionMapper;
         this.warMapper = warMapper;
         this.skillMapper = skillMapper;
+        this.playerSkillMapper = playerSkillMapper;
         this.playerMapper = playerMapper;
         this.playerLogMapper = playerLogMapper;
         this.objectMapper = objectMapper;
         this.questService = questService;
+        this.actionReceiptService = actionReceiptService;
+        this.resourceTransactionService = resourceTransactionService;
     }
 
     @Override
@@ -165,31 +177,26 @@ public class FactionServiceImpl implements FactionService {
     }
 
     @Override
-    @Transactional
+    // Combat/exploration treat this as best-effort; isolate failures without committing ahead of them.
+    @Transactional(propagation = Propagation.NESTED)
     public FactionContributionVO contribute(Long playerId, String factionKey, String contributionType,
                                             Long value, String source, String relatedId, Long userId) {
-        // auto-contribution: no userId validation, look up player's faction
-        boolean isAuto = userId == null;
-        if (!isAuto) {
-            validatePlayerOwnership(playerId, userId);
-        }
+        // Manual contributions lock the player here; automatic contributions run inside an
+        // exploration/combat transaction that already holds the same player row lock.
+        if (userId != null) lockOwnedPlayerForUpdate(playerId, userId);
 
         if (value == null || value <= 0)
             throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "贡献值必须大于0");
 
+        // Lock reputation before reading it so contributions cannot overwrite a concurrent skill purchase.
+        PlayerFaction pf = playerFactionMapper.selectActiveByPlayerIdForUpdate(playerId);
+        if (pf == null) return null;
+
         // auto-contribution: resolve factionKey from player's active faction
         if (factionKey == null || factionKey.isBlank()) {
-            QueryWrapper<PlayerFaction> aq = new QueryWrapper<>();
-            aq.eq("player_id", playerId).eq("status", "active");
-            PlayerFaction active = playerFactionMapper.selectOne(aq);
-            if (active == null) return null; // no faction, skip quietly
-            factionKey = active.getFactionKey();
+            factionKey = pf.getFactionKey();
         }
-
-        QueryWrapper<PlayerFaction> pq = new QueryWrapper<>();
-        pq.eq("player_id", playerId).eq("status", "active").eq("faction_key", factionKey);
-        PlayerFaction pf = playerFactionMapper.selectOne(pq);
-        if (pf == null) return null; // not in this faction, skip quietly
+        if (!Objects.equals(pf.getFactionKey(), factionKey)) return null;
 
         if (contributionType == null || contributionType.isBlank())
             contributionType = "manual";
@@ -239,7 +246,9 @@ public class FactionServiceImpl implements FactionService {
 
         // 自动任务进度
         try { questService.addProgress(playerId, "faction_contribution_value", value.intValue(), source, relatedId); }
-        catch (Exception ignored) {}
+        catch (Exception e) {
+            log.warn("Quest progress failed after faction contribution for player {}", playerId, e);
+        }
 
         return vo;
     }
@@ -247,13 +256,17 @@ public class FactionServiceImpl implements FactionService {
     @Override
     public List<FactionRankingVO> getFactionRankings() {
         QueryWrapper<ConstellationFaction> qw = new QueryWrapper<>();
-        qw.eq("enabled", 1).orderByDesc("total_contribution");
+        qw.eq("enabled", 1).orderByDesc("total_contribution").orderByAsc("faction_key");
         List<ConstellationFaction> factions = factionMapper.selectList(qw);
         List<FactionRankingVO> result = new ArrayList<>();
+        int rank = 0;
+        Long previousContribution = null;
         for (int i = 0; i < factions.size(); i++) {
             ConstellationFaction f = factions.get(i);
+            long contribution = f.getTotalContribution() == null ? 0L : f.getTotalContribution();
+            if (!Objects.equals(previousContribution, contribution)) rank = i + 1;
             FactionRankingVO vo = new FactionRankingVO();
-            vo.setRank(i + 1);
+            vo.setRank(rank);
             vo.setFactionKey(f.getFactionKey());
             vo.setFactionName(f.getName());
             vo.setAlignment(f.getAlignment());
@@ -261,6 +274,7 @@ public class FactionServiceImpl implements FactionService {
             vo.setMemberCount(f.getMemberCount());
             vo.setTotalContribution(f.getTotalContribution());
             result.add(vo);
+            previousContribution = contribution;
         }
         return result;
     }
@@ -269,17 +283,22 @@ public class FactionServiceImpl implements FactionService {
     public List<FactionRankingVO> getFactionContributionRankings(String factionKey) {
         QueryWrapper<PlayerFaction> pq = new QueryWrapper<>();
         pq.eq("faction_key", factionKey).eq("status", "active")
-          .orderByDesc("contribution_total").last("LIMIT 50");
+          .orderByDesc("contribution_total").orderByAsc("player_id").last("LIMIT 50");
         List<PlayerFaction> list = playerFactionMapper.selectList(pq);
         List<FactionRankingVO> result = new ArrayList<>();
+        int rank = 0;
+        Long previousContribution = null;
         for (int i = 0; i < list.size(); i++) {
             PlayerFaction pf = list.get(i);
+            long contribution = pf.getContributionTotal() == null ? 0L : pf.getContributionTotal();
+            if (!Objects.equals(previousContribution, contribution)) rank = i + 1;
             FactionRankingVO vo = new FactionRankingVO();
-            vo.setRank(i + 1);
+            vo.setRank(rank);
             vo.setPlayerId(pf.getPlayerId());
             vo.setPlayerName(getPlayerName(pf.getPlayerId()));
-            vo.setContributionValue(pf.getContributionTotal());
+            vo.setContributionValue(contribution);
             result.add(vo);
+            previousContribution = contribution;
         }
         return result;
     }
@@ -291,6 +310,142 @@ public class FactionServiceImpl implements FactionService {
         return skillMapper.selectList(qw).stream()
                 .map(this::toFactionSkillVO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<FactionSkillVO> getPlayerFactionSkills(Long playerId, Long userId) {
+        validatePlayerOwnership(playerId, userId);
+        PlayerFaction playerFaction = playerFactionMapper.selectOne(new QueryWrapper<PlayerFaction>()
+                .eq("player_id", playerId).eq("status", "active"));
+        if (playerFaction == null) return Collections.emptyList();
+
+        Player player = playerMapper.selectById(playerId);
+        ConstellationFaction faction = getFactionByKey(playerFaction.getFactionKey());
+        Set<String> learnedKeys = playerSkillMapper.selectList(new QueryWrapper<PlayerFactionSkill>()
+                        .eq("player_id", playerId).eq("faction_key", playerFaction.getFactionKey()))
+                .stream().map(PlayerFactionSkill::getSkillKey).collect(Collectors.toSet());
+
+        QueryWrapper<FactionSkill> skillQuery = new QueryWrapper<>();
+        skillQuery.eq("faction_key", playerFaction.getFactionKey()).eq("enabled", 1).orderByAsc("unlock_level");
+        List<FactionSkillVO> result = new ArrayList<>();
+        for (FactionSkill skill : skillMapper.selectList(skillQuery)) {
+            FactionSkillVO vo = toFactionSkillVO(skill);
+            boolean learned = learnedKeys.contains(skill.getSkillKey());
+            vo.setLearned(learned);
+            vo.setCanLearn(!learned && canLearnFactionSkill(playerFaction, faction, skill, player));
+            result.add(vo);
+        }
+        return result;
+    }
+
+    @Override
+    @Transactional
+    public FactionSkillVO learnFactionSkill(Long playerId, String skillKey, Long userId, String requestKey) {
+        Player player = lockOwnedPlayerForUpdate(playerId, userId);
+        if (skillKey == null || skillKey.isBlank())
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "阵营技能标识不能为空");
+
+        Map<String, Object> requestPayload = Map.of("playerId", playerId, "skillKey", skillKey);
+        FactionSkillVO replay = actionReceiptService.findReplay(
+                playerId, "faction.skill-learn", requestKey, requestPayload, FactionSkillVO.class);
+        if (replay != null) return replay;
+
+        PlayerFaction playerFaction = playerFactionMapper.selectActiveByPlayerIdForUpdate(playerId);
+        if (playerFaction == null)
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "请先加入阵营");
+
+        FactionSkill skill = skillMapper.selectOne(new QueryWrapper<FactionSkill>()
+                .eq("faction_key", playerFaction.getFactionKey())
+                .eq("skill_key", skillKey).eq("enabled", 1));
+        if (skill == null)
+            throw new BusinessException(ErrorCode.NOT_FOUND, "阵营技能不存在或不属于当前阵营");
+        if (playerSkillMapper.selectCount(new QueryWrapper<PlayerFactionSkill>()
+                .eq("player_id", playerId).eq("skill_key", skillKey)) > 0)
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "已经学习过该阵营技能");
+
+        ConstellationFaction faction = getFactionByKey(playerFaction.getFactionKey());
+        Map<String, Object> cost = parseJsonMap(skill.getCostJson());
+        long reputationCost = toLong(cost.get("reputation"), 0);
+        long coinsCost = toLong(cost.get("coins"), 0);
+        if (reputationCost < 0 || coinsCost < 0)
+            throw new IllegalStateException("阵营技能资源消耗配置不能为负数");
+        if (!canLearnFactionSkill(playerFaction, faction, skill, player))
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_ENOUGH, "不满足阵营技能的等级、声望或星币要求");
+
+        long coinsBefore = player.getCoins() != null ? player.getCoins() : 0L;
+        long coinsAfter = Math.subtractExact(coinsBefore, coinsCost);
+        long reputationBefore = playerFaction.getReputation() != null ? playerFaction.getReputation() : 0L;
+        long reputationAfter = Math.subtractExact(reputationBefore, reputationCost);
+
+        LocalDateTime now = LocalDateTime.now();
+        PlayerFactionSkill learned = new PlayerFactionSkill();
+        learned.setPlayerId(playerId);
+        learned.setFactionKey(playerFaction.getFactionKey());
+        learned.setSkillKey(skillKey);
+        learned.setLevel(1);
+        learned.setLearnedAt(now);
+        learned.setCreatedAt(now);
+        learned.setUpdatedAt(now);
+        if (playerSkillMapper.insert(learned) <= 0)
+            throw new IllegalStateException("保存阵营技能学习记录失败");
+
+        if (reputationCost > 0) {
+            playerFaction.setReputation(reputationAfter);
+            playerFaction.setUpdatedAt(now);
+            if (playerFactionMapper.updateById(playerFaction) <= 0)
+                throw new IllegalStateException("保存阵营声望扣除失败");
+        }
+        if (coinsCost > 0) {
+            player.setCoins(Math.toIntExact(coinsAfter));
+            if (playerMapper.updateById(player) <= 0)
+                throw new IllegalStateException("保存阵营技能星币扣除失败");
+        }
+
+        String transactionGroupId = "fskill:" + playerId + ":" + UUID.nameUUIDFromBytes(
+                (playerId + ":" + skillKey + ":" + requestKey)
+                        .getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        Map<String, Object> resourceMetadata = new LinkedHashMap<>();
+        resourceMetadata.put("factionKey", playerFaction.getFactionKey());
+        resourceMetadata.put("skillKey", skillKey);
+        resourceMetadata.put("coinsCost", coinsCost);
+        resourceMetadata.put("reputationCost", reputationCost);
+        resourceMetadata.put("coinsBefore", coinsBefore);
+        resourceMetadata.put("coinsAfter", coinsAfter);
+        resourceMetadata.put("reputationBefore", reputationBefore);
+        resourceMetadata.put("reputationAfter", reputationAfter);
+        if (coinsCost > 0) {
+            resourceTransactionService.record(new PlayerResourceTransactionService.Change(
+                    playerId, "currency", "coins", -coinsCost, coinsBefore, coinsAfter,
+                    "faction_skill_learn", skillKey, transactionGroupId,
+                    transactionGroupId + ":coins", resourceMetadata));
+        }
+        if (reputationCost > 0) {
+            resourceTransactionService.record(new PlayerResourceTransactionService.Change(
+                    playerId, "reputation", playerFaction.getFactionKey(),
+                    -reputationCost, reputationBefore, reputationAfter,
+                    "faction_skill_learn", skillKey, transactionGroupId,
+                    transactionGroupId + ":reputation", resourceMetadata));
+        }
+        writeLog(playerId, "faction_skill", "学习了阵营技能「" + skill.getName()
+                + "」，消耗 " + coinsCost + " 星币与 " + reputationCost + " 声望", resourceMetadata);
+
+        FactionSkillVO vo = toFactionSkillVO(skill);
+        vo.setLearned(true);
+        vo.setCanLearn(false);
+        actionReceiptService.record(playerId, "faction.skill-learn", requestKey, requestPayload, vo);
+        return vo;
+    }
+
+    private boolean canLearnFactionSkill(PlayerFaction playerFaction, ConstellationFaction faction,
+                                         FactionSkill skill, Player player) {
+        int factionLevel = faction != null && faction.getLevel() != null ? faction.getLevel() : 1;
+        if (factionLevel < (skill.getUnlockLevel() != null ? skill.getUnlockLevel() : 1)) return false;
+        Map<String, Object> cost = parseJsonMap(skill.getCostJson());
+        long reputation = playerFaction.getReputation() != null ? playerFaction.getReputation() : 0;
+        long reputationCost = toLong(cost.get("reputation"), 0);
+        if (reputation < reputationCost) return false;
+        long coinsCost = toLong(cost.get("coins"), 0);
+        return player == null || (player.getCoins() != null && player.getCoins() >= coinsCost);
     }
 
     @Override
@@ -352,6 +507,7 @@ public class FactionServiceImpl implements FactionService {
         result.put("dailyContribution", 0L);
         result.put("baseAtk", 0);
         result.put("multiplier", 1.0);
+        result.put("skillBonuses", new LinkedHashMap<>());
         result.put("description", "未加入阵营，无加成");
 
         if (playerId == null) return result;
@@ -384,14 +540,33 @@ public class FactionServiceImpl implements FactionService {
         // 加成倍率：每 500 贡献 x1.0 倍，最高 5 倍
         double multiplier = 1.0 + Math.min((double) dailyContribution / 500.0, 4.0);
         int buffAtk = (int) Math.round(baseAtk * multiplier);
+        Map<String, Object> skillBonuses = getLearnedFactionSkillBonuses(playerId, pf.getFactionKey());
 
         result.put("dailyContribution", dailyContribution);
         result.put("multiplier", Math.round(multiplier * 100.0) / 100.0);
         result.put("buffAtk", buffAtk);
+        result.put("skillBonuses", skillBonuses);
         result.put("description", "攻击 +" + buffAtk + "（基础 " + baseAtk
                 + " × " + String.format("%.2f", multiplier) + " 倍，今日贡献 " + dailyContribution + "）");
 
         return result;
+    }
+
+    private Map<String, Object> getLearnedFactionSkillBonuses(Long playerId, String factionKey) {
+        Map<String, Object> bonuses = new LinkedHashMap<>();
+        List<PlayerFactionSkill> learned = playerSkillMapper.selectList(new QueryWrapper<PlayerFactionSkill>()
+                .eq("player_id", playerId).eq("faction_key", factionKey));
+        for (PlayerFactionSkill learnedSkill : learned) {
+            FactionSkill definition = skillMapper.selectOne(new QueryWrapper<FactionSkill>()
+                    .eq("faction_key", factionKey).eq("skill_key", learnedSkill.getSkillKey()).eq("enabled", 1));
+            if (definition == null) continue;
+            for (Map.Entry<String, Object> entry : parseJsonMap(definition.getEffectsJson()).entrySet()) {
+                if (!(entry.getValue() instanceof Number number)) continue;
+                double current = toDouble(bonuses.get(entry.getKey()), 0);
+                bonuses.put(entry.getKey(), current + number.doubleValue());
+            }
+        }
+        return bonuses;
     }
 
     @Override
@@ -626,6 +801,14 @@ public class FactionServiceImpl implements FactionService {
             throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此玩家");
     }
 
+    private Player lockOwnedPlayerForUpdate(Long playerId, Long userId) {
+        Player player = playerMapper.selectByIdForUpdate(playerId);
+        if (player == null) throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
+        if (userId != null && !Objects.equals(player.getUserId(), userId))
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此玩家");
+        return player;
+    }
+
     private String getPlayerName(Long playerId) {
         Player p = playerMapper.selectById(playerId);
         return p != null ? p.getPlayerName() : "未知";
@@ -639,6 +822,22 @@ public class FactionServiceImpl implements FactionService {
         playerLogMapper.insert(log);
     }
 
+    private void writeLog(Long playerId, String type, String message, Map<String, Object> metadata) {
+        PlayerLog log = new PlayerLog();
+        log.setPlayerId(playerId);
+        log.setType(type);
+        log.setMessage(message);
+        if (metadata != null && !metadata.isEmpty()) {
+            try {
+                log.setMetadataJson(objectMapper.writeValueAsString(metadata));
+            } catch (Exception exception) {
+                throw new IllegalArgumentException("阵营技能消耗日志无法序列化", exception);
+            }
+        }
+        if (playerLogMapper.insert(log) <= 0)
+            throw new IllegalStateException("保存阵营技能历程失败");
+    }
+
     private Map<String, Object> parseJsonMap(String json) {
         if (json == null || json.isBlank() || "null".equals(json))
             return new LinkedHashMap<>();
@@ -647,5 +846,17 @@ public class FactionServiceImpl implements FactionService {
         } catch (Exception e) {
             return new LinkedHashMap<>();
         }
+    }
+
+    private long toLong(Object value, long defaultValue) {
+        if (value instanceof Number number) return number.longValue();
+        try { return value == null ? defaultValue : Long.parseLong(value.toString()); }
+        catch (NumberFormatException ignored) { return defaultValue; }
+    }
+
+    private double toDouble(Object value, double defaultValue) {
+        if (value instanceof Number number) return number.doubleValue();
+        try { return value == null ? defaultValue : Double.parseDouble(value.toString()); }
+        catch (NumberFormatException ignored) { return defaultValue; }
     }
 }

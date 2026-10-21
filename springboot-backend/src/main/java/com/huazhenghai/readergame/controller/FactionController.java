@@ -73,13 +73,13 @@ public class FactionController {
     }
 
     @PostMapping("/contribute")
-    @Operation(summary = "贡献阵营")
+    @Operation(summary = "客户端直写贡献已停用；贡献由实际游戏行动自动累计")
     public Result<FactionContributionVO> contribute(@Valid @RequestBody ContributeFactionRequest req) {
         LoginUser user = LoginUserContext.get();
         if (user == null) throw new BusinessException(ErrorCode.UNAUTHORIZED, "请先登录");
-        return Result.ok(factionService.contribute(
-                req.getPlayerId(), req.getFactionKey(), req.getContributionType(),
-                req.getValue(), req.getSource(), req.getRelatedId(), user.getUserId()));
+        validatePlayerOwnership(req.getPlayerId());
+        throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE,
+                "阵营贡献只能由探索、战斗、PK、世界首领等实际游戏行动自动累计");
     }
 
     @GetMapping("/rankings")

@@ -13,7 +13,10 @@ public interface PkService {
 
     Map<String, Object> createChallenge(Long attackerId, Long defenderId, String mode, Long userId);
 
-    Map<String, Object> resolveChallenge(Long challengeId, boolean accept, Long playerId, Long userId);
+    Map<String, Object> resolveChallenge(Long challengeId, boolean accept, Long playerId,
+                                         Long userId, String requestKey);
+
+    List<PkChallengeVO> getPendingChallenges(Long playerId, Long userId);
 
     List<PkRecordVO> getPKRecords(Long playerId, Long userId);
 }

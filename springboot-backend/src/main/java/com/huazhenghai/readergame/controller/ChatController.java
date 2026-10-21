@@ -48,6 +48,6 @@ public class ChatController {
         if (!player.getUserId().equals(userId))
             throw new BusinessException(ErrorCode.FORBIDDEN, "无权使用此玩家发言");
 
-        return Result.ok(chatService.sendWorldMessage(req.getPlayerId(), req.getContent()));
+        return Result.ok(chatService.sendMessage(req.getPlayerId(), req.getContent(), req.getChannel()));
     }
 }

@@ -16,7 +16,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -113,27 +112,28 @@ public class PartyController {
         return Result.ok(partyService.getPartySummary(playerId));
     }
 
-    @PostMapping("/{partyId}/ready")
+    @PostMapping("/{partyNo}/ready")
     @Operation(summary = "设置准备状态")
-    public Result<PartyVO> setReady(@PathVariable Long partyId, @RequestBody Map<String, Object> body) {
+    public Result<PartyVO> setReady(@PathVariable String partyNo, @RequestBody Map<String, Object> body) {
         Long userId = LoginUserContext.get().getUserId();
         Long playerId = MapUtils.getLong(body, "playerId");
-        boolean ready = Boolean.TRUE.equals(body.get("ready"));
-        // Toggle ready status - simple implementation
-        PartyVO vo = partyService.getMyParty(playerId, userId);
-        if (vo == null) throw new BusinessException(ErrorCode.NOT_FOUND, "你不在任何队伍中");
+        boolean ready = Boolean.TRUE.equals(body.get("ready"))
+                || "true".equalsIgnoreCase(String.valueOf(body.get("ready")))
+                || "1".equals(String.valueOf(body.get("ready")));
+        PartyVO vo = partyService.setReady(playerId, ready, userId);
+        if (vo == null || !partyNo.equals(vo.getPartyNo())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "你不属于这个队伍");
+        }
         return Result.ok(vo);
     }
 
-    @PostMapping("/{partyId}/start-battle")
+    @PostMapping("/{partyNo}/start-battle")
     @Operation(summary = "开始讨伐Boss")
-    public Result<Map<String, Object>> startPartyBossBattle(@PathVariable Long partyId, @RequestBody Map<String, Object> body) {
+    public Result<Map<String, Object>> startPartyBossBattle(@PathVariable String partyNo, @RequestBody Map<String, Object> body) {
         Long userId = LoginUserContext.get().getUserId();
         Long playerId = MapUtils.getLong(body, "playerId");
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("bossDefeated", false);
-        result.put("message", "讨伐战斗系统尚未实现");
-        return Result.ok(result);
+        String requestKey = MapUtils.getString(body, "requestKey");
+        return Result.ok(partyService.startPartyBossBattle(partyNo, playerId, userId, requestKey));
     }
 
     private void validatePlayerOwnership(Long playerId, Long userId) {

@@ -46,7 +46,8 @@ public class PkController {
     public Result<Map<String, Object>> resolveChallenge(@Valid @RequestBody ResolveChallengeRequest request) {
         Long userId = LoginUserContext.get().getUserId();
         Map<String, Object> result = pkService.resolveChallenge(
-                request.getChallengeId(), request.isAccept(), request.getPlayerId(), userId);
+                request.getChallengeId(), request.isAccept(), request.getPlayerId(),
+                userId, request.getRequestKey());
         return Result.ok(result);
     }
 

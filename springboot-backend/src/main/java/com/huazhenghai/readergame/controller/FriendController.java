@@ -120,20 +120,18 @@ public class FriendController {
     public Result<Map<String, Object>> sendGift(@RequestBody Map<String, Object> body) {
         Long playerId = MapUtils.getLong(body, "playerId");
         Long targetId = MapUtils.getLong(body, "targetId");
-        String itemKey = MapUtils.getString(body, "itemKey");
+        String itemKey = MapUtils.getStringRequired(body, "itemKey");
+        int quantity = MapUtils.getIntOrDefault(body, "quantity", 1);
+        String requestKey = MapUtils.getString(body, "requestKey");
         validatePlayerOwnership(playerId);
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("success", true);
-        result.put("message", "礼物系统尚未完全实现: " + itemKey);
-        return Result.ok(result);
+        return Result.ok(friendService.sendGift(playerId, targetId, itemKey, quantity, requestKey));
     }
 
     @GetMapping("/recent/{playerId}")
     @Operation(summary = "获取最近互动玩家")
     public Result<List<Map<String, Object>>> getRecentInteractions(@PathVariable Long playerId) {
-        Long userId = LoginUserContext.get().getUserId();
         validatePlayerOwnership(playerId);
-        return Result.ok(java.util.Collections.emptyList());
+        return Result.ok(friendService.getRecentInteractions(playerId));
     }
 
     /** body playerId 优先, 否则用 query param (向后兼容) */

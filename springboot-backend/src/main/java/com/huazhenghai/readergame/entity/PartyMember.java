@@ -23,6 +23,9 @@ public class PartyMember {
 
     private String status;
 
+    /** 0=未准备, 1=已准备 */
+    private Integer ready;
+
     @TableField("joined_at")
     private LocalDateTime joinedAt;
 
@@ -45,6 +48,8 @@ public class PartyMember {
     public void setRole(String role) { this.role = role; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public Integer getReady() { return ready; }
+    public void setReady(Integer ready) { this.ready = ready; }
     public LocalDateTime getJoinedAt() { return joinedAt; }
     public void setJoinedAt(LocalDateTime joinedAt) { this.joinedAt = joinedAt; }
     public LocalDateTime getLeftAt() { return leftAt; }

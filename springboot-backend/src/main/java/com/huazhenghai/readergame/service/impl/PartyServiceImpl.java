@@ -13,6 +13,8 @@ import com.huazhenghai.readergame.mapper.*;
 import com.huazhenghai.readergame.service.ChatService;
 import com.huazhenghai.readergame.service.OnlinePlayerService;
 import com.huazhenghai.readergame.service.PartyService;
+import com.huazhenghai.readergame.service.PlayerActionReceiptService;
+import com.huazhenghai.readergame.service.WorldBossService;
 import com.huazhenghai.readergame.vo.PartyMemberVO;
 import com.huazhenghai.readergame.vo.PartySummaryVO;
 import com.huazhenghai.readergame.vo.PartyVO;
@@ -37,19 +39,25 @@ public class PartyServiceImpl implements PartyService {
     private final PlayerLogMapper playerLogMapper;
     private final OnlinePlayerService onlinePlayerService;
     private final ChatService chatService;
+    private final WorldBossService worldBossService;
+    private final PlayerActionReceiptService actionReceiptService;
 
     public PartyServiceImpl(PartyMapper partyMapper,
                             PartyMemberMapper partyMemberMapper,
                             PlayerMapper playerMapper,
                             PlayerLogMapper playerLogMapper,
                             OnlinePlayerService onlinePlayerService,
-                            ChatService chatService) {
+                            ChatService chatService,
+                            WorldBossService worldBossService,
+                            PlayerActionReceiptService actionReceiptService) {
         this.partyMapper = partyMapper;
         this.partyMemberMapper = partyMemberMapper;
         this.playerMapper = playerMapper;
         this.playerLogMapper = playerLogMapper;
         this.onlinePlayerService = onlinePlayerService;
         this.chatService = chatService;
+        this.worldBossService = worldBossService;
+        this.actionReceiptService = actionReceiptService;
     }
 
     @Override
@@ -80,6 +88,7 @@ public class PartyServiceImpl implements PartyService {
         member.setPlayerId(playerId);
         member.setRole("leader");
         member.setStatus("active");
+        member.setReady(0);
         member.setJoinedAt(LocalDateTime.now());
         member.setCreatedAt(LocalDateTime.now());
         member.setUpdatedAt(LocalDateTime.now());
@@ -100,7 +109,10 @@ public class PartyServiceImpl implements PartyService {
 
         assertNotInActiveParty(playerId);
 
-        Party party = getActivePartyByNo(partyNo);
+        // Lock this party row before counting members; concurrent joins will re-check capacity in turn.
+        Party party = partyMapper.selectActiveForUpdate(partyNo);
+        if (party == null)
+            throw new BusinessException(ErrorCode.NOT_FOUND, "队伍不存在或已解散");
 
         // Check not already in this party
         QueryWrapper<PartyMember> pmQw = new QueryWrapper<>();
@@ -108,16 +120,18 @@ public class PartyServiceImpl implements PartyService {
         if (partyMemberMapper.selectOne(pmQw) != null)
             throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "你已经在这个队伍中");
 
-        // Check capacity
-        long memberCount = countActiveMembers(partyNo);
-        if (memberCount >= party.getMaxMembers())
-            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "队伍已满（最多" + party.getMaxMembers() + "人）");
+        // Use a locking read so a transaction with an older repeatable-read snapshot sees prior joins.
+        int maxMembers = party.getMaxMembers() != null ? party.getMaxMembers() : MAX_PARTY_SIZE;
+        long memberCount = countActiveMembersForUpdate(partyNo);
+        if (memberCount >= maxMembers)
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "队伍已满（最多" + maxMembers + "人）");
 
         PartyMember member = new PartyMember();
         member.setPartyNo(partyNo);
         member.setPlayerId(playerId);
         member.setRole("member");
         member.setStatus("active");
+        member.setReady(0);
         member.setJoinedAt(LocalDateTime.now());
         member.setCreatedAt(LocalDateTime.now());
         member.setUpdatedAt(LocalDateTime.now());
@@ -304,6 +318,85 @@ public class PartyServiceImpl implements PartyService {
     }
 
     @Override
+    @Transactional
+    public PartyVO setReady(Long playerId, boolean ready, Long userId) {
+        validatePlayerOwnership(playerId, userId);
+        PartyMember member = getActiveMembership(playerId);
+        member.setReady(ready ? 1 : 0);
+        member.setUpdatedAt(LocalDateTime.now());
+        partyMemberMapper.updateById(member);
+
+        Party party = getActivePartyByNo(member.getPartyNo());
+        party.setUpdatedAt(LocalDateTime.now());
+        partyMapper.updateById(party);
+        writeLog(playerId, ready ? "party_ready" : "party_unready",
+                ready ? "已准备参加队伍讨伐" : "取消了队伍讨伐准备");
+        return buildPartyVO(member.getPartyNo());
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> startPartyBossBattle(String partyNo, Long playerId, Long userId, String requestKey) {
+        if (partyNo == null || partyNo.isBlank()) {
+            throw new BusinessException(ErrorCode.MISSING_FIELDS, "缺少队伍编号");
+        }
+        if (requestKey == null || requestKey.isBlank() || requestKey.trim().length() > 64) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "requestKey 必须为 1 到 64 个字符");
+        }
+        partyNo = partyNo.trim();
+        String stableRequestKey = requestKey.trim();
+
+        Player lockedPlayer = playerMapper.selectByIdForUpdate(playerId);
+        if (lockedPlayer == null) throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND);
+        if (!Objects.equals(lockedPlayer.getUserId(), userId))
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此玩家");
+
+        Map<String, Object> requestPayload = new LinkedHashMap<>();
+        requestPayload.put("playerId", playerId);
+        requestPayload.put("partyNo", partyNo);
+        Map replay = actionReceiptService.findReplay(
+                playerId, "party.world_boss.attack", stableRequestKey, requestPayload, Map.class);
+        if (replay != null) return replay;
+
+        PartyMember membership = getActiveMembership(playerId);
+        if (!partyNo.equals(membership.getPartyNo())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "你不属于这个队伍");
+        }
+
+        Party party = getActivePartyByNo(partyNo);
+        if (!playerId.equals(party.getLeaderPlayerId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "只有队长可以发起队伍讨伐");
+        }
+        MemberRecord leader = getActiveMemberInParty(partyNo, party.getLeaderPlayerId());
+        if (leader == null || !isReady(leader.member)) {
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "队长需要先准备");
+        }
+
+        long readyCount = partyMemberMapper.selectCount(new QueryWrapper<PartyMember>()
+                .eq("party_no", partyNo)
+                .eq("status", "active")
+                .eq("ready", 1));
+        if (readyCount == 0) {
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "至少需要一名已准备的队员");
+        }
+
+        Map<String, Object> result = worldBossService.attackPartyBoss(partyNo, playerId, userId);
+
+        // 记录队伍当前的协作目标，后续队伍面板可以直接展示正在讨伐的 Boss。
+        Object bossNo = result.get("bossNo");
+        boolean bossDefeated = Boolean.TRUE.equals(result.get("bossDefeated"));
+        party.setTargetType(bossDefeated ? null : "worldBoss");
+        party.setTargetKey(bossDefeated || bossNo == null ? null : String.valueOf(bossNo));
+        party.setUpdatedAt(LocalDateTime.now());
+        partyMapper.updateById(party);
+
+        writeLog(playerId, "party_boss", "发起队伍讨伐「" + party.getName() + "」");
+        actionReceiptService.record(playerId, "party.world_boss.attack", stableRequestKey,
+                requestPayload, result);
+        return result;
+    }
+
+    @Override
     public PartySummaryVO getPartySummary(Long playerId) {
         PartySummaryVO vo = new PartySummaryVO();
         QueryWrapper<PartyMember> qw = new QueryWrapper<>();
@@ -389,6 +482,12 @@ public class PartyServiceImpl implements PartyService {
         QueryWrapper<PartyMember> qw = new QueryWrapper<>();
         qw.eq("party_no", partyNo).eq("status", "active");
         return partyMemberMapper.selectCount(qw);
+    }
+
+    private long countActiveMembersForUpdate(String partyNo) {
+        QueryWrapper<PartyMember> qw = new QueryWrapper<>();
+        qw.eq("party_no", partyNo).eq("status", "active").last("FOR UPDATE");
+        return partyMemberMapper.selectList(qw).size();
     }
 
     private int countOnlineMembers(String partyNo) {
@@ -485,7 +584,7 @@ public class PartyServiceImpl implements PartyService {
             } else {
                 mvo.setLevel(1);
             }
-            mvo.setReady("ready".equals(m.getStatus()));
+            mvo.setReady(isReady(m));
 
             memberVOs.add(mvo);
         }
@@ -496,6 +595,10 @@ public class PartyServiceImpl implements PartyService {
         vo.setLeaderName(leader != null ? leader.getPlayerName() : "未知");
 
         return vo;
+    }
+
+    private boolean isReady(PartyMember member) {
+        return member.getReady() != null && member.getReady() == 1;
     }
 
     private String generatePartyNo() {

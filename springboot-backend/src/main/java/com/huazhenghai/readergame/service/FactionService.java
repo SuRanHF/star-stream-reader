@@ -34,6 +34,12 @@ public interface FactionService {
     /** 阵营技能定义 */
     List<FactionSkillVO> getFactionSkills(String factionKey);
 
+    /** 获取当前玩家阵营技能的学习状态 */
+    List<FactionSkillVO> getPlayerFactionSkills(Long playerId, Long userId);
+
+    /** 学习阵营技能 */
+    FactionSkillVO learnFactionSkill(Long playerId, String skillKey, Long userId, String requestKey);
+
     /** 阵营战列表 */
     List<FactionWarVO> getFactionWars();
 

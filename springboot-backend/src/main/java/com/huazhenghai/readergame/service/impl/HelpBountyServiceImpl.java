@@ -147,7 +147,8 @@ public class HelpBountyServiceImpl implements HelpBountyService {
             return Map.of("error", Map.of("code", "OWNER_OFFLINE", "message", "悬赏发布者已离线"));
 
         // Resolve combat — helper fights the monster
-        CombatResultVO battleResult = combatService.startCombat(helperId, bounty.getMonsterKey(), helper.getUserId());
+        CombatResultVO battleResult = combatService.startCombat(
+                helperId, bounty.getMonsterKey(), "help-bounty:" + bountyId, helper.getUserId());
 
         // Mark bounty resolved
         UpdateWrapper<HelpBounty> uw = new UpdateWrapper<>();

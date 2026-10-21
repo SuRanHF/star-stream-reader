@@ -4,6 +4,7 @@ public class PlayerRankVO {
 
     private int rank;
     private int totalPlayers;
+    private boolean ranked;
     private int rating;
     private int wins;
     private int losses;
@@ -14,6 +15,9 @@ public class PlayerRankVO {
 
     public int getTotalPlayers() { return totalPlayers; }
     public void setTotalPlayers(int totalPlayers) { this.totalPlayers = totalPlayers; }
+
+    public boolean isRanked() { return ranked; }
+    public void setRanked(boolean ranked) { this.ranked = ranked; }
 
     public int getRating() { return rating; }
     public void setRating(int rating) { this.rating = rating; }

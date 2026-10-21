@@ -1,16 +1,25 @@
 package com.huazhenghai.readergame.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 public class AttackWorldBossRequest {
 
     private String bossNo;
+    @NotNull(message = "playerId 不能为空")
     private Long playerId;
+    @NotBlank(message = "requestKey 不能为空")
+    @Size(max = 64, message = "requestKey 长度不能超过 64")
+    private String requestKey;
 
     public String getBossNo() { return bossNo; }
     public void setBossNo(String bossNo) { this.bossNo = bossNo; }
     public Long getPlayerId() { return playerId; }
     public void setPlayerId(Long playerId) { this.playerId = playerId; }
+    public String getRequestKey() { return requestKey; }
+    public void setRequestKey(String requestKey) { this.requestKey = requestKey; }
 
     /** 兼容前端 "action" 字段 — bossNo 由 active boss 推导 */
     @JsonProperty("action")

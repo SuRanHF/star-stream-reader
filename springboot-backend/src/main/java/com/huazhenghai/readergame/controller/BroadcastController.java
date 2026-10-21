@@ -10,6 +10,7 @@ import com.huazhenghai.readergame.mapper.PlayerMapper;
 import com.huazhenghai.readergame.security.LoginUserContext;
 import com.huazhenghai.readergame.service.BroadcastService;
 import com.huazhenghai.readergame.vo.BroadcastEventVO;
+import com.huazhenghai.readergame.vo.BroadcastHistoryVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -37,6 +38,13 @@ public class BroadcastController {
         return Result.ok(broadcastService.getActiveBroadcasts());
     }
 
+    @GetMapping("/history")
+    @Operation(summary = "获取近期已结束公共活动的公开回顾")
+    public Result<List<BroadcastHistoryVO>> getHistory(
+            @RequestParam(defaultValue = "12") int limit) {
+        return Result.ok(broadcastService.getHistory(limit));
+    }
+
     @GetMapping("/{eventKey}")
     @Operation(summary = "获取广播详情")
     public Result<BroadcastEventVO> getBroadcastDetail(@PathVariable String eventKey) {
@@ -44,15 +52,12 @@ public class BroadcastController {
     }
 
     @PostMapping("/contribute")
-    @Operation(summary = "贡献进度")
+    @Operation(summary = "客户端直写贡献已停用；进度由实际游戏行动自动累计")
     public Result<Map<String, Object>> contribute(@Valid @RequestBody ContributeBroadcastRequest req) {
         Long userId = LoginUserContext.get().getUserId();
         validatePlayerOwnership(req.getPlayerId(), userId);
-        Map<String, Object> result = broadcastService.contribute(
-                req.getEventKey(), req.getPlayerId(),
-                req.getValue() != null ? req.getValue() : 1,
-                req.getContributionType());
-        return Result.ok(result);
+        throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE,
+                "公共活动贡献只能由探索、战斗、PK 等实际游戏行动自动累计");
     }
 
     @PostMapping("/claim")
@@ -65,10 +70,20 @@ public class BroadcastController {
     }
 
     @GetMapping("/rankings")
-    @Operation(summary = "星流贡献榜")
+    @Operation(summary = "星流放送单场贡献榜")
     public Result<List<Map<String, Object>>> getLeaderboard(
+            @RequestParam(required = false) String eventKey,
             @RequestParam(defaultValue = "50") int limit) {
-        return Result.ok(broadcastService.getLeaderboard(limit));
+        return Result.ok(broadcastService.getLeaderboard(eventKey, limit));
+    }
+
+    @GetMapping("/rankings/{eventKey}/me/{playerId}")
+    @Operation(summary = "查看玩家在本场放送中的名次与追赶差距")
+    public Result<Map<String, Object>> getPlayerLeaderboardPosition(
+            @PathVariable String eventKey, @PathVariable Long playerId) {
+        Long userId = LoginUserContext.get().getUserId();
+        validatePlayerOwnership(playerId, userId);
+        return Result.ok(broadcastService.getPlayerLeaderboardPosition(eventKey, playerId));
     }
 
     @GetMapping("/my/{playerId}")

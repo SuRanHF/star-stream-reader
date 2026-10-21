@@ -5,16 +5,26 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huazhenghai.readergame.common.BusinessException;
 import com.huazhenghai.readergame.common.ErrorCode;
+import com.huazhenghai.readergame.common.ResourceBalance;
 import com.huazhenghai.readergame.entity.AvatarRankConfig;
 import com.huazhenghai.readergame.entity.Player;
+import com.huazhenghai.readergame.entity.Ranking;
+import com.huazhenghai.readergame.entity.PlayerSkill;
 import com.huazhenghai.readergame.entity.PlayerTitle;
 import com.huazhenghai.readergame.mapper.AvatarRankConfigMapper;
 import com.huazhenghai.readergame.mapper.PlayerMapper;
+import com.huazhenghai.readergame.mapper.PlayerSkillMapper;
 import com.huazhenghai.readergame.mapper.PlayerTitleMapper;
+import com.huazhenghai.readergame.mapper.RankingMapper;
 import com.huazhenghai.readergame.mapper.TitleMapper;
 import com.huazhenghai.readergame.service.AvatarRankService;
+import com.huazhenghai.readergame.service.PlayerLogService;
+import com.huazhenghai.readergame.service.PlayerMaxHpProjectionService;
+import com.huazhenghai.readergame.service.PlayerEffectService;
+import com.huazhenghai.readergame.service.PlayerResourceTransactionService;
 import com.huazhenghai.readergame.vo.AvatarRankVO;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
@@ -22,21 +32,36 @@ import java.util.*;
 public class AvatarRankServiceImpl implements AvatarRankService {
 
     private final PlayerMapper playerMapper;
+    private final PlayerSkillMapper playerSkillMapper;
     private final PlayerTitleMapper playerTitleMapper;
     private final AvatarRankConfigMapper rankConfigMapper;
     private final TitleMapper titleMapper;
+    private final RankingMapper rankingMapper;
+    private final PlayerLogService playerLogService;
+    private final PlayerEffectService playerEffectService;
+    private final PlayerResourceTransactionService resourceTransactionService;
     private final ObjectMapper objectMapper;
 
     public AvatarRankServiceImpl(PlayerMapper playerMapper,
+                                  PlayerSkillMapper playerSkillMapper,
                                   PlayerTitleMapper playerTitleMapper,
                                   AvatarRankConfigMapper rankConfigMapper,
                                   TitleMapper titleMapper,
-                                  ObjectMapper objectMapper) {
+                                  RankingMapper rankingMapper,
+                                  PlayerLogService playerLogService,
+                                  ObjectMapper objectMapper,
+                                  PlayerEffectService playerEffectService,
+                                  PlayerResourceTransactionService resourceTransactionService) {
         this.playerMapper = playerMapper;
+        this.playerSkillMapper = playerSkillMapper;
         this.playerTitleMapper = playerTitleMapper;
         this.rankConfigMapper = rankConfigMapper;
         this.titleMapper = titleMapper;
+        this.rankingMapper = rankingMapper;
+        this.playerLogService = playerLogService;
         this.objectMapper = objectMapper;
+        this.playerEffectService = playerEffectService;
+        this.resourceTransactionService = resourceTransactionService;
     }
 
     @Override
@@ -75,6 +100,15 @@ public class AvatarRankServiceImpl implements AvatarRankService {
         vo.setStarstreamTierLabel((String) starstreamTier.get("label"));
         vo.setCurrentOrder(currentRank != null ? currentRank.getOrderNum() : 1);
 
+        int rankOrder = currentRank != null && currentRank.getOrderNum() != null
+                ? currentRank.getOrderNum() : 0;
+        Ranking currentPvpRanking = rankingMapper.selectByPlayerId(playerId);
+        int rating = currentPvpRanking != null && currentPvpRanking.getRating() != null
+                ? currentPvpRanking.getRating() : 1000;
+        vo.setRankPosition(rankingMapper.countAvatarRankPlayersAhead(
+                rankOrder, toInt(stats.get("level"), 1), rating, playerId) + 1);
+        vo.setTotalPlayers(rankingMapper.countAvatarRankPlayers());
+
         // 下一级位阶
         if (currentRank != null && currentRank.getNextRankKey() != null) {
             QueryWrapper<AvatarRankConfig> nextQuery = new QueryWrapper<>();
@@ -100,7 +134,7 @@ public class AvatarRankServiceImpl implements AvatarRankService {
                 for (Map<String, Object> req : rawRequirements) {
                     String type = (String) req.get("type");
                     String label = (String) req.getOrDefault("label", type);
-                    int required = toInt(req.getOrDefault("value", req.get("count")), 0);
+                    int required = requiredRequirementValue(req);
                     int current = evaluateRequirement(type, req, player, stats, stageProgress);
                     boolean completed = current >= required;
                     if (!completed) allCompleted = false;
@@ -143,15 +177,18 @@ public class AvatarRankServiceImpl implements AvatarRankService {
     }
 
     @Override
+    @Transactional
     public AvatarRankVO rankUp(Long playerId, Long userId) {
-        Player player = playerMapper.selectById(playerId);
+        Player player = playerMapper.selectByIdForUpdate(playerId);
         if (player == null)
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "玩家不存在");
-        if (!player.getUserId().equals(userId))
+        if (!Objects.equals(player.getUserId(), userId))
             throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此玩家");
 
         Map<String, Object> stats = parseJsonMap(player.getStatsJson());
         Map<String, Object> stageProgress = parseJsonMap(player.getStageProgressJson());
+        int channelHeatBefore = toInt(stats.get("channelHeat"), 0);
+        int channelHeatAfter = channelHeatBefore;
 
         String currentRankKey = (String) stats.getOrDefault("avatarRank", "F");
 
@@ -172,7 +209,7 @@ public class AvatarRankServiceImpl implements AvatarRankService {
         List<Map<String, Object>> rawRequirements = parseJsonList(nextRank.getRequirementsJson());
         for (Map<String, Object> req : rawRequirements) {
             String type = (String) req.get("type");
-            int required = toInt(req.getOrDefault("value", req.get("count")), 0);
+            int required = requiredRequirementValue(req);
             int current = evaluateRequirement(type, req, player, stats, stageProgress);
             if (current < required) {
                 String label = (String) req.getOrDefault("label", type);
@@ -186,7 +223,9 @@ public class AvatarRankServiceImpl implements AvatarRankService {
         stats.put("avatarRankName", nextRank.getRankName());
         // 位阶晋升奖励 100 自由属性点
         int currentFreePoints = toInt(stats.get("freePoints"), 0);
-        stats.put("freePoints", currentFreePoints + 100);
+        if (currentFreePoints < 0)
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "自由属性点数据无效，无法晋升");
+        stats.put("freePoints", ResourceBalance.applyDelta("自由属性点", currentFreePoints, 100));
 
         // 应用奖励
         Map<String, Object> rewards = parseJsonMap(nextRank.getRewardsJson());
@@ -194,28 +233,141 @@ public class AvatarRankServiceImpl implements AvatarRankService {
             stats.put("storyGrade", rewards.get("storyGrade"));
         }
         if (rewards.containsKey("channelHeat")) {
-            int add = toInt(rewards.get("channelHeat"), 0);
+            int add = playerEffectService.applyChannelHeatGainRate(
+                    player.getId(), toInt(rewards.get("channelHeat"), 0));
             int cur = toInt(stats.get("channelHeat"), 0);
-            stats.put("channelHeat", cur + add);
+            channelHeatAfter = Math.addExact(cur, add);
+            stats.put("channelHeat", channelHeatAfter);
         }
         @SuppressWarnings("unchecked")
         Map<String, Object> statsRewards = (Map<String, Object>) rewards.get("stats");
         if (statsRewards != null) {
             for (Map.Entry<String, Object> e : statsRewards.entrySet()) {
                 int oldVal = toInt(stats.get(e.getKey()), 0);
-                stats.put(e.getKey(), oldVal + toInt(e.getValue(), 0));
+                int newVal = ResourceBalance.applySignedDelta(
+                        "位阶奖励属性「" + e.getKey() + "」", oldVal, toInt(e.getValue(), 0));
+                stats.put(e.getKey(), newVal);
             }
         }
 
         // 保存
         try {
             player.setStatsJson(objectMapper.writeValueAsString(stats));
-        } catch (Exception ignored) {
+        } catch (Exception exception) {
+            throw new IllegalStateException("位阶晋升状态序列化失败", exception);
         }
-        playerMapper.updateById(player);
+        if (playerMapper.updateById(player) <= 0)
+            throw new IllegalStateException("保存位阶晋升结果失败");
+
+        recordRankHeatChange(playerId, currentRankKey, nextRank.getRankKey(),
+                channelHeatBefore, channelHeatAfter);
+
+        Object configuredLog = rewards.get("log");
+        String rankLog = configuredLog instanceof String message && !message.isBlank()
+                ? message
+                : "位阶晋升至「" + (nextRank.getDisplayName() != null
+                        ? nextRank.getDisplayName() : nextRank.getRankName()) + "」。";
+        playerLogService.addLog(playerId, "system", rankLog);
 
         // 重新获取位阶信息 (递归调用，此时已更新到新位阶)
         return getAvatarRankInfo(playerId);
+    }
+
+    private void recordRankHeatChange(Long playerId, String rankBefore, String rankAfter,
+                                      int channelHeatBefore, int channelHeatAfter) {
+        long amount = (long) channelHeatAfter - channelHeatBefore;
+        if (amount == 0) return;
+        String transactionGroupId = UUID.nameUUIDFromBytes(
+                ("avatar-rank:" + playerId + ":" + rankBefore + ":" + rankAfter)
+                        .getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
+        Map<String, Object> metadata = Map.of("rankBefore", rankBefore, "rankAfter", rankAfter);
+        boolean inserted = resourceTransactionService.record(new PlayerResourceTransactionService.Change(
+                playerId, "progress", "channel_heat", amount, channelHeatBefore, channelHeatAfter,
+                "avatar_rank_up", rankBefore + "->" + rankAfter, transactionGroupId,
+                transactionGroupId + ":progress:channel_heat", metadata));
+        if (!inserted) throw new IllegalStateException("位阶晋升热度流水已存在，拒绝重复结算");
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> prestige(Long playerId, Long userId) {
+        Player player = playerMapper.selectByIdForUpdate(playerId);
+        if (player == null)
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "玩家不存在");
+        if (!Objects.equals(player.getUserId(), userId))
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此玩家");
+
+        Map<String, Object> stats = parseJsonMap(player.getStatsJson());
+        String currentRank = Objects.toString(stats.get("avatarRank"), "F");
+        if (!"SSS".equals(currentRank))
+            throw new BusinessException(ErrorCode.RANK_REQUIREMENTS_NOT_MET, "需要达到SSS位阶才能回归");
+
+        int prestigeLevel;
+        try {
+            prestigeLevel = Integer.parseInt(Objects.toString(stats.get("prestigeLevel"), "0")) + 1;
+        } catch (NumberFormatException ignored) {
+            prestigeLevel = 1;
+        }
+        int prestigeBonus = prestigeLevel * 5;
+        int experienceBeforeReset = Math.max(0, toInt(stats.get("exp"), 0));
+        if (experienceBeforeReset > 0) {
+            String transactionGroupId = "prestige:" + playerId + ":" + prestigeLevel;
+            Map<String, Object> metadata = Map.of(
+                    "rankBefore", currentRank,
+                    "rankAfter", "F",
+                    "prestigeLevel", prestigeLevel);
+            boolean inserted = resourceTransactionService.record(
+                    new PlayerResourceTransactionService.Change(
+                            playerId, "experience", "exp", -experienceBeforeReset,
+                            experienceBeforeReset, 0, "avatar_prestige",
+                            String.valueOf(prestigeLevel), transactionGroupId,
+                            transactionGroupId + ":experience:exp", metadata));
+            if (!inserted) throw new IllegalStateException("回归经验流水已存在，拒绝重复结算");
+        }
+        stats.put("avatarRank", "F");
+        stats.put("avatarRankName", "临时化身");
+        stats.put("prestigeLevel", prestigeLevel);
+        stats.put("freePoints", 40 + prestigeLevel * 10);
+        stats.put("level", 1);
+        stats.put("exp", 0);
+        stats.put("hp", 100);
+        stats.put("maxHp", 100 + prestigeBonus);
+        stats.put(PlayerMaxHpProjectionService.APPLIED_CONSTELLATION_BONUS_KEY, 0);
+        stats.put("attack", 10 + prestigeBonus);
+        stats.put("defense", 5 + prestigeBonus / 2);
+        stats.put("speed", 10 + prestigeBonus / 2);
+        stats.put("critRate", 0.05 + prestigeLevel * 0.005);
+
+        try {
+            player.setStatsJson(objectMapper.writeValueAsString(stats));
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.SERVER_ERROR, "更新状态失败");
+        }
+
+        QueryWrapper<PlayerSkill> equippedQuery = new QueryWrapper<>();
+        equippedQuery.eq("player_id", playerId).eq("equipped", 1);
+        List<PlayerSkill> equippedSkills = playerSkillMapper.selectList(equippedQuery);
+        for (PlayerSkill skill : equippedSkills) {
+            skill.setEquipped(0);
+            if (playerSkillMapper.updateById(skill) <= 0)
+                throw new IllegalStateException("保存回归后的技能卸下状态失败");
+        }
+
+        if (playerMapper.updateById(player) <= 0)
+            throw new IllegalStateException("保存回归后的位阶数据失败");
+        String logMessage = "回归至F级。永久加成 +" + prestigeBonus
+                + "，清空经验 " + experienceBeforeReset + " 点；已保留已掌握技能并卸下 "
+                + equippedSkills.size() + " 项装备技能。";
+        playerLogService.addLog(playerId, "system", logMessage);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("message", "回归成功！你现在是 " + prestigeLevel + " 次回归者，获得永久加成 +"
+                + prestigeBonus + "，已保留已掌握技能并卸下 " + equippedSkills.size() + " 项装备技能。");
+        result.put("prestigeLevel", prestigeLevel);
+        result.put("bonus", prestigeBonus);
+        result.put("experienceCleared", experienceBeforeReset);
+        result.put("unequippedSkillCount", equippedSkills.size());
+        return result;
     }
 
     @Override
@@ -250,44 +402,11 @@ public class AvatarRankServiceImpl implements AvatarRankService {
     }
 
     @Override
-    public List<Map<String, Object>> getAvatarRankLeaderboard() {
-        List<Map<String, Object>> result = new ArrayList<>();
-
-        QueryWrapper<AvatarRankConfig> query = new QueryWrapper<>();
-        query.eq("enabled", 1).orderByAsc("order_num");
-        List<AvatarRankConfig> ranks = rankConfigMapper.selectList(query);
-        // 按 orderNum 降序 (高级位阶在前)
-        java.util.Collections.reverse(ranks);
-
-        // 简单版排行: 按位阶 + level + PK评分 (LIMIT 200, 防全表)
-        List<Player> allPlayers = playerMapper.selectList(
-                new QueryWrapper<Player>().last("LIMIT 200"));
-        for (Player p : allPlayers) {
-            Map<String, Object> stats = parseJsonMap(p.getStatsJson());
-            Map<String, Object> entry = new LinkedHashMap<>();
-            entry.put("playerId", p.getId());
-            entry.put("playerName", p.getPlayerName());
-            entry.put("avatarRank", stats.getOrDefault("avatarRank", "F"));
-            entry.put("level", toInt(stats.get("level"), 1));
-            entry.put("rating", toInt(stats.get("rating"), 1000));
-            result.add(entry);
+    public List<Map<String, Object>> getAvatarRankLeaderboard(int limit) {
+        if (limit < 1 || limit > 200) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "排行榜 limit 必须在 1 到 200 之间");
         }
-
-        // 按位阶排序
-        Map<String, Integer> rankOrder = new LinkedHashMap<>();
-        for (AvatarRankConfig r : rankConfigMapper.selectList(new QueryWrapper<>())) {
-            rankOrder.put(r.getRankKey(), r.getOrderNum());
-        }
-        result.sort((a, b) -> {
-            int ro = Integer.compare(
-                    rankOrder.getOrDefault(b.get("avatarRank"), 0),
-                    rankOrder.getOrDefault(a.get("avatarRank"), 0));
-            if (ro != 0) return ro;
-            return Integer.compare(
-                    toInt(b.get("level"), 1), toInt(a.get("level"), 1));
-        });
-
-        return result;
+        return rankingMapper.selectAvatarRankLeaderboard(limit);
     }
 
     // ─── 条件评估 ───
@@ -340,6 +459,32 @@ public class AvatarRankServiceImpl implements AvatarRankService {
                 }
                 return 0;
             }
+            case "epicTitleRequired": {
+                QueryWrapper<PlayerTitle> ptQuery = new QueryWrapper<>();
+                ptQuery.eq("player_id", player.getId());
+                List<PlayerTitle> allPt = playerTitleMapper.selectList(ptQuery);
+                for (PlayerTitle pt : allPt) {
+                    QueryWrapper<com.huazhenghai.readergame.entity.Title> tQuery =
+                            new QueryWrapper<>();
+                    tQuery.eq("title_key", pt.getTitleKey());
+                    com.huazhenghai.readergame.entity.Title def = titleMapper.selectOne(tQuery);
+                    if (def != null && isEpicOrAbove(def.getRarity())) return 1;
+                }
+                return 0;
+            }
+            case "legendaryTitleRequired": {
+                QueryWrapper<PlayerTitle> ptQuery = new QueryWrapper<>();
+                ptQuery.eq("player_id", player.getId());
+                List<PlayerTitle> allPt = playerTitleMapper.selectList(ptQuery);
+                for (PlayerTitle pt : allPt) {
+                    QueryWrapper<com.huazhenghai.readergame.entity.Title> tQuery =
+                            new QueryWrapper<>();
+                    tQuery.eq("title_key", pt.getTitleKey());
+                    com.huazhenghai.readergame.entity.Title def = titleMapper.selectOne(tQuery);
+                    if (def != null && isLegendary(def.getRarity())) return 1;
+                }
+                return 0;
+            }
             case "worldLineShiftMin":
                 return toInt(stats.get("worldLineShift"), 0);
             default:
@@ -353,6 +498,19 @@ public class AvatarRankServiceImpl implements AvatarRankService {
             case "rare", "epic", "legendary" -> true;
             default -> false;
         };
+    }
+
+    private boolean isEpicOrAbove(String rarity) {
+        if (rarity == null) return false;
+        return switch (rarity) {
+            case "epic", "legendary" -> true;
+            default -> false;
+        };
+    }
+
+    private boolean isLegendary(String rarity) {
+        if (rarity == null) return false;
+        return "legendary".equals(rarity);
     }
 
     private String storyGradeLabel(String grade) {
@@ -392,5 +550,12 @@ public class AvatarRankServiceImpl implements AvatarRankService {
     private int toInt(Object val, int defaultVal) {
         if (val instanceof Number) return ((Number) val).intValue();
         return defaultVal;
+    }
+
+    private int requiredRequirementValue(Map<String, Object> requirement) {
+        Object value = requirement.containsKey("value")
+                ? requirement.get("value") : requirement.get("count");
+        if (value instanceof Boolean enabled) return enabled ? 1 : 0;
+        return toInt(value, 0);
     }
 }

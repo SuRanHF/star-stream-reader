@@ -12,6 +12,8 @@ public class AvatarRankVO {
     private String starstreamTier;
     private String starstreamTierLabel;
     private int currentOrder;
+    private long rankPosition;
+    private long totalPlayers;
     private Map<String, Object> nextRank;
     private String nextRankName;
     private String nextDisplayName;
@@ -36,6 +38,10 @@ public class AvatarRankVO {
     public void setStarstreamTierLabel(String starstreamTierLabel) { this.starstreamTierLabel = starstreamTierLabel; }
     public int getCurrentOrder() { return currentOrder; }
     public void setCurrentOrder(int currentOrder) { this.currentOrder = currentOrder; }
+    public long getRankPosition() { return rankPosition; }
+    public void setRankPosition(long rankPosition) { this.rankPosition = rankPosition; }
+    public long getTotalPlayers() { return totalPlayers; }
+    public void setTotalPlayers(long totalPlayers) { this.totalPlayers = totalPlayers; }
     public Map<String, Object> getNextRank() { return nextRank; }
     public void setNextRank(Map<String, Object> nextRank) { this.nextRank = nextRank; }
     public String getNextRankName() { return nextRankName; }

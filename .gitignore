@@ -47,6 +47,14 @@ public/fonts/*.woff2
 /frontend-player/pnpm-lock.yaml
 /frontend-player/pnpm-workspace.yaml
 /scripts/download-lingverse-assets.ps1
+/scripts/audit-exploration-economy.mjs
+/scripts/audit-exploration-event-probability.mjs
+/scripts/audit-story-choice-economy.mjs
+/scripts/simulate-rank-clue-route.mjs
+/springboot-backend/test-browser.js
+/frontend-player/test-results/
+**/test-results/
+**/playwright-report/
 
 # Machine-specific editor and workspace state
 /.vscode/folder-alias.json

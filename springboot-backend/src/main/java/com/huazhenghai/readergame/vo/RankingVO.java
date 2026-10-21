@@ -10,6 +10,7 @@ public class RankingVO {
     @JsonProperty("player_name")
     private String playerName;
     private int level;
+    private boolean ranked;
     private int rating;
     private int wins;
     private int losses;
@@ -27,6 +28,9 @@ public class RankingVO {
 
     public int getLevel() { return level; }
     public void setLevel(int level) { this.level = level; }
+
+    public boolean isRanked() { return ranked; }
+    public void setRanked(boolean ranked) { this.ranked = ranked; }
 
     public int getRating() { return rating; }
     public void setRating(int rating) { this.rating = rating; }

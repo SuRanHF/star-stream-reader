@@ -55,7 +55,7 @@ public class ChapterController {
     public Result<ChapterProgressVO> advanceChapter(@Valid @RequestBody ChapterAdvanceRequest req) {
         Long userId = LoginUserContext.get().getUserId();
         return Result.ok(chapterService.claimChapterRewardAndAdvance(
-                req.getPlayerId(), userId));
+                req.getPlayerId(), req.getChapterKey(), userId));
     }
 
     @GetMapping("/resources/{playerId}")

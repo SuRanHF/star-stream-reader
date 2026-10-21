@@ -54,7 +54,7 @@ watch(
     </section>
   </main>
 
-  <CreatePlayerView v-else-if="!gameStore.player" />
+  <CreatePlayerView v-else-if="!gameStore.player" @created="bootstrapQuery.refetch()" />
 
   <GameLayout v-else />
 </template>

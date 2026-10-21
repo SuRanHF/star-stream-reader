@@ -1,22 +1,29 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
 import { playerApi } from '@/api/playerApi';
 import GameButton from '@/components/common/GameButton.vue';
 import GameInput from '@/components/common/GameInput.vue';
 
-const router = useRouter();
 const playerName = ref('');
 const loading = ref(false);
 const errorMessage = ref('');
+
+const emit = defineEmits<{
+  (e: 'created'): void;
+}>();
 
 async function submit() {
   loading.value = true;
   errorMessage.value = '';
   try {
     await playerApi.createPlayer({ playerName: playerName.value.trim() || '未命名读者' });
-    await router.push('/game');
-  } catch (error) {
+    emit('created');
+  } catch (error: any) {
+    const msg = error?.message || '';
+    if (msg.includes('已绑定角色') || msg.includes('已有')) {
+      emit('created');
+      return;
+    }
     errorMessage.value = error instanceof Error ? error.message : '创建角色失败';
   } finally {
     loading.value = false;

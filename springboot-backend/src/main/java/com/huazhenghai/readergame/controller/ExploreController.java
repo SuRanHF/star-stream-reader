@@ -15,6 +15,7 @@ import com.huazhenghai.readergame.mapper.LocationMapper;
 import com.huazhenghai.readergame.mapper.PlayerMapper;
 import com.huazhenghai.readergame.security.LoginUserContext;
 import com.huazhenghai.readergame.service.ExploreService;
+import com.huazhenghai.readergame.service.LocationUnlockPolicy;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -48,7 +49,7 @@ public class ExploreController {
     @GetMapping("/locations/{playerId}")
     @Operation(summary = "获取玩家可探索地点列表 (含故事耗尽状态)")
     public Result<Map<String, Object>> getLocations(@PathVariable Long playerId) {
-        Player player = playerMapper.selectById(playerId);
+        Player player = requireOwnedPlayer(playerId);
         List<Location> locations = locationMapper.selectList(null);
 
         // 获取玩家已触发的故事事件列表
@@ -100,7 +101,7 @@ public class ExploreController {
     public Result<Map<String, Object>> startExplore(@Valid @RequestBody ExploreRequest req) {
         Long userId = LoginUserContext.get().getUserId();
         Map<String, Object> result = exploreService.startExplore(
-                req.getPlayerId(), req.getLocationKey(), userId);
+                req.getPlayerId(), req.getLocationKey(), req.getRequestKey(), userId);
         return Result.ok(result);
     }
 
@@ -111,20 +112,54 @@ public class ExploreController {
         Long playerId = body.get("playerId") instanceof Number
                 ? ((Number) body.get("playerId")).longValue() : null;
         String eventKey = (String) body.get("eventKey");
+        String requestKey = body.get("requestKey") instanceof String
+                ? (String) body.get("requestKey") : null;
+        String storyInstanceKey = body.get("storyInstanceKey") instanceof String
+                ? (String) body.get("storyInstanceKey") : null;
         int choiceIndex = body.get("choiceIndex") instanceof Number
                 ? ((Number) body.get("choiceIndex")).intValue() : -1;
 
-        if (playerId == null || eventKey == null || choiceIndex < 0) {
+        if (playerId == null || eventKey == null || choiceIndex < 0
+                || requestKey == null || requestKey.isBlank()) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "参数不完整");
         }
-        Map<String, Object> result = exploreService.makeChoice(playerId, eventKey, choiceIndex, userId);
+        Map<String, Object> result = exploreService.makeChoice(
+                playerId, eventKey, choiceIndex, requestKey, storyInstanceKey, userId);
         return Result.ok(result);
+    }
+
+    @GetMapping("/pending-stories/{playerId}")
+    @Operation(summary = "获取尚未完成选择的剧情")
+    public Result<Map<String, Object>> getPendingStories(@PathVariable Long playerId) {
+        Long userId = LoginUserContext.get().getUserId();
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("pending_stories", exploreService.getPendingStories(playerId, userId));
+        return Result.ok(result);
+    }
+
+    @GetMapping("/pending-battles/{playerId}")
+    @Operation(summary = "获取尚未完成的战斗遭遇")
+    public Result<Map<String, Object>> getPendingBattles(@PathVariable Long playerId) {
+        Long userId = LoginUserContext.get().getUserId();
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("pending_battles", exploreService.getPendingBattles(playerId, userId));
+        return Result.ok(result);
+    }
+
+    @PostMapping("/pending-battles/{playerId}/ack")
+    @Operation(summary = "确认战斗遭遇已完成")
+    public Result<Map<String, Object>> acknowledgePendingBattle(
+            @PathVariable Long playerId, @RequestBody Map<String, Object> body) {
+        Long userId = LoginUserContext.get().getUserId();
+        String requestKey = body.get("requestKey") instanceof String value ? value : null;
+        exploreService.acknowledgePendingBattle(playerId, requestKey, userId);
+        return Result.ok(Collections.emptyMap());
     }
 
     @GetMapping("/map-nodes/{playerId}")
     @Operation(summary = "获取场景地图节点数据 (替代前端 mockData)")
     public Result<Map<String, Object>> getMapNodes(@PathVariable Long playerId) {
-        Player player = playerMapper.selectById(playerId);
+        Player player = requireOwnedPlayer(playerId);
         List<Location> locations = locationMapper.selectList(null);
         final List<String> triggered = getTriggeredStoryEvents(player);
         Map<String, Object> playerStats = parseJsonMap(player.getStatsJson());
@@ -226,10 +261,27 @@ public class ExploreController {
     @GetMapping("/story-log/{playerId}")
     @Operation(summary = "获取玩家故事回顾日志")
     public Result<Map<String, Object>> getStoryLog(@PathVariable Long playerId) {
+        requireOwnedPlayer(playerId);
         List<Map<String, Object>> storyLog = exploreService.getStoryLog(playerId);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("story_log", storyLog);
         return Result.ok(result);
+    }
+
+    private Player requireOwnedPlayer(Long playerId) {
+        var loginUser = LoginUserContext.get();
+        if (loginUser == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED, "请先登录");
+        }
+        Long userId = loginUser.getUserId();
+        Player player = playerMapper.selectById(playerId);
+        if (player == null) {
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "玩家不存在");
+        }
+        if (!Objects.equals(player.getUserId(), userId)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权读取此玩家的探索进度");
+        }
+        return player;
     }
 
     @SuppressWarnings("unchecked")
@@ -256,58 +308,13 @@ public class ExploreController {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private boolean checkUnlockConditions(Map<String, Object> conds, Map<String, Object> playerStats,
                                           Player player, List<String> triggered) {
-        if (conds.isEmpty()) return true;
-
-        // 1. 等级要求
-        if (conds.containsKey("required_level")) {
-            int required = conds.get("required_level") instanceof Number
-                    ? ((Number) conds.get("required_level")).intValue() : 0;
-            int level = playerStats.get("level") instanceof Number
-                    ? ((Number) playerStats.get("level")).intValue() : 1;
-            if (level < required) return false;
-        }
-
-        // 2. 前置事件要求
-        if (conds.containsKey("prerequisite_events")) {
-            List<String> required = (List<String>) conds.get("prerequisite_events");
-            for (String re : required) {
-                if (!triggered.contains(re)) return false;
-            }
-        }
-
-        // 3. 道具要求
-        if (conds.containsKey("required_items")) {
-            List<String> requiredItems = (List<String>) conds.get("required_items");
-            Map<String, Object> flags = parseJsonMap(player.getStoryFlagsJson());
-            List<String> held = (List<String>) flags.getOrDefault("held_items", Collections.emptyList());
-            for (String item : requiredItems) {
-                if (!held.contains(item)) return false;
-            }
-        }
-
-        // 4. 章节要求
-        if (conds.containsKey("chapter_min")) {
-            int minChapter = conds.get("chapter_min") instanceof Number
-                    ? ((Number) conds.get("chapter_min")).intValue() : 0;
-            String curChapter = player.getCurrentChapter();
-            if (curChapter == null) return minChapter <= 1;
-            int curNum = 0;
-            try { curNum = Integer.parseInt(curChapter.replaceAll("[^0-9]", "")); }
-            catch (NumberFormatException ignored) {}
-            if (curNum < minChapter) return false;
-        }
-
-        // 5. 选项解锁过的地点 (从 storyFlags 读取)
-        if (conds.containsKey("unlock_by_choice")) {
-            String locKey = (String) conds.get("unlock_by_choice");
-            Map<String, Object> flags = parseJsonMap(player.getStoryFlagsJson());
-            List<String> unlocked = (List<String>) flags.getOrDefault("unlocked_locations", Collections.emptyList());
-            if (!unlocked.contains(locKey)) return false;
-        }
-
-        return true;
+        return LocationUnlockPolicy.canAccessLocation(
+                conds,
+                playerStats,
+                parseJsonMap(player.getStoryFlagsJson()),
+                player.getCurrentChapter(),
+                triggered);
     }
 }

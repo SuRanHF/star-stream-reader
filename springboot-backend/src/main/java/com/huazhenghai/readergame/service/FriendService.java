@@ -26,4 +26,9 @@ public interface FriendService {
     List<FriendRequestVO> getPendingRequests(Long playerId);
 
     FriendSummaryVO getFriendSummary(Long playerId);
+
+    Map<String, Object> sendGift(Long playerId, Long targetPlayerId, String itemKey, int quantity,
+                                 String requestKey);
+
+    List<Map<String, Object>> getRecentInteractions(Long playerId);
 }

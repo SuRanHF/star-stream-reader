@@ -16,6 +16,7 @@ export const useGameStore = defineStore('game', () => {
   const onlineSummary = ref<ApiRecord>({});
   const chatSummary = ref<ApiRecord>({});
   const inventorySummary = ref<ApiRecord[]>([]);
+  const titles = ref<ApiRecord[]>([]);
   const equipmentSummary = ref<ApiRecord>({});
   const skillSummary = ref<ApiRecord>({});
   const pkSummary = ref<ApiRecord>({});
@@ -24,6 +25,8 @@ export const useGameStore = defineStore('game', () => {
   const worldBossSummary = ref<ApiRecord>({});
   const narrativeSummary = ref<ApiRecord>({});
   const activePanel = ref('');
+  let transientLogSequence = 0;
+  const maxVisibleLogs = 120;
 
   const playerName = computed(() => player.value?.playerName || player.value?.['player_name'] || player.value?.name || '未命名读者');
 
@@ -67,6 +70,7 @@ export const useGameStore = defineStore('game', () => {
     onlineSummary.value = payload.onlineSummary || {};
     chatSummary.value = payload.chatSummary || {};
     inventorySummary.value = payload.inventorySummary || [];
+    titles.value = payload.titles || [];
     equipmentSummary.value = payload.equipmentSummary || {};
     skillSummary.value = payload.skillSummary || {};
     pkSummary.value = payload.pkSummary || {};
@@ -77,6 +81,49 @@ export const useGameStore = defineStore('game', () => {
 
   function setActivePanel(panel: string) {
     activePanel.value = panel;
+  }
+
+  function normalizeTransientLogs(entries: LogEntry[]): LogEntry[] {
+    return entries
+      .filter((entry) => Boolean(entry.message?.trim()))
+      .map((entry) => ({
+        ...entry,
+        id: entry.id ?? -(Date.now() * 1000 + transientLogSequence++),
+        createdAt: entry.createdAt ?? new Date().toISOString(),
+      }));
+  }
+
+  function appendRecentLogs(entries: LogEntry[]) {
+    const nextEntries = normalizeTransientLogs(entries);
+    if (!nextEntries.length) return;
+    recentLogs.value = [...recentLogs.value, ...nextEntries].slice(-maxVisibleLogs);
+  }
+
+  function replaceTransientActionLogs(operationKey: string, entries: LogEntry[]) {
+    if (!operationKey.trim()) {
+      appendRecentLogs(entries);
+      return;
+    }
+    const nextEntries = normalizeTransientLogs(entries).map((entry) => ({
+      ...entry,
+      transientOperationKey: operationKey,
+    }));
+    if (!nextEntries.length) return;
+
+    const nextLogs = [...recentLogs.value];
+    let firstMatchIndex = -1;
+    for (let index = nextLogs.length - 1; index >= 0; index -= 1) {
+      if (nextLogs[index].transientOperationKey === operationKey) firstMatchIndex = index;
+    }
+    if (firstMatchIndex >= 0) {
+      for (let index = nextLogs.length - 1; index >= 0; index -= 1) {
+        if (nextLogs[index].transientOperationKey === operationKey) nextLogs.splice(index, 1);
+      }
+      nextLogs.splice(firstMatchIndex, 0, ...nextEntries);
+    } else {
+      nextLogs.push(...nextEntries);
+    }
+    recentLogs.value = nextLogs.slice(-maxVisibleLogs);
   }
 
   function setOnlineSummary(summary: ApiRecord) {
@@ -151,7 +198,9 @@ export const useGameStore = defineStore('game', () => {
     if (incoming.stats) {
       merged.stats = { ...(player.value.stats || {}), ...(incoming.stats as ApiRecord) };
     }
-    const flatKeys = ['coins', 'story_fragments', 'hp', 'maxHp', 'stamina', 'maxStamina',
+    const flatKeys = ['coins', 'storyFragments', 'story_fragments', 'stageProgress', 'stage_progress',
+      'decisionHistory', 'decision_history', 'storyFlags', 'story_flags',
+      'hp', 'maxHp', 'stamina', 'maxStamina',
       'attack', 'defense', 'speed', 'level', 'current_location', 'currentLocation',
       'current_main_chapter', 'currentMainChapter', 'current_chapter', 'currentChapter',
       'avatarRank', 'avatarRankName', 'storyGrade', 'player_name', 'playerName',
@@ -195,6 +244,7 @@ export const useGameStore = defineStore('game', () => {
     onlineSummary,
     chatSummary,
     inventorySummary,
+    titles,
     equipmentSummary,
     skillSummary,
     pkSummary,
@@ -206,6 +256,8 @@ export const useGameStore = defineStore('game', () => {
     playerName,
     applyBootstrap,
     setActivePanel,
+    appendRecentLogs,
+    replaceTransientActionLogs,
     setOnlineSummary,
     setWorldBossSummary,
     setWorldlineSummary,

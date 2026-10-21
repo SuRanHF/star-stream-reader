@@ -13,6 +13,8 @@ public class FactionSkillVO {
     private Map<String, Object> effects;
     private Map<String, Object> cost;
     private Integer enabled;
+    private boolean learned;
+    private boolean canLearn;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -32,4 +34,8 @@ public class FactionSkillVO {
     public void setCost(Map<String, Object> cost) { this.cost = cost; }
     public Integer getEnabled() { return enabled; }
     public void setEnabled(Integer enabled) { this.enabled = enabled; }
+    public boolean isLearned() { return learned; }
+    public void setLearned(boolean learned) { this.learned = learned; }
+    public boolean isCanLearn() { return canLearn; }
+    public void setCanLearn(boolean canLearn) { this.canLearn = canLearn; }
 }

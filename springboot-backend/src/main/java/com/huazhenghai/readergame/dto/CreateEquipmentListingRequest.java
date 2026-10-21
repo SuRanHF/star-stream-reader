@@ -1,12 +1,17 @@
 package com.huazhenghai.readergame.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 public class CreateEquipmentListingRequest {
 
     private Long sellerPlayerId;
     private String equipmentKey;
     private int unitPrice;
+    @NotBlank(message = "requestKey 不能为空")
+    @Size(max = 64, message = "requestKey 长度不能超过 64")
+    private String requestKey;
 
     public Long getSellerPlayerId() { return sellerPlayerId; }
     public void setSellerPlayerId(Long sellerPlayerId) { this.sellerPlayerId = sellerPlayerId; }
@@ -28,6 +33,8 @@ public class CreateEquipmentListingRequest {
 
     public int getUnitPrice() { return unitPrice; }
     public void setUnitPrice(int unitPrice) { this.unitPrice = unitPrice; }
+    public String getRequestKey() { return requestKey; }
+    public void setRequestKey(String requestKey) { this.requestKey = requestKey; }
 
     /** 兼容前端 "price" 字段 */
     @JsonProperty("price")

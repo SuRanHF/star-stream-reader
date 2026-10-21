@@ -13,9 +13,14 @@ public interface CombatService {
 
     CombatResultVO startCombat(Long playerId, String monsterKey, Long userId);
 
+    CombatResultVO startCombat(Long playerId, String monsterKey, String requestKey, Long userId);
+
     List<BattleLogVO> getBattleLogs(Long playerId, Long userId);
 
     CombatStatsVO calculateCombatPower(Long playerId);
 
     Map<String, Object> resolveCombat(Long playerId, String monsterKey, String action, Long userId);
+
+    Map<String, Object> resolveCombat(Long playerId, String monsterKey, String action,
+                                      String requestKey, Long userId);
 }

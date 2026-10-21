@@ -3,10 +3,10 @@ import { ref, computed } from 'vue';
 import { starChartNodes, type SceneNode } from './mockData';
 
 const VOLUME_COLORS: Record<number, string> = {
-  1: '#a0b0f0',
-  2: '#e07070',
-  3: '#7ab0f7',
-  4: '#5ec49e',
+  1: 'var(--color-system-bright)',
+  2: 'var(--color-danger)',
+  3: 'var(--color-star)',
+  4: 'var(--color-spirit)',
 };
 
 const TYPE_ICONS: Record<string, string> = {
@@ -174,16 +174,16 @@ function resetView() {
         <!-- background grid -->
         <defs>
           <radialGradient id="glow-main" cx="50%" cy="50%">
-            <stop offset="0%" stop-color="#a0b0f0" stop-opacity="0.25" />
-            <stop offset="100%" stop-color="#a0b0f0" stop-opacity="0" />
+            <stop offset="0%" stop-color="var(--color-system-bright)" stop-opacity="0.25" />
+            <stop offset="100%" stop-color="var(--color-system-bright)" stop-opacity="0" />
           </radialGradient>
           <radialGradient id="glow-boss" cx="50%" cy="50%">
-            <stop offset="0%" stop-color="#e07070" stop-opacity="0.3" />
-            <stop offset="100%" stop-color="#e07070" stop-opacity="0" />
+            <stop offset="0%" stop-color="var(--color-danger)" stop-opacity="0.3" />
+            <stop offset="100%" stop-color="var(--color-danger)" stop-opacity="0" />
           </radialGradient>
           <radialGradient id="glow-hidden" cx="50%" cy="50%">
-            <stop offset="0%" stop-color="#5ec49e" stop-opacity="0.35" />
-            <stop offset="100%" stop-color="#5ec49e" stop-opacity="0" />
+            <stop offset="0%" stop-color="var(--color-spirit)" stop-opacity="0.35" />
+            <stop offset="100%" stop-color="var(--color-spirit)" stop-opacity="0" />
           </radialGradient>
           <filter id="star-glow">
             <feGaussianBlur stdDeviation="3" result="blur" />
@@ -193,15 +193,15 @@ function resetView() {
 
         <!-- grid pattern -->
         <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
-          <circle cx="30" cy="30" r="0.8" fill="#3a4a7a" opacity="0.35" />
+          <circle cx="30" cy="30" r="0.8" fill="var(--color-border-bright)" opacity="0.35" />
         </pattern>
         <rect :x="viewBox.x - 200" :y="viewBox.y - 200" :width="viewBox.w + 400" :height="viewBox.h + 400" fill="url(#grid)" />
 
         <!-- volume zone labels -->
-        <text x="400" y="530" fill="#a0b0f0" opacity="0.1" font-size="48" font-weight="900">第一卷</text>
-        <text x="100" y="160" fill="#e07070" opacity="0.1" font-size="48" font-weight="900">第二卷</text>
-        <text x="520" y="620" fill="#7ab0f7" opacity="0.1" font-size="48" font-weight="900">第三卷</text>
-        <text x="300" y="50" fill="#5ec49e" opacity="0.1" font-size="48" font-weight="900">第四卷</text>
+        <text x="400" y="530" fill="var(--color-system-bright)" opacity="0.1" font-size="48" font-weight="900">第一卷</text>
+        <text x="100" y="160" fill="var(--color-danger)" opacity="0.1" font-size="48" font-weight="900">第二卷</text>
+        <text x="520" y="620" fill="var(--color-star)" opacity="0.1" font-size="48" font-weight="900">第三卷</text>
+        <text x="300" y="50" fill="var(--color-spirit)" opacity="0.1" font-size="48" font-weight="900">第四卷</text>
 
         <!-- edges -->
         <line
@@ -233,7 +233,7 @@ function resetView() {
           <!-- main body -->
           <circle
             r="16"
-            :fill="node.unlocked ? '#0d1428' : '#070b1a'"
+            :fill="node.unlocked ? 'var(--color-surface)' : 'var(--color-void)'"
             :stroke="VOLUME_COLORS[node.volume] || '#4a5a7a'"
             :stroke-width="node.id === selectedId ? 3 : 1.5"
             :stroke-opacity="node.unlocked ? 0.9 : 0.3"
@@ -243,14 +243,14 @@ function resetView() {
           <text
             text-anchor="middle"
             dy="5"
-            :fill="node.unlocked ? (VOLUME_COLORS[node.volume] || '#6a7a9a') : '#4a5588'"
+            :fill="node.unlocked ? (VOLUME_COLORS[node.volume] || 'var(--color-muted)') : 'var(--color-border-bright)'"
             font-size="14"
           >{{ TYPE_ICONS[node.type] }}</text>
           <!-- label -->
           <text
             text-anchor="middle"
             dy="32"
-            :fill="node.unlocked ? '#d0d8f0' : '#5a6688'"
+            :fill="node.unlocked ? 'var(--color-text-dim)' : 'var(--color-muted)'"
             font-size="11"
             opacity="0.9"
           >{{ node.name }}</text>
@@ -259,7 +259,7 @@ function resetView() {
             v-if="node.completed"
             text-anchor="middle"
             dy="-22"
-            fill="#5ec49e"
+             fill="var(--color-spirit)"
             font-size="11"
           >✓</text>
         </g>
@@ -270,7 +270,7 @@ function resetView() {
 
     <!-- side detail panel -->
     <aside v-if="selectedNode" class="sc-detail">
-      <h3 :style="{ color: VOLUME_COLORS[selectedNode.volume] || '#7ab0f7' }">
+      <h3 :style="{ color: VOLUME_COLORS[selectedNode.volume] || 'var(--color-system-bright)' }">
         {{ TYPE_ICONS[selectedNode.type] }} {{ selectedNode.name }}
       </h3>
       <div class="sc-meta">
@@ -312,37 +312,37 @@ function resetView() {
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  border-bottom: 1px solid rgba(26, 38, 80, 0.45);
+  border-bottom: 1px solid var(--color-border);
   flex-wrap: wrap;
 }
 
 .sc-filters button {
   padding: 3px 12px;
-  border: 1px solid rgba(38, 56, 120, 0.3);
+  border: 1px solid var(--color-border);
   border-radius: 3px;
-  background: rgba(13, 20, 48, 0.5);
-  color: #6a7a9a;
+  background: var(--color-control);
+  color: var(--color-muted);
   font-size: 12px;
   cursor: pointer;
   transition: all 0.15s;
 }
 .sc-filters button:hover {
-  border-color: rgba(74, 143, 231, 0.35);
-  color: #b0bdd0;
+  border-color: var(--color-system-border);
+  color: var(--color-text-dim);
 }
 .sc-filters button.active {
-  border-color: var(--color-system, #4a8fe7);
-  color: var(--color-system-bright, #7ab0f7);
-  background: rgba(74, 143, 231, 0.1);
+  border-color: var(--color-system);
+  color: var(--color-system-bright);
+  background: var(--color-system-bg);
 }
 .sc-filters .sep {
-  color: rgba(26, 38, 80, 0.5);
+  color: var(--color-border);
   margin: 0 4px;
 }
 .sc-filters .sc-reset {
   margin-left: auto;
-  color: #e07070;
-  border-color: rgba(200, 80, 80, 0.3);
+  color: var(--color-danger);
+  border-color: var(--color-danger-glow);
 }
 
 .sc-canvas-wrap {
@@ -350,7 +350,7 @@ function resetView() {
   position: relative;
   overflow: hidden;
   cursor: grab;
-  background: radial-gradient(ellipse at 40% 50%, rgba(13, 20, 48, 0.6) 0%, #070b1a 100%);
+  background: radial-gradient(ellipse at 40% 50%, var(--color-shell-end) 0%, var(--color-void) 100%);
 }
 .sc-canvas-wrap:active {
   cursor: grabbing;
@@ -376,7 +376,7 @@ function resetView() {
   filter: url(#star-glow);
 }
 .star-node.is-selected circle:nth-child(2) {
-  filter: drop-shadow(0 0 6px rgba(74, 143, 231, 0.4));
+  filter: drop-shadow(0 0 6px var(--color-star-glow));
 }
 
 .sc-zoom-hint {
@@ -384,13 +384,13 @@ function resetView() {
   bottom: 10px;
   right: 14px;
   font-size: 11px;
-  color: #4a5588;
+  color: var(--color-muted);
   pointer-events: none;
 }
 
 .sc-detail {
-  border-top: 1px solid rgba(38, 56, 120, 0.35);
-  background: linear-gradient(180deg, rgba(13, 20, 48, 0.98), rgba(7, 11, 26, 0.99));
+  border-top: 1px solid var(--color-border);
+  background: linear-gradient(180deg, var(--color-panel-elevated), var(--color-void));
   padding: 16px 20px;
   max-height: 220px;
   overflow-y: auto;
@@ -413,52 +413,52 @@ function resetView() {
   border-radius: 2px;
   border: 1px solid;
 }
-.sc-badge.main { color: var(--color-system-bright, #7ab0f7); border-color: rgba(74, 143, 231, 0.3); }
-.sc-badge.side { color: #7ab0f7; border-color: rgba(74, 143, 231, 0.3); }
-.sc-badge.hidden { color: #5ec49e; border-color: rgba(94, 196, 158, 0.3); }
-.sc-badge.boss { color: #e07070; border-color: rgba(200, 80, 80, 0.3); }
-.sc-volume-tag { font-size: 12px; color: #6a7a9a; }
-.sc-level { font-size: 12px; color: var(--color-system-bright, #7ab0f7); }
-.sc-danger { font-size: 11px; color: #e07070; }
+.sc-badge.main { color: var(--color-system-bright); border-color: var(--color-system-border); }
+.sc-badge.side { color: var(--color-system-bright); border-color: var(--color-system-border); }
+.sc-badge.hidden { color: var(--color-spirit); border-color: var(--color-spirit-glow); }
+.sc-badge.boss { color: var(--color-danger); border-color: var(--color-danger-glow); }
+.sc-volume-tag { font-size: 12px; color: var(--color-muted); }
+.sc-level { font-size: 12px; color: var(--color-system-bright); }
+.sc-danger { font-size: 11px; color: var(--color-danger); }
 .sc-desc {
   margin: 0 0 10px;
   font-size: 13px;
-  color: #8898b8;
+  color: var(--color-text-dim);
   line-height: 1.6;
 }
 .sc-chapter-info {
   font-size: 12px;
-  color: #6a7a9a;
+  color: var(--color-muted);
   margin-bottom: 8px;
 }
 .sc-items { margin-bottom: 10px; }
-.sc-items-label { font-size: 12px; color: #6a7a9a; }
+.sc-items-label { font-size: 12px; color: var(--color-muted); }
 .sc-item-tag {
   display: inline-block;
   padding: 1px 8px;
   margin: 2px 4px 2px 0;
-  border: 1px solid rgba(38, 56, 120, 0.3);
+  border: 1px solid var(--color-border);
   border-radius: 2px;
   font-size: 11px;
-  color: #5ec49e;
-  background: rgba(94, 196, 158, 0.06);
+  color: var(--color-spirit);
+  background: var(--color-spirit-glow);
 }
 .sc-status { margin-bottom: 10px; font-size: 13px; }
-.sc-done { color: #5ec49e; }
-.sc-available { color: #7ab0f7; }
-.sc-locked { color: #5a6688; }
+.sc-done { color: var(--color-spirit); }
+.sc-available { color: var(--color-system-bright); }
+.sc-locked { color: var(--color-muted); }
 .sc-enter-btn {
   padding: 6px 24px;
-  border: 1px solid var(--color-system, #4a8fe7);
+  border: 1px solid var(--color-system);
   border-radius: 3px;
-  background: rgba(74, 143, 231, 0.1);
-  color: var(--color-system-bright, #7ab0f7);
+  background: var(--color-system-bg);
+  color: var(--color-system-bright);
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
 }
 .sc-enter-btn:hover {
-  background: rgba(74, 143, 231, 0.22);
-  box-shadow: 0 0 12px rgba(74, 143, 231, 0.15);
+  background: var(--color-system-glow);
+  box-shadow: var(--glow-system);
 }
 </style>

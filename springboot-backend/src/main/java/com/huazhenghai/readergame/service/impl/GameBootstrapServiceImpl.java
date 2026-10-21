@@ -5,13 +5,11 @@ import com.huazhenghai.readergame.common.ErrorCode;
 import com.huazhenghai.readergame.vo.*;
 import com.huazhenghai.readergame.entity.Player;
 import com.huazhenghai.readergame.entity.BattleLog;
-import com.huazhenghai.readergame.entity.PlayerLog;
 import com.huazhenghai.readergame.entity.User;
 import com.huazhenghai.readergame.entity.PkRecord;
 import com.huazhenghai.readergame.entity.Ranking;
 import com.huazhenghai.readergame.mapper.BattleLogMapper;
 import com.huazhenghai.readergame.mapper.PkRecordMapper;
-import com.huazhenghai.readergame.mapper.PlayerLogMapper;
 import com.huazhenghai.readergame.mapper.RankingMapper;
 import com.huazhenghai.readergame.mapper.UserMapper;
 import com.huazhenghai.readergame.service.*;
@@ -50,8 +48,9 @@ public class GameBootstrapServiceImpl implements GameBootstrapService {
 
     private final UserMapper userMapper;
     private final PlayerService playerService;
-    private final PlayerLogMapper playerLogMapper;
+    private final PlayerLogService playerLogService;
     private final RecoveryService recoveryService;
+    private final CombatService combatService;
     private final TitleService titleService;
     private final AvatarRankService avatarRankService;
     private final ChapterService chapterService;
@@ -71,11 +70,13 @@ public class GameBootstrapServiceImpl implements GameBootstrapService {
     private final WorldBossService worldBossService;
     private final FactionService factionService;
     private final QuestService questService;
+    private final PlayerStaminaProjectionService staminaProjectionService;
 
     public GameBootstrapServiceImpl(UserMapper userMapper,
                                     PlayerService playerService,
-                                    PlayerLogMapper playerLogMapper,
+                                    PlayerLogService playerLogService,
                                     RecoveryService recoveryService,
+                                    CombatService combatService,
                                     TitleService titleService,
                                     AvatarRankService avatarRankService,
                                     ChapterService chapterService,
@@ -94,11 +95,13 @@ public class GameBootstrapServiceImpl implements GameBootstrapService {
                                     PartyService partyService,
                                     WorldBossService worldBossService,
                                     FactionService factionService,
-                                    QuestService questService) {
+                                    QuestService questService,
+                                    PlayerStaminaProjectionService staminaProjectionService) {
         this.userMapper = userMapper;
         this.playerService = playerService;
-        this.playerLogMapper = playerLogMapper;
+        this.playerLogService = playerLogService;
         this.recoveryService = recoveryService;
+        this.combatService = combatService;
         this.titleService = titleService;
         this.avatarRankService = avatarRankService;
         this.chapterService = chapterService;
@@ -118,6 +121,7 @@ public class GameBootstrapServiceImpl implements GameBootstrapService {
         this.worldBossService = worldBossService;
         this.factionService = factionService;
         this.questService = questService;
+        this.staminaProjectionService = staminaProjectionService;
     }
 
     /**
@@ -154,86 +158,81 @@ public class GameBootstrapServiceImpl implements GameBootstrapService {
         if (player != null) {
             // 3. 应用被动恢复
             Map<String, Object> stats = recoveryService.applyRecovery(player);
+            int effectiveMaxStamina = staminaProjectionService.projectMaxStamina(
+                    player.getId(), toInt(stats.get("maxStamina"), 50));
             playerVO = playerService.getPlayer(player.getId());
-            // 合并装备属性加成到玩家 stats
+            // The combat service is the source of truth for displayed combat totals and modifiers.
             try {
-                Map<String, Object> equipBonus = equipmentService.calculateEquipmentBonus(player.getId());
+                Map<String, Object> mergedStats = new LinkedHashMap<>(playerVO.getStats());
+                Map<String, Object> combatBonuses;
+                if (Boolean.TRUE.equals(mergedStats.get("combatProjection"))
+                        && mergedStats.get("combatBonusSources") instanceof Map<?, ?>) {
+                    combatBonuses = asMap(mergedStats.get("combatBonusSources"));
+                } else {
+                    CombatStatsVO combatStats = combatService.calculateCombatPower(player.getId());
+                    PlayerCombatStatsProjection.apply(mergedStats, combatStats);
+                    combatBonuses = combatStats.getBonuses() == null
+                            ? Collections.emptyMap() : combatStats.getBonuses();
+                }
+                mergedStats.remove("combatBonusSources");
+
+                Map<String, Object> titleEffects = asMap(combatBonuses.get("title"));
+                if (!titleEffects.isEmpty()) {
+                    String titleName = "已装备称号";
+                    try {
+                        com.huazhenghai.readergame.vo.PlayerTitleVO equippedTitle = titleService.getEquippedTitle(player.getId());
+                        if (equippedTitle != null && equippedTitle.getName() != null) titleName = equippedTitle.getName();
+                    } catch (Exception e) {
+                        log.error("[Bootstrap] equipped title name lookup failed", e);
+                    }
+                    mergedStats.put("bonusTitleName", titleName);
+                    addTitleDetails(mergedStats, titleEffects, titleName);
+                }
+                playerVO.setStats(mergedStats);
+            } catch (Exception e) {
+                log.error("[Bootstrap] combat attribute projection failed", e);
+            }
+            if (playerVO != null) {
+                Map<String, Object> projectedStats = playerVO.getStats() == null
+                        ? new LinkedHashMap<>() : new LinkedHashMap<>(playerVO.getStats());
+                projectedStats.put("maxStamina", effectiveMaxStamina);
+                playerVO.setStats(projectedStats);
+            }
+            // Keep item/skill descriptions for the panel; numeric totals come from combatStats above.
+            try {
                 Map<String, String> equipDetail = equipmentService.getEquipmentBonusDetail(player.getId());
-                if (equipBonus != null && !equipBonus.isEmpty()) {
-                    Map<String, Object> mergedStats = new LinkedHashMap<>(playerVO.getStats());
-                    for (Map.Entry<String, Object> entry : equipBonus.entrySet()) {
-                        String key = entry.getKey();
-                        double bonusValue = toDoubleVal(entry.getValue());
-                        if (bonusValue != 0) {
-                            double baseValue = toDoubleVal(mergedStats.get(key));
-                            mergedStats.put(key, baseValue + bonusValue);
-                            setBonusField(mergedStats, key, "Equipment", bonusValue);
+                if (equipDetail != null) {
+                    for (Map.Entry<String, String> e : equipDetail.entrySet()) {
+                        String mapped = mapStatKey(e.getKey());
+                        if (mapped != null) {
+                            playerVO.getStats().put("bonus" + mapped + "EquipmentDetail", e.getValue());
                         }
                     }
-                    // 写入装备详情字符串 (例: bonusAtkEquipmentDetail = "屠龙刀+5, 龙鳞甲+3")
-                    if (equipDetail != null) {
-                        for (Map.Entry<String, String> e : equipDetail.entrySet()) {
-                            String key = e.getKey();
-                            String mapped = mapStatKey(key);
-                            if (mapped != null) {
-                                mergedStats.put("bonus" + mapped + "EquipmentDetail", e.getValue());
-                            }
-                        }
-                    }
-                    playerVO.setStats(mergedStats);
                 }
             } catch (Exception e) {
-                log.error("[Bootstrap] equipment bonus merge failed", e);
+                log.error("[Bootstrap] equipment bonus detail lookup failed", e);
             }
-            // 合并已装备技能的属性加成到玩家 stats
             try {
-                Map<String, Object> skillBonus = skillService.calculateSkillBonus(player.getId());
                 Map<String, String> skillDetail = skillService.getSkillBonusDetail(player.getId());
-                if (skillBonus != null && !skillBonus.isEmpty()) {
-                    Map<String, Object> mergedStats = new LinkedHashMap<>(playerVO.getStats());
-                    for (Map.Entry<String, Object> entry : skillBonus.entrySet()) {
-                        String key = entry.getKey();
-                        double bonusValue = toDoubleVal(entry.getValue());
-                        if (bonusValue != 0) {
-                            double baseValue = toDoubleVal(mergedStats.get(key));
-                            mergedStats.put(key, baseValue + bonusValue);
-                            setBonusField(mergedStats, key, "Skill", bonusValue);
+                if (skillDetail != null) {
+                    for (Map.Entry<String, String> e : skillDetail.entrySet()) {
+                        String mapped = mapStatKey(e.getKey());
+                        if (mapped != null) {
+                            playerVO.getStats().put("bonus" + mapped + "SkillDetail", e.getValue());
                         }
                     }
-                    // 写入技能详情字符串
-                    if (skillDetail != null) {
-                        for (Map.Entry<String, String> e : skillDetail.entrySet()) {
-                            String key = e.getKey();
-                            String mapped = mapStatKey(key);
-                            if (mapped != null) {
-                                mergedStats.put("bonus" + mapped + "SkillDetail", e.getValue());
-                            }
-                        }
-                    }
-                    playerVO.setStats(mergedStats);
                 }
             } catch (Exception e) {
-                log.error("[Bootstrap] skill bonus merge failed", e);
+                log.error("[Bootstrap] skill bonus detail lookup failed", e);
             }
-            // 合并阵营加成到玩家 stats
             try {
-                Map<String, Object> factionBuff = factionService.getFactionBuff(player.getId());
-                int buffAtk = factionBuff.get("buffAtk") instanceof Number n ? n.intValue() : 0;
-                if (buffAtk != 0) {
-                    Map<String, Object> mergedStats = new LinkedHashMap<>(playerVO.getStats());
-                    double curAtk = mergedStats.get("attack") instanceof Number n ? n.doubleValue() : 10;
-                    mergedStats.put("attack", curAtk + buffAtk);
-                    setBonusField(mergedStats, "attack", "Faction", buffAtk);
-                    // 阵营名称和详情
-                    FactionSummaryVO fsv = factionService.getFactionSummary(player.getId());
-                    String factionName = (fsv != null && fsv.getFactionName() != null)
-                            ? fsv.getFactionName() : "";
-                    mergedStats.put("bonusFactionName", factionName);
-                    mergedStats.put("bonusAtkFactionDetail", factionName + "+" + buffAtk);
-                    playerVO.setStats(mergedStats);
-                }
+                FactionSummaryVO fsv = factionService.getFactionSummary(player.getId());
+                String factionName = fsv != null && fsv.getFactionName() != null ? fsv.getFactionName() : "";
+                playerVO.getStats().put("bonusFactionName", factionName);
+                double factionAttack = toDoubleVal(playerVO.getStats().get("bonusAtkFaction"));
+                playerVO.getStats().put("bonusAtkFactionDetail", factionAttack == 0 ? "" : factionName + "+" + factionAttack);
             } catch (Exception e) {
-                log.error("[Bootstrap] faction buff merge failed", e);
+                log.error("[Bootstrap] faction summary lookup failed", e);
             }
             recentLogs = getRecentLogs(player.getId(), 50);
 
@@ -245,13 +244,13 @@ public class GameBootstrapServiceImpl implements GameBootstrapService {
             restState.setHp(toInt(stats.get("hp"), 100));
             restState.setMaxHp(toInt(stats.get("maxHp"), 100));
             restState.setStamina(toInt(stats.get("stamina"), 50));
-            restState.setMaxStamina(toInt(stats.get("maxStamina"), 50));
+            restState.setMaxStamina(effectiveMaxStamina);
             Object lastRecoveryAt = stats.get("lastRecoveryAt");
             restState.setLastRecoveryAt(lastRecoveryAt != null ? lastRecoveryAt.toString() : null);
             // 恢复间隔 (与 RecoveryServiceImpl 常量一致: HP满恢复2h, 体力满恢复3h, 休息外3倍)
             boolean resting = Boolean.TRUE.equals(stats.get("isResting"));
             int hpMax = Math.max(1, toInt(stats.get("maxHp"), 100));
-            int staMax = Math.max(1, toInt(stats.get("maxStamina"), 50));
+            int staMax = Math.max(1, effectiveMaxStamina);
             int hpInterval = Math.max(1, 7200 / hpMax);
             int staInterval = Math.max(1, 10800 / staMax);
             if (!resting) { hpInterval *= 3; staInterval *= 3; }
@@ -557,23 +556,7 @@ public class GameBootstrapServiceImpl implements GameBootstrapService {
      * 获取玩家最近的 N 条日志.
      */
     private List<LogEntry> getRecentLogs(Long playerId, int limit) {
-        QueryWrapper<PlayerLog> query = new QueryWrapper<>();
-        query.eq("player_id", playerId)
-             .orderByDesc("created_at")
-             .last("LIMIT " + limit);
-        List<PlayerLog> logs = playerLogMapper.selectList(query);
-
-        List<LogEntry> result = new ArrayList<>();
-        for (PlayerLog log : logs) {
-            result.add(new LogEntry(
-                    log.getId(),
-                    log.getMessage(),
-                    log.getType(),
-                    log.getCreatedAt()
-            ));
-        }
-        Collections.reverse(result);
-        return result;
+        return playerLogService.getRecentLogs(playerId, limit);
     }
 
     private int toInt(Object val, int defaultVal) {
@@ -586,20 +569,33 @@ public class GameBootstrapServiceImpl implements GameBootstrapService {
         return 0;
     }
 
-    /** 将装备/技能加成写入 stats 的拆解字段 (bonusXXXEquipment / bonusXXXSkill) */
-    private void setBonusField(Map<String, Object> stats, String statKey, String source, double value) {
-        String fieldKey = switch (statKey) {
-            case "attack", "atk" -> "bonusAtk" + source;
-            case "defense", "def" -> "bonusDef" + source;
-            case "speed", "spd" -> "bonusSpd" + source;
-            case "critRate" -> "bonusCrit" + source;
-            case "maxHp" -> "bonusMaxHp" + source;
-            default -> null;
-        };
-        if (fieldKey != null) {
-            double current = stats.get(fieldKey) instanceof Number n ? n.doubleValue() : 0;
-            stats.put(fieldKey, Math.round((current + value) * 100.0) / 100.0);
-        }
+    private Map<String, Object> asMap(Object value) {
+        if (!(value instanceof Map<?, ?> source)) return Collections.emptyMap();
+        Map<String, Object> result = new LinkedHashMap<>();
+        source.forEach((key, entry) -> {
+            if (key instanceof String stringKey) result.put(stringKey, entry);
+        });
+        return result;
+    }
+
+    private void addTitleDetails(Map<String, Object> stats, Map<String, Object> effects, String titleName) {
+        Map<String, String> detailKeys = Map.of(
+                "attack", "bonusAtkTitleDetail",
+                "defense", "bonusDefTitleDetail",
+                "speed", "bonusSpdTitleDetail",
+                "critRate", "bonusCritTitleDetail",
+                "maxHp", "bonusMaxHpTitleDetail"
+        );
+        detailKeys.forEach((statKey, detailKey) -> {
+            double value = toDoubleVal(effects.get(statKey));
+            if (value != 0) {
+                String formatted = java.math.BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
+                if ("critRate".equals(statKey)) {
+                    formatted = java.math.BigDecimal.valueOf(value * 100).stripTrailingZeros().toPlainString() + "%";
+                }
+                stats.put(detailKey, titleName + " " + (value > 0 ? "+" : "") + formatted);
+            }
+        });
     }
 
     /** 将装备/技能 detail 的 stat key 映射为 CamelCase 字段前缀 */

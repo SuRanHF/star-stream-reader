@@ -53,7 +53,7 @@ public class QuestController {
     public Result<QuestRewardVO> claimReward(@Valid @RequestBody ClaimQuestRewardRequest req) {
         Long userId = LoginUserContext.get().getUserId();
         QuestRewardVO reward = questService.claimReward(
-                req.getPlayerId(), req.getQuestKey(), req.getCycleKey(), userId);
+                req.getPlayerId(), req.getQuestKey(), req.getCycleKey(), userId, req.getRequestKey());
         return Result.ok(reward);
     }
 

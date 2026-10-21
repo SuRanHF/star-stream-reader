@@ -28,7 +28,7 @@ public interface ChapterService {
     /**
      * 领取阶段奖励并推进到下一阶段.
      */
-    ChapterProgressVO claimChapterRewardAndAdvance(Long playerId, Long userId);
+    ChapterProgressVO claimChapterRewardAndAdvance(Long playerId, String expectedChapterKey, Long userId);
 
     /**
      * 获取玩家突破资源（货币等）.

@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { exploreApi } from '@/api/exploreApi';
 import { useGameStore } from '@/stores/gameStore';
+import { getRankGuidance } from '@/utils/rankGuidance';
 
 const game = useGameStore();
 
@@ -159,7 +160,7 @@ const scenario = computed<ScenarioState | null>(() => {
     : difficultyFromDanger(dangerLevel);
 
   const baseReward = dangerLevel * 800;
-  const fragmentBonus = dangerLevel >= 3 ? ` + 寓言碎片×${dangerLevel - 2}` : '';
+  const fragmentBonus = dangerLevel >= 3 ? ` + 故事碎片×${dangerLevel - 2}` : '';
   const rewardPreview = `${baseReward} 星币${fragmentBonus}`;
 
   const scenarioName = loc
@@ -187,20 +188,25 @@ const scenario = computed<ScenarioState | null>(() => {
   };
 });
 
+const rankGuidance = computed(() => getRankGuidance(
+  game.player?.avatarRank,
+  currentLocation()?.recommended_rank,
+));
+
 const difficultyColor = computed(() => {
   const d = scenario.value?.difficulty || 'F';
   const colors: Record<string, string> = {
-    'F': '#5a6688',
-    'E': '#8a96b8',
-    'D': '#4a8fe7',
-    'C': '#a080e0',
-    'B': '#6aafff',
-    'A': '#e0556a',
-    'S': '#c0a0f0',
-    'SS': '#e0556a',
-    'SSS': '#e0556a',
+    'F': 'var(--color-muted)',
+    'E': 'var(--color-text-dim)',
+    'D': 'var(--color-system)',
+    'C': 'var(--color-purple)',
+    'B': 'var(--color-star)',
+    'A': 'var(--color-danger)',
+    'S': 'var(--color-purple)',
+    'SS': 'var(--color-danger)',
+    'SSS': 'var(--color-danger)',
   };
-  return colors[d] || '#5a6688';
+  return colors[d] || 'var(--color-muted)';
 });
 
 const phasePercent = computed(() => {
@@ -216,10 +222,20 @@ const phasePercent = computed(() => {
     <!-- 场景公告 -->
     <div class="scp-header">
       <div class="scp-badge" :style="{ borderColor: difficultyColor, color: difficultyColor }">
-        {{ scenario.difficulty }}级
+        <template v-if="rankGuidance">建议 {{ rankGuidance.recommendedRank }} 位格</template>
+        <template v-else>{{ scenario.difficulty }}级</template>
       </div>
       <div class="scp-name">{{ scenario.name }}</div>
       <div class="scp-loc">📍 {{ scenario.locationName }}</div>
+    </div>
+
+    <div
+      v-if="rankGuidance"
+      :class="['scp-rank-guidance', `is-${rankGuidance.comparison}`]"
+      role="note"
+    >
+      <strong>{{ rankGuidance.summary }} · {{ rankGuidance.effectLabel }}</strong>
+      <span>{{ rankGuidance.details }}</span>
     </div>
 
     <!-- 阶段进度条 -->
@@ -315,8 +331,35 @@ const phasePercent = computed(() => {
   flex-shrink: 0;
 }
 
+.scp-rank-guidance {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: -6px 0 14px;
+  padding: 8px 10px;
+  border-left: 2px solid var(--color-system);
+  background: var(--color-system-bg);
+  color: var(--color-text-dim);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.scp-rank-guidance strong {
+  color: var(--color-system-bright);
+  font-weight: 600;
+}
+
+.scp-rank-guidance.is-below {
+  border-left-color: var(--color-star);
+  background: var(--color-star-bg);
+}
+
+.scp-rank-guidance.is-below strong {
+  color: var(--color-star-bright);
+}
+
 .scp-name {
-  color: #d0d8f0;
+  color: var(--color-text-dim);
   font-size: 16px;
   font-weight: 700;
   letter-spacing: 2px;
@@ -337,7 +380,7 @@ const phasePercent = computed(() => {
 
 .scp-phase-track {
   height: 2px;
-  background: rgba(26, 38, 80, 0.5);
+  background: var(--color-border);
   border-radius: 1px;
   margin-bottom: 10px;
 }
@@ -347,7 +390,7 @@ const phasePercent = computed(() => {
   background: var(--color-system);
   border-radius: 1px;
   transition: width 0.5s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
-  box-shadow: 0 0 6px rgba(74, 143, 231, 0.4);
+  box-shadow: var(--glow-system);
 }
 
 .scp-phase-dots {
@@ -381,7 +424,7 @@ const phasePercent = computed(() => {
 .scp-phase-dot.is-current .scp-dot-circle {
   border-color: var(--color-system);
   background: var(--color-system);
-  box-shadow: 0 0 8px rgba(74, 143, 231, 0.5);
+  box-shadow: var(--glow-system);
   animation: pulseGlow 2s ease-in-out infinite;
 }
 
@@ -421,13 +464,13 @@ const phasePercent = computed(() => {
   padding: 8px 12px;
   border-radius: 5px;
   border: 1px solid var(--color-border);
-  background: rgba(7, 11, 26, 0.4);
+  background: var(--color-card);
   transition: all 0.3s;
 }
 
 .scp-obj.is-done {
-  border-color: rgba(94, 196, 158, 0.2);
-  background: rgba(94, 196, 158, 0.04);
+  border-color: var(--color-spirit-border);
+  background: var(--color-spirit-glow);
 }
 
 .scp-obj-check {
@@ -460,7 +503,7 @@ const phasePercent = computed(() => {
   padding: 8px 12px;
   border-radius: 5px;
   border: 1px solid var(--color-border);
-  background: rgba(7, 11, 26, 0.3);
+  background: var(--color-control);
 }
 .scp-progress-label {
   font-size: 11px;
@@ -476,7 +519,7 @@ const phasePercent = computed(() => {
   font-size: 10px;
   color: var(--color-spirit);
   padding: 2px 6px;
-  border: 1px solid rgba(94, 196, 158, 0.3);
+  border: 1px solid var(--color-spirit-border);
   border-radius: 2px;
 }
 
@@ -488,7 +531,7 @@ const phasePercent = computed(() => {
   padding: 10px 12px;
   border-radius: 5px;
   border: 1px solid var(--color-border);
-  background: rgba(7, 11, 26, 0.3);
+  background: var(--color-control);
 }
 
 .scp-meta-item {

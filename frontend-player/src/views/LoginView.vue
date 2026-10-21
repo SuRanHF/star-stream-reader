@@ -32,8 +32,8 @@ async function submit() {
   <main class="relative flex min-h-screen items-center justify-center px-4 py-10 overflow-hidden">
     <!-- 背景装饰光圈 -->
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-      <div class="w-[500px] h-[500px] rounded-full bg-[radial-gradient(circle,rgba(74,143,231,0.07)_0%,transparent_60%)] absolute -translate-x-1/2 -translate-y-1/2" />
-      <div class="w-[320px] h-[320px] rounded-full bg-[radial-gradient(circle,rgba(94,196,158,0.05)_0%,transparent_60%)] absolute -translate-x-1/2 -translate-y-1/2" />
+      <div class="w-[500px] h-[500px] rounded-full bg-[radial-gradient(circle,var(--color-system-glow-soft)_0%,transparent_60%)] absolute -translate-x-1/2 -translate-y-1/2" />
+      <div class="w-[320px] h-[320px] rounded-full bg-[radial-gradient(circle,var(--color-spirit-glow)_0%,transparent_60%)] absolute -translate-x-1/2 -translate-y-1/2" />
     </div>
 
     <form
@@ -42,7 +42,7 @@ async function submit() {
       @submit.prevent="submit"
     >
       <!-- 顶部装饰线 -->
-      <div class="mx-auto mb-8 h-[1px] w-12 bg-gradient-to-r from-transparent via-blue-400/50 to-transparent opacity-60" />
+      <div class="mx-auto mb-8 h-[1px] w-12 bg-gradient-to-r from-transparent via-system/50 to-transparent opacity-60" />
 
       <div class="mb-8 text-center">
         <p class="text-xs tracking-[0.5em] text-muted uppercase">Terminal of the Star Stream</p>
@@ -71,14 +71,14 @@ async function submit() {
       </div>
 
       <!-- 底部装饰线 -->
-      <div class="mx-auto mt-8 h-[1px] w-12 bg-gradient-to-r from-transparent via-blue-400/30 to-transparent opacity-40" />
+      <div class="mx-auto mt-8 h-[1px] w-12 bg-gradient-to-r from-transparent via-system/30 to-transparent opacity-40" />
     </form>
   </main>
 </template>
 
 <style scoped>
 .login-title {
-  color: var(--color-system-bright, #7ab0f7);
-  text-shadow: 0 0 24px rgba(74, 143, 231, 0.4);
+  color: var(--color-star-bright);
+  text-shadow: 0 0 24px var(--color-star-glow);
 }
 </style>

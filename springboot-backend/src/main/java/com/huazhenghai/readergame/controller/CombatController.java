@@ -51,7 +51,7 @@ public class CombatController {
     public Result<CombatResultVO> startCombat(@Valid @RequestBody StartCombatRequest request) {
         Long userId = LoginUserContext.get().getUserId();
         CombatResultVO result = combatService.startCombat(
-                request.getPlayerId(), request.getMonsterKey(), userId);
+                request.getPlayerId(), request.getMonsterKey(), request.getRequestKey(), userId);
         return Result.ok(result);
     }
 
@@ -62,8 +62,10 @@ public class CombatController {
         Long playerId = MapUtils.getLong(body, "playerId");
         String monsterKey = MapUtils.getString(body, "monsterKey");
         String action = MapUtils.getString(body, "action");
+        String requestKey = MapUtils.getString(body, "requestKey");
         if (action == null) action = "attack";
-        Map<String, Object> result = combatService.resolveCombat(playerId, monsterKey, action, userId);
+        Map<String, Object> result = combatService.resolveCombat(
+                playerId, monsterKey, action, requestKey, userId);
         return Result.ok(result);
     }
 

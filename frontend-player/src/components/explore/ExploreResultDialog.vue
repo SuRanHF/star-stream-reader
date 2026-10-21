@@ -2,9 +2,28 @@
 import { ref, computed, watch, shallowRef } from 'vue';
 import { useUiStore } from '@/stores/uiStore';
 import { useGameStore } from '@/stores/gameStore';
-import { exploreApi, type ExploreResult, type ChoiceResult } from '@/api/exploreApi';
+import { exploreApi, type Choice, type ExploreResult, type ChoiceResult } from '@/api/exploreApi';
+import { ApiHttpError } from '@/api/http';
+import { clearPendingCombatRequestKey, getPendingCombatRequestKey } from '@/utils/pendingCombatRequestKey';
+import {
+  clearPendingCombatAction,
+  getPendingCombatAction,
+  setPendingCombatAction,
+  type CombatAction,
+} from '@/utils/pendingCombatAction';
 import { gameApi } from '@/api/gameApi';
-import { combatApi, type CombatResult } from '@/api/combatApi';
+import { combatApi, type CombatResolveResponse, type CombatResult } from '@/api/combatApi';
+import {
+  clearPendingStoryChoiceRequest,
+  getOrCreatePendingStoryChoiceRequest,
+  getPendingStoryChoiceRequest,
+} from '@/utils/storyChoiceRequestKey';
+import {
+  choiceSummaryMessage,
+  combatSummaryMessage,
+  formatChoiceOutcomeLogs,
+  formatCombatLogEntries,
+} from '@/utils/gameLog';
 
 const ui = useUiStore();
 const game = useGameStore();
@@ -16,16 +35,180 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: [];
-  choiceMade: [];
+  choiceMade: [eventKey: string, pendingBattle?: ExploreResult];
+  battleResolved: [encounterKey: string, acknowledged: boolean];
 }>();
 
-const chosen = ref<ChoiceResult | null>(null);
 const choosing = ref(false);
+const pendingChoiceIndex = ref<number | null>(null);
+const COMBAT_ACTION_WATCHDOG_MS = 12_000;
+
+function asResourceInteger(value: unknown): number {
+  if (typeof value !== 'number' && typeof value !== 'string') return 0;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.trunc(parsed) : 0;
+}
+
+function choiceCosts(choice: Choice): { coins: number; storyFragments: number } {
+  const rewards = choice.rewards_override || {};
+  return {
+    coins: Math.max(0, -asResourceInteger(rewards.coins)),
+    storyFragments: Math.max(0, -asResourceInteger(rewards.storyFragments)),
+  };
+}
+
+function choiceCostLabel(choice: Choice): string {
+  const costs = choiceCosts(choice);
+  const items = [
+    costs.coins > 0 ? `${costs.coins} 星币` : '',
+    costs.storyFragments > 0 ? `${costs.storyFragments} 故事碎片` : '',
+  ].filter(Boolean);
+  return items.length ? `消耗：${items.join('、')}` : '';
+}
+
+function choiceRiskLabel(choice: Choice): string {
+  const risk = choice.risks;
+  if (!risk) return '';
+  const parts: string[] = [];
+  const damagePercent = Number(risk.damagePercent);
+  if (Number.isFinite(damagePercent) && damagePercent > 0) {
+    parts.push(`约损失${Math.round(damagePercent)}%最大生命`);
+  }
+  if (risk.monsterKey) parts.push(`${risk.battleName || '触发战斗'}（可撤退）`);
+  return parts.length ? `风险：${parts.join('；')}` : '';
+}
+
+function choiceImpactLabel(choice: Choice): string {
+  const impacts: string[] = [];
+  const hasStoryFlags = Object.keys(choice.set_story_flags || {}).length > 0;
+  if (hasStoryFlags || (choice.unlock_events?.length || 0) > 0) impacts.push('个人后续剧情');
+  if ((choice.unlock_locations?.length || 0) > 0) impacts.push('探索地点');
+  if (Object.keys(choice.title_bias || {}).length > 0) impacts.push('称号判定倾向');
+
+  const hasPositiveReward = Object.entries(choice.rewards_override || {}).some(([key, value]) => {
+    if (key === 'items' || key === 'equipment') return Array.isArray(value) && value.length > 0;
+    const amount = asResourceInteger(value);
+    return amount > 0;
+  });
+  if (hasPositiveReward) impacts.push('本次资源结算');
+
+  return impacts.length ? `影响范围：${impacts.join('、')}` : '';
+}
+
+function choiceShortageLabel(choice: Choice, index: number): string {
+  if (pendingChoiceIndex.value === index) return '';
+
+  const costs = choiceCosts(choice);
+  const coins = asResourceInteger(game.player?.coins);
+  const storyFragments = asResourceInteger(
+    game.player?.storyFragments ?? game.player?.story_fragments,
+  );
+  const shortfalls = [
+    coins < costs.coins ? `${costs.coins - coins} 星币` : '',
+    storyFragments < costs.storyFragments
+      ? `${costs.storyFragments - storyFragments} 故事碎片`
+      : '',
+  ].filter(Boolean);
+  return shortfalls.length ? `余额不足，还差 ${shortfalls.join('、')}` : '';
+}
+
+function canAffordChoice(choice: Choice): boolean {
+  const costs = choiceCosts(choice);
+  return asResourceInteger(game.player?.coins) >= costs.coins
+    && asResourceInteger(game.player?.storyFragments ?? game.player?.story_fragments)
+      >= costs.storyFragments;
+}
+
+function isChoiceDisabled(choice: Choice, index: number): boolean {
+  if (choosing.value) return true;
+  if (pendingChoiceIndex.value !== null) return pendingChoiceIndex.value !== index;
+  return !canAffordChoice(choice);
+}
+
+watch(
+  () => [
+    props.visible,
+    props.result?.result_type,
+    props.result?.result?.event_key,
+    props.result?.story_instance_key,
+    Number(game.player?.id || game.player?.playerId || 0),
+  ] as const,
+  ([visible, resultType, eventKey, storyInstanceKey, playerId]) => {
+    if (!visible || resultType !== 'story' || !eventKey || !playerId) {
+      pendingChoiceIndex.value = null;
+      return;
+    }
+    pendingChoiceIndex.value = getPendingStoryChoiceRequest(
+      playerId, eventKey, storyInstanceKey,
+    )?.choiceIndex ?? null;
+  },
+  { immediate: true },
+);
+
+function latestPersistentLogId(): number {
+  const logs = Array.isArray(game.recentLogs) ? game.recentLogs : [];
+  return Math.max(0, ...logs
+    .map((entry) => Number(entry.id))
+    .filter((value) => Number.isFinite(value) && value > 0));
+}
+
+function hasPersistedResultLog(message: string, kind: string, afterId: number): boolean {
+  const logs = Array.isArray(game.recentLogs) ? game.recentLogs : [];
+  return logs.some((entry) =>
+    Number(entry.id) > afterId
+    && entry.message === message
+    && entry.metadata?.kind === kind,
+  );
+}
 
 // ── 战斗模式状态 ──
-const battlePhase = ref<'idle' | 'fighting' | 'done'>('idle');
-const battleResult = ref<CombatResult | null>(null);
+const battlePhase = ref<'idle' | 'fighting' | 'settling'>('idle');
 const battling = ref(false);
+const battleRequestKey = ref('');
+const battleActionUnconfirmed = ref<CombatAction | null>(null);
+
+function withCombatActionWatchdog<T>(request: Promise<T>, controller: AbortController): Promise<T> {
+  let timeoutId: number | undefined;
+  const watchdog = new Promise<never>((_resolve, reject) => {
+    timeoutId = window.setTimeout(() => {
+      controller.abort();
+      reject(new Error('战斗请求超过等待时限，服务端尚未确认结果'));
+    }, COMBAT_ACTION_WATCHDOG_MS);
+  });
+
+  return Promise.race([request, watchdog]).finally(() => {
+    if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+  });
+}
+
+function isCombatResponseUnconfirmed(error: unknown, signal: AbortSignal): boolean {
+  if (signal.aborted) return true;
+  if (error instanceof ApiHttpError && (error.status === 408 || error.status >= 500)) return true;
+  const message = error instanceof Error ? error.message : '';
+  return /timeout|timed out|network error|network request failed|网络|连接中断|请求超时/i.test(message);
+}
+
+watch(
+  () => [props.visible, props.result] as const,
+  ([visible, result], previous) => {
+    const [wasVisible, previousResult] = previous || [false, null];
+    if (!visible) {
+      battleRequestKey.value = '';
+      battleActionUnconfirmed.value = null;
+      return;
+    }
+    if (result?.result_type === 'battle'
+        && (!wasVisible || result !== previousResult || !battleRequestKey.value)) {
+      const playerId = Number(game.player?.id || game.player?.playerId || 0);
+      const requestKey = playerId ? getPendingCombatRequestKey(playerId, result) : '';
+      battleRequestKey.value = requestKey;
+      battleActionUnconfirmed.value = playerId && requestKey
+        ? getPendingCombatAction(playerId, requestKey)
+        : null;
+    }
+  },
+  { immediate: true },
+);
 
 const battleMode = computed(() =>
   props.result?.result_type === 'battle'
@@ -60,193 +243,220 @@ const monsterDesc = computed(() =>
   props.result?.result?.description || ''
 );
 
-const storyMode = computed(() =>
-  props.result?.result?.event_type === 'story' && props.result?.result?.choices?.length
-);
-
-// ── 评分计算 ──
-interface GradeInfo {
-  grade: string;
-  label: string;
-  color: string;
-  glow: string;
-  comment: string;
-}
-
-const gradeInfo = computed<GradeInfo>(() => {
-  const r = props.result;
-  if (!r) return { grade: '?', label: '无数据', color: '#5a6688', glow: '', comment: '' };
-
-  // Base coins value for grading
-  const coins = Number(r.rewards?.coins || 0);
-  const exp = Number(r.rewards?.exp || 0);
-  const fragments = Number(r.rewards?.storyFragments || 0);
-  const hasItems = !!r.rewards?.items;
-  const isStory = r.result?.event_type === 'story';
-  const exhausted = r.stories_exhausted;
-
-  if (exhausted) {
-    return {
-      grade: 'C', label: '场景耗尽', color: '#5a6688', glow: '',
-      comment: '该区域已无可探索内容。'
-    };
-  }
-
-  if (isStory && !exhausted) {
-    if (fragments >= 2 && coins >= 1000) {
-      return {
-        grade: 'S', label: '完美通关', color: '#c0a0f0',
-        glow: '0 0 20px rgba(192, 160, 240, 0.4)',
-        comment: '背后的星座对你的表现十分满意。'
-      };
-    }
-    if (coins >= 500 || fragments >= 1) {
-      return {
-        grade: 'A', label: '出色表现', color: '#4a8fe7',
-        glow: '0 0 16px rgba(74, 143, 231, 0.4)',
-        comment: '星座们点了点头。你做得不错。'
-      };
-    }
-    return {
-      grade: 'B', label: '标准通关', color: '#5ec49e',
-      glow: '0 0 12px rgba(94, 196, 158, 0.3)',
-      comment: '你完成了场景，但没有留下特别的印象。'
-    };
-  }
-
-  // Non-story events
-  if (coins >= 500 || hasItems) {
-    return {
-      grade: 'B', label: '有所收获', color: '#5ec49e',
-      glow: '0 0 10px rgba(94, 196, 158, 0.2)',
-      comment: '一次平稳的行动。'
-    };
-  }
-  return {
-    grade: 'D', label: '平淡无奇', color: '#8a96b8', glow: '',
-    comment: '星流中没有激起任何涟漪。'
-  };
-});
-
-// ── 随机星座评论 ──
-const constComments = computed(() => {
-  const grade = gradeInfo.value.grade;
-  const pool: Record<string, string[]> = {
-    'S': [
-      '"精彩绝伦。你的故事值得被铭记。"',
-      '"连我都忍不住鼓掌了。"',
-      '"这一页必须被记录。"',
-    ],
-    'A': [
-      '"不错。继续保持。"',
-      '"还不算完美——但我看到了潜力。"',
-      '"有趣的行动方式。"',
-    ],
-    'B': [
-      '"......"',
-      '"下次试着做得更好。"',
-      '"勉勉强强。"',
-    ],
-    'C': [
-      '"已经没有东西了。该离开了。"',
-      '"浪费时间。"',
-    ],
-    'D': [
-      '"......"',
-      '"毫无波澜。"',
-    ],
-  };
-  const comments = pool[grade] || pool['B'];
-  const idx = Math.floor(Math.random() * comments.length);
-  return comments[idx];
-});
-
-const constIcon = computed(() => {
-  const icons = ['🔥', '✦', '📜', '✿', '⛓'];
-  return icons[Math.floor(Math.random() * icons.length)];
-});
-
-// ── 奖励分线 ──
-interface RewardLine {
-  icon: string;
-  label: string;
-  amount: string;
-  highlight: boolean;
-}
-
-const rewardLines = computed<RewardLine[]>(() => {
-  const r = props.result?.rewards;
-  if (!r) return [];
-  const lines: RewardLine[] = [];
-  if (r.coins) lines.push({ icon: '🪙', label: '星币', amount: `+${r.coins}`, highlight: Number(r.coins) >= 500 });
-  if (r.exp) lines.push({ icon: '✨', label: '经验值', amount: `+${r.exp}`, highlight: false });
-  if (r.storyFragments) lines.push({ icon: '📜', label: '寓言碎片', amount: `+${r.storyFragments}`, highlight: true });
-  if (r.channelHeat) lines.push({ icon: '📡', label: '频道热度', amount: `+${r.channelHeat}`, highlight: false });
-  if (r.items) lines.push({ icon: '🎒', label: '获得物品', amount: '1件', highlight: false });
-  return lines;
-});
-
-function close() {
-  chosen.value = null;
+function emitClose() {
   battlePhase.value = 'idle';
-  battleResult.value = null;
   emit('close');
 }
 
+function close() {
+  if (battling.value || choosing.value) return;
+  emitClose();
+}
+
+function refreshBootstrapInBackground() {
+  void gameApi.getBootstrap()
+    .then((bootstrap) => game.applyBootstrap(bootstrap))
+    .catch(() => {
+      // Result feedback must not depend on the follow-up state refresh.
+    });
+}
+
+function acknowledgeBattleEncounter() {
+  const result = props.result;
+  if (!result || result.result_type !== 'battle') return;
+  const playerId = Number(game.player?.id || game.player?.playerId || 0);
+  const requestKey = battleRequestKey.value;
+  const encounterKey = result.request_key || result.result.event_key;
+  if (playerId && result.request_key) {
+    void exploreApi.acknowledgePendingBattle(playerId, result.request_key).catch(() => {
+      // The committed battle receipt also suppresses recovery if this acknowledgement is lost.
+    });
+  }
+  if (playerId && requestKey) clearPendingCombatRequestKey(playerId, result, requestKey);
+  emit('battleResolved', encounterKey, true);
+}
+
+function clearPendingCombatActionForCurrentEncounter() {
+  const playerId = Number(game.player?.id || game.player?.playerId || 0);
+  if (playerId && battleRequestKey.value) {
+    clearPendingCombatAction(playerId, battleRequestKey.value);
+  }
+  battleActionUnconfirmed.value = null;
+}
+
+async function finishCombat(result: CombatResult, afterLogId: number) {
+  battlePhase.value = 'settling';
+  clearPendingCombatActionForCurrentEncounter();
+  refreshBootstrapInBackground();
+  const summary = combatSummaryMessage(result);
+  if (!hasPersistedResultLog(summary, 'combat_result', afterLogId)) {
+    game.replaceTransientActionLogs(
+      battleRequestKey.value,
+      formatCombatLogEntries(result, game.inventorySummary),
+    );
+  }
+  acknowledgeBattleEncounter();
+  emitClose();
+}
+
+async function finishFlee(response: CombatResolveResponse, afterLogId: number) {
+  battlePhase.value = 'settling';
+  clearPendingCombatActionForCurrentEncounter();
+  refreshBootstrapInBackground();
+  const message = response.message?.trim() || `你从${monsterName.value}面前撤退了。`;
+  if (!hasPersistedResultLog(message, 'combat_result', afterLogId)) {
+    game.replaceTransientActionLogs(battleRequestKey.value, [{ message, type: 'battle' }]);
+  }
+  acknowledgeBattleEncounter();
+  emitClose();
+}
+
 async function startBattle() {
+  if (battling.value || battleActionUnconfirmed.value === 'flee') return;
   const id = Number(game.player?.id || game.player?.playerId || 0);
   const monsterKey = props.result?.monster_key;
-  if (!id || !monsterKey) return;
+  const resultSnapshot = props.result;
+  if (!id || !monsterKey || !resultSnapshot) return;
+  const requestKey = battleRequestKey.value || getPendingCombatRequestKey(id, resultSnapshot);
+  battleRequestKey.value = requestKey;
+  setPendingCombatAction(id, requestKey, 'fight');
+  const previousLogId = latestPersistentLogId();
+  const controller = new AbortController();
 
   battlePhase.value = 'fighting';
   battling.value = true;
   try {
-    const result = await combatApi.startCombat(id, monsterKey);
-    battleResult.value = result;
-    battlePhase.value = 'done';
-    const bootstrap = await gameApi.getBootstrap();
-    game.applyBootstrap(bootstrap);
+    const result = await withCombatActionWatchdog(
+      combatApi.startCombat(id, monsterKey, requestKey, controller.signal),
+      controller,
+    );
+    battleActionUnconfirmed.value = null;
+    await finishCombat(result, previousLogId);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : '战斗启动失败';
-    await ui.showAlert('错误', msg);
+    const responseUnconfirmed = isCombatResponseUnconfirmed(e, controller.signal);
     battlePhase.value = 'idle';
+    battling.value = false;
+    if (responseUnconfirmed) {
+      controller.abort();
+      battleActionUnconfirmed.value = 'fight';
+      await ui.showAlert(
+        '战斗结果待确认',
+        '服务端可能已经结算，但响应没有及时返回。请重试“迎战”以复用原请求确认结果；本次确认前暂不能改为撤退。',
+      );
+    } else {
+      clearPendingCombatActionForCurrentEncounter();
+      await ui.showAlert('错误', msg);
+    }
   } finally {
     battling.value = false;
   }
 }
 
 async function fleeBattle() {
+  if (battling.value || battleActionUnconfirmed.value === 'fight') return;
   const id = Number(game.player?.id || game.player?.playerId || 0);
   const monsterKey = props.result?.monster_key;
-  if (!id || !monsterKey) return;
+  const resultSnapshot = props.result;
+  if (!id || !monsterKey || !resultSnapshot) return;
+  const requestKey = battleRequestKey.value || getPendingCombatRequestKey(id, resultSnapshot);
+  battleRequestKey.value = requestKey;
+  setPendingCombatAction(id, requestKey, 'flee');
+  const previousLogId = latestPersistentLogId();
+  const controller = new AbortController();
 
   battling.value = true;
+  battlePhase.value = 'fighting';
   try {
-    const result = await combatApi.resolveCombat(id, monsterKey, 'flee');
-    battleResult.value = result;
-    battlePhase.value = 'done';
-  } catch {
-    await ui.showAlert('逃跑失败', '无法逃跑，请尝试战斗。');
+    const response = await withCombatActionWatchdog(
+      combatApi.resolveCombat(id, monsterKey, 'flee', requestKey, controller.signal),
+      controller,
+    );
+    battleActionUnconfirmed.value = null;
+    await finishFlee(response, previousLogId);
+  } catch (e: unknown) {
+    const responseUnconfirmed = isCombatResponseUnconfirmed(e, controller.signal);
+    battlePhase.value = 'idle';
+    battling.value = false;
+    if (responseUnconfirmed) {
+      controller.abort();
+      battleActionUnconfirmed.value = 'flee';
+      await ui.showAlert(
+        '撤退结果待确认',
+        '服务端可能已经处理撤退，但响应没有及时返回。请重试“撤退”以复用原请求确认结果；本次确认前暂不能改为迎战。',
+      );
+    } else {
+      clearPendingCombatActionForCurrentEncounter();
+      await ui.showAlert('逃跑失败', '无法逃跑，请尝试战斗。');
+    }
   } finally {
     battling.value = false;
   }
 }
 
 async function selectChoice(index: number) {
+  if (choosing.value) return;
   const id = Number(game.player?.id || game.player?.playerId || 0);
   const eventKey = props.result?.result?.event_key;
   if (!id || !eventKey) return;
 
+  const storyInstanceKey = props.result?.story_instance_key;
+  const existingRequest = getPendingStoryChoiceRequest(id, eventKey, storyInstanceKey);
+  if (existingRequest && existingRequest.choiceIndex !== index) {
+    pendingChoiceIndex.value = existingRequest.choiceIndex;
+    await ui.showAlert('选择尚未确认', '请重试刚才的同一选项，系统会复用原请求并避免重复结算。');
+    return;
+  }
+  const pendingRequest = getOrCreatePendingStoryChoiceRequest(
+    id, eventKey, storyInstanceKey, index,
+  );
+  pendingChoiceIndex.value = pendingRequest.choiceIndex;
+  if (pendingRequest.choiceIndex !== index) return;
+
+  const previousLogId = latestPersistentLogId();
   choosing.value = true;
   try {
-    const payload = await exploreApi.makeChoice(id, eventKey, index);
-    chosen.value = payload;
-    emit('choiceMade');
-    const bootstrap = await gameApi.getBootstrap();
-    game.applyBootstrap(bootstrap);
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : '选择处理失败';
-    await ui.showAlert('错误', msg);
+    let payload: ChoiceResult;
+    try {
+      payload = await exploreApi.makeChoice(
+        id, eventKey, index, pendingRequest.requestKey, storyInstanceKey,
+      );
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : '选择处理失败';
+      if (e instanceof ApiHttpError && e.status === 400) {
+        clearPendingStoryChoiceRequest(
+          id, eventKey, storyInstanceKey, pendingRequest.requestKey,
+        );
+        pendingChoiceIndex.value = null;
+      }
+      await ui.showAlert('错误', msg);
+      return;
+    }
+
+    clearPendingStoryChoiceRequest(
+      id, eventKey, storyInstanceKey, pendingRequest.requestKey,
+    );
+    pendingChoiceIndex.value = null;
+
+    try {
+      const bootstrap = await gameApi.getBootstrap();
+      game.applyBootstrap(bootstrap);
+    } catch {
+      // 选择已由服务端处理，日志仍需落到当前会话。
+    }
+    const summary = choiceSummaryMessage(payload.choice_label);
+    if (!hasPersistedResultLog(summary, 'story_choice', previousLogId)) {
+      game.replaceTransientActionLogs(
+        pendingRequest.requestKey,
+        formatChoiceOutcomeLogs(
+          payload,
+          game.inventorySummary,
+        ),
+      );
+    }
+    // Close the story result before the parent replaces it with a pending battle.
+    emitClose();
+    emit('choiceMade', eventKey, payload.pending_battle);
   } finally {
     choosing.value = false;
   }
@@ -264,6 +474,9 @@ async function selectChoice(index: number) {
             <div class="sst-battle-badge">⚔ BATTLE</div>
             <h3 class="sst-event-name">{{ monsterName }}</h3>
             <p class="sst-event-desc">{{ monsterDesc }}</p>
+            <p v-if="result.location_name" class="sst-battle-origin">
+              遭遇场景：{{ result.location_name }}
+            </p>
           </div>
 
           <!-- 战斗前：双方属性对比 -->
@@ -295,187 +508,41 @@ async function selectChoice(index: number) {
                   </template>
                 </div>
               </div>
-              <p class="sst-battle-hint">准备迎战。你可以选择战斗或撤退。</p>
+              <p class="sst-battle-hint">
+                准备迎战。你可以选择战斗或撤退。
+                <template v-if="result?.stamina_cost_paid != null">
+                  本次探索已消耗体力 {{ result.stamina_cost_paid }} 点；迎战或撤退都不会再次扣除。
+                </template>
+              </p>
             </div>
+            <p v-if="battleActionUnconfirmed" class="sst-battle-uncertain" role="status">
+              {{ battleActionUnconfirmed === 'fight'
+                ? '上次迎战尚未确认。重试迎战会复用原请求；暂不要改选撤退。'
+                : '上次撤退尚未确认。重试撤退会复用原请求；暂不要改选迎战。' }}
+            </p>
             <div class="sst-actions sst-battle-actions">
-              <button class="sst-btn sst-btn-fight" :disabled="battling" @click="startBattle">
-                ⚔ 战斗
+              <button
+                class="sst-btn sst-btn-fight"
+                :disabled="battling || battleActionUnconfirmed === 'flee'"
+                @click="startBattle"
+              >
+                ⚔ {{ battleActionUnconfirmed === 'fight' ? '重新确认战果' : '战斗' }}
               </button>
-              <button class="sst-btn sst-btn-flee" :disabled="battling" @click="fleeBattle">
-                🏃 撤退
+              <button
+                class="sst-btn sst-btn-flee"
+                :disabled="battling || battleActionUnconfirmed === 'fight'"
+                @click="fleeBattle"
+              >
+                🏃 {{ battleActionUnconfirmed === 'flee' ? '重新确认撤退' : '撤退' }}
               </button>
-              <button class="sst-btn sst-btn-close" @click="close">返回</button>
+              <button class="sst-btn sst-btn-close" :disabled="battling" @click="close">返回</button>
             </div>
           </template>
 
-          <!-- 战斗中 -->
-          <div v-if="battlePhase === 'fighting'" class="sst-battle-fighting">
+          <!-- 战斗中与结算同步中：结果细节统一写入中间日志 -->
+          <div v-else class="sst-battle-fighting">
             <div class="sst-battle-spinner"></div>
-            <p class="sst-battle-status">战斗中...</p>
-          </div>
-
-          <!-- 战斗结果 -->
-          <template v-if="battlePhase === 'done' && battleResult">
-            <div class="sst-battle-result">
-              <div class="sst-battle-outcome" :class="battleResult.result">
-                {{ { win: '✌ 胜利！', lose: '💀 失败', escape: '🏃 逃跑成功', draw: '🤝 平局' }[battleResult.result] || '战斗结束' }}
-              </div>
-              <div class="sst-battle-stats">
-                <div class="sst-battle-stat-row">
-                  <span>敌方</span>
-                  <span>{{ battleResult.monster.name }}</span>
-                </div>
-                <div class="sst-battle-stat-row">
-                  <span>我方血量</span>
-                  <span>{{ (battleResult as any).playerHpBefore || battleResult.hpBefore }} → {{ (battleResult as any).playerHpAfter || battleResult.hpAfter }}</span>
-                </div>
-                <div class="sst-battle-stat-row">
-                  <span>回合数</span>
-                  <span>{{ battleResult.totalRounds }}</span>
-                </div>
-              </div>
-              <!-- 战斗过程 -->
-              <div v-if="battleResult.rounds?.length" class="sst-battle-rounds">
-                <div class="sst-battle-rounds-title">⚡ 战斗过程</div>
-                <div v-for="r in battleResult.rounds" :key="r.round" class="sst-battle-round">
-                  <div class="sst-battle-round-num">第 {{ r.round }} 回合</div>
-                  <div v-for="(act, ai) in r.actions" :key="ai" class="sst-battle-action">
-                    <span class="sst-battle-action-who">{{ {monster:'👾敌方',player:'🛡我方'}[act.actor] || act.actor }}</span>
-                    <span class="sst-battle-action-what">
-                      <template v-if="act.type === 'attack'">
-                        攻击造成 <b>{{ act.damage }}</b> 伤害
-                        <span v-if="act.critical" class="sst-battle-crit">暴击!</span>
-                      </template>
-                      <template v-else-if="act.type === 'narrative'">
-                        {{ act.description }}
-                      </template>
-                      <template v-else>
-                        {{ act.description || act.type }}
-                      </template>
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div v-if="battleResult.result === 'win'" class="sst-rewards">
-                <div class="sst-rewards-title">战斗奖励</div>
-                <div v-if="battleResult.rewards.exp" class="sst-reward-row">
-                  <span class="sst-reward-icon">✨</span>
-                  <span class="sst-reward-label">经验值</span>
-                  <span class="sst-reward-amount">+{{ battleResult.rewards.exp }}</span>
-                </div>
-                <div v-if="battleResult.rewards.coins" class="sst-reward-row">
-                  <span class="sst-reward-icon">🪙</span>
-                  <span class="sst-reward-label">星币</span>
-                  <span class="sst-reward-amount">+{{ battleResult.rewards.coins }}</span>
-                </div>
-                <div v-if="battleResult.rewards.storyFragments" class="sst-reward-row">
-                  <span class="sst-reward-icon">📜</span>
-                  <span class="sst-reward-label">故事碎片</span>
-                  <span class="sst-reward-amount">+{{ battleResult.rewards.storyFragments }}</span>
-                </div>
-                <div v-if="battleResult.rewards.channelHeat" class="sst-reward-row">
-                  <span class="sst-reward-icon">📡</span>
-                  <span class="sst-reward-label">频道热度</span>
-                  <span class="sst-reward-amount">+{{ battleResult.rewards.channelHeat }}</span>
-                </div>
-              </div>
-            </div>
-            <div class="sst-actions">
-              <button class="sst-btn sst-btn-close" @click="close">返回</button>
-            </div>
-          </template>
-        </template>
-
-        <!-- ═══ 非故事模式：场景结算 ═══ -->
-        <template v-else-if="!storyMode || chosen">
-          <!-- 评分徽章 -->
-          <div class="sst-grade-wrap">
-            <div
-              class="sst-grade"
-              :style="{
-                color: gradeInfo.color,
-                textShadow: gradeInfo.glow,
-                borderColor: gradeInfo.color,
-              }"
-            >
-              {{ gradeInfo.grade }}
-            </div>
-            <div class="sst-grade-label" :style="{ color: gradeInfo.color }">
-              {{ gradeInfo.label }}
-            </div>
-          </div>
-
-          <!-- 系统公告 -->
-          <div :class="['ling-system-msg', gradeInfo.grade === 'S' ? 'ling-system-ok' : '']">
-            <div class="ling-system-msg-title">
-              {{ gradeInfo.grade === 'S' ? 'SCENARIO CLEAR — PERFECT' : 'SCENARIO COMPLETE' }}
-            </div>
-            <div class="ling-system-msg-body">
-              {{ gradeInfo.comment }}
-            </div>
-          </div>
-
-          <!-- 事件内容 -->
-          <div class="sst-event">
-            <h3 class="sst-event-name">{{ result.result.name }}</h3>
-            <p class="sst-event-desc">{{ result.result.description }}</p>
-          </div>
-
-          <!-- 选择后果 -->
-          <div v-if="chosen" class="sst-consequence">
-            <div class="sst-cons-header">
-              <span class="sst-cons-label">你的选择</span>
-              <span class="sst-cons-choice">{{ chosen.choice_label }}</span>
-            </div>
-            <p class="sst-cons-text">{{ chosen.consequence_text }}</p>
-            <div v-if="chosen.unlock_locations?.length" class="sst-unlock">
-              🗺️ 解锁新地点：{{ chosen.unlock_locations.join('、') }}
-            </div>
-            <div v-if="chosen.unlock_events?.length" class="sst-unlock">
-              📖 解锁新故事事件
-            </div>
-          </div>
-
-          <!-- 奖励明细 -->
-          <div v-if="rewardLines.length" class="sst-rewards">
-            <div class="sst-rewards-title">场景奖励明细</div>
-            <div
-              v-for="item in rewardLines"
-              :key="item.label"
-              :class="['sst-reward-row', { 'is-highlight': item.highlight }]"
-            >
-              <span class="sst-reward-icon">{{ item.icon }}</span>
-              <span class="sst-reward-label">{{ item.label }}</span>
-              <span class="sst-reward-amount">{{ item.amount }}</span>
-            </div>
-          </div>
-
-          <!-- 星座评论 -->
-          <div class="ling-const-comment">
-            <span class="const-icon">{{ constIcon }}</span>
-            <span class="const-name">星座的注视</span>
-          </div>
-          <p class="sst-const-quote">{{ constComments }}</p>
-
-          <!-- 故事耗尽 -->
-          <div v-if="result.stories_exhausted" class="sst-exhausted">
-            ◆ 当前场景剧情已全部探索完毕。非剧情事件仍可继续触发。
-          </div>
-
-          <!-- 剧情屏蔽：低等级地点有未完成剧情 -->
-          <div v-if="result.stories_blocked" class="sst-blocked">
-            ◆ 低等级地点尚有未完成的剧情。
-            <span v-if="result.lower_unfinished?.length">
-              {{ result.lower_unfinished.join('、') }}
-            </span>
-            故事等待你的选择。完成低等级剧情前，当前地点不会触发故事事件。
-          </div>
-
-          <!-- 关闭 -->
-          <div class="sst-actions">
-            <button class="sst-btn sst-btn-close" @click="close">
-              {{ chosen ? '继续执行' : '返回' }}
-            </button>
+            <p class="sst-battle-status">{{ battlePhase === 'settling' ? '战斗结束，正在整理记录...' : '战斗中...' }}</p>
           </div>
         </template>
 
@@ -485,33 +552,49 @@ async function selectChoice(index: number) {
             <div class="sst-story-badge">STORY EVENT</div>
             <h3 class="sst-event-name">{{ result.result.name }}</h3>
             <p class="sst-event-desc">{{ result.result.description }}</p>
-          </div>
-
-          <div v-if="rewardLines.length" class="sst-rewards sst-rewards--compact">
-            <div
-              v-for="item in rewardLines"
-              :key="item.label"
-              :class="['sst-reward-row', { 'is-highlight': item.highlight }]"
+            <aside
+              v-if="result.result.personal_contexts?.length"
+              class="sst-personal-context"
+              aria-label="与本次故事相关的个人记忆"
             >
-              <span class="sst-reward-icon">{{ item.icon }}</span>
-              <span class="sst-reward-label">{{ item.label }}</span>
-              <span class="sst-reward-amount">{{ item.amount }}</span>
-            </div>
+              <span class="sst-personal-context-label">你的记忆在此刻回响</span>
+              <p v-for="context in result.result.personal_contexts" :key="context">{{ context }}</p>
+            </aside>
           </div>
 
           <div class="sst-choices">
-            <p class="sst-choices-hint">做出你的选择：</p>
+            <p v-if="pendingChoiceIndex !== null" class="sst-choices-hint" role="status">
+              上次选择尚未确认，请重试同一选项；重试会复用原请求，避免重复结算。
+            </p>
+            <p v-else class="sst-choices-hint">做出你的选择：</p>
+            <p
+              v-if="result.result.event_type === 'story' || result.result.event_type === 'side_story'"
+              class="sst-choice-scope"
+              role="note"
+            >
+              该选择只记入你的个人经历，不会替其他玩家决定剧情。
+            </p>
             <button
-              v-for="(c, i) in result.result.choices"
+              v-for="(c, i) in result.result.choices || []"
               :key="i"
               class="sst-choice-btn"
-              :disabled="choosing"
+              :disabled="isChoiceDisabled(c, i)"
               @click="selectChoice(i)"
-            >{{ c.label }}</button>
+            >
+              <span>{{ c.label }}</span>
+              <span v-if="choiceImpactLabel(c)" class="sst-choice-impact">
+                {{ choiceImpactLabel(c) }}
+              </span>
+              <span v-if="choiceCostLabel(c)" class="sst-choice-cost">{{ choiceCostLabel(c) }}</span>
+              <span v-if="choiceRiskLabel(c)" class="sst-choice-risk">{{ choiceRiskLabel(c) }}</span>
+              <span v-if="choiceShortageLabel(c, i)" class="sst-choice-shortage">
+                {{ choiceShortageLabel(c, i) }}
+              </span>
+            </button>
           </div>
 
           <div class="sst-actions">
-            <button class="sst-btn sst-btn-skip" @click="close">稍后再选</button>
+            <button class="sst-btn sst-btn-skip" :disabled="choosing" @click="close">稍后再选</button>
           </div>
         </template>
       </div>
@@ -525,7 +608,7 @@ async function selectChoice(index: number) {
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background: rgba(4, 8, 18, 0.75);
+  background: var(--color-overlay);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -539,7 +622,7 @@ async function selectChoice(index: number) {
 
 /* ── 卡片 ── */
 .sst-card {
-  background: linear-gradient(180deg, rgba(13, 20, 48, 0.98), rgba(7, 11, 26, 0.99));
+  background: linear-gradient(180deg, var(--color-panel-elevated), var(--color-void));
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   padding: 32px 36px;
@@ -547,7 +630,7 @@ async function selectChoice(index: number) {
   width: calc(100% - 40px);
   max-height: 88vh;
   overflow-y: auto;
-  box-shadow: 0 16px 64px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(74, 143, 231, 0.06);
+  box-shadow: var(--shadow-float), 0 0 0 1px var(--color-star-glow);
   animation: sstSlideIn 0.4s var(--ease-out-expo);
 }
 
@@ -596,18 +679,18 @@ async function selectChoice(index: number) {
   padding: 12px 16px;
   border-radius: var(--radius-md);
   border-left: 2px solid var(--color-system);
-  background: rgba(74, 143, 231, 0.04);
+  background: var(--color-star-bg);
 }
 
 .sst-event-name {
-  color: #d0d8f0;
+  color: var(--color-text-dim);
   font-size: 15px;
   font-weight: 700;
   margin: 0 0 6px;
 }
 
 .sst-event-desc {
-  color: #8898b8;
+  color: var(--color-text-dim);
   font-size: 13px;
   line-height: 1.7;
   margin: 0;
@@ -647,7 +730,7 @@ async function selectChoice(index: number) {
   font-weight: 700;
   letter-spacing: 2px;
   color: var(--color-system-bright);
-  background: rgba(74, 143, 231, 0.06);
+  background: var(--color-system-bg);
   border-bottom: 1px solid var(--color-border);
   text-transform: uppercase;
 }
@@ -657,12 +740,12 @@ async function selectChoice(index: number) {
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  border-bottom: 1px solid rgba(26, 38, 80, 0.3);
+  border-bottom: 1px solid var(--color-border);
   transition: background 0.15s;
 }
 
 .sst-reward-row:hover {
-  background: rgba(74, 143, 231, 0.03);
+  background: var(--color-system-glow-soft);
 }
 
 .sst-reward-row:last-child {
@@ -670,7 +753,7 @@ async function selectChoice(index: number) {
 }
 
 .sst-reward-row.is-highlight {
-  background: rgba(106, 175, 255, 0.04);
+  background: var(--color-star-bg);
 }
 
 .sst-reward-icon {
@@ -690,13 +773,153 @@ async function selectChoice(index: number) {
   color: var(--color-star);
 }
 
+/* ── 执行资源的下一步去向 ── */
+.sst-next-steps {
+  margin: 0 0 18px;
+  border: 1px solid var(--color-system-border);
+  border-radius: var(--radius-md);
+  background: var(--color-log);
+  overflow: hidden;
+}
+
+.sst-next-steps-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-system-bg);
+}
+
+.sst-next-steps-kicker {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--color-system);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+}
+
+.sst-next-steps-head h4 {
+  margin: 0;
+  color: var(--color-system-bright);
+  font-size: 14px;
+}
+
+.sst-next-steps-head p {
+  max-width: 48%;
+  margin: 0;
+  color: var(--color-text-dim);
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: right;
+}
+
+.sst-next-step-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px;
+}
+
+.sst-next-step-card {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: start;
+  gap: 6px 9px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-panel-elevated);
+}
+
+.sst-next-step-icon {
+  grid-row: span 2;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.sst-next-step-copy {
+  min-width: 0;
+}
+
+.sst-next-step-copy strong {
+  color: var(--color-text);
+  font-size: 12px;
+}
+
+.sst-next-step-copy p {
+  margin: 3px 0 0;
+  color: var(--color-text-dim);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.sst-next-step-action,
+.sst-next-steps-footer button {
+  justify-self: start;
+  padding: 3px 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-system-bright);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sst-next-step-action:hover,
+.sst-next-steps-footer button:hover {
+  color: var(--color-star-bright);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.sst-next-steps-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 14px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-dim);
+  font-size: 11px;
+}
+
+.sst-next-steps-footer button {
+  flex-shrink: 0;
+}
+
+@media (max-width: 560px) {
+  .sst-next-steps-head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .sst-next-steps-head p {
+    max-width: none;
+    text-align: left;
+  }
+
+  .sst-next-step-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sst-next-steps-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
 /* ── 星座评论 ── */
 .sst-const-quote {
   margin: 0 0 18px;
   padding-left: 24px;
   font-size: 13px;
   font-style: italic;
-  color: #9088b8;
+  color: var(--color-text-dim);
   line-height: 1.6;
 }
 
@@ -706,7 +929,7 @@ async function selectChoice(index: number) {
   padding: 14px 16px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: rgba(7, 11, 26, 0.4);
+  background: var(--color-log);
 }
 
 .sst-cons-header {
@@ -729,7 +952,7 @@ async function selectChoice(index: number) {
 }
 
 .sst-cons-text {
-  color: #a0b0c0;
+  color: var(--color-text-dim);
   font-size: 13px;
   line-height: 1.7;
   margin: 0;
@@ -744,9 +967,9 @@ async function selectChoice(index: number) {
 /* ── 故事耗尽 ── */
 .sst-exhausted {
   padding: 8px 14px;
-  border: 1px solid rgba(106, 175, 255, 0.25);
+  border: 1px solid var(--color-star-border);
   border-radius: 6px;
-  background: rgba(106, 175, 255, 0.04);
+  background: var(--color-star-bg);
   color: var(--color-star);
   font-size: 12px;
   margin-bottom: 16px;
@@ -756,10 +979,10 @@ async function selectChoice(index: number) {
 /* ── 剧情屏蔽 ── */
 .sst-blocked {
   padding: 10px 14px;
-  border: 1px solid rgba(240, 180, 80, 0.3);
+  border: 1px solid var(--color-star-border);
   border-radius: 6px;
-  background: rgba(240, 180, 80, 0.05);
-  color: #e0c070;
+  background: var(--color-star-bg);
+  color: var(--color-star-bright);
   font-size: 12px;
   margin-bottom: 16px;
   line-height: 1.6;
@@ -790,7 +1013,7 @@ async function selectChoice(index: number) {
 }
 
 .sst-btn-close:hover {
-  background: rgba(74, 143, 231, 0.18);
+  background: var(--color-system-glow);
   border-color: var(--color-system);
   box-shadow: var(--glow-system);
   transform: translateY(-1px);
@@ -818,14 +1041,50 @@ async function selectChoice(index: number) {
   margin: 0 0 10px;
 }
 
+.sst-choice-scope {
+  margin: -3px 0 12px;
+  padding-left: 9px;
+  border-left: 1px solid var(--color-system-border);
+  color: var(--color-text-dim);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.sst-personal-context {
+  margin-top: 12px;
+  padding: 10px 13px;
+  border-left: 2px solid var(--color-star-bright);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: color-mix(in srgb, var(--color-star-bright) 7%, transparent);
+}
+
+.sst-personal-context-label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--color-star-bright);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.sst-personal-context p {
+  margin: 0;
+  color: var(--color-text-dim);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.sst-personal-context p + p {
+  margin-top: 5px;
+}
+
 .sst-choice-btn {
   display: block;
   width: 100%;
   padding: 13px 18px;
   margin-bottom: 8px;
   border: 1px solid var(--color-system-border);
-  border-radius: 8px;
-  background: rgba(74, 143, 231, 0.06);
+  border-radius: var(--radius-md);
+  background: var(--color-system-bg);
   color: var(--color-system-bright);
   font-size: 14px;
   cursor: pointer;
@@ -835,9 +1094,9 @@ async function selectChoice(index: number) {
 }
 
 .sst-choice-btn:hover:not(:disabled) {
-  background: rgba(74, 143, 231, 0.14);
+  background: var(--color-system-glow);
   border-color: var(--color-system);
-  box-shadow: 0 0 12px rgba(74, 143, 231, 0.1);
+  box-shadow: var(--glow-system);
   transform: translateX(4px);
 }
 
@@ -846,17 +1105,52 @@ async function selectChoice(index: number) {
   cursor: not-allowed;
 }
 
+.sst-choice-cost,
+.sst-choice-risk,
+.sst-choice-shortage,
+.sst-choice-impact {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.sst-choice-cost {
+  color: var(--color-text-dim);
+}
+
+.sst-choice-risk {
+  color: var(--color-danger-bright);
+}
+
+.sst-choice-impact {
+  padding-left: 8px;
+  border-left: 1px solid var(--color-system-border);
+  color: var(--color-text-dim);
+}
+
+.sst-choice-shortage {
+  color: var(--color-danger-bright);
+}
+
 /* ── 战斗模式 ── */
 .sst-battle-header {
   margin-bottom: 20px;
 }
 
+.sst-battle-origin {
+  color: var(--color-purple);
+  font-size: 12px;
+  margin: 4px 0 0;
+}
+
 .sst-battle-badge {
   display: inline-block;
   padding: 4px 12px;
-  border: 1px solid #e07070;
+  border: 1px solid var(--color-danger);
   border-radius: 4px;
-  color: #e07070;
+  color: var(--color-danger);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 2px;
@@ -872,7 +1166,7 @@ async function selectChoice(index: number) {
   margin-bottom: 16px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: rgba(7, 11, 26, 0.4);
+  background: var(--color-log);
 }
 
 .sst-battle-monster-icon {
@@ -886,7 +1180,7 @@ async function selectChoice(index: number) {
 }
 
 .sst-battle-hint {
-  color: #8898b8;
+  color: var(--color-text-dim);
   font-size: 13px;
   margin: 0;
 }
@@ -896,14 +1190,14 @@ async function selectChoice(index: number) {
 }
 
 .sst-btn-fight {
-  border-color: #e07070;
-  background: rgba(200, 80, 80, 0.12);
-  color: #e07070;
+  border-color: var(--color-danger);
+  background: var(--color-danger-glow);
+  color: var(--color-danger);
 }
 
 .sst-btn-fight:hover:not(:disabled) {
-  background: rgba(200, 80, 80, 0.22);
-  box-shadow: 0 0 16px rgba(200, 80, 80, 0.2);
+  background: rgba(var(--color-danger-rgb), 0.22);
+  box-shadow: var(--glow-danger);
   transform: translateY(-1px);
 }
 
@@ -930,7 +1224,7 @@ async function selectChoice(index: number) {
   width: 40px;
   height: 40px;
   border: 3px solid var(--color-border);
-  border-top-color: #e07070;
+  border-top-color: var(--color-danger);
   border-radius: 50%;
   animation: sstSpin 0.8s linear infinite;
 }
@@ -940,9 +1234,20 @@ async function selectChoice(index: number) {
 }
 
 .sst-battle-status {
-  color: #8898b8;
+  color: var(--color-text-dim);
   font-size: 14px;
   margin: 0;
+}
+
+.sst-battle-uncertain {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-star-border);
+  border-radius: var(--radius-md);
+  background: var(--color-star-bg);
+  color: var(--color-star-bright);
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .sst-battle-outcome {
@@ -953,10 +1258,10 @@ async function selectChoice(index: number) {
   letter-spacing: 2px;
 }
 
-.sst-battle-outcome.win { color: #5ec49e; }
-.sst-battle-outcome.lose { color: #e07070; }
-.sst-battle-outcome.escape { color: #a0a0c0; }
-.sst-battle-outcome.draw { color: #c0a0f0; }
+.sst-battle-outcome.win { color: var(--color-spirit); }
+.sst-battle-outcome.lose { color: var(--color-danger); }
+.sst-battle-outcome.escape { color: var(--color-system); }
+.sst-battle-outcome.draw { color: var(--color-purple); }
 
 .sst-battle-stats {
   margin-bottom: 16px;
@@ -994,7 +1299,7 @@ async function selectChoice(index: number) {
   margin-bottom: 12px;
 }
 .sst-battle-side {
-  background: rgba(0,0,0,0.3);
+  background: var(--color-log);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: 12px;
@@ -1011,7 +1316,7 @@ async function selectChoice(index: number) {
   line-height: 1.8;
 }
 .sst-battle-side-stat.name { color: var(--color-danger); font-weight: 600; }
-.sst-battle-side-stat.desc { color: #8898b8; font-size: 11px; line-height: 1.5; }
+.sst-battle-side-stat.desc { color: var(--color-text-dim); font-size: 11px; line-height: 1.5; }
 .sst-battle-vs-divider {
   display: flex; align-items: center;
   font-weight: 900; font-size: 16px;
@@ -1034,7 +1339,7 @@ async function selectChoice(index: number) {
 .sst-battle-round {
   margin-bottom: 8px;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(26,38,80,0.3);
+  border-bottom: 1px solid var(--color-border);
 }
 .sst-battle-round:last-child { border-bottom: none; margin-bottom: 0; }
 .sst-battle-round-num {
@@ -1050,6 +1355,6 @@ async function selectChoice(index: number) {
 }
 .sst-battle-action-what b { color: var(--color-danger); }
 .sst-battle-crit {
-  color: #ffaa00; font-weight: 700; margin-left: 4px;
+  color: var(--color-star-bright); font-weight: 700; margin-left: 4px;
 }
 </style>

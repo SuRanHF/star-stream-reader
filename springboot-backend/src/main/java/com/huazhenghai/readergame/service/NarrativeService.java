@@ -23,6 +23,10 @@ public interface NarrativeService {
     /** 处理 NPC 残影对话选择，返回对话结果 */
     Map<String, Object> processNpcGhostEncounter(Long playerId, String ghostKey, int nodeIndex, int choiceIndex);
 
+    /** 处理带稳定请求键的 NPC 残影对话选择，用于超时后的原结果重放 */
+    Map<String, Object> processNpcGhostEncounter(Long playerId, String ghostKey, int nodeIndex,
+                                                  int choiceIndex, String requestKey);
+
     /** 玩家遭遇历史 */
     List<Map<String, Object>> getPlayerEncounters(Long playerId, int limit);
 }

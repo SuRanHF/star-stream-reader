@@ -18,7 +18,7 @@ const percent = () => {
       <span class="text-muted">{{ label }}</span>
       <span class="text-spirit">{{ value || 0 }} / {{ max || 0 }}</span>
     </div>
-    <div class="h-2 overflow-hidden rounded bg-[#0a0e11] ring-1 ring-line">
+    <div class="h-2 overflow-hidden rounded bg-log ring-1 ring-line">
       <div
         class="h-full rounded"
         :class="{

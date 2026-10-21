@@ -17,6 +17,9 @@ public interface QuestService {
     /** 领取任务奖励 */
     QuestRewardVO claimReward(Long playerId, String questKey, String cycleKey, Long userId);
 
+    /** 领取任务奖励并用客户端请求键恢复可能丢失的成功响应。 */
+    QuestRewardVO claimReward(Long playerId, String questKey, String cycleKey, Long userId, String requestKey);
+
     /** 过期旧日常任务 (Scheduler) */
     int refreshDailyQuests();
 

@@ -48,6 +48,12 @@ public class ChatServiceImpl implements ChatService {
     @Override
     @Transactional
     public ChatMessageVO sendWorldMessage(Long playerId, String content) {
+        return sendMessage(playerId, content, "world");
+    }
+
+    @Override
+    @Transactional
+    public ChatMessageVO sendMessage(Long playerId, String content, String channel) {
         // Validate player exists
         Player player = playerMapper.selectById(playerId);
         if (player == null) {
@@ -76,7 +82,7 @@ public class ChatServiceImpl implements ChatService {
 
         // Save to DB
         ChatMessage msg = new ChatMessage();
-        msg.setChannel("world");
+        msg.setChannel(normalizeChannel(channel));
         msg.setSenderPlayerId(playerId);
         msg.setSenderName(player.getPlayerName());
         msg.setMessageType("player");
@@ -93,6 +99,14 @@ public class ChatServiceImpl implements ChatService {
         sessionManager.broadcast(wsMsg);
 
         return vo;
+    }
+
+    private String normalizeChannel(String channel) {
+        if (channel == null || channel.isBlank()) return "world";
+        return switch (channel.trim().toLowerCase(Locale.ROOT)) {
+            case "world", "faction", "team" -> channel.trim().toLowerCase(Locale.ROOT);
+            default -> "world";
+        };
     }
 
     @Override
@@ -127,8 +141,13 @@ public class ChatServiceImpl implements ChatService {
         limit = Math.min(Math.max(limit, 1), MAX_RECENT_LIMIT);
 
         QueryWrapper<ChatMessage> qw = new QueryWrapper<>();
-        qw.eq("channel", channel)
-          .orderByDesc("created_at")
+        if ("world".equals(channel)) {
+            // System broadcasts are persisted under their own channel but belong in the world log.
+            qw.in("channel", List.of("world", "system"));
+        } else {
+            qw.eq("channel", channel);
+        }
+        qw.orderByDesc("created_at")
           .last("LIMIT " + limit);
         List<ChatMessage> messages = chatMessageMapper.selectList(qw);
 

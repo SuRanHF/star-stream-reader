@@ -1,0 +1,1294 @@
+/*
+ * 灵界 LingVerse 最新游戏页的视觉壳。
+ *
+ * 这不是把灵界的业务脚本接进来：只收敛本项目已经存在的 DOM、按钮和数据
+ * 到同一套几何、材质与状态色，所有 click / API / Pinia 仍由星流读者负责。
+ */
+
+:root {
+  --lv-fidelity-panel: #151a20;
+  --lv-fidelity-void: #0f1419;
+  --lv-fidelity-header: #141a21;
+  --lv-fidelity-line: rgba(139, 155, 176, 0.18);
+}
+
+:root[data-theme='light'] {
+  --lv-fidelity-panel: #f6f6f2;
+  --lv-fidelity-void: #f8f8f5;
+  --lv-fidelity-header: #eeeeea;
+  --lv-fidelity-line: rgba(42, 42, 38, 0.13);
+}
+
+/* 原站游戏页是平面墨色底，不叠星空与发光蒙版。 */
+body::before {
+  display: none !important;
+}
+
+.lingverse-replica-shell {
+  border: 0 !important;
+  background: var(--lv-fidelity-void) !important;
+  box-shadow: none !important;
+  color: var(--color-text);
+  font-family: "Songti SC", STSong, SimSun, "Noto Serif SC", "Source Han Serif SC", serif;
+}
+
+.lingverse-replica-shell *,
+.lingverse-replica-shell *::before,
+.lingverse-replica-shell *::after {
+  scrollbar-color: color-mix(in srgb, var(--color-muted) 45%, transparent) transparent;
+}
+
+/* ── 顶栏：52px 宣纸/墨石符箓条 ── */
+.lingverse-replica-shell .ling-topbar {
+  height: 52px;
+  min-height: 52px;
+  gap: 8px;
+  padding: 0 16px 0 14px;
+  border: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-card) 90%, transparent),
+    var(--lv-fidelity-panel)
+  ) !important;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.lingverse-replica-shell .ling-top-left {
+  flex: 0 1 auto;
+  max-width: calc(100% - 72px);
+  gap: 10px;
+  overflow: hidden;
+}
+
+.lingverse-replica-shell .ling-header-player-card {
+  display: none;
+}
+
+.lingverse-replica-shell .ling-logo-block {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.lingverse-replica-shell .ling-logo-mark {
+  width: 4px;
+  height: 20px;
+  flex: 0 0 4px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--color-star), color-mix(in srgb, var(--color-star) 35%, transparent));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-star) 18%, transparent);
+}
+
+.lingverse-replica-shell .ling-logo {
+  margin: 0;
+  color: var(--color-star) !important;
+  font-family: KaiTi, 楷体, STKaiti, BiauKai, "Noto Serif SC", serif;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 4px;
+  line-height: 1;
+  text-shadow: none !important;
+}
+
+.lingverse-replica-shell .ling-header-meta {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.lingverse-replica-shell .ling-pill,
+.lingverse-replica-shell .ling-top-worldline {
+  display: inline-flex;
+  height: 24px;
+  min-width: 0;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.lingverse-replica-shell .ling-realm {
+  border-color: color-mix(in srgb, var(--color-spirit) 25%, transparent);
+  background: color-mix(in srgb, var(--color-spirit) 10%, transparent);
+  color: var(--color-spirit);
+}
+
+.lingverse-replica-shell .ling-top-worldline {
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--color-star) 22%, transparent);
+  background: color-mix(in srgb, var(--color-star) 10%, transparent);
+  color: var(--color-star);
+  opacity: 1;
+}
+
+.lingverse-replica-shell .ling-top-right {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  overflow: visible;
+}
+
+.lingverse-replica-shell .ling-header-nav {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.lingverse-replica-shell .ling-header-group {
+  display: flex;
+  height: 30px;
+  min-height: 30px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 3px;
+  border: 1px solid var(--lv-fidelity-line);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--color-panel) 94%, transparent);
+}
+
+.lingverse-replica-shell .ling-header-group-primary {
+  border-color: color-mix(in srgb, var(--color-star) 23%, var(--lv-fidelity-line));
+  background: color-mix(in srgb, var(--color-star) 5%, var(--color-panel));
+}
+
+.lingverse-replica-shell .ling-header-group-systems {
+  border-color: color-mix(in srgb, var(--color-spirit) 22%, var(--lv-fidelity-line));
+  background: color-mix(in srgb, var(--color-spirit) 4%, var(--color-panel));
+}
+
+.lingverse-replica-shell .ling-header-group-extra {
+  border-color: color-mix(in srgb, var(--color-star) 18%, var(--lv-fidelity-line));
+  background: color-mix(in srgb, var(--color-star) 3%, var(--color-panel));
+}
+
+.lingverse-replica-shell .ling-header-group .ling-core-btn,
+.lingverse-replica-shell .ling-header-more,
+.lingverse-replica-shell .ling-header-more-menu .ling-core-btn {
+  min-width: auto;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--color-text-dim);
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0;
+  line-height: 28px;
+  transform: none !important;
+}
+
+.lingverse-replica-shell .ling-header-group .ling-core-btn:hover,
+.lingverse-replica-shell .ling-header-group .ling-core-btn.active,
+.lingverse-replica-shell .ling-header-more-menu .ling-core-btn:hover {
+  background: color-mix(in srgb, var(--color-star) 10%, transparent);
+  box-shadow: none;
+  color: var(--color-star-bright);
+}
+
+.lingverse-replica-shell .ling-header-group-systems .ling-core-btn:hover,
+.lingverse-replica-shell .ling-header-group-systems .ling-core-btn.active {
+  background: color-mix(in srgb, var(--color-spirit) 10%, transparent);
+  color: var(--color-spirit-bright);
+}
+
+.lingverse-replica-shell .ling-header-more-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.lingverse-replica-shell .ling-header-more {
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--color-star) 30%, var(--lv-fidelity-line));
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--color-star) 5%, var(--color-panel));
+  color: var(--color-star);
+}
+
+.lingverse-replica-shell .ling-header-more:hover,
+.lingverse-replica-shell .ling-header-more[aria-expanded='true'] {
+  border-color: color-mix(in srgb, var(--color-star) 50%, var(--lv-fidelity-line));
+  background: color-mix(in srgb, var(--color-star) 12%, var(--color-panel));
+  color: var(--color-star-bright);
+}
+
+.lingverse-replica-shell .ling-header-more-menu {
+  top: calc(100% + 7px);
+  width: min(344px, calc(100vw - 20px));
+  max-height: min(560px, calc(100vh - 76px));
+  gap: 6px 8px;
+  padding: 10px;
+  border-color: color-mix(in srgb, var(--color-star) 28%, var(--lv-fidelity-line));
+  border-radius: 7px;
+  background: var(--color-panel-elevated);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.26);
+  overflow-y: auto;
+}
+
+.lingverse-replica-shell .ling-header-more-menu .ling-core-btn {
+  height: 36px;
+  min-height: 36px;
+  padding: 8px 10px 8px 12px;
+  border: 1px solid var(--lv-fidelity-line);
+  background: var(--lv-fidelity-header);
+  line-height: 18px;
+}
+
+.lingverse-replica-shell .ling-header-more-section {
+  color: var(--color-muted);
+}
+
+/* ── 主框架：原站没有外发光，只以细线分出三栏 ── */
+.lingverse-replica-shell .ling-frame {
+  border: 0;
+  background: var(--lv-fidelity-void);
+  grid-template-columns: var(--ling-left-width, 240px) var(--ling-resize-width, 8px) minmax(0, 1fr) !important;
+}
+
+.lingverse-replica-shell .ling-frame.has-side-panel {
+  grid-template-columns: var(--ling-left-width, 240px) var(--ling-resize-width, 8px) minmax(0, 1fr) var(--ling-side-width, clamp(360px, 24vw, 520px)) !important;
+}
+
+@media (min-width: 761px) {
+  .lingverse-replica-shell .ling-role-toggle {
+    display: inline-flex;
+    height: 30px;
+    min-width: 42px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 8px;
+    border: 1px solid var(--lv-fidelity-line);
+    border-radius: 6px;
+    background: var(--lv-fidelity-header);
+    color: var(--color-text-dim);
+    cursor: pointer;
+  }
+
+  .lingverse-replica-shell .ling-role-toggle:hover {
+    border-color: color-mix(in srgb, var(--color-star) 55%, var(--lv-fidelity-line));
+    color: var(--color-star);
+  }
+
+  .lingverse-replica-shell .ling-left.player-panel.is-collapsed {
+    display: none;
+  }
+}
+
+.lingverse-replica-shell .ling-left.player-panel,
+.lingverse-replica-shell .ling-side-panel,
+.lingverse-replica-shell .ling-inline-chat {
+  background: var(--lv-fidelity-panel) !important;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.lingverse-replica-shell .ling-left.player-panel {
+  border-right: 0 !important;
+  scrollbar-width: none;
+}
+
+.lingverse-replica-shell .ling-left.player-panel::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.lingverse-replica-shell .ling-resize-handle {
+  width: 1px;
+  border-radius: 0;
+  background: var(--lv-fidelity-line);
+  box-shadow: none;
+}
+
+.lingverse-replica-shell .ling-resize-handle:hover,
+.lingverse-replica-shell .ling-resize-handle:active {
+  background: color-mix(in srgb, var(--color-star) 50%, var(--lv-fidelity-line));
+  box-shadow: none;
+}
+
+.lingverse-replica-shell .ling-main,
+.lingverse-replica-shell .game-body > .main-panel {
+  background: var(--lv-fidelity-void) !important;
+}
+
+.lingverse-replica-shell .ling-side-panel {
+  border-left-color: var(--lv-fidelity-line) !important;
+  border-radius: 0;
+  min-width: 260px;
+  max-width: 70vw;
+}
+
+.lingverse-replica-shell .ling-inline-chat {
+  border-left-color: var(--lv-fidelity-line) !important;
+  border-radius: 0;
+}
+
+.lingverse-replica-shell .ling-placeholder,
+.lingverse-replica-shell .ling-placeholder.gc-panel,
+.lingverse-replica-shell .ling-placeholder-inner {
+  background: var(--lv-fidelity-panel);
+  box-shadow: none;
+}
+
+.lingverse-replica-shell .ling-placeholder.gc-panel > .ling-placeholder-inner {
+  background: var(--lv-fidelity-panel);
+}
+
+/* ── 角色栏：窄册页而不是高亮卡片列表 ── */
+.lingverse-replica-shell .ling-left .player-panel-replica {
+  padding: 16px;
+  color: var(--color-text);
+}
+
+.lingverse-replica-shell .ling-left .psp-root::before {
+  display: none;
+}
+
+.lingverse-replica-shell .ling-left .player-panel-replica .panel-section {
+  margin: 0 0 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.lingverse-replica-shell .ling-left .player-panel-replica .panel-title {
+  min-height: 24px;
+  margin: 0 0 8px;
+  padding: 0;
+  color: var(--color-star);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-shadow: none;
+}
+
+.lingverse-replica-shell .ling-left .player-panel-replica .panel-title-label,
+.lingverse-replica-shell .ling-left .player-panel-replica .panel-title-link--text {
+  padding-bottom: 6px;
+  border-bottom: 2px solid color-mix(in srgb, var(--color-star) 58%, transparent);
+}
+
+.lingverse-replica-shell .ling-left .player-panel-replica .panel-title-action {
+  min-height: 24px;
+  padding: 2px 6px;
+  border-color: color-mix(in srgb, var(--color-star) 28%, var(--lv-fidelity-line));
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-star) 5%, transparent);
+  color: var(--color-star);
+  box-shadow: none;
+}
+
+.lingverse-replica-shell .ling-left .player-panel-replica .stat-row {
+  min-height: 27px;
+  padding: 1px 0;
+  font-size: 13px;
+}
+
+.lingverse-replica-shell .ling-left .player-panel-replica .stat-label {
+  color: var(--color-text-dim);
+  font-size: 12px;
+}
+
+.lingverse-replica-shell .ling-left .player-panel-replica .stat-value {
+  color: var(--color-text-bright);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.lingverse-replica-shell .ling-left .player-panel-replica .stat-value-clickable,
+.lingverse-replica-shell .ling-left .player-panel-replica .stat-value-link {
+  text-decoration: none;
+}
+
+.lingverse-replica-shell .ling-left .player-panel-replica .progress-bar-container {
+  height: 16px;
+  margin-top: 6px;
+  border-color: var(--lv-fidelity-line);
+  border-radius: 8px;
+  background: var(--lv-fidelity-void);
+}
+
+.lingverse-replica-shell .ling-left .player-panel-replica .progress-bar {
+  border-radius: 8px;
+  background: var(--color-system);
+  opacity: 0.82;
+}
+
+.lingverse-replica-shell .ling-left .player-panel-replica .progress-text {
+  color: var(--color-text-bright);
+  text-shadow: none;
+}
+
+.lingverse-replica-shell .ling-left .player-panel-replica .role-actions {
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.lingverse-replica-shell .ling-left .player-panel-replica .ling-break-btn,
+.lingverse-replica-shell .ling-left .player-panel-replica .ling-alloc-btn {
+  height: 32px;
+  border-color: color-mix(in srgb, var(--color-system) 33%, var(--lv-fidelity-line));
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-system) 7%, transparent);
+  color: var(--color-system-bright);
+  box-shadow: none;
+  letter-spacing: 0;
+  transform: none !important;
+}
+
+.lingverse-replica-shell .ling-left .player-panel-replica .allocation-hint {
+  color: var(--color-muted);
+}
+
+.lingverse-replica-shell .ling-left .player-panel-replica .equip-grid {
+  gap: 6px;
+}
+
+.lingverse-replica-shell .ling-left .player-panel-replica .equip-slot {
+  min-height: 48px;
+  border-color: var(--lv-fidelity-line);
+  border-left-color: color-mix(in srgb, var(--color-muted) 42%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--lv-fidelity-void) 62%, var(--lv-fidelity-panel));
+  box-shadow: none;
+  transform: none !important;
+}
+
+.lingverse-replica-shell .ling-left .player-panel-replica .equip-slot:hover {
+  border-color: color-mix(in srgb, var(--color-star) 32%, var(--lv-fidelity-line));
+  border-left-color: var(--color-star);
+  background: color-mix(in srgb, var(--color-star) 4%, var(--lv-fidelity-panel));
+}
+
+.lingverse-replica-shell .ling-left .player-panel-replica .slot-name {
+  border-right-color: var(--lv-fidelity-line);
+  background: color-mix(in srgb, var(--lv-fidelity-void) 68%, transparent);
+  color: var(--color-text-dim);
+}
+
+.lingverse-replica-shell .ling-left .player-panel-replica .equip-name-text {
+  color: var(--color-text-dim);
+  font-weight: 500;
+}
+
+/* ── 日志与传音：没有渐变卡片和逐条动画 ── */
+.lingverse-replica-shell .log-panel,
+.lingverse-replica-shell .ling-log {
+  background: var(--lv-fidelity-void) !important;
+}
+
+.lingverse-replica-shell .log-mid-tabs {
+  border-bottom-color: var(--lv-fidelity-line);
+  background: var(--lv-fidelity-panel);
+}
+
+.lingverse-replica-shell .log-mid-tab {
+  color: var(--color-muted);
+}
+
+.lingverse-replica-shell .log-mid-tab.active {
+  background: var(--lv-fidelity-panel);
+  color: var(--color-star);
+}
+
+.lingverse-replica-shell .ling-log-line {
+  background: transparent !important;
+  text-shadow: none;
+}
+
+.lingverse-replica-shell .ling-log-line.is-normal,
+.lingverse-replica-shell .ling-log-line.is-income {
+  color: var(--color-text-secondary, var(--color-text-dim));
+}
+
+.lingverse-replica-shell .ling-inline-chat {
+  background: var(--lv-fidelity-panel) !important;
+}
+
+.lingverse-replica-shell .ling-inline-chat .ling-panel-header,
+.lingverse-replica-shell .ling-inline-chat .ling-chat-workbench {
+  background: var(--lv-fidelity-panel) !important;
+  box-shadow: none;
+}
+
+.lingverse-replica-shell .ling-inline-chat .ling-panel-header {
+  border-bottom-color: var(--lv-fidelity-line) !important;
+}
+
+/* ── 底栏：44px 功能格，细描边，无浮起 ── */
+.lingverse-replica-shell .action-bar {
+  --action-bar-h: 44px;
+  min-height: 64px;
+  gap: 10px;
+  padding: 9px 14px 10px;
+  border-top-color: var(--lv-fidelity-line);
+  background: var(--lv-fidelity-header);
+  box-shadow: none;
+}
+
+@media (min-width: 761px) {
+  .lingverse-replica-shell .action-bar {
+    min-height: 67px;
+  }
+}
+
+.lingverse-replica-shell .action-bar-body {
+  gap: 9px;
+}
+
+.lingverse-replica-shell .action-bar-controls,
+.lingverse-replica-shell .action-group {
+  gap: 8px;
+}
+
+.lingverse-replica-shell .action-bar .btn-action--primary,
+.lingverse-replica-shell .action-bar .ling-action-primary,
+.lingverse-replica-shell .action-bar .ling-action-main {
+  height: 40px;
+  border-radius: 7px;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.lingverse-replica-shell .action-bar .ling-action-primary {
+  border-color: color-mix(in srgb, var(--color-spirit) 40%, var(--lv-fidelity-line)) !important;
+  background: color-mix(in srgb, var(--color-spirit) 12%, transparent) !important;
+  color: var(--color-spirit) !important;
+}
+
+.lingverse-replica-shell .action-bar .ling-action-main {
+  border-color: color-mix(in srgb, var(--color-star) 40%, var(--lv-fidelity-line)) !important;
+  background: color-mix(in srgb, var(--color-star) 12%, transparent) !important;
+  color: var(--color-star) !important;
+}
+
+.lingverse-replica-shell .action-bar .ling-select,
+.lingverse-replica-shell .action-bar .btn-setting,
+.lingverse-replica-shell .action-bar .ling-check {
+  height: 40px;
+  min-height: 40px;
+  border-color: var(--lv-fidelity-line);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--color-text) 3%, transparent);
+  box-shadow: none;
+}
+
+.lingverse-replica-shell .action-bar .ling-check {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  color: var(--color-text-dim);
+}
+
+.lingverse-replica-shell .action-bar .fn-grid {
+  gap: 6px;
+}
+
+.lingverse-replica-shell .action-bar .fn-btn {
+  flex-basis: 56px;
+  width: 56px;
+  height: 44px;
+  min-height: 44px;
+  padding: 4px 2px;
+  border-color: color-mix(in srgb, var(--fn-c, var(--color-muted)) 25%, var(--lv-fidelity-line));
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--fn-c, var(--color-muted)) 6%, transparent);
+  box-shadow: none;
+  transform: none !important;
+}
+
+.lingverse-replica-shell .action-bar .fn-btn::before,
+.lingverse-replica-shell .action-bar .fn-btn::after {
+  display: none;
+}
+
+.lingverse-replica-shell .action-bar .fn-btn:hover,
+.lingverse-replica-shell .action-bar .fn-btn.active {
+  border-color: color-mix(in srgb, var(--fn-c, var(--color-star)) 44%, var(--lv-fidelity-line));
+  background: color-mix(in srgb, var(--fn-c, var(--color-star)) 12%, transparent);
+  box-shadow: none;
+}
+
+.lingverse-replica-shell .action-bar .fn-ic {
+  width: 16px;
+  height: 16px;
+  opacity: 0.86;
+}
+
+.lingverse-replica-shell .action-bar .fn-label {
+  color: var(--fn-c, var(--color-text-secondary, var(--color-text-dim)));
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.lingverse-replica-shell .action-bar .ling-footer-status {
+  min-height: 22px;
+  padding: 0 14px;
+  border-top-color: color-mix(in srgb, var(--color-spirit) 16%, var(--lv-fidelity-line));
+  background: color-mix(in srgb, var(--color-spirit) 4%, var(--lv-fidelity-header));
+  box-shadow: none;
+}
+
+.lingverse-replica-shell .ling-dot {
+  width: 8px;
+  height: 8px;
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+/* ── 弹出功能面板：继续沿用自己的数据，但变成原站低对比抽屉 ── */
+.lingverse-replica-shell .ling-side-panel .ling-panel-header.gc-panel-head,
+.lingverse-replica-shell .ling-side-panel .ling-submenu-row.gc-panel-tabs,
+.lingverse-replica-shell .ling-side-panel .ling-reference-workbench {
+  background: var(--lv-fidelity-panel) !important;
+}
+
+.lingverse-replica-shell .ling-panel-header.gc-panel-head {
+  box-shadow: none;
+}
+
+.lingverse-replica-shell .ling-panel-header.gc-panel-head > .gc-rule {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.lingverse-replica-shell .ling-panel-header.gc-panel-head > .gc-title,
+.lingverse-replica-shell .ling-panel-header h2 {
+  color: var(--color-text) !important;
+  text-shadow: none !important;
+}
+
+.lingverse-replica-shell .ling-panel-tool,
+.lingverse-replica-shell .ling-panel-close {
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* 桌面功能分栏与灵界工作台一致：30px 胶囊页签，不使用通用方角子菜单样式。 */
+@media (min-width: 888px) {
+  .lingverse-replica-shell .ling-submenu-row.gc-panel-tabs {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .lingverse-replica-shell .gc-panel-tabs .ling-submenu-button {
+    height: 30px;
+    min-height: 30px;
+    padding: 0 12px;
+    border-radius: var(--radius-pill);
+    font-weight: 600;
+  }
+}
+
+@media (min-width: 1025px) {
+  .lingverse-replica-shell .ling-panel--inventory .ling-submenu-row.gc-panel-tabs {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--color-border) 80%, transparent) transparent;
+  }
+
+  .lingverse-replica-shell .ling-panel--inventory .ling-submenu-row.gc-panel-tabs::-webkit-scrollbar {
+    display: block;
+    height: 6px;
+  }
+
+  .lingverse-replica-shell .ling-panel--inventory .ling-submenu-row.gc-panel-tabs::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .lingverse-replica-shell .ling-panel--inventory .ling-submenu-row.gc-panel-tabs::-webkit-scrollbar-thumb {
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-border) 80%, transparent);
+  }
+}
+
+.lingverse-replica-shell button:hover:not(:disabled) {
+  transform: none;
+}
+
+/* ── 移动端：保留本游戏的收纳逻辑，使用原站 44px 顶栏/30px 公告比例 ── */
+@media (max-width: 760px) {
+  .lingverse-replica-shell .ling-topbar {
+    height: 44px;
+    min-height: 44px;
+    padding: 0 8px;
+  }
+
+  .lingverse-replica-shell .ling-top-left {
+    max-width: calc(100% - 76px);
+    gap: 6px;
+  }
+
+  .lingverse-replica-shell .ling-role-toggle {
+    display: inline-flex;
+    height: 30px;
+    min-width: 38px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 7px;
+    border: 1px solid var(--lv-fidelity-line);
+    border-radius: 7px;
+    background: var(--color-panel);
+    color: var(--color-text-dim);
+    font-size: 11px;
+  }
+
+  .lingverse-replica-shell .ling-logo-mark {
+    width: 2px;
+    height: 14px;
+    flex-basis: 2px;
+  }
+
+  .lingverse-replica-shell .ling-logo {
+    font-size: 16px;
+    letter-spacing: 2px;
+  }
+
+  .lingverse-replica-shell .ling-header-meta {
+    gap: 4px;
+  }
+
+  .lingverse-replica-shell .ling-realm {
+    display: none;
+  }
+
+  .lingverse-replica-shell .ling-top-worldline {
+    height: 22px;
+    max-width: min(42vw, 148px);
+    padding: 0 8px;
+    font-size: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .lingverse-replica-shell .ling-header-nav {
+    display: none;
+  }
+
+  .lingverse-replica-shell .ling-top-right {
+    min-width: 76px;
+    justify-content: flex-end;
+  }
+
+  .lingverse-replica-shell .ling-header-more {
+    min-width: 52px;
+    height: 30px;
+    padding: 0 7px;
+    font-size: 11px;
+  }
+
+  .lingverse-replica-shell .ling-frame,
+  .lingverse-replica-shell .ling-frame.has-side-panel {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .lingverse-replica-shell .ling-left.is-open {
+    background: var(--lv-fidelity-panel) !important;
+    box-shadow: 14px 0 30px rgba(0, 0, 0, 0.28);
+  }
+
+  .lingverse-replica-shell .action-bar {
+    min-height: 278px;
+    padding: 0;
+    background: var(--lv-fidelity-header);
+    box-shadow: none;
+  }
+
+  .lingverse-replica-shell .action-bar-body {
+    padding: 0 10px 10px;
+  }
+
+  .lingverse-replica-shell .action-bar .btn-action--primary,
+  .lingverse-replica-shell .action-bar .ling-action-primary,
+  .lingverse-replica-shell .action-bar .ling-action-main,
+  .lingverse-replica-shell .action-bar .ling-select,
+  .lingverse-replica-shell .action-bar .btn-setting,
+  .lingverse-replica-shell .action-bar .ling-check {
+    height: 42px;
+    min-height: 42px;
+  }
+
+  .lingverse-replica-shell .action-bar .fn-btn {
+    flex-basis: 44px;
+    width: 44px;
+    height: 42px;
+    min-height: 42px;
+  }
+
+  .lingverse-replica-shell .action-bar .fn-ic {
+    width: 15px;
+    height: 15px;
+  }
+
+  .lingverse-replica-shell .action-bar .fn-label {
+    font-size: 10px;
+  }
+}
+
+/* ── 桌面顶栏：保留道名，并以离屏镜像测量真实导航宽度 ── */
+@media (min-width: 761px) {
+  .lingverse-replica-shell .ling-header-player-card {
+    display: flex;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 148px;
+    padding-right: 8px;
+    border-right: 1px solid var(--lv-fidelity-line);
+  }
+
+  .lingverse-replica-shell .ling-header-player {
+    max-width: 132px;
+    padding: 4px 8px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-dim);
+    font-size: 12px;
+    transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+  }
+
+  .lingverse-replica-shell .ling-header-player:hover {
+    border-color: color-mix(in srgb, var(--color-star) 32%, var(--lv-fidelity-line));
+    background: color-mix(in srgb, var(--color-star) 6%, transparent);
+    color: var(--color-star-bright);
+  }
+
+  .lingverse-replica-shell .ling-header-measure {
+    position: fixed;
+    top: 0;
+    left: -10000px;
+    display: flex;
+    width: max-content;
+    flex: none;
+    overflow: visible;
+    visibility: hidden;
+    pointer-events: none;
+    contain: layout style;
+    z-index: -1;
+  }
+
+  .lingverse-replica-shell .action-bar .ling-check {
+    gap: 8px;
+    padding: 0 10px;
+    cursor: pointer;
+    font-size: 11px;
+  }
+
+  .lingverse-replica-shell .action-bar .ling-check input[type='checkbox'] {
+    position: relative;
+    width: 26px;
+    height: 14px;
+    flex: 0 0 26px;
+    margin: 0;
+    appearance: none;
+    border: 1px solid color-mix(in srgb, var(--color-muted) 45%, var(--lv-fidelity-line));
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-text) 7%, transparent);
+    cursor: pointer;
+    transition: background 140ms ease, border-color 140ms ease;
+  }
+
+  .lingverse-replica-shell .action-bar .ling-check input[type='checkbox']::after {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-text-dim);
+    content: '';
+    transition: transform 140ms ease, background 140ms ease;
+  }
+
+  .lingverse-replica-shell .action-bar .ling-check input[type='checkbox']:checked {
+    border-color: color-mix(in srgb, var(--color-spirit) 55%, var(--lv-fidelity-line));
+    background: color-mix(in srgb, var(--color-spirit) 28%, transparent);
+  }
+
+  .lingverse-replica-shell .action-bar .ling-check input[type='checkbox']:checked::after {
+    transform: translateX(12px);
+    background: var(--color-spirit-bright);
+  }
+
+  .lingverse-replica-shell .action-bar .ling-check input[type='checkbox']:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-star) 70%, transparent);
+    outline-offset: 3px;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1100px) {
+  /* 紧凑桌面先让出角色名空间，避免名字被挤成窄条；导航入口由上方测宽逻辑继续收纳。 */
+  .lingverse-replica-shell .ling-header-player-card {
+    display: none;
+  }
+}
+
+/* 桌面休息态沿用参考站的“操作区上行、状态卡全宽下行”结构，内容仍是星流读者自己的恢复数据。 */
+@media (min-width: 761px) {
+  .lingverse-replica-shell .action-bar.is-resting {
+    align-items: stretch;
+    flex-wrap: wrap;
+    gap: 8px 10px;
+    padding: 9px 14px 11px;
+  }
+
+  .lingverse-replica-shell .action-bar.is-resting > .action-bar-body {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .lingverse-replica-shell .action-bar.is-resting > .ling-rest-card {
+    display: flex;
+    flex: 0 0 100%;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 100%;
+    min-height: 0;
+    margin: 0;
+    padding: 10px 14px;
+    border: 1px solid var(--lv-fidelity-line);
+    border-radius: var(--radius-md);
+    background: var(--lv-fidelity-panel);
+    box-sizing: border-box;
+    color: var(--color-text);
+  }
+
+  .lingverse-replica-shell .ling-rest-orb {
+    position: relative;
+    display: flex;
+    flex: 0 0 38px;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border: 1px solid color-mix(in srgb, var(--color-spirit) 34%, var(--lv-fidelity-line));
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-spirit) 10%, transparent);
+    color: var(--color-spirit);
+  }
+
+  .lingverse-replica-shell .ling-rest-orb::after {
+    position: absolute;
+    inset: -4px;
+    border: 1px solid color-mix(in srgb, var(--color-spirit) 18%, transparent);
+    border-radius: 50%;
+    content: '';
+    pointer-events: none;
+  }
+
+  .lingverse-replica-shell .ling-rest-body {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .lingverse-replica-shell .ling-rest-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    margin-bottom: 6px;
+  }
+
+  .lingverse-replica-shell .ling-rest-title {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .lingverse-replica-shell .ling-rest-title strong {
+    color: var(--color-spirit);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    white-space: nowrap;
+  }
+
+  .lingverse-replica-shell .ling-rest-title span {
+    overflow: hidden;
+    color: var(--color-muted);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .lingverse-replica-shell .ling-rest-stats {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .lingverse-replica-shell .ling-rest-stat {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 3px 9px;
+    border: 1px solid color-mix(in srgb, var(--color-text) 5%, transparent);
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-text) 4%, transparent);
+    color: var(--color-muted);
+    font-size: 10px;
+    white-space: nowrap;
+  }
+
+  .lingverse-replica-shell .ling-rest-stat b {
+    color: var(--color-text);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .lingverse-replica-shell .ling-rest-stat:nth-child(1) b { color: var(--color-danger); }
+  .lingverse-replica-shell .ling-rest-stat:nth-child(2) b { color: var(--color-system); }
+  .lingverse-replica-shell .ling-rest-stat:nth-child(3) b { color: var(--color-star); }
+
+  .lingverse-replica-shell .ling-rest-stat-total {
+    margin-left: auto;
+    background: color-mix(in srgb, var(--color-spirit) 5%, transparent);
+  }
+
+  .lingverse-replica-shell .ling-rest-stat-total b {
+    color: var(--color-spirit);
+  }
+}
+
+/* 地图等窄侧栏也使用同一套低对比面板材质；星图、场景数据与交互仍由星流读者提供。 */
+@media (min-width: 761px) {
+  .lingverse-replica-shell .ling-side-panel .smp-root {
+    background: var(--lv-fidelity-panel);
+    color: var(--color-text);
+  }
+
+  .lingverse-replica-shell .ling-side-panel .smp-panel-head {
+    padding: 12px 46px 8px 14px;
+    border-bottom-color: var(--lv-fidelity-line);
+    background: var(--lv-fidelity-header);
+  }
+
+  .lingverse-replica-shell .ling-side-panel .smp-panel-head .gc-rule {
+    width: 30px;
+    height: 2px;
+    margin-bottom: 7px;
+    border-radius: 0;
+  }
+
+  .lingverse-replica-shell .ling-side-panel .smp-panel-head .gc-title {
+    color: var(--color-text);
+    font-family: var(--font-serif, "Songti SC", STSong, "Noto Serif SC", serif);
+    font-size: 16px;
+    letter-spacing: 1.4px;
+  }
+
+  .lingverse-replica-shell .ling-side-panel .smp-panel-head .gc-panel-sub {
+    margin-top: 3px;
+    color: var(--color-muted);
+    letter-spacing: 0.3px;
+  }
+
+  .lingverse-replica-shell .ling-side-panel .smp-panel-close {
+    top: 10px;
+    right: 12px;
+    width: 28px;
+    height: 28px;
+    border-color: var(--lv-fidelity-line);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-muted);
+  }
+
+  .lingverse-replica-shell .ling-side-panel .smp-log-strip,
+  .lingverse-replica-shell .ling-side-panel .smp-progress {
+    border-bottom-color: var(--lv-fidelity-line);
+    background: var(--lv-fidelity-panel);
+  }
+
+  .lingverse-replica-shell .ling-side-panel .smp-log-strip {
+    min-height: 30px;
+    padding: 4px 12px;
+    color: var(--color-text-secondary, var(--color-muted));
+  }
+
+  .lingverse-replica-shell .ling-side-panel .smp-filters {
+    gap: 5px;
+    padding: 6px 10px;
+    border-bottom-color: var(--lv-fidelity-line);
+    background: var(--lv-fidelity-header);
+  }
+
+  .lingverse-replica-shell .ling-side-panel .smp-chip,
+  .lingverse-replica-shell .ling-side-panel .smp-reset {
+    min-height: 24px;
+    padding: 2px 9px;
+    border-color: var(--lv-fidelity-line);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--color-text-dim);
+    transition: color 120ms ease, background 120ms ease, border-color 120ms ease;
+  }
+
+  .lingverse-replica-shell .ling-side-panel .smp-chip:hover,
+  .lingverse-replica-shell .ling-side-panel .smp-reset:hover {
+    border-color: color-mix(in srgb, var(--color-star) 38%, var(--lv-fidelity-line));
+    background: color-mix(in srgb, var(--color-star) 6%, transparent);
+    color: var(--color-star-bright);
+  }
+
+  .lingverse-replica-shell .ling-side-panel .smp-chip.active {
+    border-color: color-mix(in srgb, var(--color-star) 45%, var(--lv-fidelity-line));
+    background: color-mix(in srgb, var(--color-star) 10%, transparent);
+    color: var(--color-star-bright);
+  }
+
+  .lingverse-replica-shell .ling-side-panel .smp-progress {
+    gap: 8px;
+    padding: 5px 10px;
+  }
+
+  .lingverse-replica-shell .ling-side-panel .smp-prog-label,
+  .lingverse-replica-shell .ling-side-panel .smp-prog-stat {
+    color: var(--color-text-dim);
+    font-size: 10px;
+  }
+
+  .lingverse-replica-shell .ling-side-panel .smp-prog-bar-wrap {
+    background: color-mix(in srgb, var(--color-text) 8%, transparent);
+  }
+
+  .lingverse-replica-shell .ling-side-panel .smp-sheet {
+    border-top-color: var(--lv-fidelity-line);
+    background: var(--lv-fidelity-panel);
+  }
+
+  .lingverse-replica-shell .ling-side-panel .smp-sheet-name {
+    color: var(--color-star-bright);
+  }
+
+  .lingverse-replica-shell .ling-side-panel .smp-tag,
+  .lingverse-replica-shell .ling-side-panel .smp-item-tag,
+  .lingverse-replica-shell .ling-side-panel .smp-btn-close,
+  .lingverse-replica-shell .ling-side-panel .smp-btn-enter,
+  .lingverse-replica-shell .ling-side-panel .smp-btn-current {
+    border-radius: 4px;
+    box-shadow: none;
+  }
+
+  .lingverse-replica-shell .ling-side-panel .smp-btn-enter:hover {
+    box-shadow: none;
+  }
+
+  /* 星图是窄侧栏的主视觉：减弱星空光晕，让场景节点和路径先被看见。 */
+  .lingverse-replica-shell .ling-side-panel .score-wrap {
+    background-color: var(--lv-fidelity-void);
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--color-text) 3%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb, var(--color-text) 3%, transparent) 1px, transparent 1px);
+    background-size: 42px 42px;
+  }
+
+  .lingverse-replica-shell .ling-side-panel .score-svg #grid2 circle {
+    opacity: 0.16;
+  }
+
+  .lingverse-replica-shell .ling-side-panel .score-svg .snode > text {
+    font-family: var(--font-serif, "Songti SC", STSong, "Noto Serif SC", serif);
+  }
+
+  .lingverse-replica-shell .ling-side-panel .score-svg .snode-icon { font-size: 16px; }
+  .lingverse-replica-shell .ling-side-panel .score-svg .snode-danger { font-size: 11px; }
+  .lingverse-replica-shell .ling-side-panel .score-svg .snode-label { font-size: 18px; }
+
+  .lingverse-replica-shell .ling-side-panel .score-svg .snode-selected circle:nth-child(2) {
+    stroke-width: 2.5;
+    filter: none;
+  }
+
+  .lingverse-replica-shell .ling-side-panel .score-hint {
+    right: 10px;
+    bottom: 8px;
+    padding: 4px 7px;
+    border: 1px solid var(--lv-fidelity-line);
+    background: color-mix(in srgb, var(--lv-fidelity-panel) 90%, transparent);
+    color: var(--color-text-dim);
+    font-size: 9px;
+  }
+
+  .lingverse-replica-shell .ling-side-panel .smp-sheet {
+    max-height: 26vh;
+    overflow-y: auto;
+    box-shadow: 0 -10px 22px color-mix(in srgb, #000 18%, transparent);
+  }
+
+  .lingverse-replica-shell .ling-side-panel .smp-btn-enter:hover {
+    border-color: var(--color-star);
+    background: color-mix(in srgb, var(--color-star) 12%, var(--lv-fidelity-panel));
+    color: var(--color-star-bright);
+  }
+}
+
+/* Teleported prompts and result windows sit outside the main shell; keep their
+   surfaces and corners consistent with the desktop game without changing behavior. */
+@media (min-width: 761px) {
+  body .ling-dialog-box.ling-dialog-box {
+    border-color: var(--lv-fidelity-line);
+    border-radius: 4px;
+    background: var(--lv-fidelity-panel);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+  }
+
+  body .ling-dialog-box .ling-dialog-title {
+    color: var(--color-text);
+    text-shadow: none;
+  }
+
+  body .ling-dialog-box .ling-dialog-details,
+  body .ling-dialog-box .ling-dialog-btn {
+    border-radius: 4px;
+  }
+
+  body .ling-dialog-box .ling-dialog-btn-ok:hover {
+    box-shadow: none;
+  }
+
+  body .sst-card.sst-card {
+    border-color: var(--lv-fidelity-line);
+    border-radius: 4px;
+    background: var(--lv-fidelity-panel);
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.36);
+  }
+
+  body .sst-card .sst-event,
+  body .sst-card .sst-rewards,
+  body .sst-card .sst-consequence,
+  body .sst-card .sst-battle-side,
+  body .sst-card .sst-choice-btn,
+  body .sst-card .sst-btn {
+    border-radius: 4px;
+  }
+
+  body .ling-notification-toast.ling-notification-toast {
+    border-color: var(--lv-fidelity-line);
+    border-radius: 4px;
+    background: var(--lv-fidelity-panel);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  }
+}

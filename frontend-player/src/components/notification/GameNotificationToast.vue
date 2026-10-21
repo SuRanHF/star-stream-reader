@@ -129,9 +129,9 @@ onBeforeUnmount(() => {
   max-width: 340px;
 }
 .ling-notification-toast {
-  background: rgba(10, 14, 28, 0.92);
-  border: 1px solid rgba(180, 160, 120, 0.35);
-  border-radius: 8px;
+  background: var(--color-panel-elevated);
+  border: 1px solid var(--color-star-border);
+  border-radius: var(--radius-md);
   padding: 10px 14px;
   animation: ling-toast-in 0.35s ease-out, ling-toast-fade 0.5s ease-out 5.5s forwards;
   backdrop-filter: blur(8px);
@@ -146,13 +146,13 @@ onBeforeUnmount(() => {
 .ling-notification-type {
   font-size: 11px;
   font-weight: 700;
-  color: #c9a86c;
+  color: var(--color-star);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 .ling-notification-body {
   font-size: 13px;
-  color: #d0d0d0;
+  color: var(--color-text);
   line-height: 1.4;
 }
 @keyframes ling-toast-in {

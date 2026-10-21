@@ -9,6 +9,8 @@ public interface WorldlineService {
 
     List<Map<String, Object>> getWorldStates();
 
+    List<Map<String, Object>> getWorldlineHistory();
+
     WorldlineSummaryVO getWorldlineSummary();
 
     void applyBroadcastWorldlineEffects(String eventKey, String effectsJson);

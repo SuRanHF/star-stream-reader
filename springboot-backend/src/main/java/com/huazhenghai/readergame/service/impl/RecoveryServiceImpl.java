@@ -6,11 +6,16 @@ import com.huazhenghai.readergame.common.BusinessException;
 import com.huazhenghai.readergame.common.ErrorCode;
 import com.huazhenghai.readergame.entity.Player;
 import com.huazhenghai.readergame.mapper.PlayerMapper;
+import com.huazhenghai.readergame.service.ExperienceProgression;
 import com.huazhenghai.readergame.service.PlayerLogService;
+import com.huazhenghai.readergame.service.PlayerMaxHpProjectionService;
+import com.huazhenghai.readergame.service.PlayerStaminaProjectionService;
+import com.huazhenghai.readergame.service.PlayerResourceTransactionService;
 import com.huazhenghai.readergame.service.RecoveryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
@@ -21,6 +26,9 @@ public class RecoveryServiceImpl implements RecoveryService {
 
     private final PlayerMapper playerMapper;
     private final PlayerLogService playerLogService;
+    private final PlayerMaxHpProjectionService maxHpProjectionService;
+    private final PlayerStaminaProjectionService staminaProjectionService;
+    private final PlayerResourceTransactionService resourceTransactionService;
     private final ObjectMapper objectMapper;
 
     // 满恢复时间(秒): 休息模式 HP 2h满，体力 3h满；普通模式 3倍
@@ -31,15 +39,27 @@ public class RecoveryServiceImpl implements RecoveryService {
 
     public RecoveryServiceImpl(PlayerMapper playerMapper,
                                PlayerLogService playerLogService,
+                               PlayerMaxHpProjectionService maxHpProjectionService,
+                               PlayerStaminaProjectionService staminaProjectionService,
+                               PlayerResourceTransactionService resourceTransactionService,
                                ObjectMapper objectMapper) {
         this.playerMapper = playerMapper;
         this.playerLogService = playerLogService;
+        this.maxHpProjectionService = maxHpProjectionService;
+        this.staminaProjectionService = staminaProjectionService;
+        this.resourceTransactionService = resourceTransactionService;
         this.objectMapper = objectMapper;
     }
 
     @Override
+    @Transactional
     public Map<String, Object> applyRecovery(Player player) {
-        Map<String, Object> stats = parseStats(player.getStatsJson());
+        Player currentPlayer = playerMapper.selectByIdForUpdate(player.getId());
+        if (currentPlayer == null) {
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "玩家不存在");
+        }
+        player.setStatsJson(currentPlayer.getStatsJson());
+        Map<String, Object> stats = parseStats(currentPlayer.getStatsJson());
 
         int curHp = toInt(stats.get("hp"), 100);
         if (curHp <= 0) return stats;
@@ -48,6 +68,7 @@ public class RecoveryServiceImpl implements RecoveryService {
         Number lastRecoveryAtNum = (Number) stats.get("lastRecoveryAt");
         long lastRecoveryAt = lastRecoveryAtNum != null ? lastRecoveryAtNum.longValue() : now;
         if (lastRecoveryAt <= 0) lastRecoveryAt = now;
+        long recoveryCursorBefore = lastRecoveryAt;
 
         long elapsedMs = now - lastRecoveryAt;
         if (elapsedMs < 1000) return stats;
@@ -60,19 +81,12 @@ public class RecoveryServiceImpl implements RecoveryService {
             hpBefore, staminaBefore, expBefore);
 
         boolean isResting = Boolean.TRUE.equals(stats.get("isResting"));
-        int maxStamina = toInt(stats.get("maxStamina"), 50);
+        int maxStamina = staminaProjectionService.projectMaxStamina(
+                currentPlayer.getId(), toInt(stats.get("maxStamina"), 50));
         int curStamina = toInt(stats.get("stamina"), 50);
 
-        // 重新计算 maxHp (与 buildPlayerVO 一致: 100 + 背后星加成)
-        int constMaxHp = 0;
-        String constellation = stats.get("constellation") instanceof String s ? s : null;
-        if (constellation != null && !constellation.isEmpty()) {
-            Map<String, Object> effects = getConstellationEffects(constellation);
-            if (effects != null && effects.get("maxHp") instanceof Number n) {
-                constMaxHp = n.intValue();
-            }
-        }
-        int maxHp = 100 + constMaxHp;
+        // Preserve saved growth; replace only the constellation portion previously included in maxHp.
+        int maxHp = maxHpProjectionService.normalizeForPersistence(stats);
 
         // 上限校验
         if (curHp > maxHp) {
@@ -107,10 +121,10 @@ public class RecoveryServiceImpl implements RecoveryService {
         int expInterval = REST_EXP_INTERVAL_SECONDS;
         if (!isResting) expInterval *= NORMAL_MULTIPLIER;
         long expRecovery = elapsedSec / expInterval;
-        if (expRecovery > 0) {
-            int curExp = toInt(stats.get("exp"), 0);
-            stats.put("exp", curExp + (int) expRecovery);
-        }
+        // 被动经验及历史上尚未结算的经验都必须立即推进等级，不能等到下一次战斗或探索。
+        ExperienceProgression.Result progression = ExperienceProgression.addExperience(
+                stats, (int) Math.min(expRecovery, Integer.MAX_VALUE), 1.0);
+        String levelUpMessage = ExperienceProgression.levelUpMessage(progression);
 
         // 只消耗已计算的整秒
         long consumedHpSec = hpRecovery > 0 ? hpRecovery * hpInterval : 0;
@@ -131,19 +145,36 @@ public class RecoveryServiceImpl implements RecoveryService {
             toInt(stats.get("exp"), 0),
             hpRecovery, staminaRecovery, expRecovery);
 
-        try {
-            player.setStatsJson(objectMapper.writeValueAsString(stats));
-        } catch (Exception e) {
-            log.error("[恢复] 序列化失败 playerId={}", player.getId(), e);
+        persistStats(currentPlayer, stats, "被动恢复状态保存失败");
+        player.setStatsJson(currentPlayer.getStatsJson());
+        if (progression.experienceAwarded() > 0) {
+            int experienceAfter = toInt(stats.get("exp"), expBefore);
+            String transactionGroupId = "recovery:" + currentPlayer.getId() + ":" + recoveryCursorBefore;
+            Map<String, Object> metadata = Map.of(
+                    "isResting", isResting,
+                    "elapsedSeconds", elapsedSec,
+                    "levelsGained", progression.levelsGained());
+            boolean inserted = resourceTransactionService.record(new PlayerResourceTransactionService.Change(
+                    currentPlayer.getId(), "experience", "exp", experienceAfter - expBefore,
+                    expBefore, experienceAfter, "passive_recovery", String.valueOf(currentPlayer.getId()),
+                    transactionGroupId, transactionGroupId + ":experience:exp", metadata));
+            if (!inserted) throw new IllegalStateException("被动恢复经验流水已存在，拒绝重复结算");
         }
-        playerMapper.updateById(player);
+        if (levelUpMessage != null) {
+            try {
+                playerLogService.addLog(currentPlayer.getId(), "milestone", levelUpMessage);
+            } catch (RuntimeException e) {
+                log.warn("[恢复] 经验升级日志写入失败 playerId={}", currentPlayer.getId(), e);
+            }
+        }
 
         return stats;
     }
 
     @Override
+    @Transactional
     public Map<String, Object> startRest(Long playerId, Long userId) {
-        Player player = playerMapper.selectById(playerId);
+        Player player = playerMapper.selectByIdForUpdate(playerId);
         if (player == null)
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "玩家不存在");
         if (!player.getUserId().equals(userId))
@@ -158,11 +189,7 @@ public class RecoveryServiceImpl implements RecoveryService {
         stats.put("restStartedAt", now);
         stats.put("lastRecoveryAt", now);
 
-        try {
-            player.setStatsJson(objectMapper.writeValueAsString(stats));
-        } catch (Exception ignored) {
-        }
-        playerMapper.updateById(player);
+        persistStats(player, stats, "开始休息状态保存失败");
 
         playerLogService.addLog(playerId, "info", "你进入休息状态，生命与体力恢复速度提高。");
 
@@ -170,8 +197,9 @@ public class RecoveryServiceImpl implements RecoveryService {
     }
 
     @Override
+    @Transactional
     public Map<String, Object> stopRest(Long playerId, Long userId) {
-        Player player = playerMapper.selectById(playerId);
+        Player player = playerMapper.selectByIdForUpdate(playerId);
         if (player == null)
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "玩家不存在");
         if (!player.getUserId().equals(userId))
@@ -191,16 +219,27 @@ public class RecoveryServiceImpl implements RecoveryService {
         log.info("[停止休息] playerId={} 保存后 hp={} stamina={} exp={}",
             playerId, toInt(stats.get("hp"), 100), toInt(stats.get("stamina"), 50), toInt(stats.get("exp"), 0));
 
-        try {
-            player.setStatsJson(objectMapper.writeValueAsString(stats));
-        } catch (Exception e) {
-            log.error("[停止休息] 序列化失败 playerId={}", playerId, e);
-        }
-        playerMapper.updateById(player);
+        persistStats(player, stats, "结束休息状态保存失败");
 
         playerLogService.addLog(playerId, "info", "你结束休息。");
 
         return stats;
+    }
+
+    private void persistStats(Player player, Map<String, Object> stats, String failureMessage) {
+        String serializedStats;
+        try {
+            serializedStats = objectMapper.writeValueAsString(stats);
+        } catch (Exception exception) {
+            throw new IllegalStateException(failureMessage + "：状态序列化失败", exception);
+        }
+
+        if (Objects.equals(player.getStatsJson(), serializedStats)) return;
+
+        player.setStatsJson(serializedStats);
+        if (playerMapper.updateById(player) <= 0) {
+            throw new IllegalStateException(failureMessage);
+        }
     }
 
     @Override
@@ -228,20 +267,4 @@ public class RecoveryServiceImpl implements RecoveryService {
         return defaultVal;
     }
 
-    // ─── 背后星效果 (与 PlayerServiceImpl 保持一致) ───
-
-    private static final Map<String, Map<String, Object>> CONSTELLATION_EFFECTS = Map.of(
-        "demon_judge_of_fire",       Map.of("def", 15, "maxHp", 10),
-        "master_of_steel",           Map.of("def", 8, "maxHp", 20),
-        "prisoner_of_golden_headband", Map.of("spd", 18, "luck", 4),
-        "abyssal_black_flame_dragon", Map.of("atk", 15, "critRate", 0.10),
-        "queen_of_darkest_spring",   Map.of("atk", 12, "worldLineShift", 3),
-        "father_of_rich_night",      Map.of("atk", 18, "maxHp", 5),
-        "scribe_of_heaven",          Map.of("insight", 8, "atk", 5, "def", 5),
-        "morning_star",              Map.of("atk", 5, "def", 5, "spd", 5, "maxHp", 5)
-    );
-
-    private Map<String, Object> getConstellationEffects(String constellationKey) {
-        return CONSTELLATION_EFFECTS.get(constellationKey);
-    }
 }

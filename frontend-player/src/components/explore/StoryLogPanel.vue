@@ -98,24 +98,24 @@ function toggleLoc(key: string) {
   gap: 10px;
 }
 .slp-title {
-  color: var(--color-system-bright, #7ab0f7);
+  color: var(--color-star-bright);
   font-size: 16px;
   font-weight: 700;
   margin: 0;
 }
 .slp-subtitle {
-  color: #6a7a9a;
+  color: var(--color-muted);
   font-size: 12px;
 }
 .slp-loading, .slp-empty {
   text-align: center;
   padding: 40px 0;
-  color: #6a7a9a;
+  color: var(--color-muted);
   font-size: 13px;
 }
 .slp-empty-hint {
   font-size: 12px;
-  color: #5a6688;
+  color: var(--color-muted);
   margin-top: 6px;
 }
 
@@ -128,17 +128,17 @@ function toggleLoc(key: string) {
   gap: 8px;
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid rgba(38, 56, 120, 0.35);
-  border-radius: 8px;
-  background: rgba(13, 20, 48, 0.5);
-  color: #d0d8f0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-card);
+  color: var(--color-text-dim);
   font-size: 14px;
   cursor: pointer;
   transition: all 0.15s;
 }
 .slp-loc-header:hover {
-  border-color: var(--color-system, #4a8fe7);
-  background: rgba(74, 143, 231, 0.06);
+  border-color: var(--color-star-border);
+  background: var(--color-star-bg);
 }
 .slp-loc-name {
   flex: 1;
@@ -147,27 +147,27 @@ function toggleLoc(key: string) {
 }
 .slp-loc-count {
   font-size: 12px;
-  color: #6a7a9a;
+  color: var(--color-muted);
 }
 .slp-chevron {
-  color: #6a7a9a;
+  color: var(--color-muted);
   font-size: 12px;
 }
 
 .slp-stories {
   padding: 8px 0 0 12px;
-  border-left: 1px solid rgba(38, 56, 120, 0.3);
+  border-left: 1px solid var(--color-border);
   margin-left: 8px;
 }
 .slp-story-card {
   padding: 10px 12px;
   margin-bottom: 6px;
-  border: 1px solid rgba(26, 38, 80, 0.4);
-  border-radius: 8px;
-  background: rgba(7, 11, 26, 0.4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-card);
 }
 .slp-story-name {
-  color: var(--color-system-bright, #7ab0f7);
+  color: var(--color-star-bright);
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 6px;
@@ -179,20 +179,20 @@ function toggleLoc(key: string) {
   margin-bottom: 4px;
 }
 .slp-choice-label {
-  color: #6a7a9a;
+  color: var(--color-muted);
   flex-shrink: 0;
 }
 .slp-choice-text {
-  color: #93c5fd;
+  color: var(--color-system-bright);
 }
 .slp-cons-line {
   font-size: 12px;
-  color: #8898b8;
+  color: var(--color-text-dim);
   line-height: 1.5;
   margin-bottom: 4px;
 }
 .slp-time {
   font-size: 11px;
-  color: #5a6688;
+  color: var(--color-muted);
 }
 </style>

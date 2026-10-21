@@ -61,7 +61,8 @@ public class WorldBossController {
             if (active == null) throw new BusinessException(ErrorCode.NOT_FOUND, "当前没有活跃的世界Boss");
             bossNo = active.getBossNo();
         }
-        return Result.ok(worldBossService.attackBoss(req.getPlayerId(), bossNo, user.getUserId()));
+        return Result.ok(worldBossService.attackBoss(
+                req.getPlayerId(), bossNo, user.getUserId(), req.getRequestKey()));
     }
 
     @GetMapping("/rankings/{bossNo}")
@@ -77,7 +78,8 @@ public class WorldBossController {
             @Valid @RequestBody ClaimWorldBossRewardRequest req) {
         LoginUser user = LoginUserContext.get();
         if (user == null) throw new BusinessException(ErrorCode.UNAUTHORIZED, "请先登录");
-        return Result.ok(worldBossService.claimReward(req.getPlayerId(), req.getBossNo(), user.getUserId()));
+        return Result.ok(worldBossService.claimReward(
+                req.getPlayerId(), req.getBossNo(), user.getUserId(), req.getRequestKey()));
     }
 
     @GetMapping("/my/{playerId}")
@@ -98,8 +100,8 @@ public class WorldBossController {
 
     @GetMapping("/history")
     @Operation(summary = "世界Boss历史")
-    public Result<List<Map<String, Object>>> getHistory() {
-        return Result.ok(java.util.Collections.emptyList());
+    public Result<List<WorldBossHistoryVO>> getHistory() {
+        return Result.ok(worldBossService.getHistory());
     }
 
     // ─── Admin endpoints ───

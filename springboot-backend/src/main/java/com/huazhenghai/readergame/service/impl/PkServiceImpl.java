@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huazhenghai.readergame.common.BusinessException;
 import com.huazhenghai.readergame.common.ErrorCode;
+import com.huazhenghai.readergame.common.ResourceBalance;
 import com.huazhenghai.readergame.entity.PkChallenge;
 import com.huazhenghai.readergame.entity.PkRecord;
 import com.huazhenghai.readergame.entity.Player;
@@ -16,6 +17,7 @@ import com.huazhenghai.readergame.mapper.RankingMapper;
 import com.huazhenghai.readergame.service.*;
 import com.huazhenghai.readergame.vo.CombatStatsVO;
 import com.huazhenghai.readergame.vo.PkRecordVO;
+import com.huazhenghai.readergame.vo.PkChallengeVO;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +40,8 @@ public class PkServiceImpl implements PkService {
     private final OnlinePlayerService onlinePlayerService;
     private final AvatarRankService avatarRankService;
     private final ObjectMapper objectMapper;
+    private final PlayerActionReceiptService actionReceiptService;
+    private final PlayerResourceTransactionService resourceTransactionService;
     private final Random random = new Random();
 
     private static final int MAX_ROUNDS = 30;
@@ -55,7 +59,9 @@ public class PkServiceImpl implements PkService {
                          QuestService questService,
                          OnlinePlayerService onlinePlayerService,
                          AvatarRankService avatarRankService,
-                         ObjectMapper objectMapper) {
+                         ObjectMapper objectMapper,
+                         PlayerActionReceiptService actionReceiptService,
+                         PlayerResourceTransactionService resourceTransactionService) {
         this.playerMapper = playerMapper;
         this.challengeMapper = challengeMapper;
         this.recordMapper = recordMapper;
@@ -69,6 +75,8 @@ public class PkServiceImpl implements PkService {
         this.onlinePlayerService = onlinePlayerService;
         this.avatarRankService = avatarRankService;
         this.objectMapper = objectMapper;
+        this.actionReceiptService = actionReceiptService;
+        this.resourceTransactionService = resourceTransactionService;
     }
 
     @Override
@@ -78,6 +86,10 @@ public class PkServiceImpl implements PkService {
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "玩家不存在");
         if (!player.getUserId().equals(userId))
             throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此玩家");
+
+        Ranking ownRanking = getRankingEntity(playerId);
+        int ownRating = ownRanking != null ? ownRanking.getRating() : 1000;
+        int ownPower = estimateCombatPower(combatService.calculateCombatPower(playerId));
 
         // 查询所有其他玩家
         QueryWrapper<Player> pq = new QueryWrapper<>();
@@ -95,33 +107,58 @@ public class PkServiceImpl implements PkService {
             else pendingOpponentIds.add(ch.getAttackerId());
         }
 
-        List<Map<String, Object>> opponents = new ArrayList<>();
+        List<Player> availablePlayers = new ArrayList<>();
         for (Player p : allPlayers) {
             if (pendingOpponentIds.contains(p.getId())) continue;
             if (!onlinePlayerService.isOnline(p.getId())) continue;
+            availablePlayers.add(p);
+        }
 
+        Map<Long, Ranking> rankingsByPlayerId = new HashMap<>();
+        if (!availablePlayers.isEmpty()) {
+            QueryWrapper<Ranking> rq = new QueryWrapper<>();
+            rq.in("player_id", availablePlayers.stream().map(Player::getId).toList());
+            for (Ranking ranking : rankingMapper.selectList(rq)) {
+                rankingsByPlayerId.put(ranking.getPlayerId(), ranking);
+            }
+        }
+
+        List<RecommendedOpponent> opponents = new ArrayList<>();
+        for (Player p : availablePlayers) {
             Map<String, Object> stats = parseJsonMap(p.getStatsJson());
             CombatStatsVO combatStats = combatService.calculateCombatPower(p.getId());
-            Ranking ranking = getRankingEntity(p.getId());
+            Ranking ranking = rankingsByPlayerId.get(p.getId());
+            int rating = ranking != null ? ranking.getRating() : 1000;
+            int combatPower = estimateCombatPower(combatStats);
+            OpponentMatchmaking.Assessment assessment = OpponentMatchmaking.assess(
+                    ownRating, ownPower, rating, combatPower);
 
             Map<String, Object> opp = new LinkedHashMap<>();
             opp.put("id", p.getId());
             opp.put("player_name", p.getPlayerName());
             opp.put("level", toInt(stats.get("level"), 1));
-            opp.put("rating", ranking != null ? ranking.getRating() : 1000);
+            opp.put("avatarRank", Objects.toString(stats.get("avatarRank"), "F"));
+            opp.put("ranked", ranking != null);
+            opp.put("rating", rating);
             opp.put("wins", ranking != null ? ranking.getWins() : 0);
             opp.put("losses", ranking != null ? ranking.getLosses() : 0);
-            opp.put("combat_power", estimateCombatPower(combatStats));
-            opponents.add(opp);
+            opp.put("combat_power", combatPower);
+            opp.put("match_label", assessment.label());
+            opp.put("rating_gap", rating - ownRating);
+            opp.put("power_gap_percent", assessment.powerGapPercent());
+            opponents.add(new RecommendedOpponent(opp, assessment));
         }
 
-        // 按评分降序
-        opponents.sort((a, b) -> Integer.compare(
-                toInt(b.get("rating"), 1000), toInt(a.get("rating"), 1000)));
+        // 先推荐位阶分数和实际战力都接近的玩家；仍保留越级挑战，不把选择锁死。
+        opponents.sort(Comparator
+                .comparingInt((RecommendedOpponent candidate) -> candidate.assessment().band())
+                .thenComparingInt(candidate -> candidate.assessment().ratingGap())
+                .thenComparingInt(candidate -> candidate.assessment().powerGapPercent())
+                .thenComparing(candidate -> (Long) candidate.payload().get("id")));
         if (opponents.size() > 20) {
             opponents = opponents.subList(0, 20);
         }
-        return opponents;
+        return opponents.stream().map(RecommendedOpponent::payload).toList();
     }
 
     @Override
@@ -143,6 +180,8 @@ public class PkServiceImpl implements PkService {
 
         // 检查攻击者休息状态
         recoveryService.assertCanAct(attacker);
+        assertAliveForPk(parseJsonMap(attacker.getStatsJson()));
+        assertAliveForPk(parseJsonMap(defender.getStatsJson()));
 
         // 检查是否有待处理的挑战
         QueryWrapper<PkChallenge> eq = new QueryWrapper<>();
@@ -168,9 +207,10 @@ public class PkServiceImpl implements PkService {
 
     @Override
     @Transactional
-    public Map<String, Object> resolveChallenge(Long challengeId, boolean accept, Long playerId, Long userId) {
-        PkChallenge challenge = challengeMapper.selectById(challengeId);
-        if (challenge == null || !"pending".equals(challenge.getStatus()))
+    public Map<String, Object> resolveChallenge(Long challengeId, boolean accept, Long playerId,
+                                                Long userId, String requestKey) {
+        PkChallenge challenge = challengeMapper.selectByIdForUpdate(challengeId);
+        if (challenge == null)
             throw new BusinessException(ErrorCode.CHALLENGE_NOT_FOUND, "挑战不存在或已过期");
 
         if (!challenge.getDefenderId().equals(playerId))
@@ -180,27 +220,44 @@ public class PkServiceImpl implements PkService {
         if (defender == null || !defender.getUserId().equals(userId))
             throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此玩家");
 
+        Map<String, Object> requestPayload = new LinkedHashMap<>();
+        requestPayload.put("challengeId", challengeId);
+        requestPayload.put("accept", accept);
+        requestPayload.put("playerId", playerId);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> replay = actionReceiptService.findReplay(
+                playerId, "pk.challenge.resolve", requestKey, requestPayload, Map.class);
+        if (replay != null) return replay;
+        if (!"pending".equals(challenge.getStatus()))
+            throw new BusinessException(ErrorCode.CHALLENGE_NOT_FOUND, "挑战不存在或已过期");
+
         challenge.setResolvedAt(LocalDateTime.now());
 
         if (!accept) {
             challenge.setStatus("rejected");
-            challengeMapper.updateById(challenge);
+            if (challengeMapper.updateById(challenge) <= 0)
+                throw new IllegalStateException("保存PK拒绝状态失败");
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("accepted", false);
             result.put("message", "已拒绝挑战");
+            actionReceiptService.record(playerId, "pk.challenge.resolve", requestKey,
+                    requestPayload, result);
             return result;
         }
 
         challenge.setStatus("accepted");
-        challengeMapper.updateById(challenge);
+        if (challengeMapper.updateById(challenge) <= 0)
+            throw new IllegalStateException("保存PK接受状态失败");
 
         // 执行PK战斗
         Map<String, Object> battleResult = executePkBattle(
-                challenge.getAttackerId(), challenge.getDefenderId(), challenge.getMode());
+                challengeId, challenge.getAttackerId(), challenge.getDefenderId(), challenge.getMode());
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("accepted", true);
         result.put("battle", battleResult);
+        actionReceiptService.record(playerId, "pk.challenge.resolve", requestKey,
+                requestPayload, result);
         return result;
     }
 
@@ -234,14 +291,54 @@ public class PkServiceImpl implements PkService {
         return result;
     }
 
+    @Override
+    public List<PkChallengeVO> getPendingChallenges(Long playerId, Long userId) {
+        Player player = playerMapper.selectById(playerId);
+        if (player == null) {
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "玩家不存在");
+        }
+        if (!player.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "无权查看此玩家的挑战");
+        }
+
+        QueryWrapper<PkChallenge> query = new QueryWrapper<>();
+        query.eq("defender_id", playerId)
+                .eq("status", "pending")
+                .orderByDesc("created_at")
+                .last("LIMIT 20");
+        List<PkChallengeVO> result = new ArrayList<>();
+        for (PkChallenge challenge : challengeMapper.selectList(query)) {
+            PkChallengeVO vo = new PkChallengeVO();
+            vo.setId(challenge.getId());
+            vo.setAttackerId(challenge.getAttackerId());
+            vo.setAttackerName(getPlayerName(challenge.getAttackerId()));
+            vo.setDefenderId(challenge.getDefenderId());
+            vo.setDefenderName(getPlayerName(challenge.getDefenderId()));
+            vo.setStatus(challenge.getStatus());
+            vo.setMode(challenge.getMode());
+            vo.setCreatedAt(challenge.getCreatedAt() == null ? null : challenge.getCreatedAt().toString());
+            vo.setResolvedAt(challenge.getResolvedAt() == null ? null : challenge.getResolvedAt().toString());
+            result.add(vo);
+        }
+        return result;
+    }
+
     // ─── 内部方法 ───
 
     /**
      * 执行PK战斗核心逻辑.
      */
-    private Map<String, Object> executePkBattle(Long attackerId, Long defenderId, String mode) {
-        Player attacker = playerMapper.selectById(attackerId);
-        Player defender = playerMapper.selectById(defenderId);
+    private Map<String, Object> executePkBattle(Long challengeId, Long attackerId,
+                                                Long defenderId, String mode) {
+        Player attacker;
+        Player defender;
+        if (Long.compare(attackerId, defenderId) < 0) {
+            attacker = playerMapper.selectByIdForUpdate(attackerId);
+            defender = playerMapper.selectByIdForUpdate(defenderId);
+        } else {
+            defender = playerMapper.selectByIdForUpdate(defenderId);
+            attacker = playerMapper.selectByIdForUpdate(attackerId);
+        }
         if (attacker == null || defender == null)
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "玩家不存在");
 
@@ -250,6 +347,8 @@ public class PkServiceImpl implements PkService {
         Map<String, Object> defStats = recoveryService.applyRecovery(defender);
         recoveryService.assertCanAct(attacker);
         recoveryService.assertCanAct(defender);
+        assertAliveForPk(atkStats);
+        assertAliveForPk(defStats);
 
         // 计算战斗属性
         CombatStatsVO atkPower = combatService.calculateCombatPower(attackerId);
@@ -358,38 +457,49 @@ public class PkServiceImpl implements PkService {
 
         int expReward = 30;
         double expMult = avatarRankService.getExpMultiplier((String) atkStatsRef.getOrDefault("avatarRank", "F"));
-        int adjustedExp = Math.max(1, (int) Math.round(expReward * expMult));
+        int experienceBefore = toInt(atkStatsRef.get("exp"), 0);
+        ExperienceProgression.Result progression = ExperienceProgression.addExperience(
+                atkStatsRef, expReward, expMult);
+        int experienceAfter = toInt(atkStatsRef.get("exp"), experienceBefore);
         int coinsReward = 50;
-        int currentExp = toInt(atkStatsRef.get("exp"), 0);
-        int totalExp = currentExp + adjustedExp;
-        atkStatsRef.put("exp", totalExp);
-        // 升级检查
-        int newLevel = (int) Math.floor(Math.sqrt(totalExp / 100.0)) + 1;
-        int oldLevel = toInt(atkStatsRef.get("level"), 1);
-        if (newLevel > oldLevel) {
-            int levelsGained = newLevel - oldLevel;
-            atkStatsRef.put("level", newLevel);
-            atkStatsRef.put("hp", atkStatsRef.get("maxHp"));
-            atkStatsRef.put("freePoints", toInt(atkStatsRef.get("freePoints"), 0) + 3 * levelsGained);
-        }
-        winner.setCoins(winner.getCoins() + coinsReward);
+        int coinsBefore = winner.getCoins() != null ? winner.getCoins() : 0;
+        int coinsAfter = ResourceBalance.applyDelta("星币", coinsBefore, coinsReward);
+        winner.setCoins(coinsAfter);
 
         // 败者HP归0
+        int loserHpBefore = toInt(defStatsRef.get("hp"), 0);
         defStatsRef.put("hp", 0);
 
         // 保存双方状态
         try {
             attacker.setStatsJson(objectMapper.writeValueAsString(atkStats));
             defender.setStatsJson(objectMapper.writeValueAsString(defStats));
-        } catch (Exception ignored) {}
-        playerMapper.updateById(attacker);
-        playerMapper.updateById(defender);
+        } catch (Exception exception) {
+            throw new IllegalStateException("保存PK战斗属性失败", exception);
+        }
+        if (playerMapper.updateById(attacker) <= 0 || playerMapper.updateById(defender) <= 0)
+            throw new IllegalStateException("保存PK战斗结果失败");
+
+        String transactionGroupId = "pk:" + challengeId;
+        Map<String, Object> resourceMetadata = new LinkedHashMap<>();
+        resourceMetadata.put("challengeId", challengeId);
+        resourceMetadata.put("winnerId", winner.getId());
+        resourceMetadata.put("loserId", loser.getId());
+        recordResourceChange(winner.getId(), "currency", "coins", coinsBefore, coinsAfter,
+                challengeId, transactionGroupId, transactionGroupId + ":winner:coins", resourceMetadata);
+        recordResourceChange(winner.getId(), "experience", "exp", experienceBefore, experienceAfter,
+                challengeId, transactionGroupId, transactionGroupId + ":winner:exp", resourceMetadata);
+        recordResourceChange(loser.getId(), "vitality", "hp", loserHpBefore, 0,
+                challengeId, transactionGroupId, transactionGroupId + ":loser:hp", resourceMetadata);
 
         // 写日志
         playerLogService.addLog(winner.getId(), "battle",
                 "在PK中击败了 " + loser.getPlayerName() + "（" + rounds.size() + "回合）");
         playerLogService.addLog(loser.getId(), "battle",
                 "在PK中被 " + winner.getPlayerName() + " 击败了");
+        String levelUpMessage = ExperienceProgression.levelUpMessage(progression);
+        if (levelUpMessage != null)
+            playerLogService.addLog(winner.getId(), "milestone", levelUpMessage);
 
         // 记录PK
         Map<String, Object> battleData = new LinkedHashMap<>();
@@ -411,7 +521,8 @@ public class PkServiceImpl implements PkService {
             record.setRatingChangeJson(objectMapper.writeValueAsString(ratingChangeData));
         } catch (Exception ignored) {}
         record.setCreatedAt(LocalDateTime.now());
-        recordMapper.insert(record);
+        if (recordMapper.insert(record) <= 0)
+            throw new IllegalStateException("保存PK战报失败");
 
         // 自动贡献广播进度 (不阻断主流程)
         try {
@@ -419,6 +530,11 @@ public class PkServiceImpl implements PkService {
             broadcastService.contribute("broadcast_pk_spark", defenderId, 1, "pk");
             Long winnerId = attackerWins ? attackerId : defenderId;
             broadcastService.contribute("broadcast_pk_spark", winnerId, 1, "pk");
+        } catch (Exception ignored) {
+        }
+        Long broadcastWinnerId = attackerWins ? attackerId : defenderId;
+        try {
+            broadcastService.contributeToActiveAiEvents(broadcastWinnerId, "win_pk", 1);
         } catch (Exception ignored) {
         }
 
@@ -463,11 +579,30 @@ public class PkServiceImpl implements PkService {
 
         // 奖励信息
         Map<String, Object> rewards = new LinkedHashMap<>();
-        rewards.put("exp", expReward);
+        rewards.put("exp", progression.experienceAwarded());
         rewards.put("coins", coinsReward);
         result2.put("rewards", rewards);
 
         return result2;
+    }
+
+    private void recordResourceChange(Long playerId, String resourceType, String resourceKey,
+                                      long balanceBefore, long balanceAfter, Long challengeId,
+                                      String transactionGroupId, String idempotencyKey,
+                                      Map<String, Object> metadata) {
+        if (balanceBefore == balanceAfter) return;
+        resourceTransactionService.record(new PlayerResourceTransactionService.Change(
+                playerId, resourceType, resourceKey, Math.subtractExact(balanceAfter, balanceBefore),
+                balanceBefore, balanceAfter, "pk_battle", String.valueOf(challengeId),
+                transactionGroupId, idempotencyKey, metadata));
+    }
+
+    private void assertAliveForPk(Map<String, Object> stats) {
+        int maxHp = toInt(stats.get("maxHp"), 100);
+        int hp = toInt(stats.get("hp"), maxHp);
+        if (hp <= 0) {
+            throw new BusinessException(ErrorCode.PLAYER_DEAD, "角色已死亡，无法参与PK");
+        }
     }
 
     private Map<String, Object> calcPKDamage(int atk, int def, double critRate, double critDamage) {
@@ -533,6 +668,9 @@ public class PkServiceImpl implements PkService {
                 stats.getLevel() * 10.0
         );
     }
+
+    private record RecommendedOpponent(Map<String, Object> payload,
+                                       OpponentMatchmaking.Assessment assessment) {}
 
     private String getPlayerName(Long playerId) {
         Player p = playerMapper.selectById(playerId);

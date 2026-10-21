@@ -4,6 +4,8 @@ public class WorldBossParticipationVO {
 
     private Long id;
     private String bossNo;
+    private String bossName;
+    private String bossStatus;
     private Long playerId;
     private String playerName;
     private String partyNo;
@@ -11,6 +13,7 @@ public class WorldBossParticipationVO {
     private int attackCount;
     private String lastAttackAt;
     private boolean rewardClaimed;
+    private boolean canClaimReward;
     private Integer rankNo;
     private String createdAt;
     private String updatedAt;
@@ -19,6 +22,10 @@ public class WorldBossParticipationVO {
     public void setId(Long id) { this.id = id; }
     public String getBossNo() { return bossNo; }
     public void setBossNo(String bossNo) { this.bossNo = bossNo; }
+    public String getBossName() { return bossName; }
+    public void setBossName(String bossName) { this.bossName = bossName; }
+    public String getBossStatus() { return bossStatus; }
+    public void setBossStatus(String bossStatus) { this.bossStatus = bossStatus; }
     public Long getPlayerId() { return playerId; }
     public void setPlayerId(Long playerId) { this.playerId = playerId; }
     public String getPlayerName() { return playerName; }
@@ -33,6 +40,8 @@ public class WorldBossParticipationVO {
     public void setLastAttackAt(String lastAttackAt) { this.lastAttackAt = lastAttackAt; }
     public boolean isRewardClaimed() { return rewardClaimed; }
     public void setRewardClaimed(boolean rewardClaimed) { this.rewardClaimed = rewardClaimed; }
+    public boolean isCanClaimReward() { return canClaimReward; }
+    public void setCanClaimReward(boolean canClaimReward) { this.canClaimReward = canClaimReward; }
     public Integer getRankNo() { return rankNo; }
     public void setRankNo(Integer rankNo) { this.rankNo = rankNo; }
     public String getCreatedAt() { return createdAt; }

@@ -1,5 +1,6 @@
 import { http } from './http';
 import type { ApiRecord } from '@/types/api';
+import { withStableActionRequest } from '@/utils/stableActionRequest';
 
 export const partyApi = {
   getActiveParties() {
@@ -20,7 +21,11 @@ export const partyApi = {
   leave(playerId: number) {
     return http.post<unknown, ApiRecord>('/party/leave', { playerId });
   },
+  setReady(playerId: number, partyNo: string, ready: boolean) {
+    return http.post<unknown, ApiRecord>(`/party/${partyNo}/ready`, { playerId, ready });
+  },
   startBattle(playerId: number, partyNo: string) {
-    return http.post<unknown, ApiRecord>(`/party/${partyNo}/start-battle`, { playerId });
+    return withStableActionRequest(`party:world-boss:attack:${playerId}:${partyNo}`, (requestKey) =>
+      http.post<unknown, ApiRecord>(`/party/${partyNo}/start-battle`, { playerId, requestKey }));
   },
 };

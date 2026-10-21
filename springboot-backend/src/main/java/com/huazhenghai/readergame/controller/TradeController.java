@@ -45,7 +45,7 @@ public class TradeController {
     public Result<TradeListingVO> createItemListing(@Valid @RequestBody CreateItemListingRequest req) {
         validatePlayerOwnership(req.getSellerPlayerId());
         return Result.ok(tradeService.createItemListing(
-                req.getSellerPlayerId(), req.getItemKey(), req.getQuantity(), req.getUnitPrice()));
+                req.getSellerPlayerId(), req.getItemKey(), req.getQuantity(), req.getUnitPrice(), req.getRequestKey()));
     }
 
     @PostMapping("/list/equipment")
@@ -53,21 +53,21 @@ public class TradeController {
     public Result<TradeListingVO> createEquipmentListing(@Valid @RequestBody CreateEquipmentListingRequest req) {
         validatePlayerOwnership(req.getSellerPlayerId());
         return Result.ok(tradeService.createEquipmentListing(
-                req.getSellerPlayerId(), req.getEquipmentKey(), req.getUnitPrice()));
+                req.getSellerPlayerId(), req.getEquipmentKey(), req.getUnitPrice(), req.getRequestKey()));
     }
 
     @PostMapping("/buy")
     @Operation(summary = "购买挂单")
     public Result<TradeBuyResultVO> buyListing(@Valid @RequestBody BuyTradeListingRequest req) {
         validatePlayerOwnership(req.getBuyerPlayerId());
-        return Result.ok(tradeService.buyListing(req.getBuyerPlayerId(), req.getListingNo()));
+        return Result.ok(tradeService.buyListing(req.getBuyerPlayerId(), req.getListingNo(), req.getRequestKey()));
     }
 
     @PostMapping("/cancel")
     @Operation(summary = "取消挂单")
     public Result<TradeListingVO> cancelListing(@Valid @RequestBody CancelTradeListingRequest req) {
         validatePlayerOwnership(req.getSellerPlayerId());
-        return Result.ok(tradeService.cancelListing(req.getSellerPlayerId(), req.getListingNo()));
+        return Result.ok(tradeService.cancelListing(req.getSellerPlayerId(), req.getListingNo(), req.getRequestKey()));
     }
 
     @GetMapping("/my/{playerId}")

@@ -80,16 +80,23 @@ export const LABEL_MAP: Record<string, string> = {
   hp: '生命', maxHp: '最大生命', stamina: '行动力', maxStamina: '最大行动',
   atk: '攻击', def: '防御', spd: '速度', luck: '幸运',
   attack: '攻击', defense: '防御', speed: '速度', exp: '经验', maxExp: '经验上限',
-  coins: '金币', storyFragments: '故事碎片', factionKey: '阵营', factionName: '阵营名',
+  coins: '星币', storyFragments: '故事碎片', factionKey: '阵营', factionName: '阵营名',
   playerName: '化身名', currentLocation: '当前位置', completedQuests: '已完成任务',
   onlineCount: '在线人数', totalPlayers: '总化身数', activeBossCount: '活跃灾厄',
   isResting: '休息中', restEndTime: '休息结束', constellation: '背后星',
   titleCount: '称号数', skillCount: '技能数', equipmentCount: '装备数', inventoryCount: '物品数',
   pkScore: 'PK积分', winRate: '胜率', damageDealt: '造成伤害',
-  avatarRank: '化身位阶', storyGrade: '故事评级',
+  avatarRank: '成长阶', storyGrade: '故事评级',
   willpower: '意志力', worldLineShift: '世界线偏移', insight: '洞察', channelHeat: '频道热度',
-  critRate: '暴击率', storyEventBonus: '故事事件加成', narrativePressureBonus: '叙事压力加成',
-  pendingRequestCount: '待处理申请', onlineMemberCount: '在线成员', maxMembers: '最大成员',
+  critRate: '暴击率', critDamage: '暴击伤害', storyEventBonus: '故事事件权重加成',
+  trueDamageBonus: '真实伤害加成（未接入）',
+  timeRewindChance: '时间回溯概率（未接入）',
+  narrativePressureBonus: '叙事压力加成（未接入）',
+  damageReduction: '伤害减免（未接入）', bleedChance: '流血概率（未接入）',
+  abyssPenetration: '深渊穿透（未接入）', storyRewriteChance: '剧情改写概率（未接入）',
+  abyssVision: '深渊视野（未接入）', dropRateBonus: '掉落率加成（未接入）',
+  channelHeatGainBonus: '频道热度获取加成（未接入）', combatHpRegen: '战斗生命回复（未接入）',
+  pendingRequestCount: '待处理申请', onlineMemberCount: '在线成员', maxMembers: '最大成员', ready: '准备状态', online: '在线',
   inParty: '在队伍中', partyNo: '队伍编号', role: '角色', reputation: '声望',
   contributionTotal: '总贡献', joinedAt: '加入时间', playerId: '化身ID', id: '编号',
   version: '版本号', buildTime: '构建时间', springBoot: '后端框架',
@@ -102,13 +109,13 @@ export const LABEL_MAP: Record<string, string> = {
   intimacy: '亲密度', fromPlayerName: '来自', rarity: '稀有度', source: '来源',
   titleKey: '称号标识', titleName: '称号名', slot: '槽位', durability: '耐久',
   maxDurability: '最大耐久', enhanceLevel: '强化等级', damage: '伤害',
-  rewardStatus: '奖励状态', progress: '进度', priority: '优先级', fulfilled: '是否达成',
+  rewardStatus: '奖励状态', progress: '进度', priority: '优先级', fulfilled: '是否达成', learned: '已学习', canLearn: '可学习',
   description: '描述', content: '内容', message: '消息', createdAt: '时间',
   location: '位置', tier: '品质',
   dailyTotal: '每日总数', dailyCompleted: '每日已完成', dailyClaimable: '每日可领取',
   weeklyTotal: '每周总数', weeklyCompleted: '每周已完成', weeklyClaimable: '每周可领取',
   achievementClaimable: '成就可领取', achievementTotal: '成就总数', achievementCompleted: '成就已完成',
-  totalParticipants: '总参与人数', currentValue: '当前值', targetValue: '目标值',
+  totalParticipants: '总参与人数', participantCount: '参与人数', currentValue: '当前值', targetValue: '目标值',
   percentage: '百分比', scorePerUnit: '单位积分', objectives: '目标列表',
   partyName: '队伍名称', factionLevel: '阵营等级', factionRank: '阵营排名',
   totalMembers: '总成员数', contributionRank: '贡献排名', factionContribution: '阵营贡献',
@@ -118,10 +125,10 @@ export const LABEL_MAP: Record<string, string> = {
   baseAtk: '基础攻击', multiplier: '贡献倍率', buffDescription: '加成说明',
   buffMultiplier: '贡献倍率', settledAt: '结算时间',
   unlockLevel: '解锁等级', unlockCondition: '解锁条件',
-  resultItemKey: '合成结果', costCoins: '金币消耗',
+  resultItemKey: '合成结果', costCoins: '星币消耗',
   score: '分数',
   lastRecoveryAt: '上次恢复时间', recoveryRate: '恢复速率',
-  equipmentKey: '装备标识', equipmentName: '装备名',
+  equipmentKey: '装备标识', equipmentName: '装备名', setKey: '套装标识', pieceCount: '组成件数', equippedCount: '已穿戴件数',
   listingNo: '挂单号', unitPrice: '单价', quantity: '数量',
   sellerName: '卖家', buyerName: '买家',
   friendName: '同伴名',
@@ -132,15 +139,15 @@ export const LABEL_MAP: Record<string, string> = {
   // 技能效果翻译
   staminaCostReduce: '行动消耗降低', attackBonus: '攻击加成', defenseBonus: '防御加成',
   speedBonus: '速度加成', hpBonus: '生命加成', critRateBonus: '暴击率加成',
-  explorationPowerBonus: '探索力加成', luckBonus: '幸运加成', dropRateBonus: '掉落率加成',
-  channelHeatGainRate: '频道热度获取', combatPowerBonus: '战力加成',
-  damageReduction: '伤害减免', cooldownReduction: '冷却缩减', expBonus: '经验加成',
-  coinBonus: '金币加成', fragmentBonus: '碎片加成', restRecoveryBonus: '休息恢复加成',
+  explorationPowerBonus: '探索力加成', luckBonus: '幸运加成',
+  channelHeatGainRate: '频道热度获取率', combatPowerBonus: '战力加成',
+  cooldownReduction: '冷却缩减（尚无冷却机制）', expBonus: '经验加成',
+  coinBonus: '星币加成', fragmentBonus: '故事碎片加成', restRecoveryBonus: '休息恢复加成',
   pkStrengthBonus: 'PK强度加成', skillDuration: '技能持续',
   durationSeconds: '持续时间(秒)', maxCharges: '最大充能',
   // 解锁条件翻译
   levelMin: '最低等级', insightMin: '最低洞察', storyFragmentsMin: '最低碎片数',
-  willpowerMin: '最低意志', avatarRankMin: '最低位阶', channelHeatMin: '最低频道热度',
+  willpowerMin: '最低意志', avatarRankMin: '最低成长阶', channelHeatMin: '最低频道热度',
   locationExploreCount: '场景探索次数',
   // 消耗品效果翻译
   heal_hp: '生命回复', restore_stamina: '体力回复', abyss_mark: '深渊印记',
@@ -166,6 +173,7 @@ const ENUM_MAP: Record<string, Record<string, string>> = {
   role: { leader: '队长', member: '成员', admin: '管理员' },
   inParty: { true: '是', false: '否' },
   active: { active: '活跃', inactive: '不活跃', defeated: '已击败', pending: '待处理' },
+  bossStatus: { active: '活跃', killed: '已击破', expired: '已过期', settled: '已结算', cancelled: '已取消' },
   mode: { simulated: '模拟战', quick: '快速战', ranked: '排位战', friendly: '友谊战', challenge: '挑战' },
   cycleKey: { daily: '每日', weekly: '每周', achievement: '成就', story: '主线' },
   constellation: {
@@ -180,7 +188,48 @@ const ENUM_MAP: Record<string, Record<string, string>> = {
   },
 };
 
+const PERCENT_EFFECT_KEYS = new Set([
+  'critRate',
+  'bleedChance',
+  'abyssPenetration',
+  'storyRewriteChance',
+  'damageReduction',
+  'dropRateBonus',
+  'channelHeatGainBonus',
+  'staminaCostReduce',
+  'channelHeatGainRate',
+  'storyEventBonus',
+  'trueDamageBonus',
+  'cooldownReduction',
+  'timeRewindChance',
+  'narrativePressureBonus',
+]);
+
+const CRIT_DAMAGE_BONUS_KEYS = new Set(['critDamage']);
+const NO_ADDITIONAL_PERCENT_KEYS = new Set<string>();
+
+function formatPercentageValue(value: string): string {
+  const bonus = Number(value);
+  if (!Number.isFinite(bonus)) return value;
+  const percentage = Number((bonus * 100).toFixed(2));
+  return `${percentage > 0 ? '+' : ''}${percentage}%`;
+}
+
+function formatFieldValue(
+  key: string,
+  value: string,
+  additionalPercentKeys: ReadonlySet<string> = NO_ADDITIONAL_PERCENT_KEYS,
+): string {
+  if (PERCENT_EFFECT_KEYS.has(key) || additionalPercentKeys.has(key)) {
+    return formatPercentageValue(value);
+  }
+  return translateFieldValue(key, value);
+}
+
 export function translateFieldValue(key: string, value: string): string {
+  if (PERCENT_EFFECT_KEYS.has(key)) {
+    return formatPercentageValue(value);
+  }
   const map = ENUM_MAP[key];
   if (map && map[value]) return map[value];
   // ISO 8601 time formatting: convert "2026-05-20T21:58:43.xxx" to "2026-05-20 21:58"
@@ -226,7 +275,7 @@ export function displayMeta(value: unknown, keys: Array<[string, string]>): stri
       if (typeof next === 'object') {
         const entries = Object.entries(asRecord(next))
           .filter(([, v]) => v !== undefined && v !== null && v !== '')
-          .map(([k, v]) => `${translateSubKey(k)}: ${typeof v === 'object' ? formatNestedValue(v) : translateFieldValue(key, String(v))}`);
+          .map(([k, v]) => `${translateSubKey(k)}: ${typeof v === 'object' ? formatNestedValue(v) : translateFieldValue(k, String(v))}`);
         return entries.length ? `${label}: ${entries.join(', ')}` : '';
       }
       return `${label}: ${translateFieldValue(key, String(next))}`;
@@ -241,12 +290,11 @@ export function formatCount(value: unknown): string {
   return String(next);
 }
 
-export async function confirmAction(message: string, action: () => Promise<unknown>): Promise<string> {
+export async function confirmAction(message: string, action: () => Promise<unknown>): Promise<unknown> {
   const ui = useUiStore();
   const confirmed = await ui.showConfirm('操作确认', message);
   if (!confirmed) return '已取消操作';
-  await action();
-  return '操作已完成';
+  return action();
 }
 
 /**
@@ -256,7 +304,20 @@ export async function confirmAction(message: string, action: () => Promise<unkno
  * - 数组返回 [N项] 格式
  * - 对象只渲染前5个简单值字段，超过显示"...等N项"
  */
-export function formatSummaryValue(value: unknown): string {
+const SKILL_EFFECT_FIELD_LABELS: Record<string, string> = {
+  critDamage: '暴击伤害加成',
+  insight: '洞察（技能加成未接入）',
+  willpower: '意志力（技能加成未接入）',
+  leadership: '领导力（技能加成未接入）',
+  channelHeat: '频道热度（技能加成未接入）',
+  worldLineShift: '世界线偏移（技能加成未接入）',
+};
+
+export function formatSummaryValue(
+  value: unknown,
+  labelOverrides: Record<string, string> = {},
+  additionalPercentKeys: ReadonlySet<string> = NO_ADDITIONAL_PERCENT_KEYS,
+): string {
   if (value === undefined || value === null) return '';
   if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
     return translateFieldValue('', String(value));
@@ -276,8 +337,8 @@ export function formatSummaryValue(value: unknown): string {
 
     const displayEntries = simpleEntries.slice(0, 5);
     const parts = displayEntries.map(([k, v]) => {
-      const label = LABEL_MAP[k] || k;
-      const val = translateFieldValue(k, String(v));
+      const label = labelOverrides[k] || LABEL_MAP[k] || k;
+      const val = formatFieldValue(k, String(v), additionalPercentKeys);
       return `${label}: ${val}`;
     });
 
@@ -288,4 +349,46 @@ export function formatSummaryValue(value: unknown): string {
     return parts.join(', ');
   }
   return String(value);
+}
+
+export function formatSkillEffectSummary(value: unknown): string {
+  return formatSummaryValue(value, SKILL_EFFECT_FIELD_LABELS, CRIT_DAMAGE_BONUS_KEYS);
+}
+
+const EQUIPMENT_FIELD_LABELS: Record<string, string> = {
+  attack: '攻击',
+  defense: '防御',
+  speed: '速度',
+  maxHp: '最大生命',
+  critRate: '暴击率',
+  critDamage: '暴击伤害加成',
+  insight: '洞察（装备加成未接入）',
+  channelHeat: '频道热度（装备加成未接入）',
+  luck: '幸运（装备加成未接入）',
+  willpower: '意志力（装备加成未接入）',
+  worldLineShift: '世界线偏移（装备加成未接入）',
+  armorPen: '护甲穿透（未接入）',
+};
+
+function formatEquipmentPropertyMap(value: unknown, isEffect: boolean): string {
+  const entries = Object.entries(asRecord(value))
+    .filter(([, entry]) => entry !== undefined && entry !== null && entry !== '')
+    .map(([key, entry]) => {
+      const label = (!isEffect && EQUIPMENT_FIELD_LABELS[key]) || LABEL_MAP[key] || key;
+      return `${label}: ${formatFieldValue(key, String(entry), CRIT_DAMAGE_BONUS_KEYS)}`;
+    });
+  return entries.join(', ');
+}
+
+/** Renders the fields returned by PlayerEquipmentVO without implying unsupported bonuses are active. */
+export function formatEquipmentDetails(value: unknown): string {
+  const item = asRecord(value);
+  const stats = pick(item, ['stats', 'baseStats', 'base_stats']);
+  const specialEffects = pick(item, ['special_effects', 'specialEffects', 'effects']);
+  const statsText = formatEquipmentPropertyMap(stats, false);
+  const effectsText = formatEquipmentPropertyMap(specialEffects, true);
+  return [
+    statsText && `属性 ${statsText}`,
+    effectsText && `特效 ${effectsText}`,
+  ].filter(Boolean).join(' · ');
 }

@@ -1,13 +1,164 @@
+/*
+ * 管理后台 · LingVerse 修仙主题
+ * 默认暗色，使用与玩家端相同的古金 / 玉青 / 暗红语义色。
+ */
+
+:root {
+  color-scheme: dark;
+
+  --admin-bg: #0f1419;
+  --admin-bg-secondary: #141a21;
+  --admin-card: #1a2026;
+  --admin-card-hover: #222a32;
+  --admin-surface: #151a20;
+  --admin-border: rgba(139, 155, 176, 0.18);
+  --admin-border-strong: rgba(203, 168, 102, 0.3);
+  --admin-text: #e8edf2;
+  --admin-text-secondary: #b3bdc7;
+  --admin-text-muted: #8b95a0;
+  --admin-gold: #cba866;
+  --admin-jade: #4fb398;
+  --admin-crimson: #e25d50;
+  --admin-purple: #b79ed1;
+  --admin-blue: #6faecb;
+
+  /* Element Plus 主题变量 */
+  --el-color-primary: var(--admin-jade);
+  --el-color-primary-light-3: #70c4ad;
+  --el-color-primary-light-5: #8fd1bf;
+  --el-color-primary-light-7: #b3dfd3;
+  --el-color-primary-light-8: #c8e8df;
+  --el-color-primary-light-9: rgba(79, 179, 152, 0.16);
+  --el-color-primary-dark-2: #398d78;
+  --el-color-success: var(--admin-jade);
+  --el-color-warning: var(--admin-gold);
+  --el-color-danger: var(--admin-crimson);
+  --el-color-info: var(--admin-blue);
+  --el-bg-color: var(--admin-card);
+  --el-bg-color-page: var(--admin-bg);
+  --el-bg-color-overlay: var(--admin-card);
+  --el-fill-color-blank: var(--admin-card);
+  --el-fill-color: var(--admin-card-hover);
+  --el-fill-color-light: rgba(220, 230, 236, 0.07);
+  --el-fill-color-lighter: rgba(220, 230, 236, 0.045);
+  --el-fill-color-extra-light: rgba(220, 230, 236, 0.03);
+  --el-fill-color-dark: rgba(0, 0, 0, 0.2);
+  --el-fill-color-darker: rgba(0, 0, 0, 0.3);
+  --el-border-color: var(--admin-border);
+  --el-border-color-light: rgba(139, 155, 176, 0.12);
+  --el-border-color-lighter: rgba(139, 155, 176, 0.08);
+  --el-border-color-extra-light: rgba(139, 155, 176, 0.05);
+  --el-text-color-primary: var(--admin-text);
+  --el-text-color-regular: var(--admin-text-secondary);
+  --el-text-color-secondary: var(--admin-text-muted);
+  --el-text-color-placeholder: #68747f;
+  --el-text-color-disabled: #59636d;
+  --el-box-shadow-light: 0 2px 12px rgba(0, 0, 0, 0.26);
+  --el-box-shadow: 0 4px 20px rgba(0, 0, 0, 0.34);
+  --el-disabled-bg-color: #20272e;
+  --el-disabled-text-color: #69747e;
+  --el-disabled-border-color: #303942;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --admin-bg: #f8f8f5;
+  --admin-bg-secondary: #eeeeea;
+  --admin-card: #fcfcf9;
+  --admin-card-hover: #f0f0ec;
+  --admin-surface: #f6f6f2;
+  --admin-border: rgba(42, 42, 38, 0.13);
+  --admin-border-strong: rgba(183, 120, 31, 0.18);
+  --admin-text: #2f2f2b;
+  --admin-text-secondary: #56564f;
+  --admin-text-muted: #79786f;
+  --admin-gold: #b7781f;
+  --admin-jade: #2e7464;
+  --admin-crimson: #a84842;
+  --admin-purple: #726c78;
+  --admin-blue: #5c7380;
+
+  --el-color-primary: var(--admin-jade);
+  --el-color-primary-light-3: #579685;
+  --el-color-primary-light-5: #78ae9f;
+  --el-color-primary-light-7: #a7c9c0;
+  --el-color-primary-light-8: #c1dbd5;
+  --el-color-primary-light-9: rgba(46, 116, 100, 0.1);
+  --el-color-primary-dark-2: #22594d;
+  --el-color-success: var(--admin-jade);
+  --el-color-warning: var(--admin-gold);
+  --el-color-danger: var(--admin-crimson);
+  --el-color-info: var(--admin-blue);
+  --el-bg-color: var(--admin-card);
+  --el-bg-color-page: var(--admin-bg);
+  --el-bg-color-overlay: var(--admin-card);
+  --el-fill-color-blank: var(--admin-card);
+  --el-fill-color: var(--admin-card-hover);
+  --el-fill-color-light: rgba(42, 42, 38, 0.06);
+  --el-fill-color-lighter: rgba(42, 42, 38, 0.04);
+  --el-fill-color-extra-light: rgba(42, 42, 38, 0.025);
+  --el-fill-color-dark: rgba(42, 42, 38, 0.08);
+  --el-fill-color-darker: rgba(42, 42, 38, 0.12);
+  --el-border-color: var(--admin-border);
+  --el-border-color-light: rgba(42, 42, 38, 0.1);
+  --el-border-color-lighter: rgba(42, 42, 38, 0.07);
+  --el-border-color-extra-light: rgba(42, 42, 38, 0.04);
+  --el-text-color-primary: var(--admin-text);
+  --el-text-color-regular: var(--admin-text-secondary);
+  --el-text-color-secondary: var(--admin-text-muted);
+  --el-text-color-placeholder: #9a998e;
+  --el-text-color-disabled: #b5b4aa;
+  --el-box-shadow-light: 0 2px 12px rgba(42, 42, 38, 0.1);
+  --el-box-shadow: 0 4px 20px rgba(42, 42, 38, 0.14);
+  --el-disabled-bg-color: #eeeeea;
+  --el-disabled-text-color: #aaa99f;
+  --el-disabled-border-color: #d8d8d0;
+}
+
+html,
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #f4f6f8;
-  font-family: Inter, "Microsoft YaHei", sans-serif;
+  background: var(--admin-bg);
+  color: var(--admin-text);
+  font-family: "Source Han Serif SC", "Noto Serif SC", "Microsoft YaHei", serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  transition: background-color 180ms ease, color 180ms ease;
 }
 
 #app {
   min-height: 100vh;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(203, 168, 102, 0.28);
+  color: var(--admin-text);
+}
+
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--admin-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--admin-gold);
+  border-radius: 999px;
 }
 
 .admin-login-page {
@@ -15,7 +166,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #eef2f6;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(203, 168, 102, 0.1), transparent 32%),
+    radial-gradient(circle at 80% 90%, rgba(79, 179, 152, 0.08), transparent 30%),
+    var(--admin-bg);
   padding: 24px;
 }
 
@@ -27,12 +181,14 @@ body {
 .login-title {
   font-size: 20px;
   font-weight: 700;
+  color: var(--admin-gold);
 }
 
 .page-title {
   margin: 0 0 16px;
   font-size: 20px;
   font-weight: 700;
+  color: var(--admin-gold);
 }
 
 .w-full {
@@ -41,4 +197,63 @@ body {
 
 .min-h-screen {
   min-height: 100vh;
+}
+
+/* Element Plus 中仍使用固定浅色背景的组件，统一回收到主题变量。 */
+.el-card,
+.el-dialog,
+.el-drawer,
+.el-popover,
+.el-dropdown-menu,
+.el-message-box,
+.el-select__popper,
+.el-picker-panel,
+.el-table tr,
+.el-table,
+.el-table__expanded-cell {
+  background-color: var(--admin-card);
+  color: var(--admin-text);
+}
+
+.el-card,
+.el-dialog,
+.el-drawer,
+.el-table,
+.el-input__wrapper,
+.el-textarea__inner,
+.el-select .el-input__wrapper {
+  border-color: var(--admin-border);
+  box-shadow: none;
+}
+
+.el-table th.el-table__cell,
+.el-table tr,
+.el-table td.el-table__cell {
+  background-color: var(--admin-card);
+  color: var(--admin-text-secondary);
+  border-bottom-color: var(--admin-border);
+}
+
+.el-table__body tr.hover-row > td.el-table__cell,
+.el-table__body tr.current-row > td.el-table__cell {
+  background-color: var(--admin-card-hover);
+}
+
+.el-input__wrapper,
+.el-textarea__inner {
+  background-color: var(--admin-surface);
+}
+
+.el-input__wrapper.is-focus,
+.el-textarea__inner:focus {
+  box-shadow: 0 0 0 1px var(--admin-jade) inset;
+}
+
+.el-button--primary {
+  --el-button-bg-color: var(--admin-jade);
+  --el-button-border-color: var(--admin-jade);
+  --el-button-hover-bg-color: var(--admin-gold);
+  --el-button-hover-border-color: var(--admin-gold);
+  --el-button-active-bg-color: var(--admin-jade);
+  --el-button-active-border-color: var(--admin-jade);
 }

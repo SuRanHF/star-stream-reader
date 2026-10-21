@@ -10,6 +10,8 @@ public interface ChatService {
 
     ChatMessageVO sendWorldMessage(Long playerId, String content);
 
+    ChatMessageVO sendMessage(Long playerId, String content, String channel);
+
     void saveSystemMessage(String content, String messageType, Map<String, Object> metadata);
 
     List<ChatMessageVO> getRecentMessages(String channel, int limit);

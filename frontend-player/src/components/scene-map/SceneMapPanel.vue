@@ -7,7 +7,9 @@ import { playerApi } from '@/api/playerApi';
 import { gameApi } from '@/api/gameApi';
 import { exploreApi, type MapNode } from '@/api/exploreApi';
 import { dangerTier } from '@/utils/sceneUtils';
+import { getRankGuidance } from '@/utils/rankGuidance';
 import StarChartMapCore from './StarChartMapCore.vue';
+import { MapPin, RotateCcw, ScrollText, X, Zap } from 'lucide-vue-next';
 
 const emit = defineEmits<{
   'close-panel': [];
@@ -49,6 +51,11 @@ const selectedNodeData = computed(() => {
   if (!selectedNode.value) return null;
   return starChartNodes.value.find(n => n.id === selectedNode.value!.id) || null;
 });
+
+const selectedRankGuidance = computed(() => getRankGuidance(
+  gameStore.player?.avatarRank,
+  selectedNodeData.value?.recommendedRank,
+));
 
 const isCurrentLocation = computed(() => {
   if (!selectedNodeData.value) return false;
@@ -140,15 +147,23 @@ async function switchToScene() {
 </script>
 
 <template>
-  <div class="smp-root">
+  <div class="smp-root gc-panel" data-tone="gold">
+    <!-- 参考站地图侧栏的 gc-panel 头部；地图数据与切换逻辑仍由本组件负责。 -->
+    <header class="smp-panel-head gc-panel-head">
+      <div class="gc-rule" aria-hidden="true"></div>
+      <div class="gc-title">场景地图</div>
+      <div class="gc-panel-sub">{{ gameStore.player?.currentLocationName || gameStore.player?.currentLocation || '当前位置读取中' }}</div>
+      <button class="smp-panel-close gc-panel-close" @click="emit('close-panel')" aria-label="关闭地图">×</button>
+    </header>
+
     <!-- 日志条（可折叠） -->
     <div class="smp-log-strip">
-      <span class="smp-log-icon">📜</span>
+      <ScrollText class="smp-log-icon" :size="14" :stroke-width="1.7" aria-hidden="true" />
       <span class="smp-log-text">
         <template v-if="gameStore.recentLogs.length">
           {{ gameStore.recentLogs[0]?.message || gameStore.recentLogs[0]?.['content'] || '最近日志' }}
         </template>
-        <template v-else>点击星图节点选择场景，然后按底部"进入场景"开始探索</template>
+        <template v-else>点击地图节点查看场景信息，再使用底部“执行场景”开始探索。</template>
       </span>
     </div>
 
@@ -167,8 +182,10 @@ async function switchToScene() {
         class="smp-chip"
         @click="toggleType(t)"
       >{{ t }}</button>
-      <button class="smp-reset" @click="mapRef?.resetView()">🔄 重置</button>
-      <button class="smp-close" @click="emit('close-panel')" title="关闭场景地图">✕</button>
+      <button class="smp-reset" @click="mapRef?.resetView()">
+        <RotateCcw :size="12" :stroke-width="1.7" aria-hidden="true" />
+        <span>重置</span>
+      </button>
     </div>
 
     <!-- 卷进度 -->
@@ -180,7 +197,7 @@ async function switchToScene() {
             class="smp-prog-fill"
             :style="{
               width: vp.pct + '%',
-              background: vp.volume === 1 ? '#a0b0f0' : vp.volume === 2 ? '#e07070' : vp.volume === 3 ? '#7ab0f7' : '#5ec49e',
+              background: vp.volume === 1 ? 'var(--color-system-bright)' : vp.volume === 2 ? 'var(--color-danger)' : vp.volume === 3 ? 'var(--color-star)' : 'var(--color-spirit)',
             }"
           ></div>
         </div>
@@ -203,17 +220,21 @@ async function switchToScene() {
               {{ { main: '主线', side: '支线', hidden: '隐藏', boss: 'Boss' }[selectedNodeData.type] }}
             </span>
             <span class="smp-tag lv">Lv.{{ selectedNodeData.minLevel }}+</span>
-            <span class="smp-tag danger" :style="{ color: dangerTier(selectedNodeData.dangerLevel).color, borderColor: dangerTier(selectedNodeData.dangerLevel).color + '66' }">⚡{{ dangerTier(selectedNodeData.dangerLevel).label }}级</span>
+            <span class="smp-tag danger" :style="{ color: dangerTier(selectedNodeData.dangerLevel).color, borderColor: dangerTier(selectedNodeData.dangerLevel).color + '66' }">
+              <Zap :size="12" :stroke-width="1.8" aria-hidden="true" />{{ dangerTier(selectedNodeData.dangerLevel).label }}级
+            </span>
             <span v-if="selectedNodeData.completed" class="smp-done-mark">✓ 已完成</span>
             <span v-else-if="!selectedNodeData.unlocked" class="smp-lock-mark">🔒 未解锁</span>
           </div>
           <div class="smp-sheet-actions">
-            <button class="smp-btn-close" @click="selectedNode = null">✕</button>
+            <button class="smp-btn-close" @click="selectedNode = null" aria-label="关闭详情">
+              <X :size="14" :stroke-width="1.8" aria-hidden="true" />
+            </button>
             <button
               v-if="isCurrentLocation"
               class="smp-btn-current"
               disabled
-            >📍 已在此处</button>
+            ><MapPin :size="13" :stroke-width="1.8" aria-hidden="true" />已在此处</button>
             <button
               v-else-if="selectedNodeData.unlocked"
               class="smp-btn-enter"
@@ -223,6 +244,19 @@ async function switchToScene() {
           </div>
         </div>
         <p class="smp-sheet-desc">{{ selectedNodeData.description }}</p>
+        <div
+          v-if="selectedRankGuidance"
+          :class="['smp-rank-guidance', `is-${selectedRankGuidance.comparison}`]"
+          role="note"
+        >
+          <div class="smp-rank-guidance-head">
+            <span>当前 {{ selectedRankGuidance.currentRank }} 位格</span>
+            <span class="smp-rank-guidance-arrow" aria-hidden="true">→</span>
+            <span>建议 {{ selectedRankGuidance.recommendedRank }} 位格</span>
+            <strong>{{ selectedRankGuidance.effectLabel }}</strong>
+          </div>
+          <p>{{ selectedRankGuidance.details }}</p>
+        </div>
         <div v-if="selectedNodeData.keyItems.length" class="smp-sheet-items">
           <span v-for="item in selectedNodeData.keyItems" :key="item" class="smp-item-tag">{{ item }}</span>
         </div>
@@ -235,8 +269,70 @@ async function switchToScene() {
 .smp-root {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   height: 100%;
   overflow: hidden;
+  background: var(--color-panel);
+}
+
+.smp-panel-head {
+  position: relative;
+  flex: 0 0 auto;
+  padding: 14px 48px 8px 16px;
+  background: var(--color-panel);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.smp-panel-head .gc-rule {
+  width: 36px;
+  height: 3px;
+  margin-bottom: 8px;
+  border-radius: 999px;
+  background: var(--color-star);
+}
+
+.smp-panel-head .gc-title {
+  color: var(--color-text);
+  font-family: "Noto Serif SC", "Source Han Serif SC", "STSong", serif;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  line-height: 1.35;
+}
+
+.smp-panel-head .gc-panel-sub {
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 11px;
+  letter-spacing: 1px;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.smp-panel-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--color-text-dim);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.smp-panel-close:hover {
+  border-color: var(--color-danger);
+  background: var(--color-danger-glow);
+  color: var(--color-danger-bright);
 }
 
 /* log */
@@ -245,10 +341,10 @@ async function switchToScene() {
   align-items: center;
   gap: 8px;
   padding: 4px 14px;
-  border-bottom: 1px solid rgba(26, 38, 80, 0.35);
-  background: rgba(7, 11, 26, 0.6);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-log);
   font-size: 11px;
-  color: var(--color-muted, #5a6688);
+  color: var(--color-muted);
   flex-shrink: 0;
 }
 .smp-log-icon { flex-shrink: 0; }
@@ -264,54 +360,57 @@ async function switchToScene() {
   align-items: center;
   gap: 4px;
   padding: 5px 14px;
-  border-bottom: 1px solid rgba(26, 38, 80, 0.45);
+  border-bottom: 1px solid var(--color-border);
   overflow-x: auto;
   flex-shrink: 0;
 }
 .smp-chip {
   padding: 2px 10px;
-  border: 1px solid rgba(38, 56, 120, 0.3);
+  border: 1px solid var(--color-border);
   border-radius: 3px;
-  background: rgba(13, 20, 48, 0.5);
-  color: #6a7a9a;
+  background: var(--color-input);
+  color: var(--color-muted);
   font-size: 11px;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.15s;
 }
-.smp-chip:hover { border-color: rgba(74, 143, 231, 0.35); color: #b0bdd0; }
+.smp-chip:hover { border-color: var(--color-system-border); color: var(--color-text-dim); }
 .smp-chip.active {
-  border-color: var(--color-system, #4a8fe7);
-  color: var(--color-system-bright, #7ab0f7);
-  background: rgba(74, 143, 231, 0.1);
+  border-color: var(--color-system);
+  color: var(--color-system-bright);
+  background: var(--color-system-bg);
 }
-.smp-fsep { color: rgba(26, 38, 80, 0.5); margin: 0 3px; font-size: 11px; }
+.smp-fsep { color: var(--color-border); margin: 0 3px; font-size: 11px; }
 .smp-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   margin-left: auto;
   padding: 2px 10px;
-  border: 1px solid rgba(38, 56, 120, 0.3);
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   background: transparent;
-  color: #6a7a9a;
+  color: var(--color-muted);
   font-size: 10px;
   cursor: pointer;
   white-space: nowrap;
 }
 .smp-close {
   padding: 2px 8px;
-  border: 1px solid rgba(38, 56, 120, 0.3);
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   background: transparent;
-  color: #6a7a9a;
+  color: var(--color-muted);
   font-size: 12px;
   cursor: pointer;
   transition: all 0.15s;
   line-height: 1;
 }
 .smp-close:hover {
-  color: #e07070;
-  border-color: rgba(200, 80, 80, 0.3);
-  background: rgba(200, 80, 80, 0.08);
+  color: var(--color-danger-bright);
+  border-color: var(--color-danger-glow);
+  background: var(--color-danger-glow);
 }
 
 /* progress */
@@ -319,8 +418,8 @@ async function switchToScene() {
   display: flex;
   gap: 4px;
   padding: 3px 14px;
-  border-bottom: 1px solid rgba(26, 38, 80, 0.35);
-  background: rgba(7, 11, 26, 0.5);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-log);
   flex-shrink: 0;
   overflow-x: auto;
 }
@@ -333,14 +432,14 @@ async function switchToScene() {
 }
 .smp-prog-label {
   font-size: 9px;
-  color: #5a6688;
+  color: var(--color-muted);
   white-space: nowrap;
   flex-shrink: 0;
 }
 .smp-prog-bar-wrap {
   flex: 1;
   height: 3px;
-  background: rgba(26, 38, 80, 0.3);
+  background: var(--color-border);
   border-radius: 2px;
   overflow: hidden;
   min-width: 20px;
@@ -352,7 +451,7 @@ async function switchToScene() {
 }
 .smp-prog-stat {
   font-size: 9px;
-  color: #6a7a9a;
+  color: var(--color-muted);
   flex-shrink: 0;
 }
 
@@ -364,8 +463,8 @@ async function switchToScene() {
 
 /* sheet */
 .smp-sheet {
-  border-top: 1px solid rgba(38, 56, 120, 0.35);
-  background: linear-gradient(180deg, rgba(13, 20, 48, 0.98), rgba(7, 11, 26, 0.99));
+  border-top: 1px solid var(--color-border);
+  background: linear-gradient(180deg, var(--color-panel-elevated), var(--color-void));
   padding: 12px 16px 14px;
   flex-shrink: 0;
 }
@@ -385,7 +484,7 @@ async function switchToScene() {
 .smp-sheet-name {
   font-weight: 700;
   font-size: 15px;
-  color: var(--color-system-bright, #7ab0f7);
+  color: var(--color-system-bright);
 }
 .smp-tag {
   font-size: 10px;
@@ -393,47 +492,62 @@ async function switchToScene() {
   border-radius: 2px;
   border: 1px solid;
 }
-.smp-tag.main { color: var(--color-system-bright, #7ab0f7); border-color: rgba(74, 143, 231, 0.3); }
-.smp-tag.side { color: #7ab0f7; border-color: rgba(74, 143, 231, 0.3); }
-.smp-tag.hidden { color: #5ec49e; border-color: rgba(94, 196, 158, 0.3); }
-.smp-tag.boss { color: #e07070; border-color: rgba(200, 80, 80, 0.3); }
-.smp-tag.lv { color: #7ab0f7; border-color: rgba(74, 143, 231, 0.3); }
-.smp-tag.danger { color: #e07070; border-color: rgba(200, 80, 80, 0.3); font-size: 9px; }
-.smp-done-mark { font-size: 12px; color: #5ec49e; }
-.smp-lock-mark { font-size: 12px; color: #5a6688; }
+.smp-tag.main { color: var(--color-system-bright); border-color: var(--color-system-border); }
+.smp-tag.side { color: var(--color-star); border-color: var(--color-star-border); }
+.smp-tag.hidden { color: var(--color-spirit); border-color: var(--color-spirit-glow); }
+.smp-tag.boss { color: var(--color-danger); border-color: var(--color-danger-glow); }
+.smp-tag.lv { color: var(--color-star); border-color: var(--color-star-border); }
+.smp-tag.danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--color-danger);
+  border-color: var(--color-danger-glow);
+  font-size: 9px;
+}
+.smp-done-mark { font-size: 12px; color: var(--color-spirit); }
+.smp-lock-mark { font-size: 12px; color: var(--color-muted); }
 
 .smp-sheet-actions { display: flex; gap: 8px; flex-shrink: 0; }
 .smp-btn-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  min-height: 28px;
   padding: 4px 12px;
-  border: 1px solid rgba(38, 56, 120, 0.3);
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   background: transparent;
-  color: #6a7a9a;
+  color: var(--color-muted);
   font-size: 12px;
   cursor: pointer;
 }
 .smp-btn-enter {
   padding: 6px 20px;
-  border: 1px solid var(--color-system, #4a8fe7);
+  border: 1px solid var(--color-system);
   border-radius: 3px;
-  background: rgba(74, 143, 231, 0.12);
-  color: var(--color-system-bright, #7ab0f7);
+  background: var(--color-system-bg);
+  color: var(--color-system-bright);
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
 }
 .smp-btn-enter:hover {
-  background: rgba(74, 143, 231, 0.22);
-  box-shadow: 0 0 12px rgba(74, 143, 231, 0.15);
+  background: rgba(var(--color-system-rgb), 0.22);
+  box-shadow: var(--glow-system);
 }
 .smp-btn-enter:disabled { opacity: 0.5; cursor: not-allowed; }
 .smp-btn-current {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 6px 20px;
-  border: 1px solid #5ec49e;
+  border: 1px solid var(--color-spirit);
   border-radius: 3px;
-  background: rgba(94, 196, 158, 0.08);
-  color: #5ec49e;
+  background: var(--color-spirit-glow);
+  color: var(--color-spirit);
   font-size: 13px;
   cursor: default;
 }
@@ -441,17 +555,56 @@ async function switchToScene() {
 .smp-sheet-desc {
   margin: 0 0 6px;
   font-size: 12px;
-  color: #8898b8;
+  color: var(--color-text-dim);
   line-height: 1.5;
+}
+
+.smp-rank-guidance {
+  margin-top: 10px;
+  padding: 9px 11px;
+  border: 1px solid var(--color-system-border);
+  border-left: 2px solid var(--color-system);
+  background: var(--color-system-bg);
+}
+
+.smp-rank-guidance.is-below {
+  border-color: var(--color-star-border);
+  border-left-color: var(--color-star);
+  background: var(--color-star-bg);
+}
+
+.smp-rank-guidance-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px 9px;
+  color: var(--color-text);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.smp-rank-guidance.is-below .smp-rank-guidance-head strong {
+  color: var(--color-star-bright);
+}
+
+.smp-rank-guidance-arrow {
+  color: var(--color-muted);
+}
+
+.smp-rank-guidance p {
+  margin: 5px 0 0;
+  color: var(--color-text-dim);
+  font-size: 11px;
+  line-height: 1.55;
 }
 .smp-sheet-items { display: flex; gap: 6px; flex-wrap: wrap; }
 .smp-item-tag {
   padding: 1px 8px;
-  border: 1px solid rgba(38, 56, 120, 0.3);
+  border: 1px solid var(--color-border);
   border-radius: 2px;
   font-size: 11px;
-  color: #5ec49e;
-  background: rgba(94, 196, 158, 0.06);
+  color: var(--color-spirit);
+  background: var(--color-spirit-glow);
 }
 
 /* transition */

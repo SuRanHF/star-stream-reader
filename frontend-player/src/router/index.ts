@@ -1,18 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
-import CreatePlayerView from '@/views/CreatePlayerView.vue';
-import GameView from '@/views/GameView.vue';
-import LoginView from '@/views/LoginView.vue';
-import RegisterView from '@/views/RegisterView.vue';
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', redirect: '/game' },
-    { path: '/login', component: LoginView },
-    { path: '/register', component: RegisterView },
-    { path: '/create-player', component: CreatePlayerView },
-    { path: '/game', component: GameView, meta: { requiresAuth: true } },
+    { path: '/login', component: () => import('@/views/LoginView.vue') },
+    { path: '/register', component: () => import('@/views/RegisterView.vue') },
+    { path: '/create-player', component: () => import('@/views/CreatePlayerView.vue') },
+    { path: '/game', component: () => import('@/views/GameView.vue'), meta: { requiresAuth: true } },
   ],
 });
 

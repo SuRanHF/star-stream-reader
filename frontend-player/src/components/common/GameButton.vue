@@ -24,11 +24,11 @@ const buttonClass = computed(() => {
       variants: {
         variant: {
           primary:
-            'border-blue-400/40 bg-blue-500/8 text-blue-300 hover:bg-blue-500/15 hover:border-blue-400/60 hover:shadow-[0_0_16px_rgba(74,143,231,0.25)] active:scale-[0.98]',
+            'border-star/40 bg-star/10 text-star-bright hover:bg-star/20 hover:border-star/70 hover:shadow-[0_0_16px_var(--color-star-glow)] active:scale-[0.98]',
           ghost:
-            'border-line bg-panel/80 text-muted hover:border-spirit/50 hover:text-spirit hover:bg-spirit/5 active:scale-[0.98]',
+            'border-line bg-control/80 text-muted hover:border-spirit/50 hover:text-spirit hover:bg-spirit/5 active:scale-[0.98]',
           danger:
-            'border-danger/50 bg-danger/8 text-danger hover:bg-danger/15 hover:border-danger/70 hover:shadow-[0_0_16px_rgba(217,123,108,0.2)] active:scale-[0.98]',
+            'border-danger/50 bg-danger/8 text-danger hover:bg-danger/15 hover:border-danger/70 hover:shadow-[0_0_16px_var(--color-danger-glow)] active:scale-[0.98]',
         },
       },
     },
@@ -40,7 +40,7 @@ const buttonClass = computed(() => {
 <template>
   <button :type="type" :disabled="disabled" :class="buttonClass">
     <!-- 发光底部层 -->
-    <span class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(74,143,231,0.14)_0%,transparent_70%)] opacity-0 hover:opacity-100 transition-opacity duration-300" />
+    <span class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,var(--color-star-glow)_0%,transparent_70%)] opacity-0 hover:opacity-100 transition-opacity duration-300" />
     <span class="relative z-10"><slot /></span>
   </button>
 </template>

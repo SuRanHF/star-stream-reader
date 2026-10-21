@@ -6,6 +6,8 @@ import com.huazhenghai.readergame.common.BusinessException;
 import com.huazhenghai.readergame.common.ErrorCode;
 import com.huazhenghai.readergame.entity.*;
 import com.huazhenghai.readergame.mapper.*;
+import com.huazhenghai.readergame.service.PlayerActionReceiptService;
+import com.huazhenghai.readergame.service.PlayerResourceTransactionService;
 import com.huazhenghai.readergame.service.QuestService;
 import com.huazhenghai.readergame.service.TradeService;
 import com.huazhenghai.readergame.vo.*;
@@ -31,6 +33,8 @@ public class TradeServiceImpl implements TradeService {
     private final ItemMapper itemMapper;
     private final EquipmentMapper equipmentMapper;
     private final QuestService questService;
+    private final PlayerResourceTransactionService resourceTransactionService;
+    private final PlayerActionReceiptService actionReceiptService;
 
     public TradeServiceImpl(TradeListingMapper tradeListingMapper,
                             TradeRecordMapper tradeRecordMapper,
@@ -40,7 +44,9 @@ public class TradeServiceImpl implements TradeService {
                             PlayerLogMapper playerLogMapper,
                             ItemMapper itemMapper,
                             EquipmentMapper equipmentMapper,
-                            QuestService questService) {
+                            QuestService questService,
+                            PlayerResourceTransactionService resourceTransactionService,
+                            PlayerActionReceiptService actionReceiptService) {
         this.tradeListingMapper = tradeListingMapper;
         this.tradeRecordMapper = tradeRecordMapper;
         this.playerMapper = playerMapper;
@@ -50,25 +56,46 @@ public class TradeServiceImpl implements TradeService {
         this.itemMapper = itemMapper;
         this.equipmentMapper = equipmentMapper;
         this.questService = questService;
+        this.resourceTransactionService = resourceTransactionService;
+        this.actionReceiptService = actionReceiptService;
     }
 
     @Override
     @Transactional
-    public TradeListingVO createItemListing(Long sellerPlayerId, String itemKey, int quantity, int unitPrice) {
+    public TradeListingVO createItemListing(Long sellerPlayerId, String itemKey, int quantity,
+                                            int unitPrice, String requestKey) {
+        validateRequestKey(requestKey);
         if (quantity <= 0) throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "数量必须大于0");
         if (unitPrice <= 0) throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "单价必须大于0");
 
+        if (playerMapper.selectByIdForUpdate(sellerPlayerId) == null)
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "卖家不存在");
+        Map<String, Object> requestPayload = actionPayload(
+                "itemKey", itemKey, "quantity", quantity, "unitPrice", unitPrice);
+        TradeListingVO replay = actionReceiptService.findReplay(sellerPlayerId,
+                "trade.list.item", requestKey, requestPayload, TradeListingVO.class);
+        if (replay != null) return replay;
+        int totalPrice = calculateTotalPrice(unitPrice, quantity);
+
         Item item = getItemDef(itemKey);
-        if (item == null || item.getEnabled() == 0)
+        if (item == null || item.getEnabled() == null || item.getEnabled() != 1)
             throw new BusinessException(ErrorCode.ITEM_NOT_FOUND, "物品不存在或已禁用");
 
-        PlayerInventory inv = getInventory(sellerPlayerId, itemKey);
+        PlayerInventory inv = getInventoryForUpdate(sellerPlayerId, itemKey);
         if (inv == null || inv.getQuantity() < quantity)
             throw new BusinessException(ErrorCode.ITEM_NOT_ENOUGH, "物品数量不足");
 
         // Deduct from inventory (escrow)
-        inv.setQuantity(inv.getQuantity() - quantity);
-        playerInventoryMapper.updateById(inv);
+        int inventoryBefore = inv.getQuantity();
+        int inventoryAfter = inventoryBefore - quantity;
+        if (inventoryAfter == 0) {
+            if (playerInventoryMapper.deleteById(inv) <= 0)
+                throw new IllegalStateException("上架托管物品失败: " + itemKey);
+        } else {
+            inv.setQuantity(inventoryAfter);
+            if (playerInventoryMapper.updateById(inv) <= 0)
+                throw new IllegalStateException("更新上架托管物品失败: " + itemKey);
+        }
 
         // Create listing
         TradeListing listing = new TradeListing();
@@ -78,27 +105,47 @@ public class TradeServiceImpl implements TradeService {
         listing.setItemKey(itemKey);
         listing.setQuantity(quantity);
         listing.setUnitPrice(unitPrice);
-        listing.setTotalPrice(unitPrice * quantity);
+        listing.setTotalPrice(totalPrice);
         listing.setStatus("active");
         listing.setCreatedAt(LocalDateTime.now());
         listing.setUpdatedAt(LocalDateTime.now());
-        tradeListingMapper.insert(listing);
+        if (tradeListingMapper.insert(listing) <= 0)
+            throw new IllegalStateException("创建物品挂单失败");
 
-        writeLog(sellerPlayerId, "trade_list", "上架物品 " + item.getName() + " ×" + quantity + "，单价 " + unitPrice + " 金币");
+        String transactionGroupId = "market-listing:" + listing.getListingNo();
+        recordResourceChange(sellerPlayerId, "item", itemKey, inventoryBefore, inventoryAfter,
+                "market_escrow", listing.getListingNo(), transactionGroupId,
+                transactionGroupId + ":seller:item:" + itemKey,
+                Map.of("listingNo", listing.getListingNo(), "quantity", quantity));
 
-        return toListingVO(listing, true);
+        writeLog(sellerPlayerId, "trade_list", "上架物品 " + item.getName() + " ×" + quantity + "，单价 " + unitPrice + " 星币");
+
+        TradeListingVO result = toListingVO(listing, true);
+        actionReceiptService.record(sellerPlayerId, "trade.list.item", requestKey,
+                requestPayload, result);
+        return result;
     }
 
     @Override
     @Transactional
-    public TradeListingVO createEquipmentListing(Long sellerPlayerId, String equipmentKey, int unitPrice) {
+    public TradeListingVO createEquipmentListing(Long sellerPlayerId, String equipmentKey,
+                                                 int unitPrice, String requestKey) {
+        validateRequestKey(requestKey);
         if (unitPrice <= 0) throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "单价必须大于0");
+
+        if (playerMapper.selectByIdForUpdate(sellerPlayerId) == null)
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "卖家不存在");
+        Map<String, Object> requestPayload = actionPayload(
+                "equipmentKey", equipmentKey, "unitPrice", unitPrice);
+        TradeListingVO replay = actionReceiptService.findReplay(sellerPlayerId,
+                "trade.list.equipment", requestKey, requestPayload, TradeListingVO.class);
+        if (replay != null) return replay;
 
         Equipment equip = getEquipmentDef(equipmentKey);
         if (equip == null || equip.getEnabled() == 0)
             throw new BusinessException(ErrorCode.EQUIP_NOT_FOUND, "装备不存在或已禁用");
 
-        PlayerEquipment pe = getPlayerEquipment(sellerPlayerId, equipmentKey);
+        PlayerEquipment pe = getPlayerEquipmentForUpdate(sellerPlayerId, equipmentKey);
         if (pe == null)
             throw new BusinessException(ErrorCode.EQUIP_NOT_OWNED, "你未拥有此装备");
         if (pe.getEquipped() == 1)
@@ -109,7 +156,8 @@ public class TradeServiceImpl implements TradeService {
             throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "此装备已上架");
 
         pe.setListed(1);
-        playerEquipmentMapper.updateById(pe);
+        if (playerEquipmentMapper.updateById(pe) <= 0)
+            throw new IllegalStateException("锁定上架装备失败: " + equipmentKey);
 
         TradeListing listing = new TradeListing();
         listing.setListingNo(generateListingNo());
@@ -122,11 +170,15 @@ public class TradeServiceImpl implements TradeService {
         listing.setStatus("active");
         listing.setCreatedAt(LocalDateTime.now());
         listing.setUpdatedAt(LocalDateTime.now());
-        tradeListingMapper.insert(listing);
+        if (tradeListingMapper.insert(listing) <= 0)
+            throw new IllegalStateException("创建装备挂单失败");
 
-        writeLog(sellerPlayerId, "trade_list", "上架装备 " + equip.getName() + "，单价 " + unitPrice + " 金币");
+        writeLog(sellerPlayerId, "trade_list", "上架装备 " + equip.getName() + "，单价 " + unitPrice + " 星币");
 
-        return toListingVO(listing, true);
+        TradeListingVO result = toListingVO(listing, true);
+        actionReceiptService.record(sellerPlayerId, "trade.list.equipment", requestKey,
+                requestPayload, result);
+        return result;
     }
 
     @Override
@@ -185,7 +237,8 @@ public class TradeServiceImpl implements TradeService {
 
     @Override
     @Transactional
-    public TradeBuyResultVO buyListing(Long buyerPlayerId, String listingNo) {
+    public TradeBuyResultVO buyListing(Long buyerPlayerId, String listingNo, String requestKey) {
+        validateRequestKey(requestKey);
         // Lock the listing row for update
         QueryWrapper<TradeListing> lockQw = new QueryWrapper<>();
         lockQw.eq("listing_no", listingNo).last("FOR UPDATE");
@@ -193,65 +246,113 @@ public class TradeServiceImpl implements TradeService {
 
         if (listing == null)
             throw new BusinessException(ErrorCode.NOT_FOUND, "挂单不存在");
-        if (!"active".equals(listing.getStatus()))
-            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "该挂单已售出或已取消");
-        if (listing.getSellerPlayerId().equals(buyerPlayerId))
+        if (Objects.equals(listing.getSellerPlayerId(), buyerPlayerId))
             throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "不能购买自己的挂单");
 
-        Player buyer = playerMapper.selectById(buyerPlayerId);
+        Player buyer;
+        Player seller;
+        if (buyerPlayerId < listing.getSellerPlayerId()) {
+            buyer = playerMapper.selectByIdForUpdate(buyerPlayerId);
+            seller = playerMapper.selectByIdForUpdate(listing.getSellerPlayerId());
+        } else {
+            seller = playerMapper.selectByIdForUpdate(listing.getSellerPlayerId());
+            buyer = playerMapper.selectByIdForUpdate(buyerPlayerId);
+        }
         if (buyer == null)
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "买家不存在");
-        if (buyer.getCoins() == null || buyer.getCoins() < listing.getTotalPrice())
-            throw new BusinessException(ErrorCode.RESOURCE_NOT_ENOUGH, "金币不足");
-
-        Player seller = playerMapper.selectById(listing.getSellerPlayerId());
         if (seller == null)
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "卖家不存在");
 
-        // Transfer coins: buyer → seller
-        buyer.setCoins(buyer.getCoins() - listing.getTotalPrice());
-        playerMapper.updateById(buyer);
-        seller.setCoins((seller.getCoins() != null ? seller.getCoins() : 0) + listing.getTotalPrice());
-        playerMapper.updateById(seller);
+        Map<String, Object> requestPayload = actionPayload("listingNo", listingNo);
+        TradeBuyResultVO replay = actionReceiptService.findReplay(buyerPlayerId,
+                "trade.buy", requestKey, requestPayload, TradeBuyResultVO.class);
+        if (replay != null) return replay;
+        if (!"active".equals(listing.getStatus()))
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "该挂单已售出或已取消");
 
-        String transferredName = "";
-        // Transfer asset
+        int totalPrice = listing.getTotalPrice() == null ? 0 : listing.getTotalPrice();
+        int quantity = listing.getQuantity() == null ? 0 : listing.getQuantity();
+        if (totalPrice <= 0 || quantity <= 0)
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "挂单价格或数量无效");
+
+        Item itemDef = null;
+        Equipment equipDef = null;
+        PlayerInventory buyerInv = null;
+        PlayerEquipment sellerEquipment = null;
+        int assetBalanceBefore = 0;
+        int assetBalanceAfter = 0;
+        String assetKey;
         if ("item".equals(listing.getListingType())) {
-            // Add item to buyer inventory
-            PlayerInventory buyerInv = getInventory(buyerPlayerId, listing.getItemKey());
+            assetKey = listing.getItemKey();
+            itemDef = getItemDef(assetKey);
+            if (itemDef == null || itemDef.getEnabled() == null || itemDef.getEnabled() != 1)
+                throw new BusinessException(ErrorCode.ITEM_NOT_FOUND, "挂单物品不存在或已禁用");
+            buyerInv = getInventoryForUpdate(buyerPlayerId, assetKey);
+            assetBalanceBefore = buyerInv == null || buyerInv.getQuantity() == null
+                    ? 0 : buyerInv.getQuantity();
+            int maxStack = itemDef.getMaxStack() == null ? 999 : itemDef.getMaxStack();
+            long nextQuantity = (long) assetBalanceBefore + quantity;
+            if (nextQuantity > maxStack)
+                throw new BusinessException(ErrorCode.RESOURCE_NOT_ENOUGH, "买家背包堆叠空间不足");
+            assetBalanceAfter = Math.toIntExact(nextQuantity);
+        } else if ("equipment".equals(listing.getListingType())) {
+            assetKey = listing.getEquipmentKey();
+            equipDef = getEquipmentDef(assetKey);
+            if (equipDef == null || equipDef.getEnabled() == null || equipDef.getEnabled() != 1)
+                throw new BusinessException(ErrorCode.EQUIP_NOT_FOUND, "挂单装备不存在或已禁用");
+            QueryWrapper<PlayerEquipment> equipmentQuery = new QueryWrapper<>();
+            equipmentQuery.eq("player_id", listing.getSellerPlayerId())
+                    .eq("equipment_key", assetKey).last("FOR UPDATE");
+            sellerEquipment = playerEquipmentMapper.selectOne(equipmentQuery);
+            if (sellerEquipment == null || !Integer.valueOf(1).equals(sellerEquipment.getListed()))
+                throw new BusinessException(ErrorCode.EQUIP_NOT_OWNED, "挂单装备已不可交易");
+        } else {
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "未知的挂单类型");
+        }
+
+        int buyerCoinsBefore = buyer.getCoins() == null ? 0 : buyer.getCoins();
+        int sellerCoinsBefore = seller.getCoins() == null ? 0 : seller.getCoins();
+        if (buyerCoinsBefore < totalPrice)
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_ENOUGH, "星币不足");
+        int buyerCoinsAfter = Math.subtractExact(buyerCoinsBefore, totalPrice);
+        int sellerCoinsAfter = Math.addExact(sellerCoinsBefore, totalPrice);
+        buyer.setCoins(buyerCoinsAfter);
+        if (playerMapper.updateById(buyer) <= 0)
+            throw new IllegalStateException("买家星币扣款失败");
+        seller.setCoins(sellerCoinsAfter);
+        if (playerMapper.updateById(seller) <= 0)
+            throw new IllegalStateException("卖家星币入账失败");
+
+        String transferredName;
+        if ("item".equals(listing.getListingType())) {
             if (buyerInv != null) {
-                buyerInv.setQuantity(buyerInv.getQuantity() + listing.getQuantity());
-                playerInventoryMapper.updateById(buyerInv);
+                buyerInv.setQuantity(assetBalanceAfter);
+                if (playerInventoryMapper.updateById(buyerInv) <= 0)
+                    throw new IllegalStateException("买家物品入包失败: " + assetKey);
             } else {
                 PlayerInventory newInv = new PlayerInventory();
                 newInv.setPlayerId(buyerPlayerId);
-                newInv.setItemKey(listing.getItemKey());
-                newInv.setQuantity(listing.getQuantity());
-                playerInventoryMapper.insert(newInv);
+                newInv.setItemKey(assetKey);
+                newInv.setQuantity(assetBalanceAfter);
+                if (playerInventoryMapper.insert(newInv) <= 0)
+                    throw new IllegalStateException("买家物品入包失败: " + assetKey);
             }
-            Item itemDef = getItemDef(listing.getItemKey());
-            transferredName = (itemDef != null ? itemDef.getName() : listing.getItemKey());
-        } else if ("equipment".equals(listing.getListingType())) {
-            // Transfer equipment ownership
-            QueryWrapper<PlayerEquipment> peQw = new QueryWrapper<>();
-            peQw.eq("player_id", listing.getSellerPlayerId())
-                 .eq("equipment_key", listing.getEquipmentKey());
-            PlayerEquipment pe = playerEquipmentMapper.selectOne(peQw);
-            if (pe != null) {
-                pe.setPlayerId(buyerPlayerId);
-                pe.setListed(0);
-                pe.setEquipped(0);
-                playerEquipmentMapper.updateById(pe);
-            }
-            Equipment equipDef = getEquipmentDef(listing.getEquipmentKey());
-            transferredName = (equipDef != null ? equipDef.getName() : listing.getEquipmentKey());
+            transferredName = itemDef.getName() != null ? itemDef.getName() : assetKey;
+        } else {
+            sellerEquipment.setPlayerId(buyerPlayerId);
+            sellerEquipment.setListed(0);
+            sellerEquipment.setEquipped(0);
+            if (playerEquipmentMapper.updateById(sellerEquipment) <= 0)
+                throw new IllegalStateException("市场装备转移失败: " + assetKey);
+            transferredName = equipDef.getName() != null ? equipDef.getName() : assetKey;
         }
 
         // Mark listing as sold
         listing.setStatus("sold");
         listing.setSoldAt(LocalDateTime.now());
         listing.setUpdatedAt(LocalDateTime.now());
-        tradeListingMapper.updateById(listing);
+        if (tradeListingMapper.updateById(listing) <= 0)
+            throw new IllegalStateException("更新挂单成交状态失败");
 
         // Write trade record
         TradeRecord record = new TradeRecord();
@@ -265,17 +366,45 @@ public class TradeServiceImpl implements TradeService {
         record.setTotalPrice(listing.getTotalPrice());
         record.setStatus("success");
         record.setCreatedAt(LocalDateTime.now());
-        tradeRecordMapper.insert(record);
+        if (tradeRecordMapper.insert(record) <= 0)
+            throw new IllegalStateException("写入市场成交记录失败");
 
-        writeLog(buyerPlayerId, "trade_buy", "从市场购买 " + transferredName + " ×" + listing.getQuantity() + "，花费 " + listing.getTotalPrice() + " 金币");
-        writeLog(listing.getSellerPlayerId(), "trade_sold", "挂单售出: " + transferredName + " ×" + listing.getQuantity() + "，收入 " + listing.getTotalPrice() + " 金币");
+        String transactionGroupId = "market:" + listing.getListingNo();
+        Map<String, Object> resourceMetadata = new LinkedHashMap<>();
+        resourceMetadata.put("listingNo", listing.getListingNo());
+        resourceMetadata.put("listingType", listing.getListingType());
+        resourceMetadata.put("sellerPlayerId", listing.getSellerPlayerId());
+        resourceMetadata.put("buyerPlayerId", buyerPlayerId);
+        resourceMetadata.put("quantity", quantity);
+        resourceMetadata.put("totalPrice", totalPrice);
+        recordResourceChange(buyerPlayerId, "currency", "coins", buyerCoinsBefore, buyerCoinsAfter,
+                "market_trade", listing.getListingNo(), transactionGroupId,
+                transactionGroupId + ":buyer:currency:coins", resourceMetadata);
+        recordResourceChange(listing.getSellerPlayerId(), "currency", "coins",
+                sellerCoinsBefore, sellerCoinsAfter, "market_trade", listing.getListingNo(),
+                transactionGroupId, transactionGroupId + ":seller:currency:coins", resourceMetadata);
+        if ("item".equals(listing.getListingType())) {
+            recordResourceChange(buyerPlayerId, "item", assetKey, assetBalanceBefore, assetBalanceAfter,
+                    "market_trade", listing.getListingNo(), transactionGroupId,
+                    transactionGroupId + ":buyer:item:" + assetKey, resourceMetadata);
+        } else {
+            recordResourceChange(listing.getSellerPlayerId(), "equipment", assetKey, 1, 0,
+                    "market_trade", listing.getListingNo(), transactionGroupId,
+                    transactionGroupId + ":seller:equipment:" + assetKey, resourceMetadata);
+            recordResourceChange(buyerPlayerId, "equipment", assetKey, 0, 1,
+                    "market_trade", listing.getListingNo(), transactionGroupId,
+                    transactionGroupId + ":buyer:equipment:" + assetKey, resourceMetadata);
+        }
+
+        writeLog(buyerPlayerId, "trade_buy", "从市场购买 " + transferredName + " ×" + listing.getQuantity() + "，花费 " + listing.getTotalPrice() + " 星币");
+        writeLog(listing.getSellerPlayerId(), "trade_sold", "挂单售出: " + transferredName + " ×" + listing.getQuantity() + "，收入 " + listing.getTotalPrice() + " 星币");
 
         Map<String, Object> transferred = new LinkedHashMap<>();
         transferred.put("type", listing.getListingType());
         if ("item".equals(listing.getListingType())) {
             transferred.put("itemKey", listing.getItemKey());
             transferred.put("itemName", transferredName);
-            transferred.put("quantity", listing.getQuantity());
+            transferred.put("quantity", quantity);
         } else {
             transferred.put("equipmentKey", listing.getEquipmentKey());
             transferred.put("equipmentName", transferredName);
@@ -286,9 +415,9 @@ public class TradeServiceImpl implements TradeService {
         vo.setListingType(listing.getListingType());
         vo.setBuyerPlayerId(buyerPlayerId);
         vo.setSellerPlayerId(listing.getSellerPlayerId());
-        vo.setTotalPrice(listing.getTotalPrice());
+        vo.setTotalPrice(totalPrice);
         vo.setTransferredItem(transferred);
-        vo.setNewBuyerCoins(buyer.getCoins());
+        vo.setNewBuyerCoins(buyerCoinsAfter);
 
         // 自动任务进度
         try {
@@ -296,60 +425,94 @@ public class TradeServiceImpl implements TradeService {
             questService.addProgress(listing.getSellerPlayerId(), "trade_sell_count", 1, "trade", listing.getListingNo());
         } catch (Exception ignored) {}
 
+        actionReceiptService.record(buyerPlayerId, "trade.buy", requestKey, requestPayload, vo);
         return vo;
     }
 
     @Override
     @Transactional
-    public TradeListingVO cancelListing(Long sellerPlayerId, String listingNo) {
+    public TradeListingVO cancelListing(Long sellerPlayerId, String listingNo, String requestKey) {
+        validateRequestKey(requestKey);
         QueryWrapper<TradeListing> qw = new QueryWrapper<>();
-        qw.eq("listing_no", listingNo);
+        qw.eq("listing_no", listingNo).last("FOR UPDATE");
         TradeListing listing = tradeListingMapper.selectOne(qw);
 
         if (listing == null)
             throw new BusinessException(ErrorCode.NOT_FOUND, "挂单不存在");
+        if (!Objects.equals(listing.getSellerPlayerId(), sellerPlayerId))
+            throw new BusinessException(ErrorCode.FORBIDDEN, "只能取消自己的挂单");
+
+        if (playerMapper.selectByIdForUpdate(sellerPlayerId) == null)
+            throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "卖家不存在");
+        Map<String, Object> requestPayload = actionPayload("listingNo", listingNo);
+        TradeListingVO replay = actionReceiptService.findReplay(sellerPlayerId,
+                "trade.cancel", requestKey, requestPayload, TradeListingVO.class);
+        if (replay != null) return replay;
         if (!"active".equals(listing.getStatus()))
             throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "该挂单已失效");
-        if (!listing.getSellerPlayerId().equals(sellerPlayerId))
-            throw new BusinessException(ErrorCode.FORBIDDEN, "只能取消自己的挂单");
 
         // Return assets
         String returnedName = "";
         if ("item".equals(listing.getListingType())) {
-            PlayerInventory inv = getInventory(sellerPlayerId, listing.getItemKey());
+            PlayerInventory inv = getInventoryForUpdate(sellerPlayerId, listing.getItemKey());
+            int quantityBefore = inv == null || inv.getQuantity() == null ? 0 : inv.getQuantity();
+            int listingQuantity = listing.getQuantity() == null ? 0 : listing.getQuantity();
+            if (listingQuantity <= 0)
+                throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "挂单物品数量无效");
+            Item itemDef = getItemDef(listing.getItemKey());
+            if (itemDef != null && itemDef.getMaxStack() != null
+                    && (long) quantityBefore + listingQuantity > itemDef.getMaxStack()) {
+                throw new BusinessException(ErrorCode.RESOURCE_NOT_ENOUGH,
+                        "背包堆叠空间不足，请先腾出位置再取消挂单");
+            }
+            int quantityAfter = Math.addExact(quantityBefore, listingQuantity);
             if (inv != null) {
-                inv.setQuantity(inv.getQuantity() + listing.getQuantity());
-                playerInventoryMapper.updateById(inv);
+                inv.setQuantity(quantityAfter);
+                if (playerInventoryMapper.updateById(inv) <= 0)
+                    throw new IllegalStateException("返还挂单物品失败: " + listing.getItemKey());
             } else {
                 PlayerInventory newInv = new PlayerInventory();
                 newInv.setPlayerId(sellerPlayerId);
                 newInv.setItemKey(listing.getItemKey());
-                newInv.setQuantity(listing.getQuantity());
-                playerInventoryMapper.insert(newInv);
+                newInv.setQuantity(quantityAfter);
+                if (playerInventoryMapper.insert(newInv) <= 0)
+                    throw new IllegalStateException("返还挂单物品失败: " + listing.getItemKey());
             }
-            Item itemDef = getItemDef(listing.getItemKey());
             returnedName = (itemDef != null ? itemDef.getName() : listing.getItemKey());
+
+            String transactionGroupId = "market-cancel:" + listing.getListingNo();
+            recordResourceChange(sellerPlayerId, "item", listing.getItemKey(),
+                    quantityBefore, quantityAfter, "market_cancel", listing.getListingNo(),
+                    transactionGroupId, transactionGroupId + ":seller:item:" + listing.getItemKey(),
+                    Map.of("listingNo", listing.getListingNo(), "quantity", listingQuantity));
         } else if ("equipment".equals(listing.getListingType())) {
             QueryWrapper<PlayerEquipment> peQw = new QueryWrapper<>();
             peQw.eq("player_id", sellerPlayerId)
-                 .eq("equipment_key", listing.getEquipmentKey());
+                 .eq("equipment_key", listing.getEquipmentKey()).last("FOR UPDATE");
             PlayerEquipment pe = playerEquipmentMapper.selectOne(peQw);
-            if (pe != null) {
-                pe.setListed(0);
-                playerEquipmentMapper.updateById(pe);
-            }
+            if (pe == null || !Integer.valueOf(1).equals(pe.getListed()))
+                throw new BusinessException(ErrorCode.EQUIP_NOT_OWNED, "待取消的挂单装备已不可用");
+            pe.setListed(0);
+            if (playerEquipmentMapper.updateById(pe) <= 0)
+                throw new IllegalStateException("解除装备挂单状态失败: " + listing.getEquipmentKey());
             Equipment equipDef = getEquipmentDef(listing.getEquipmentKey());
             returnedName = (equipDef != null ? equipDef.getName() : listing.getEquipmentKey());
+        } else {
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "未知的挂单类型");
         }
 
         listing.setStatus("cancelled");
         listing.setCancelledAt(LocalDateTime.now());
         listing.setUpdatedAt(LocalDateTime.now());
-        tradeListingMapper.updateById(listing);
+        if (tradeListingMapper.updateById(listing) <= 0)
+            throw new IllegalStateException("更新挂单取消状态失败");
 
         writeLog(sellerPlayerId, "trade_cancel", "取消挂单: " + returnedName);
 
-        return toListingVO(listing, false);
+        TradeListingVO result = toListingVO(listing, false);
+        actionReceiptService.record(sellerPlayerId, "trade.cancel", requestKey,
+                requestPayload, result);
+        return result;
     }
 
     @Override
@@ -398,6 +561,20 @@ public class TradeServiceImpl implements TradeService {
 
     // ─── helpers ───
 
+    private void validateRequestKey(String requestKey) {
+        if (requestKey == null || requestKey.isBlank() || requestKey.trim().length() > 64)
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "requestKey 必须为 1 到 64 个字符");
+    }
+
+    private Map<String, Object> actionPayload(Object... keyValues) {
+        if (keyValues.length % 2 != 0) throw new IllegalArgumentException("操作参数必须为键值对");
+        Map<String, Object> payload = new LinkedHashMap<>();
+        for (int index = 0; index < keyValues.length; index += 2) {
+            payload.put(String.valueOf(keyValues[index]), keyValues[index + 1]);
+        }
+        return payload;
+    }
+
     private String generateListingNo() {
         String base = "TL" + LocalDateTime.now().format(TL_DATE_FMT);
         String suffix = String.format("%04d", ThreadLocalRandom.current().nextInt(10000));
@@ -410,10 +587,41 @@ public class TradeServiceImpl implements TradeService {
         return playerInventoryMapper.selectOne(qw);
     }
 
+    private PlayerInventory getInventoryForUpdate(Long playerId, String itemKey) {
+        QueryWrapper<PlayerInventory> qw = new QueryWrapper<>();
+        qw.eq("player_id", playerId).eq("item_key", itemKey).last("FOR UPDATE");
+        return playerInventoryMapper.selectOne(qw);
+    }
+
     private PlayerEquipment getPlayerEquipment(Long playerId, String equipmentKey) {
         QueryWrapper<PlayerEquipment> qw = new QueryWrapper<>();
         qw.eq("player_id", playerId).eq("equipment_key", equipmentKey);
         return playerEquipmentMapper.selectOne(qw);
+    }
+
+    private PlayerEquipment getPlayerEquipmentForUpdate(Long playerId, String equipmentKey) {
+        QueryWrapper<PlayerEquipment> qw = new QueryWrapper<>();
+        qw.eq("player_id", playerId).eq("equipment_key", equipmentKey).last("FOR UPDATE");
+        return playerEquipmentMapper.selectOne(qw);
+    }
+
+    private int calculateTotalPrice(int unitPrice, int quantity) {
+        try {
+            return Math.multiplyExact(unitPrice, quantity);
+        } catch (ArithmeticException exception) {
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "挂单总价超出可用范围");
+        }
+    }
+
+    private void recordResourceChange(Long playerId, String resourceType, String resourceKey,
+                                      long balanceBefore, long balanceAfter, String sourceType,
+                                      String sourceId, String transactionGroupId,
+                                      String idempotencyKey, Map<String, Object> metadata) {
+        long amount = Math.subtractExact(balanceAfter, balanceBefore);
+        if (amount == 0) return;
+        resourceTransactionService.record(new PlayerResourceTransactionService.Change(
+                playerId, resourceType, resourceKey, amount, balanceBefore, balanceAfter,
+                sourceType, sourceId, transactionGroupId, idempotencyKey, metadata));
     }
 
     private Item getItemDef(String itemKey) {

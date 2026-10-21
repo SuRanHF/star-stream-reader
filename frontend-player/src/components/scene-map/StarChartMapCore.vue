@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, nextTick, watch, onMounted, onBeforeUnmount } from 'vue';
 import type { MapNode } from '@/api/exploreApi';
 import { dangerTier } from '@/utils/sceneUtils';
 
@@ -8,10 +8,10 @@ const props = defineProps<{
 }>();
 
 const VOLUME_COLORS: Record<number, string> = {
-  1: '#a0b0f0',
-  2: '#e07070',
-  3: '#7ab0f7',
-  4: '#5ec49e',
+  1: 'var(--color-system-bright)',
+  2: 'var(--color-danger)',
+  3: 'var(--color-star)',
+  4: 'var(--color-spirit)',
 };
 
 const TYPE_ICONS: Record<string, string> = {
@@ -26,10 +26,17 @@ const emit = defineEmits<{
 }>();
 
 const svgEl = ref<SVGSVGElement>();
-const viewBox = ref({ x: -100, y: -100, w: 1100, h: 900 });
+const DEFAULT_VIEW_BOX = { x: -100, y: -100, w: 1100, h: 900 };
+const viewBox = ref({ ...DEFAULT_VIEW_BOX });
 const selectedId = ref<string | null>(null);
 const filterVolume = ref(0);
 const filterType = ref('all');
+
+function isDesktopViewport() {
+  return typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(min-width: 761px)').matches;
+}
 
 // pan state
 const dragging = ref(false);
@@ -105,8 +112,76 @@ function onPanEnd() {
   viewBox.value = { x: vb.x - offset.value.x * scaleX, y: vb.y - offset.value.y * scaleY, w: vb.w, h: vb.h };
 }
 
+function fitNodes() {
+  if (!isDesktopViewport()) {
+    viewBox.value = { ...DEFAULT_VIEW_BOX };
+    return;
+  }
+
+  const points = props.nodes.filter(node => Number.isFinite(node.x) && Number.isFinite(node.y));
+  if (!points.length) {
+    viewBox.value = { ...DEFAULT_VIEW_BOX };
+    return;
+  }
+
+  const minX = Math.min(...points.map(node => node.x));
+  const maxX = Math.max(...points.map(node => node.x));
+  const minY = Math.min(...points.map(node => node.y));
+  const maxY = Math.max(...points.map(node => node.y));
+  const spanX = Math.max(maxX - minX, 280);
+  const spanY = Math.max(maxY - minY, 280);
+  const padding = Math.max(72, Math.max(spanX, spanY) * 0.14);
+  let width = spanX + padding * 2;
+  let height = spanY + padding * 2;
+
+  // Keep SVG scale uniform, but account for the unusually tall desktop sidebar.
+  const bounds = svgEl.value?.getBoundingClientRect();
+  const aspect = bounds && bounds.width > 0 && bounds.height > 0
+    ? bounds.width / bounds.height
+    : 0.62;
+  if (width / height > aspect) height = width / aspect;
+  else width = height * aspect;
+
+  const centerX = (minX + maxX) / 2;
+  const centerY = (minY + maxY) / 2;
+  viewBox.value = {
+    x: centerX - width / 2,
+    y: centerY - height / 2,
+    w: width,
+    h: height,
+  };
+}
+
+let hasInitialFit = false;
+watch(() => props.nodes, async nodes => {
+  if (!nodes.length) return;
+  await nextTick();
+  if (!hasInitialFit && isDesktopViewport()) {
+    fitNodes();
+    hasInitialFit = true;
+  }
+}, { immediate: true });
+
+function handleViewportResize() {
+  if (!isDesktopViewport()) {
+    viewBox.value = { ...DEFAULT_VIEW_BOX };
+    hasInitialFit = false;
+    return;
+  }
+  if (!hasInitialFit && props.nodes.length) {
+    fitNodes();
+    hasInitialFit = true;
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('resize', handleViewportResize);
+  handleViewportResize();
+});
+onBeforeUnmount(() => window.removeEventListener('resize', handleViewportResize));
+
 function resetView() {
-  viewBox.value = { x: -100, y: -100, w: 1100, h: 900 };
+  fitNodes();
   selectedId.value = null;
   emit('node-select', '');
 }
@@ -130,12 +205,12 @@ defineExpose({ resetView, setFilterVolume: (v: number) => { filterVolume.value =
     >
       <defs>
         <radialGradient id="glow-boss2" cx="50%" cy="50%">
-          <stop offset="0%" stop-color="#d97b6c" stop-opacity="0.35" />
-          <stop offset="100%" stop-color="#d97b6c" stop-opacity="0" />
+          <stop offset="0%" stop-color="var(--color-danger)" stop-opacity="0.35" />
+          <stop offset="100%" stop-color="var(--color-danger)" stop-opacity="0" />
         </radialGradient>
         <radialGradient id="glow-hidden2" cx="50%" cy="50%">
-          <stop offset="0%" stop-color="#98c9bb" stop-opacity="0.4" />
-          <stop offset="100%" stop-color="#98c9bb" stop-opacity="0" />
+          <stop offset="0%" stop-color="var(--color-spirit)" stop-opacity="0.4" />
+          <stop offset="100%" stop-color="var(--color-spirit)" stop-opacity="0" />
         </radialGradient>
         <filter id="star-glow2">
           <feGaussianBlur stdDeviation="3" result="blur" />
@@ -144,14 +219,14 @@ defineExpose({ resetView, setFilterVolume: (v: number) => { filterVolume.value =
       </defs>
 
       <pattern id="grid2" width="60" height="60" patternUnits="userSpaceOnUse">
-        <circle cx="30" cy="30" r="0.8" fill="#3a4a7a" opacity="0.35" />
+        <circle cx="30" cy="30" r="0.8" fill="var(--color-border-bright)" opacity="0.35" />
       </pattern>
       <rect :x="viewBox.x - 200" :y="viewBox.y - 200" :width="viewBox.w + 400" :height="viewBox.h + 400" fill="url(#grid2)" />
 
-      <text x="400" y="530" fill="#a0b0f0" opacity="0.1" font-size="48" font-weight="900">第一卷</text>
-      <text x="100" y="160" fill="#e07070" opacity="0.1" font-size="48" font-weight="900">第二卷</text>
-      <text x="520" y="620" fill="#7ab0f7" opacity="0.1" font-size="48" font-weight="900">第三卷</text>
-      <text x="300" y="50" fill="#5ec49e" opacity="0.1" font-size="48" font-weight="900">第四卷</text>
+      <text x="400" y="530" fill="var(--color-system-bright)" opacity="0.1" font-size="48" font-weight="900">第一卷</text>
+      <text x="100" y="160" fill="var(--color-danger)" opacity="0.1" font-size="48" font-weight="900">第二卷</text>
+      <text x="520" y="620" fill="var(--color-star)" opacity="0.1" font-size="48" font-weight="900">第三卷</text>
+      <text x="300" y="50" fill="var(--color-spirit)" opacity="0.1" font-size="48" font-weight="900">第四卷</text>
 
       <line
         v-for="(edge, i) in visibleEdges"
@@ -181,23 +256,23 @@ defineExpose({ resetView, setFilterVolume: (v: number) => { filterVolume.value =
           :stroke-width="2"
           :stroke-opacity="node.unlocked ? 0.7 : 0.2" />
         <circle r="16"
-          :fill="node.unlocked ? '#0d1428' : '#070b1a'"
-          :stroke="VOLUME_COLORS[node.volume] || '#4a5a7a'"
+        :fill="node.unlocked ? 'var(--color-surface)' : 'var(--color-void)'"
+        :stroke="VOLUME_COLORS[node.volume] || 'var(--color-border-bright)'"
           :stroke-width="node.id === selectedId ? 3 : 1.5"
           :stroke-opacity="node.unlocked ? 0.9 : 0.3"
           :filter="node.unlocked ? 'url(#star-glow2)' : ''" />
         <text text-anchor="middle" dy="5"
-          :fill="node.unlocked ? (VOLUME_COLORS[node.volume] || '#6a7a9a') : '#4a5588'"
-          font-size="14">{{ TYPE_ICONS[node.type] }}</text>
+          :fill="node.unlocked ? (VOLUME_COLORS[node.volume] || 'var(--color-muted)') : 'var(--color-border-bright)'"
+          class="snode-icon" font-size="14">{{ TYPE_ICONS[node.type] }}</text>
         <text text-anchor="middle" dy="-26"
           :fill="dangerTier(node.dangerLevel).color"
           :opacity="node.unlocked ? 0.9 : 0.3"
-          font-size="9" font-weight="700">{{ dangerTier(node.dangerLevel).label }}</text>
+          class="snode-danger" font-size="9" font-weight="700">{{ dangerTier(node.dangerLevel).label }}</text>
         <text text-anchor="middle" dy="32"
-          :fill="node.unlocked ? '#d0d8f0' : '#5a6688'"
-          font-size="11" opacity="0.9">{{ node.name }}</text>
-        <text v-if="node.completed" text-anchor="middle" dy="-22" fill="#5ec49e" font-size="11">✓</text>
-        <text v-if="!node.unlocked" text-anchor="middle" dy="-22" fill="#5a6688" font-size="11">🔒</text>
+          :fill="node.unlocked ? 'var(--color-text-dim)' : 'var(--color-muted)'"
+          class="snode-label" font-size="11" opacity="0.9">{{ node.name }}</text>
+        <text v-if="node.completed" text-anchor="middle" dy="-22" fill="var(--color-spirit)" font-size="11">✓</text>
+        <text v-if="!node.unlocked" text-anchor="middle" dy="-22" fill="var(--color-muted)" font-size="11">🔒</text>
       </g>
     </svg>
     <div class="score-hint">🖱 滚轮缩放 · 拖拽平移 · 点击节点选择场景</div>
@@ -212,16 +287,16 @@ defineExpose({ resetView, setFilterVolume: (v: number) => { filterVolume.value =
   overflow: hidden;
   cursor: grab;
   touch-action: none;
-  background: radial-gradient(ellipse at 40% 50%, rgba(13, 20, 48, 0.6) 0%, #070b1a 100%);
+  background: radial-gradient(ellipse at 40% 50%, var(--color-shell-end) 0%, var(--color-void) 100%);
 }
 .score-wrap:active { cursor: grabbing; }
 .score-svg { width: 100%; height: 100%; display: block; }
 .snode { cursor: pointer; transition: opacity 0.2s; }
 .snode-locked { opacity: 0.4; }
 .snode-locked:hover { opacity: 0.6; }
-.snode-selected circle:nth-child(2) { stroke-width: 3; filter: drop-shadow(0 0 6px rgba(74, 143, 231, 0.4)); }
+.snode-selected circle:nth-child(2) { stroke-width: 3; filter: drop-shadow(0 0 6px var(--color-system-glow)); }
 .score-hint {
   position: absolute; bottom: 8px; right: 12px;
-  font-size: 10px; color: #4a5588; pointer-events: none;
+  font-size: 10px; color: var(--color-muted); pointer-events: none;
 }
 </style>

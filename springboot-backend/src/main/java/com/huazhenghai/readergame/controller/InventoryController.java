@@ -4,6 +4,7 @@ import com.huazhenghai.readergame.common.BusinessException;
 import com.huazhenghai.readergame.common.ErrorCode;
 import com.huazhenghai.readergame.common.MapUtils;
 import com.huazhenghai.readergame.common.Result;
+import com.huazhenghai.readergame.dto.SellItemCommand;
 import com.huazhenghai.readergame.dto.SellItemRequest;
 import com.huazhenghai.readergame.dto.UseItemRequest;
 import com.huazhenghai.readergame.security.LoginUserContext;
@@ -42,7 +43,8 @@ public class InventoryController {
     @Operation(summary = "使用物品")
     public Result<UseItemResultVO> useItem(@Valid @RequestBody UseItemRequest req) {
         Long userId = LoginUserContext.get().getUserId();
-        UseItemResultVO result = inventoryService.useItem(req.getPlayerId(), req.getItemKey(), userId);
+        UseItemResultVO result = inventoryService.useItem(
+                req.getPlayerId(), req.getItemKey(), userId, req.getRequestKey());
         return Result.ok(result);
     }
 
@@ -51,7 +53,7 @@ public class InventoryController {
     public Result<SellItemResultVO> sellItem(@Valid @RequestBody SellItemRequest req) {
         Long userId = LoginUserContext.get().getUserId();
         SellItemResultVO result = inventoryService.sellItem(
-                req.getPlayerId(), req.getItemKey(), req.getQuantity(), userId);
+                req.getPlayerId(), req.getItemKey(), req.getQuantity(), userId, req.getRequestKey());
         return Result.ok(result);
     }
 
@@ -60,24 +62,17 @@ public class InventoryController {
     public Result<Map<String, Object>> sellBatch(@RequestBody Map<String, Object> body) {
         Long userId = LoginUserContext.get().getUserId();
         Long playerId = MapUtils.getLong(body, "playerId");
+        String requestKey = MapUtils.getStringRequired(body, "requestKey");
         @SuppressWarnings("unchecked")
         java.util.List<Map<String, Object>> items = (java.util.List<Map<String, Object>>) body.get("items");
         if (items == null) throw new BusinessException(ErrorCode.MISSING_FIELDS, "缺少参数: items");
-        int totalCoins = 0;
-        java.util.List<String> soldItems = new java.util.ArrayList<>();
+        java.util.List<SellItemCommand> commands = new java.util.ArrayList<>(items.size());
         for (Map<String, Object> item : items) {
             String itemKey = MapUtils.getStringRequired(item, "itemKey");
             int qty = MapUtils.toInt(item.get("quantity"), 1);
-            SellItemResultVO result = inventoryService.sellItem(playerId, itemKey, qty, userId);
-            if (result.getSellQuantity() > 0) {
-                totalCoins += result.getTotalCoinsGained();
-                soldItems.add(itemKey);
-            }
+            commands.add(new SellItemCommand(itemKey, qty));
         }
-        Map<String, Object> response = new java.util.LinkedHashMap<>();
-        response.put("coins", totalCoins);
-        response.put("items", soldItems);
-        return Result.ok(response);
+        return Result.ok(inventoryService.sellItems(playerId, commands, userId, requestKey));
     }
 
     @PostMapping("/use-batch")
@@ -87,17 +82,8 @@ public class InventoryController {
         Long playerId = MapUtils.getLong(body, "playerId");
         String itemKey = MapUtils.getStringRequired(body, "itemKey");
         int quantity = MapUtils.getInt(body, "quantity");
-        int used = 0;
-        for (int i = 0; i < quantity; i++) {
-            try {
-                UseItemResultVO result = inventoryService.useItem(playerId, itemKey, userId);
-                used++;
-            } catch (Exception e) { break; }
-        }
-        Map<String, Object> response = new java.util.LinkedHashMap<>();
-        response.put("used", used);
-        response.put("itemKey", itemKey);
-        return Result.ok(response);
+        String requestKey = MapUtils.getStringRequired(body, "requestKey");
+        return Result.ok(inventoryService.useItems(playerId, itemKey, quantity, userId, requestKey));
     }
 
     @GetMapping("/synthesis/recipes")
@@ -115,7 +101,8 @@ public class InventoryController {
         Long userId = LoginUserContext.get().getUserId();
         Long playerId = MapUtils.getLong(body, "playerId");
         String recipeKey = MapUtils.getString(body, "recipeKey");
-        Map<String, Object> result = inventoryService.synthesize(playerId, recipeKey, userId);
+        String requestKey = MapUtils.getStringRequired(body, "requestKey");
+        Map<String, Object> result = inventoryService.synthesize(playerId, recipeKey, userId, requestKey);
         return Result.ok(result);
     }
 
@@ -126,7 +113,9 @@ public class InventoryController {
         Long playerId = MapUtils.getLong(body, "playerId");
         String recipeKey = MapUtils.getString(body, "recipeKey");
         int times = MapUtils.getInt(body, "times");
-        Map<String, Object> result = inventoryService.synthesizeAll(playerId, recipeKey, Math.max(1, Math.min(times, 99)), userId);
+        String requestKey = MapUtils.getStringRequired(body, "requestKey");
+        Map<String, Object> result = inventoryService.synthesizeAll(
+                playerId, recipeKey, Math.max(1, Math.min(times, 99)), userId, requestKey);
         return Result.ok(result);
     }
 }

@@ -5,6 +5,7 @@ import com.huazhenghai.readergame.common.ErrorCode;
 import com.huazhenghai.readergame.common.MapUtils;
 import com.huazhenghai.readergame.common.Result;
 import com.huazhenghai.readergame.dto.EquipItemRequest;
+import com.huazhenghai.readergame.dto.EnhanceEquipmentRequest;
 import com.huazhenghai.readergame.dto.RepairEquipmentRequest;
 import com.huazhenghai.readergame.dto.UnequipItemRequest;
 import com.huazhenghai.readergame.entity.Player;
@@ -95,6 +96,14 @@ public class EquipmentController {
         return Result.ok(result);
     }
 
+    @PostMapping("/enhance")
+    @Operation(summary = "强化装备")
+    public Result<Map<String, Object>> enhance(@Valid @RequestBody EnhanceEquipmentRequest req) {
+        Long userId = LoginUserContext.get().getUserId();
+        return Result.ok(equipmentService.enhance(
+                req.getPlayerId(), req.getEquipmentKey(), userId, req.getRequestKey()));
+    }
+
     private String findEquippedKeyBySlot(Long playerId, String slot) {
         Long userId = LoginUserContext.get().getUserId();
         Map<String, PlayerEquipmentVO> slots = equipmentService.getEquippedSlots(playerId, userId);
@@ -127,22 +136,19 @@ public class EquipmentController {
         return Result.ok(response);
     }
 
-    // ─── 装备套装 (占位) ───
+    // ─── 装备套装 ───
 
     @GetMapping("/sets")
     @Operation(summary = "获取所有装备套装定义")
     public Result<List<Map<String, Object>>> getEquipmentSets() {
-        return Result.ok(java.util.Collections.emptyList());
+        return Result.ok(equipmentService.getEquipmentSets());
     }
 
     @GetMapping("/sets/my/{playerId}")
     @Operation(summary = "获取玩家已激活的套装加成")
     public Result<Map<String, Object>> getMySetBonuses(@PathVariable Long playerId) {
         validatePlayerOwnership(playerId);
-        Map<String, Object> response = new java.util.LinkedHashMap<>();
-        response.put("activeSets", java.util.Collections.emptyList());
-        response.put("bonuses", java.util.Collections.emptyList());
-        return Result.ok(response);
+        return Result.ok(equipmentService.getPlayerSetBonuses(playerId));
     }
 
     private void validatePlayerOwnership(Long playerId) {

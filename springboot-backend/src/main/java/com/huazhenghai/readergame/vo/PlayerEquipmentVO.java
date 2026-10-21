@@ -27,6 +27,12 @@ public class PlayerEquipmentVO {
     private boolean equipped;
     @JsonProperty("enhancement_level")
     private int enhancementLevel;
+    @JsonProperty("max_enhancement_level")
+    private int maxEnhancementLevel;
+    @JsonProperty("enhancement_bonus_percent")
+    private int enhancementBonusPercent;
+    @JsonProperty("next_enhancement_cost")
+    private int nextEnhancementCost;
 
     public String getEquipmentKey() { return equipmentKey; }
     public void setEquipmentKey(String equipmentKey) { this.equipmentKey = equipmentKey; }
@@ -56,4 +62,10 @@ public class PlayerEquipmentVO {
     public void setEquipped(boolean equipped) { this.equipped = equipped; }
     public int getEnhancementLevel() { return enhancementLevel; }
     public void setEnhancementLevel(int enhancementLevel) { this.enhancementLevel = enhancementLevel; }
+    public int getMaxEnhancementLevel() { return maxEnhancementLevel; }
+    public void setMaxEnhancementLevel(int maxEnhancementLevel) { this.maxEnhancementLevel = maxEnhancementLevel; }
+    public int getEnhancementBonusPercent() { return enhancementBonusPercent; }
+    public void setEnhancementBonusPercent(int enhancementBonusPercent) { this.enhancementBonusPercent = enhancementBonusPercent; }
+    public int getNextEnhancementCost() { return nextEnhancementCost; }
+    public void setNextEnhancementCost(int nextEnhancementCost) { this.nextEnhancementCost = nextEnhancementCost; }
 }

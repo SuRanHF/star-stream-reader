@@ -129,7 +129,9 @@ class AdminResourceAdjustmentIntegrationTest {
         assertEquals(PLAYER_ID, jdbcTemplate.queryForObject(
                 "SELECT target_player_id FROM admin_action_logs", Long.class));
         String audit = jdbcTemplate.queryForObject("SELECT payload_json FROM admin_action_logs", String.class);
-        assertTrue(audit.contains("admin-key"));
+        assertTrue(audit.contains("\"operator\":\"h2-admin-resource-operator\""));
+        assertTrue(audit.contains("\"operatorUserId\":99001"));
+        assertTrue(audit.contains("\"authMethod\":\"LOGIN_USER\""));
         assertTrue(audit.contains("修复活动奖励发放错误"));
         assertTrue(audit.contains("\"before\":100"));
         assertTrue(audit.contains("\"after\":150"));
@@ -230,8 +232,9 @@ class AdminResourceAdjustmentIntegrationTest {
                 "SELECT target_player_id FROM admin_action_logs", Long.class));
         String audit = jdbcTemplate.queryForObject(
                 "SELECT payload_json FROM admin_action_logs WHERE action = 'fill_rank_reqs'", String.class);
-        assertTrue(audit.contains("admin-key"));
-        assertTrue(audit.contains("ADMIN_KEY"));
+        assertTrue(audit.contains("\"operator\":\"h2-admin-resource-operator\""));
+        assertTrue(audit.contains("\"operatorUserId\":99001"));
+        assertTrue(audit.contains("\"authMethod\":\"LOGIN_USER\""));
         assertTrue(audit.contains("statsChanges"));
         assertTrue(audit.contains("stageProgressChanges"));
         assertTrue(audit.contains("story_fragments"));

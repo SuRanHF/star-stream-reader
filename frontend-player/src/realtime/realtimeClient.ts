@@ -1,8 +1,7 @@
 import { useChatStore } from '@/stores/chatStore';
 import { useGameStore } from '@/stores/gameStore';
-import { useQuestStore } from '@/stores/questStore';
 import { useRealtimeStore } from '@/stores/realtimeStore';
-import { useWorldBossStore } from '@/stores/worldBossStore';
+import { queryClient } from '@/query/queryClient';
 import type { ApiRecord } from '@/types/api';
 import type { RealtimeEvent, RealtimeHandler } from '@/types/realtime';
 
@@ -106,16 +105,18 @@ class RealtimeClient {
     const data = (event.data || {}) as ApiRecord;
     const gameStore = useGameStore();
 
-    if (event.type === 'online.summary') gameStore.setOnlineSummary(data);
-    if (event.type === 'worldline.updated') gameStore.setWorldlineSummary(data);
     if (event.type === 'broadcast.progress.updated') gameStore.setBroadcastSummary(data);
     if (event.type === 'quest.completed') {
-      gameStore.markQuestClaimable(data);
-      useQuestStore().markClaimable();
+      const playerId = Number(gameStore.player?.id || gameStore.player?.playerId || 0);
+      if (playerId) {
+        void queryClient.invalidateQueries({ queryKey: ['feature-panel', 'quests', playerId] });
+      }
     }
     if (event.type === 'worldBoss.hp.updated') {
-      gameStore.setWorldBossSummary(data);
-      useWorldBossStore().patchSummary(data);
+      const playerId = Number(gameStore.player?.id || gameStore.player?.playerId || 0);
+      if (playerId) {
+        void queryClient.invalidateQueries({ queryKey: ['feature-panel', 'worldBoss', playerId] });
+      }
     }
     if (event.type === 'chat.message') useChatStore().addMessage(data);
     if (event.type === 'system.message') useChatStore().addSystemMessage(data);

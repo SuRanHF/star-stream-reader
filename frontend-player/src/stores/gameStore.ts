@@ -1,29 +1,18 @@
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
-import type { ApiRecord, User } from '@/types/api';
-import type { GameBootstrap, LogEntry, QuestSummary } from '@/types/bootstrap';
+import type { ApiRecord } from '@/types/api';
+import type { GameBootstrap, LogEntry } from '@/types/bootstrap';
 import type { Player } from '@/types/player';
 import { playerApi } from '@/api/playerApi';
 
 export const useGameStore = defineStore('game', () => {
-  const user = ref<User | null>(null);
   const player = ref<Player | null>(null);
   const recentLogs = ref<LogEntry[]>([]);
   const restState = ref<ApiRecord | null>(null);
-  const worldlineSummary = ref<ApiRecord>({});
   const broadcastSummary = ref<ApiRecord>({});
-  const questSummary = ref<QuestSummary>({});
-  const onlineSummary = ref<ApiRecord>({});
-  const chatSummary = ref<ApiRecord>({});
   const inventorySummary = ref<ApiRecord[]>([]);
   const titles = ref<ApiRecord[]>([]);
-  const equipmentSummary = ref<ApiRecord>({});
   const skillSummary = ref<ApiRecord>({});
-  const pkSummary = ref<ApiRecord>({});
-  const rankingSummary = ref<ApiRecord>({});
-  const factionSummary = ref<ApiRecord>({});
-  const worldBossSummary = ref<ApiRecord>({});
-  const narrativeSummary = ref<ApiRecord>({});
   const activePanel = ref('');
   let transientLogSequence = 0;
   const maxVisibleLogs = 120;
@@ -31,7 +20,6 @@ export const useGameStore = defineStore('game', () => {
   const playerName = computed(() => player.value?.playerName || player.value?.['player_name'] || player.value?.name || '未命名读者');
 
   function applyBootstrap(payload: GameBootstrap) {
-    user.value = payload.user || null;
     const rawPlayer = payload.player ? { ...payload.player } : null;
     // 把 stats 里的关键字段展平到 player 顶层，方便组件直接读取
     if (rawPlayer && rawPlayer.stats) {
@@ -64,19 +52,10 @@ export const useGameStore = defineStore('game', () => {
     player.value = rawPlayer;
     recentLogs.value = payload.recentLogs || [];
     restState.value = payload.restState || null;
-    worldlineSummary.value = payload.worldlineSummary || {};
     broadcastSummary.value = payload.broadcastSummary || {};
-    questSummary.value = payload.questSummary || {};
-    onlineSummary.value = payload.onlineSummary || {};
-    chatSummary.value = payload.chatSummary || {};
     inventorySummary.value = payload.inventorySummary || [];
     titles.value = payload.titles || [];
-    equipmentSummary.value = payload.equipmentSummary || {};
     skillSummary.value = payload.skillSummary || {};
-    pkSummary.value = payload.pkSummary || {};
-    factionSummary.value = payload.factionSummary || {};
-    worldBossSummary.value = payload.worldBossSummary || {};
-    narrativeSummary.value = payload.narrativeSummary || {};
   }
 
   function setActivePanel(panel: string) {
@@ -126,18 +105,6 @@ export const useGameStore = defineStore('game', () => {
     recentLogs.value = nextLogs.slice(-maxVisibleLogs);
   }
 
-  function setOnlineSummary(summary: ApiRecord) {
-    onlineSummary.value = { ...onlineSummary.value, ...summary };
-  }
-
-  function setWorldBossSummary(summary: ApiRecord) {
-    worldBossSummary.value = { ...worldBossSummary.value, ...summary };
-  }
-
-  function setWorldlineSummary(summary: ApiRecord) {
-    worldlineSummary.value = { ...worldlineSummary.value, ...summary };
-  }
-
   function setBroadcastSummary(summary: ApiRecord) {
     broadcastSummary.value = { ...broadcastSummary.value, ...summary };
   }
@@ -178,14 +145,6 @@ export const useGameStore = defineStore('game', () => {
       p.stats = stats;
       player.value = p as unknown as Player;
     }
-  }
-
-  function markQuestClaimable(data: ApiRecord) {
-    questSummary.value = {
-      ...questSummary.value,
-      hasRealtimeUpdate: true,
-      lastCompletedQuest: data.questName || data.questKey || '任务完成',
-    };
   }
 
   function patchPlayer(data: ApiRecord) {
@@ -234,36 +193,21 @@ export const useGameStore = defineStore('game', () => {
   }
 
   return {
-    user,
     player,
     recentLogs,
     restState,
-    worldlineSummary,
     broadcastSummary,
-    questSummary,
-    onlineSummary,
-    chatSummary,
     inventorySummary,
     titles,
-    equipmentSummary,
     skillSummary,
-    pkSummary,
-    rankingSummary,
-    factionSummary,
-    worldBossSummary,
-    narrativeSummary,
     activePanel,
     playerName,
     applyBootstrap,
     setActivePanel,
     appendRecentLogs,
     replaceTransientActionLogs,
-    setOnlineSummary,
-    setWorldBossSummary,
-    setWorldlineSummary,
     setBroadcastSummary,
     applyRestState,
-    markQuestClaimable,
     patchPlayer,
     reloadPlayer,
   };

@@ -1773,8 +1773,8 @@ async function runAction(label: string, confirmMessage: string, action: () => Pr
       // 队伍讨伐会同时改变世界 Boss、排行和个人参与记录；即使用户仍停留在队伍面板，
       // 下次切换到灾厄面板时也必须拿到本次最新数据。
       if (label === '开始讨伐' || label === '攻击灾厄' || label === '领取奖励') {
-        await queryClient.invalidateQueries({ queryKey: ['feature-panel', 'worldBoss'] });
-        await queryClient.invalidateQueries({ queryKey: ['feature-panel', 'party'] });
+        await queryClient.invalidateQueries({ queryKey: ['feature-panel', 'worldBoss', playerId.value] });
+        await queryClient.invalidateQueries({ queryKey: ['feature-panel', 'party', playerId.value] });
       }
       const refreshState = await refreshActionState(
         () => panelQuery.refetch(),

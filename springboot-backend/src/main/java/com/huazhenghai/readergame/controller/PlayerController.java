@@ -1023,6 +1023,7 @@ public class PlayerController {
 
     @PostMapping("/reset/{playerId}")
     @Operation(summary = "重置玩家进度")
+    @Transactional
     public Result<PlayerVO> resetPlayer(@PathVariable Long playerId) {
         Long userId = LoginUserContext.get().getUserId();
         validatePlayerOwnership(playerId, userId);

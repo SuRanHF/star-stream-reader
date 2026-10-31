@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   getPendingStories: vi.fn(),
   getPendingBattles: vi.fn(),
   getBootstrap: vi.fn(),
+  getCostPreview: vi.fn(),
   applyBootstrap: vi.fn(),
   appendRecentLogs: vi.fn(),
   replaceTransientActionLogs: vi.fn(),
@@ -34,6 +35,7 @@ vi.mock('@/api/exploreApi', () => ({
     startExplore: mocks.startExplore,
     getPendingStories: mocks.getPendingStories,
     getPendingBattles: mocks.getPendingBattles,
+    getCostPreview: mocks.getCostPreview,
   },
 }));
 vi.mock('@/api/gameApi', () => ({
@@ -124,6 +126,7 @@ describe('GameLayout exploration-to-log integration', () => {
     mocks.startExplore.mockResolvedValue(makeResult());
     mocks.getPendingStories.mockResolvedValue({ pending_stories: [] });
     mocks.getPendingBattles.mockResolvedValue({ pending_battles: [] });
+    mocks.getCostPreview.mockResolvedValue({ minStaminaCost: 4, maxStaminaCost: 6, currentStamina: 50, route_continuation: { status: 'active', event_key: null } });
     mocks.getActiveBroadcasts.mockResolvedValue([]);
     mocks.invalidateQueries.mockResolvedValue(undefined);
   });
@@ -609,5 +612,41 @@ describe('GameLayout exploration-to-log integration', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('树状主线：走到枝尖时显示「本路线待续」，进行中不显示', async () => {
+    mocks.getCostPreview.mockResolvedValue({ minStaminaCost: 4, maxStaminaCost: 6, currentStamina: 50, route_continuation: { status: 'to_be_continued', event_key: 'chungmuro_script_blank' } });
+    const wrapper = mountLayout();
+    await flushPromises();
+
+    expect(wrapper.get('.route-status--pending').text()).toContain('本路线待续');
+    // 页面加载时状态条可见即可，不写日志
+    expect(mocks.appendRecentLogs).not.toHaveBeenCalledWith([expect.objectContaining({ message: expect.stringContaining('待续') })]);
+  });
+
+  it('树状主线：枝尖长出新剧情时显示「本路线有新剧情」，路线进行中不显示状态条', async () => {
+    mocks.getCostPreview.mockResolvedValue({ minStaminaCost: 4, maxStaminaCost: 6, currentStamina: 50, route_continuation: { status: 'active', event_key: 'chungmuro_script_blank' } });
+    const grown = mountLayout();
+    await flushPromises();
+    expect(grown.get('.route-status--grown').text()).toContain('本路线有新剧情');
+    grown.unmount(); wrappers.splice(wrappers.indexOf(grown), 1);
+
+    mocks.getCostPreview.mockResolvedValue({ minStaminaCost: 4, maxStaminaCost: 6, currentStamina: 50, route_continuation: { status: 'active', event_key: null } });
+    const normal = mountLayout();
+    await flushPromises();
+    expect(normal.find('.route-status').exists()).toBe(false);
+  });
+
+  it('树状主线：选择后走到枝尖时立即显示待续并记一条日志', async () => {
+    const wrapper = mountLayout();
+    await flushPromises();
+    expect(wrapper.find('.route-status').exists()).toBe(false);
+
+    mocks.getCostPreview.mockResolvedValue({ minStaminaCost: 4, maxStaminaCost: 6, currentStamina: 50, route_continuation: { status: 'to_be_continued', event_key: 'chungmuro_script_blank' } });
+    wrapper.findComponent(ExploreResultDialog).vm.$emit('choice-made', 'chungmuro_script_blank');
+    await flushPromises();
+
+    expect(wrapper.get('.route-status--pending').text()).toContain('本路线待续');
+    expect(mocks.appendRecentLogs).toHaveBeenCalledWith([expect.objectContaining({ message: expect.stringContaining('待续') })]);
   });
 });

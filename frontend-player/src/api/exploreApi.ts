@@ -117,10 +117,18 @@ export interface MapNode {
 }
 
 // 单次执行场景的行动力区间（服务端预估，不考虑累计余数）；实际扣费以 /explore/start 为准。
+// 树状主线的枝尖状态（见接口契约「路线待续状态」）：
+// to_be_continued = 主线走到枝尖、暂无续写；active + event_key = 枝尖已长出新剧情；active + null = 路线进行中。
+export interface RouteContinuation {
+  status: 'active' | 'to_be_continued';
+  event_key: string | null;
+}
+
 export interface ExploreCostPreview {
   minStaminaCost: number;
   maxStaminaCost: number;
   currentStamina: number;
+  route_continuation?: RouteContinuation;
 }
 
 export const exploreApi = {

@@ -421,6 +421,8 @@ function onStoryChoiceMade(eventKey: string, pendingBattle?: ExploreResult) {
     showExploreResult.value = true;
   }
   void refreshPendingStories();
+  // 枝尖选项结算后立刻进入「待续」，不必等下一次探索才显示。
+  void refreshCostPreview();
 }
 
 function selectedConstellationKey() {
@@ -462,6 +464,43 @@ async function refreshCostPreview() {
 watch(() => [gameStore.player?.id, currentLocationKey(), selectedConstellationKey()], () => {
   void refreshCostPreview();
 }, { immediate: true });
+
+// ─── 树状主线枝尖：没有结局，枝尖是「待续」，更新后从这里继续长 ───
+const routeNotice = computed(() => {
+  const continuation = costPreview.value?.route_continuation;
+  if (continuation?.status === 'to_be_continued') {
+    return {
+      kind: 'pending' as const,
+      text: '本路线待续',
+      hint: '你的主线走到了这根枝的尽头，新的剧情会在之后的更新里长出来。探索、战斗和支线照常进行。',
+    };
+  }
+  if (continuation?.status === 'active' && continuation.event_key) {
+    return {
+      kind: 'grown' as const,
+      text: '本路线有新剧情',
+      hint: '你停下的那根枝长出了新的主线，继续执行场景就会遇到。',
+    };
+  }
+  return null;
+});
+
+// 只在状态变化时记一条日志；刷新页面时状态条本身已经可见，不重复写。
+// 以第一次拿到的预估作为基线（undefined = 还没拿到），之后每次预估都比较一次。
+let lastRouteNoticeKind: string | null | undefined;
+watch(costPreview, () => {
+  if (!costPreview.value) return;
+  const kind = routeNotice.value?.kind ?? null;
+  if (lastRouteNoticeKind !== undefined && kind && kind !== lastRouteNoticeKind) {
+    gameStore.appendRecentLogs([{
+      type: 'system',
+      message: kind === 'pending'
+        ? '◇ 你的主线走到了「待续」。这根枝会在之后的更新里继续生长。'
+        : '✦ 你的路线长出了新的剧情。',
+    }]);
+  }
+  lastRouteNoticeKind = kind;
+});
 
 // 自动行动据此决定是否继续；手动点击时忽略返回值。
 interface SceneOutcome {
@@ -1116,6 +1155,16 @@ onBeforeUnmount(() => {
 
       <div v-show="!actionBarCollapsed" id="playerActionBarBody" class="action-bar-body">
         <div class="action-bar-controls">
+          <p
+            v-if="routeNotice"
+            :class="['route-status', `route-status--${routeNotice.kind}`]"
+            role="status"
+            :title="routeNotice.hint"
+          >
+            <span aria-hidden="true">{{ routeNotice.kind === 'pending' ? '◇' : '✦' }}</span>
+            <strong>{{ routeNotice.text }}</strong>
+            <span class="route-status-hint">{{ routeNotice.hint }}</span>
+          </p>
           <div class="action-group action-group--primary">
             <button class="ling-action-primary btn-action--primary" @click="toggleRest">
               <Sparkles class="action-icon" :size="15" :stroke-width="1.8" aria-hidden="true" />

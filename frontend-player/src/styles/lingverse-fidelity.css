@@ -1563,3 +1563,53 @@ body::before {
   font-size: 12px;
   font-weight: 500;
 }
+
+/* 树状主线枝尖状态：待续 / 有新剧情。窄操作区独占一行带说明，宽操作区收成小标签、说明放 title。 */
+.lingverse-replica-shell .route-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 6px;
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--lv-fidelity-line);
+  border-radius: 8px;
+  color: var(--color-text-dim);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.lingverse-replica-shell .route-status strong {
+  font-weight: 600;
+}
+
+.lingverse-replica-shell .route-status--pending {
+  border-color: color-mix(in srgb, var(--color-star) 35%, var(--lv-fidelity-line));
+  background: color-mix(in srgb, var(--color-star) 6%, transparent);
+}
+
+.lingverse-replica-shell .route-status--pending strong {
+  color: var(--color-star);
+}
+
+.lingverse-replica-shell .route-status--grown {
+  border-color: color-mix(in srgb, var(--color-spirit) 45%, var(--lv-fidelity-line));
+  background: color-mix(in srgb, var(--color-spirit) 10%, transparent);
+}
+
+.lingverse-replica-shell .route-status--grown strong {
+  color: var(--color-spirit);
+}
+
+.lingverse-replica-shell .route-status-hint {
+  display: none;
+  flex-basis: 100%;
+  color: var(--color-muted);
+  font-size: 11px;
+}
+
+@container lv-action (max-width: 560px) {
+  .lingverse-replica-shell .route-status-hint {
+    display: block;
+  }
+}

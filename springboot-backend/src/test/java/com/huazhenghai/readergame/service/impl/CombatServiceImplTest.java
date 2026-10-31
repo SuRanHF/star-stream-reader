@@ -721,13 +721,11 @@ class CombatServiceImplTest {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // Reflection helpers
+    // Test helpers
     // ═══════════════════════════════════════════════════════════════
 
     private int invokeRankToValue(String rank) throws Exception {
-        Method m = CombatServiceImpl.class.getDeclaredMethod("rankToValue", String.class);
-        m.setAccessible(true);
-        return (int) m.invoke(combatService, rank);
+        return CombatDamageCalculator.rankToValue(rank);
     }
 
     private double invokeRankSuppression(String playerRank, String monsterRank) throws Exception {
@@ -737,16 +735,11 @@ class CombatServiceImplTest {
         return Math.max(0.5, Math.min(3.0, 1.0 + diff * 0.15));
     }
 
-    @SuppressWarnings("unchecked")
     private Map<String, Object> invokeCalcDamage(
             int atk, int def, double critRate, double critDamage,
             double suppressionMult, String suppressionNote) throws Exception {
-        Method m = CombatServiceImpl.class.getDeclaredMethod(
-                "calcDamage", int.class, int.class, double.class, double.class,
-                double.class, String.class);
-        m.setAccessible(true);
-        return (Map<String, Object>) m.invoke(
-                combatService, atk, def, critRate, critDamage,
+        return CombatDamageCalculator.calculateDamage(
+                new Random(0), atk, def, critRate, critDamage,
                 suppressionMult, suppressionNote);
     }
 

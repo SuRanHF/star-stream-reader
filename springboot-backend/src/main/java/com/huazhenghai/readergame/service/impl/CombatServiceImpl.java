@@ -163,7 +163,8 @@ public class CombatServiceImpl implements CombatService {
         Location monsterLoc = locationMapper.selectOne(locQw);
         String monsterRecommendedRank = monsterLoc != null && monsterLoc.getRecommendedRank() != null
                 ? monsterLoc.getRecommendedRank() : "F";
-        int rankDiff = rankToValue(playerRank) - rankToValue(monsterRecommendedRank);
+        int rankDiff = CombatDamageCalculator.rankToValue(playerRank)
+                - CombatDamageCalculator.rankToValue(monsterRecommendedRank);
         if (rankDiff != 0) {
             rankSuppMult = Math.max(0.5, Math.min(3.0, 1.0 + rankDiff * 0.15));
             if (rankDiff > 0) {
@@ -206,7 +207,8 @@ public class CombatServiceImpl implements CombatService {
 
             if (attackerFirst) {
                 // Player attacks
-                Map<String, Object> pAtk = calcDamage(playerAtk, monsterDef, playerCritRate, playerCritDamage,
+                Map<String, Object> pAtk = CombatDamageCalculator.calculateDamage(
+                        random, playerAtk, monsterDef, playerCritRate, playerCritDamage,
                         rankSuppMult, rankSuppNote);
                 int pDmg = toInt(pAtk.get("damage"), 0);
                 StoryCombatRelationRules.AttackResult storyAttack = null;
@@ -227,7 +229,8 @@ public class CombatServiceImpl implements CombatService {
                     pAction.put("suppressionNote", pAtk.get("suppressionNote"));
                 }
                 if (storyAttack != null && storyAttack.applied()) {
-                    appendSuppressionNote(pAction, storyAttackRule.combatNote(storyAttack.damageBonus()));
+                    CombatDamageCalculator.appendSuppressionNote(
+                            pAction, storyAttackRule.combatNote(storyAttack.damageBonus()));
                     pAction.put("storyRelation", storyAttackRule.auditMetadata(
                             toInt(pAtk.get("damage"), 0), storyAttack.damageBonus()));
                 }
@@ -241,7 +244,8 @@ public class CombatServiceImpl implements CombatService {
                 }
 
                 // Monster attacks
-                Map<String, Object> mAtk = calcDamage(monsterAtk, playerDef, 0, 1,
+                Map<String, Object> mAtk = CombatDamageCalculator.calculateDamage(
+                        random, monsterAtk, playerDef, 0, 1,
                         1.0, "");
                 int mDmg = toInt(mAtk.get("damage"), 0);
                 StoryCombatRelationRules.HitResult storyMitigation = null;
@@ -277,7 +281,8 @@ public class CombatServiceImpl implements CombatService {
                 }
             } else {
                 // Monster attacks first
-                Map<String, Object> mAtk = calcDamage(monsterAtk, playerDef, 0, 1,
+                Map<String, Object> mAtk = CombatDamageCalculator.calculateDamage(
+                        random, monsterAtk, playerDef, 0, 1,
                         1.0, "");
                 int mDmg = toInt(mAtk.get("damage"), 0);
                 StoryCombatRelationRules.HitResult storyMitigation = null;
@@ -313,7 +318,8 @@ public class CombatServiceImpl implements CombatService {
                 }
 
                 // Player attacks
-                Map<String, Object> pAtk = calcDamage(playerAtk, monsterDef, playerCritRate, playerCritDamage,
+                Map<String, Object> pAtk = CombatDamageCalculator.calculateDamage(
+                        random, playerAtk, monsterDef, playerCritRate, playerCritDamage,
                         rankSuppMult, rankSuppNote);
                 int pDmg = toInt(pAtk.get("damage"), 0);
                 StoryCombatRelationRules.AttackResult storyAttack = null;
@@ -334,7 +340,8 @@ public class CombatServiceImpl implements CombatService {
                     pAction.put("suppressionNote", pAtk.get("suppressionNote"));
                 }
                 if (storyAttack != null && storyAttack.applied()) {
-                    appendSuppressionNote(pAction, storyAttackRule.combatNote(storyAttack.damageBonus()));
+                    CombatDamageCalculator.appendSuppressionNote(
+                            pAction, storyAttackRule.combatNote(storyAttack.damageBonus()));
                     pAction.put("storyRelation", storyAttackRule.auditMetadata(
                             toInt(pAtk.get("damage"), 0), storyAttack.damageBonus()));
                 }
@@ -875,48 +882,6 @@ public class CombatServiceImpl implements CombatService {
         vo.setRarity(m.getRarity());
         vo.setStats(stats);
         return vo;
-    }
-
-    private Map<String, Object> calcDamage(int atk, int def, double critRate, double critDamage,
-                                          double suppressionMult, String suppressionNote) {
-        int baseDmg = Math.max(1, (int) Math.round(atk - def * 0.5));
-        boolean crit = random.nextDouble() < critRate;
-        int dmg = crit ? (int) Math.round(baseDmg * critDamage) : baseDmg;
-        dmg = Math.max(1, (int) Math.round(dmg * suppressionMult));
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("damage", dmg);
-        result.put("critical", crit);
-        if (!suppressionNote.isEmpty()) {
-            result.put("suppressionNote", suppressionNote);
-        }
-        return result;
-    }
-
-    private void appendSuppressionNote(Map<String, Object> action, String note) {
-        if (note == null || note.isBlank()) return;
-        Object existing = action.get("suppressionNote");
-        if (existing instanceof String text && !text.isBlank()) {
-            action.put("suppressionNote", text + "；" + note);
-        } else {
-            action.put("suppressionNote", note);
-        }
-    }
-
-    /** 位格转数值: F=1, E=2, ..., SSS=9 */
-    private int rankToValue(String rank) {
-        if (rank == null) return 1;
-        return switch (rank.toUpperCase()) {
-            case "F" -> 1;
-            case "E" -> 2;
-            case "D" -> 3;
-            case "C" -> 4;
-            case "B" -> 5;
-            case "A" -> 6;
-            case "S" -> 7;
-            case "SS" -> 8;
-            case "SSS" -> 9;
-            default -> 1;
-        };
     }
 
     private void validateCombatRequest(String monsterKey, String requestKey) {

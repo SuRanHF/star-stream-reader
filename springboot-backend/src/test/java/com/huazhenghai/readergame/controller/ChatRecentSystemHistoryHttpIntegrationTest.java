@@ -73,14 +73,13 @@ class ChatRecentSystemHistoryHttpIntegrationTest {
     }
 
     @Test
-    void factionHistoryRemainsIsolatedFromWorldAndSystemMessages() throws Exception {
+    void factionHistoryRequiresPlayerId() throws Exception {
         mockMvc.perform(get("/api/chat/recent")
                         .header("Authorization", "Bearer " + jwtUtil.generateToken(TEST_USER_ID, TEST_USERNAME, "player"))
                         .param("channel", "faction").param("limit", "10"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.length()").value(1))
-                .andExpect(jsonPath("$.data[0].channel").value("faction"))
-                .andExpect(jsonPath("$.data[0].content").value("仅阵营频道可见"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("BAD_REQUEST"));
     }
 
     private void insertMessage(String channel, String messageType, String content, LocalDateTime createdAt) {

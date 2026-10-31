@@ -90,6 +90,51 @@ CREATE TABLE IF NOT EXISTS player_titles (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS titles (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title_key VARCHAR(100) NOT NULL UNIQUE,
+    name VARCHAR(100),
+    category VARCHAR(50),
+    rarity VARCHAR(30),
+    description CLOB,
+    unlock_conditions_json CLOB,
+    effects_json CLOB,
+    tags_json CLOB,
+    strong_against_json CLOB,
+    weak_against_json CLOB,
+    enabled INT DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS parties (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    party_no VARCHAR(100) NOT NULL UNIQUE,
+    leader_player_id BIGINT,
+    name VARCHAR(100),
+    description CLOB,
+    status VARCHAR(30),
+    max_members INT,
+    target_type VARCHAR(50),
+    target_key VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    disbanded_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS party_members (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    party_no VARCHAR(100),
+    player_id BIGINT,
+    role VARCHAR(30),
+    status VARCHAR(30),
+    ready INT,
+    joined_at TIMESTAMP,
+    left_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS exploration_events (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     event_key VARCHAR(100) NOT NULL UNIQUE,
@@ -604,6 +649,8 @@ CREATE TABLE IF NOT EXISTS broadcast_events (
 CREATE TABLE IF NOT EXISTS chat_messages (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     channel VARCHAR(50) NOT NULL DEFAULT 'world',
+    scope_id VARCHAR(100),
+    reply_to_id BIGINT,
     sender_player_id BIGINT,
     sender_name VARCHAR(100),
     message_type VARCHAR(50) NOT NULL DEFAULT 'player',

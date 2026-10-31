@@ -15,6 +15,12 @@ public class ChatMessage {
 
     private String channel;
 
+    @TableField("scope_id")
+    private String scopeId;
+
+    @TableField("reply_to_id")
+    private Long replyToId;
+
     @TableField("sender_player_id")
     private Long senderPlayerId;
 
@@ -36,6 +42,10 @@ public class ChatMessage {
     public void setId(Long id) { this.id = id; }
     public String getChannel() { return channel; }
     public void setChannel(String channel) { this.channel = channel; }
+    public String getScopeId() { return scopeId; }
+    public void setScopeId(String scopeId) { this.scopeId = scopeId; }
+    public Long getReplyToId() { return replyToId; }
+    public void setReplyToId(Long replyToId) { this.replyToId = replyToId; }
     public Long getSenderPlayerId() { return senderPlayerId; }
     public void setSenderPlayerId(Long senderPlayerId) { this.senderPlayerId = senderPlayerId; }
     public String getSenderName() { return senderName; }

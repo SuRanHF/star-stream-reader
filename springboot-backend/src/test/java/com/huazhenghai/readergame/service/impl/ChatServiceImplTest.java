@@ -5,6 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huazhenghai.readergame.entity.ChatMessage;
 import com.huazhenghai.readergame.mapper.ChatMessageMapper;
 import com.huazhenghai.readergame.mapper.PlayerMapper;
+import com.huazhenghai.readergame.mapper.PartyMemberMapper;
+import com.huazhenghai.readergame.mapper.PartyMapper;
+import com.huazhenghai.readergame.mapper.PlayerFactionMapper;
+import com.huazhenghai.readergame.mapper.PlayerTitleMapper;
+import com.huazhenghai.readergame.mapper.TitleMapper;
+import com.huazhenghai.readergame.entity.PlayerFaction;
 import com.huazhenghai.readergame.websocket.WebSocketSessionManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,13 +34,19 @@ class ChatServiceImplTest {
 
     @Mock private ChatMessageMapper chatMessageMapper;
     @Mock private PlayerMapper playerMapper;
+    @Mock private PartyMemberMapper partyMemberMapper;
+    @Mock private PartyMapper partyMapper;
+    @Mock private PlayerFactionMapper playerFactionMapper;
+    @Mock private PlayerTitleMapper playerTitleMapper;
+    @Mock private TitleMapper titleMapper;
     @Mock private WebSocketSessionManager sessionManager;
 
     private ChatServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new ChatServiceImpl(chatMessageMapper, playerMapper, sessionManager, new ObjectMapper());
+        service = new ChatServiceImpl(chatMessageMapper, playerMapper, partyMemberMapper, partyMapper,
+                playerFactionMapper, playerTitleMapper, titleMapper, sessionManager, new ObjectMapper());
     }
 
     @Test
@@ -54,19 +66,23 @@ class ChatServiceImplTest {
         verify(chatMessageMapper).selectList(queryCaptor.capture());
         String sql = queryCaptor.getValue().getSqlSegment();
         assertTrue(sql.contains("channel IN"), sql);
-        assertTrue(sql.contains("ORDER BY created_at DESC"), sql);
+        assertTrue(sql.contains("ORDER BY id DESC"), sql);
     }
 
     @Test
     void factionHistoryDoesNotMixInWorldOrSystemMessages() {
+        PlayerFaction faction = new PlayerFaction();
+        faction.setFactionKey("faction-a");
+        when(playerFactionMapper.selectList(any())).thenReturn(List.of(faction));
         when(chatMessageMapper.selectList(any())).thenReturn(List.of());
 
-        service.getRecentMessages("faction", 50);
+        service.getRecentMessages("faction", 50, 1L, null);
 
         ArgumentCaptor<QueryWrapper<ChatMessage>> queryCaptor = ArgumentCaptor.forClass(QueryWrapper.class);
         verify(chatMessageMapper).selectList(queryCaptor.capture());
         String sql = queryCaptor.getValue().getSqlSegment();
         assertTrue(sql.contains("channel ="), sql);
+        assertTrue(sql.contains("scope_id ="), sql);
         assertFalse(sql.contains("channel IN"), sql);
     }
 

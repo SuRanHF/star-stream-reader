@@ -9,6 +9,11 @@ public class ChatMessageVO {
     private String messageType;
     private String content;
     private String createdAt;
+    private String senderStage;
+    private String senderTitle;
+    private ReplyTo replyTo;
+
+    public record ReplyTo(Long id, String senderName, String contentPreview) {}
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -24,4 +29,10 @@ public class ChatMessageVO {
     public void setContent(String content) { this.content = content; }
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+    public String getSenderStage() { return senderStage; }
+    public void setSenderStage(String senderStage) { this.senderStage = senderStage; }
+    public String getSenderTitle() { return senderTitle; }
+    public void setSenderTitle(String senderTitle) { this.senderTitle = senderTitle; }
+    public ReplyTo getReplyTo() { return replyTo; }
+    public void setReplyTo(ReplyTo replyTo) { this.replyTo = replyTo; }
 }

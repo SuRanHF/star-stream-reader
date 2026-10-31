@@ -33,21 +33,29 @@ public class ChatController {
     @Operation(summary = "获取最近聊天记录")
     public Result<List<ChatMessageVO>> getRecentMessages(
             @RequestParam(defaultValue = "world") String channel,
-            @RequestParam(defaultValue = "50") int limit) {
-        return Result.ok(chatService.getRecentMessages(channel, limit));
+            @RequestParam(defaultValue = "50") int limit,
+            @RequestParam(required = false) Long playerId,
+            @RequestParam(required = false) Long beforeId) {
+        if (playerId != null) requireOwnedPlayer(playerId);
+        return Result.ok(chatService.getRecentMessages(channel, limit, playerId, beforeId));
     }
 
     @PostMapping("/send")
     @Operation(summary = "发送聊天消息")
     public Result<ChatMessageVO> sendMessage(@Valid @RequestBody SendChatMessageRequest req) {
-        Long userId = LoginUserContext.get().getUserId();
+        requireOwnedPlayer(req.getPlayerId());
+        return Result.ok(chatService.sendMessage(req.getPlayerId(), req.getContent(), req.getChannel(), req.getReplyToId()));
+    }
 
-        Player player = playerMapper.selectById(req.getPlayerId());
+    private Player requireOwnedPlayer(Long playerId) {
+        if (playerId == null || playerId <= 0) throw new BusinessException(ErrorCode.BAD_REQUEST, "playerId 必须为正整数");
+        var loginUser = LoginUserContext.get();
+        if (loginUser == null) throw new BusinessException(ErrorCode.UNAUTHORIZED, "请先登录");
+        Player player = playerMapper.selectById(playerId);
         if (player == null)
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "玩家不存在");
-        if (!player.getUserId().equals(userId))
+        if (!java.util.Objects.equals(player.getUserId(), loginUser.getUserId()))
             throw new BusinessException(ErrorCode.FORBIDDEN, "无权使用此玩家发言");
-
-        return Result.ok(chatService.sendMessage(req.getPlayerId(), req.getContent(), req.getChannel()));
+        return player;
     }
 }

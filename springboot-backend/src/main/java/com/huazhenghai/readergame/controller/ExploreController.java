@@ -105,6 +105,13 @@ public class ExploreController {
         return Result.ok(result);
     }
 
+    @GetMapping("/cost-preview/{playerId}")
+    @Operation(summary = "预估当前地点单次探索体力消耗区间")
+    public Result<Map<String, Object>> getCostPreview(@PathVariable Long playerId) {
+        requireOwnedPlayer(playerId);
+        return Result.ok(exploreService.getCostPreview(playerId));
+    }
+
     @PostMapping("/choose")
     @Operation(summary = "故事事件中做出选择")
     public Result<Map<String, Object>> makeChoice(@RequestBody Map<String, Object> body) {

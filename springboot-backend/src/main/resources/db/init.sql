@@ -819,7 +819,9 @@ CREATE TABLE IF NOT EXISTS `worldline_change_logs` (
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `chat_messages` (
     `id`                BIGINT       NOT NULL AUTO_INCREMENT,
-    `channel`           VARCHAR(50)  NOT NULL DEFAULT 'world'      COMMENT 'world / system',
+    `channel`           VARCHAR(50)  NOT NULL DEFAULT 'world'      COMMENT 'world / system / team / faction',
+    `scope_id`          VARCHAR(100) NULL                       COMMENT 'team party_no or faction faction_key',
+    `reply_to_id`       BIGINT       NULL,
     `sender_player_id`  BIGINT       NULL,
     `sender_name`       VARCHAR(100) NULL,
     `message_type`      VARCHAR(50)  NOT NULL DEFAULT 'player'     COMMENT 'player / system / broadcast / worldline',
@@ -829,6 +831,7 @@ CREATE TABLE IF NOT EXISTS `chat_messages` (
 
     PRIMARY KEY (`id`),
     INDEX `idx_chat_channel`    (`channel`),
+    INDEX `idx_chat_channel_scope_id` (`channel`, `scope_id`, `id`),
     INDEX `idx_chat_sender`     (`sender_player_id`),
     INDEX `idx_chat_type`       (`message_type`),
     INDEX `idx_chat_created`    (`created_at`)

@@ -7,6 +7,7 @@ public class SendChatMessageRequest {
     private Long playerId;
     private String playerName;
     private String channel;
+    private Long replyToId;
 
     // 兼容前端发 "message" 和后端旧字段 "content"
     private String content;
@@ -19,6 +20,8 @@ public class SendChatMessageRequest {
 
     public String getChannel() { return channel; }
     public void setChannel(String channel) { this.channel = channel; }
+    public Long getReplyToId() { return replyToId; }
+    public void setReplyToId(Long replyToId) { this.replyToId = replyToId; }
 
     @JsonProperty("content")
     public String getContent() { return content; }

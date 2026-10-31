@@ -170,6 +170,67 @@ public class ExploreServiceImpl implements ExploreService {
     }
 
     @Override
+    public Map<String, Object> getCostPreview(Long playerId) {
+        Player player = playerMapper.selectById(playerId);
+        if (player == null) throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "玩家不存在");
+        String locationKey = player.getCurrentLocation();
+        if (locationKey == null || locationKey.isBlank()) locationKey = "ruined_station";
+        Location location = locationMapper.selectOne(new QueryWrapper<Location>().eq("location_key", locationKey));
+        if (location == null) throw new BusinessException(ErrorCode.LOCATION_NOT_FOUND, "该地点不存在");
+
+        Map<String, Object> stats = parseJsonMap(player.getStatsJson());
+        Map<String, Object> progress = parseJsonMap(player.getStageProgressJson());
+        List<String> triggeredStories = toStringList(progress.get("storyEventsTriggered"));
+        if (!LocationUnlockPolicy.canAccessLocation(parseJsonMap(location.getUnlockConditionsJson()),
+                stats, parseJsonMap(player.getStoryFlagsJson()), player.getCurrentChapter(), triggeredStories))
+            throw new BusinessException(ErrorCode.LOCATION_LOCKED, "该地点尚未解锁");
+        Object decisionsValue = parseJsonList(player.getDecisionHistoryJson());
+        List<?> decisions = decisionsValue instanceof List<?> list ? list : Collections.emptyList();
+        boolean blockStories = !findLowerUnfinishedStories(location, progress, decisions).isEmpty();
+        List<String> triggeredSides = toStringList(progress.get("sideEventsTriggered"));
+        Object pendingValue = progress.get("pendingStorySnapshots");
+        Map<?, ?> pending = pendingValue instanceof Map<?, ?> map ? map : Collections.emptyMap();
+        List<ExplorationEvent> events = eventMapper.selectList(new QueryWrapper<ExplorationEvent>()
+                .eq("location_key", locationKey).eq("enabled", 1));
+        int storyPity = toInt(progress.get("storyPity"), 0);
+        List<ExplorationEvent> available = new ArrayList<>();
+        for (ExplorationEvent event : events) {
+            List<String> triggered = "story".equals(event.getEventType()) ? triggeredStories : triggeredSides;
+            if (triggered.contains(event.getEventKey()) && Integer.valueOf(0).equals(event.getRepeatable()))
+                continue;
+            if ("story".equals(event.getEventType()) && pending.containsKey(event.getEventKey())) {
+                Object choices = parseJsonList(event.getChoicesJson());
+                if (choices instanceof List<?> list && !list.isEmpty()) continue;
+            }
+            if (!ExploreStoryEligibility.checkRequiredConditions(stats, progress, decisions,
+                    parseJsonMap(event.getRequiredConditionsJson()))) continue;
+            if (blockStories && ("story".equals(event.getEventType()) || "side_story".equals(event.getEventType())))
+                continue;
+            available.add(event);
+        }
+        if (storyPity >= 8 && available.stream().anyMatch(e -> "story".equals(e.getEventType())))
+            available.removeIf(e -> !"story".equals(e.getEventType()));
+        if (available.isEmpty()) throw new BusinessException(ErrorCode.NO_AVAILABLE_EVENT, "该地点暂无可用的探索事件");
+
+        Map<String, Object> bonuses = skillService.calculateSkillBonus(playerId);
+        double reduction = bonuses != null && bonuses.get("staminaCostReduce") instanceof Number value
+                ? value.doubleValue() : 0.0;
+        int min = Integer.MAX_VALUE;
+        int max = Integer.MIN_VALUE;
+        for (ExplorationEvent event : available) {
+            int base = event.getStaminaCost() == null ? 5 : event.getStaminaCost();
+            int cost = applySkillStaminaCostReduction(base, reduction, new HashMap<>());
+            min = Math.min(min, cost);
+            max = Math.max(max, cost);
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("minStaminaCost", min);
+        result.put("maxStaminaCost", max);
+        result.put("currentStamina", toInt(stats.get("stamina"), 50));
+        return result;
+    }
+
+    @Override
     @Transactional
     public Map<String, Object> startExplore(Long playerId, String locationKey,
                                            String requestKey, Long userId) {

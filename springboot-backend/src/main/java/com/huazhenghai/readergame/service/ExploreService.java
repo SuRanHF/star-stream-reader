@@ -5,6 +5,8 @@ import java.util.Map;
 
 public interface ExploreService {
 
+    Map<String, Object> getCostPreview(Long playerId);
+
     /**
      * 执行一次探索.
      *

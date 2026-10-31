@@ -122,6 +122,44 @@ class ExploreServiceImplTest {
     }
 
     @Test
+    void costPreviewUsesEligibleEventsAndIgnoresAccumulatedSavingsRemainder() {
+        Player player = new Player();
+        player.setId(1L);
+        player.setCurrentLocation("station");
+        player.setStatsJson("{\"stamina\":21,\"level\":1}");
+        player.setStageProgressJson("{\"storyEventsTriggered\":[\"used\"],\"skillStaminaSavingsRemainder\":0.8}");
+        player.setStoryFlagsJson("{}");
+        player.setDecisionHistoryJson("[]");
+        when(playerMapper.selectById(1L)).thenReturn(player);
+        Location location = new Location();
+        location.setLocationKey("station");
+        location.setUnlockConditionsJson("{}");
+        when(locationMapper.selectOne(any())).thenReturn(location);
+        ExplorationEvent cheap = new ExplorationEvent();
+        cheap.setEventKey("cheap");
+        cheap.setEventType("resource");
+        cheap.setStaminaCost(5);
+        ExplorationEvent costly = new ExplorationEvent();
+        costly.setEventKey("costly");
+        costly.setEventType("resource");
+        costly.setStaminaCost(10);
+        ExplorationEvent used = new ExplorationEvent();
+        used.setEventKey("used");
+        used.setEventType("story");
+        used.setRepeatable(0);
+        used.setStaminaCost(100);
+        when(eventMapper.selectList(any())).thenReturn(List.of(cheap, costly, used));
+        when(skillService.calculateSkillBonus(1L)).thenReturn(Map.of("staminaCostReduce", 0.2));
+
+        Map<String, Object> preview = exploreService.getCostPreview(1L);
+
+        assertEquals(4, preview.get("minStaminaCost"));
+        assertEquals(8, preview.get("maxStaminaCost"));
+        assertEquals(21, preview.get("currentStamina"));
+        verify(playerMapper, never()).updateById(any(Player.class));
+    }
+
+    @Test
     void explorationRequiresRequestKeyBeforeReadingOrChangingPlayerState() {
         BusinessException error = assertThrows(BusinessException.class,
                 () -> exploreService.startExplore(1L, "ruined_station", null, 9L));

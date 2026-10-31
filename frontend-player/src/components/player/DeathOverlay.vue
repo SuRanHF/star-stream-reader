@@ -4,6 +4,7 @@ import { playerApi } from '@/api/playerApi';
 import { gameApi } from '@/api/gameApi';
 import { useGameStore } from '@/stores/gameStore';
 import { useUiStore } from '@/stores/uiStore';
+import { sacrificeLossText, summarizeTitleEffects } from '@/utils/titleEffects';
 
 const gameStore = useGameStore();
 const uiStore = useUiStore();
@@ -26,11 +27,13 @@ const ownedTitles = computed(() => (gameStore.titles || [])
     key: String(entry.titleKey || entry.title_key || ''),
     name: String(entry.name || entry.titleName || entry.titleKey || ''),
     rarity: String(entry.rarity || ''),
+    effects: summarizeTitleEffects(entry),
   }))
   .filter((title) => title.key));
 const selectedTitleKey = ref('');
 const sacrificeArmed = ref(false);
 const selectedTitle = computed(() => ownedTitles.value.find((title) => title.key === selectedTitleKey.value));
+const selectedLoss = computed(() => sacrificeLossText(selectedTitle.value?.effects || null));
 
 function selectTitle(key: string) {
   selectedTitleKey.value = selectedTitleKey.value === key ? '' : key;
@@ -125,6 +128,7 @@ async function revive(method: 'coins' | 'title' = 'coins', titleKey?: string) {
               {{ title.name }}<small v-if="title.rarity">{{ title.rarity }}</small>
             </button>
           </div>
+          <p v-if="selectedTitle && selectedLoss" class="do-sacrifice-loss">{{ selectedLoss }}</p>
           <button
             v-if="ownedTitles.length"
             type="button"
@@ -299,6 +303,11 @@ async function revive(method: 'coins' | 'title' = 'coins', titleKey?: string) {
 .do-title-chip.active {
   border-color: var(--color-star);
   color: var(--color-star);
+}
+.do-sacrifice-loss {
+  margin: -4px 0 10px;
+  color: var(--color-danger-bright);
+  font-size: 12px;
 }
 .do-sacrifice-btn {
   font-size: 14px;

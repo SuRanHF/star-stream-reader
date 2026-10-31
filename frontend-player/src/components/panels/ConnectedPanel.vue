@@ -53,6 +53,7 @@ import { filterQuestItems } from '@/utils/questFilter';
 import { questDependencyHint } from '@/utils/questDependencyHint';
 import { buildStoryRecapEntries, hasStoryRecapLoadError } from '@/utils/storyRecap';
 import { buildEndingArchiveEntries } from '@/utils/endingArchive';
+import { summarizeTitleEffects } from '@/utils/titleEffects';
 import { WORLDLINE_HISTORY_DESCRIPTION, worldlineCauseDisplay } from '@/utils/worldlineDisplay';
 import {
   asArray,
@@ -2592,7 +2593,13 @@ onBeforeUnmount(() => {
             <div><span>{{ pickText(entry, ['type', 'category', 'source'], '档案') }}</span><h4>{{ pickText(entry, ['titleName', 'name', 'titleKey'], '未命名档案') }}</h4></div>
             <b>{{ encyclopediaOwnedKeys.has(pickText(entry, ['titleKey', 'title_key', 'key'], '')) ? '已拥有' : pickText(entry, ['rarity', 'tier'], '未定') }}</b>
           </div>
-          <p>{{ pickText(entry, ['description', 'desc', 'effects'], '尚未记录详细说明。') }}</p>
+          <p>{{ pickText(entry, ['description', 'desc'], '尚未记录详细说明。') }}</p>
+          <p v-if="summarizeTitleEffects(entry)" class="ling-title-effects">
+            <span v-if="summarizeTitleEffects(entry)!.active.length">{{ summarizeTitleEffects(entry)!.active.join(' · ') }}</span>
+            <span v-for="text in summarizeTitleEffects(entry)!.uncertain" :key="text" class="is-uncertain">{{ text }}（待确认）</span>
+            <span v-for="text in summarizeTitleEffects(entry)!.inactive" :key="text" class="is-inactive">{{ text }}（未生效）</span>
+            <small v-if="summarizeTitleEffects(entry)!.scope === 'equipped'">佩戴后生效</small>
+          </p>
           <div class="ling-encyclopedia-meta"><span v-if="pick(entry, ['source'])">来源 {{ pickText(entry, ['source'], '未知') }}</span><span v-if="pick(entry, ['rarity', 'tier'])">品质 {{ pickText(entry, ['rarity', 'tier'], '—') }}</span><span v-if="pick(entry, ['status'])">{{ pickText(entry, ['status'], '已记录') }}</span></div>
           <div class="ling-encyclopedia-actions"><button v-for="action in titleActions(entry)" :key="action.label" type="button" :disabled="action.disabled || Boolean(actionBusy)" @click="action.onClick">{{ actionBusy === action.label ? '处理中' : action.label }}</button></div>
         </article>

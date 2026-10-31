@@ -260,7 +260,7 @@ VALUES
    },
    {
      "label": ""谁想重写结局？告诉我更多。"",
-     "consequence_text": "影王沉默良久。\"有一个读者——不是我们这种。他是'作者'。他想改写这个故事的结局。\"他递给你一页撕下的手稿——上面的文字正在实时变化。\"这是一页剧本。读它——然后决定站在哪一边。\"手稿上的文字描述的是你的死亡。日期是明天。",
+     "consequence_text": "影王沉默良久。\"有一个读者——不是我们这种。他是'作者'。他想改写这个故事的结局。\"他递给你一页撕下的手稿——上面的文字正在实时变化。\"这是一页剧本。读它——然后决定站在哪一边。\"手稿上的文字只写到你的名字，后面的字迹一次次淡去，像被什么从未来里抹掉了。",
      "rewards_override": {"storyFragments":8,"exp":100,"channelHeat":20,"items":[{"itemKey":"剧本碎片","quantity":1,"dropRate":1.0}]},
      "unlock_events": ["chungmuro_conspiracy_story"],
      "title_bias": {"title_truth_seeker": 3}
@@ -323,7 +323,7 @@ VALUES
  '[
    {
      "label": "在剧本上写下——"忠武路的所有人联合起来，击败了地狱之火。"",
-     "consequence_text": "稿纸发出刺眼的光芒。纸王震惊地看着你。\"你——你改写了它？\"他反复检查那行新出现的文字。\"这不是预测——这是新的剧本！\"窗外，你看到十王们开始行动——不是彼此争斗，而是联合布防。读者的一笔——改变了忠武路的命运。\n\n但纸王注意到了一件事：那行文字的下面——在很远很远的段落里——写着你的名字。和你的死亡日期。",
+     "consequence_text": "稿纸发出刺眼的光芒。纸王震惊地看着你。\"你——你改写了它？\"他反复检查那行新出现的文字。\"这不是预测——这是新的剧本！\"窗外，你看到十王们开始行动——不是彼此争斗，而是联合布防。读者的一笔——改变了忠武路的命运。\n\n但纸王注意到了一件事：那行文字的下面——在很远很远的段落里——写着你的名字，和一个日期。你看不清那是哪一天。",
      "rewards_override": {"storyFragments":15,"exp":400,"channelHeat":80,"coins":150,"items":[{"itemKey":"剧本笔迹","quantity":1,"dropRate":1.0}]},
      "unlock_locations": ["dongdaemun"],
      "title_bias": {"title_script_rewriter": 5}
@@ -1369,7 +1369,7 @@ WHERE `event_key` = 'chungmuro_conspiracy_story';
 
 UPDATE `exploration_events`
 SET `required_conditions_json` = '{"choice_unlockers":[{"event_key":"chungmuro_unnamed_crossing","choice_indices":[0]}],"required_choices":[{"event_key":"station_first_trace","choice_indices":[1]}]}',
-    `choices_json` = '[{"label":"在剧本上写下——\\"忠武路的所有人联合起来，击败了地狱之火。\\"","consequence_text":"稿纸发出刺眼的光芒。纸王震惊地看着你。\\"你——你改写了它？\\"他反复检查那行新出现的文字。\\"这不是预测——这是新的剧本！\\"窗外，你看到十王们开始行动——不是彼此争斗，而是联合布防。读者的一笔——改变了忠武路的命运。\\n\\n但纸王注意到了一件事：那行文字的下面——在很远很远的段落里——写着你的名字。和你的死亡日期。","rewards_override":{"storyFragments":15,"exp":400,"channelHeat":80,"coins":150,"items":[{"itemKey":"剧本笔迹","quantity":1,"dropRate":1.0}]},"title_bias":{"title_script_rewriter":5},"unlock_events":["chungmuro_script_blank"]},{"label":"合上剧本——\\"有些未来最好不要知道。\\"","consequence_text":"纸王叹了口气。\\"也许你是对的。\\"他收起了稿纸。\\"不知为何——我觉得你还会再看到这页纸的。\\"他给你一张通行证——上面盖着十王的十枚印章。\\"拿着。不管忠武路未来如何——你都可以在这里自由通行。\\"\\n\\n但你心里清楚：你只是推迟了一个问题的答案。剧本上那段关于你的文字，迟早会写完。","rewards_override":{"storyFragments":5,"exp":150,"coins":100,"items":[{"itemKey":"ten_kings_pass","quantity":1,"dropRate":1.0}]},"title_bias":{"title_acceptance":3},"unlock_events":["chungmuro_script_blank"]}]'
+    `choices_json` = '[{"label":"在剧本上写下——\\"忠武路的所有人联合起来，击败了地狱之火。\\"","consequence_text":"稿纸发出刺眼的光芒。纸王震惊地看着你。\\"你——你改写了它？\\"他反复检查那行新出现的文字。\\"这不是预测——这是新的剧本！\\"窗外，你看到十王们开始行动——不是彼此争斗，而是联合布防。读者的一笔——改变了忠武路的命运。\\n\\n但纸王注意到了一件事：那行文字的下面——在很远很远的段落里——写着你的名字，和一个日期。你看不清那是哪一天。","rewards_override":{"storyFragments":15,"exp":400,"channelHeat":80,"coins":150,"items":[{"itemKey":"剧本笔迹","quantity":1,"dropRate":1.0}]},"title_bias":{"title_script_rewriter":5},"unlock_events":["chungmuro_script_blank"]},{"label":"合上剧本——\\"有些未来最好不要知道。\\"","consequence_text":"纸王叹了口气。\\"也许你是对的。\\"他收起了稿纸。\\"不知为何——我觉得你还会再看到这页纸的。\\"他给你一张通行证——上面盖着十王的十枚印章。\\"拿着。不管忠武路未来如何——你都可以在这里自由通行。\\"\\n\\n但你心里清楚：你只是推迟了一个问题的答案。剧本上那段关于你的文字，迟早会写完。","rewards_override":{"storyFragments":5,"exp":150,"coins":100,"items":[{"itemKey":"ten_kings_pass","quantity":1,"dropRate":1.0}]},"title_bias":{"title_acceptance":3},"unlock_events":["chungmuro_script_blank"]}]'
 WHERE `event_key` = 'chungmuro_revelation_story';
 
 UPDATE `exploration_events`
@@ -1514,7 +1514,7 @@ VALUES
  'vol1_ch3',
  'chungmuro',
  '空白的一页',
- '纸王带你走进他的书房。四面墙都是稿纸，每一张都在轻轻翻动，像在呼吸。他从最底下抽出一页，铺在你面前。\n\n那一页最上方写着你的名字，下面是你从车厢里醒来之后做过的每一件事，一行不差。你记得剧本上曾经写过一个日期，属于你的日期。现在，它不见了。再往下，是一大片空白。\n\n"所有人的那一页，我都能看到结尾。"纸王说，"只有你的，是空的。"他第一次露出了一点不安，"要么你很快会被删掉——要么，你的结局，还没有人敢写。"',
+ '纸王带你走进他的书房。四面墙都是稿纸，每一张都在轻轻翻动，像在呼吸。他从最底下抽出一页，铺在你面前。\n\n那一页最上方写着你的名字，下面是你从车厢里醒来之后做过的每一件事，一行不差。再往下，本该写着日子的那一栏，是一大片空白。\n\n"所有人的那一页，我都能看到结尾。"纸王说，"只有你的，是空的。"他第一次露出了一点不安，"要么你很快会被删掉——要么，你的结局，还没有人敢写。"',
  12,
  7,
  0,

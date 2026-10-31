@@ -293,7 +293,7 @@ class StoryRouteStaticIntegrityTest {
         assertFalse(growthMigration.contains("UPDATE `players`")
                 || growthMigration.contains("DELETE FROM `players`"));
         assertEquals(5, count(growthMigration, "INSERT IGNORE INTO `exploration_events`"));
-        assertEquals(31, count(growthMigration, "UPDATE `exploration_events`")
+        assertEquals(32, count(growthMigration, "UPDATE `exploration_events`")
                 + count(growthMigration, "UPDATE `locations`"));
         Matcher growthUpdates = Pattern.compile("UPDATE `([^`]+)`[\\s\\S]*?;")
                 .matcher(growthMigration);
@@ -307,7 +307,7 @@ class StoryRouteStaticIntegrityTest {
             assertTrue(update.contains("\n  AND ") || update.contains("\r\n  AND "),
                     "旧库迁移每条更新都必须有旧值守卫");
         }
-        assertEquals(31, guardedUpdates);
+        assertEquals(32, guardedUpdates);
         assertFalse(growthMigration.contains("DELETE ") || growthMigration.contains("UPDATE `players`"));
         assertEquals(4, count(migration, "UPDATE `exploration_events`"));
         assertEquals(11, count(migration, "UPDATE `locations`"));

@@ -333,17 +333,17 @@ try {
   assert.match(await storyDialog.locator('.sst-choice-risk').innerText(), /15/);
 
   await storyDialog.locator('.sst-choice-btn').click();
-  await page.locator('.sst-event-name').filter({ hasText: /^钢铁化试炼$/ })
+  await page.locator('.sst-card.is-encounter .enc-name').filter({ hasText: /^钢铁化试炼$/ })
     .waitFor({ state: 'visible', timeout: 10000 });
   let battleDialog = page.locator('.sst-backdrop');
-  assert.equal(await battleDialog.locator('.sst-event-name').innerText(), '钢铁化试炼');
+  assert.equal(await battleDialog.locator('.sst-card.is-encounter .enc-name').innerText(), '钢铁化试炼');
 
   pageReloadedAfterChoice = true;
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForURL('**/game');
   await page.locator('.sst-backdrop').waitFor({ state: 'visible', timeout: 15000 });
   battleDialog = page.locator('.sst-backdrop');
-  assert.equal(await battleDialog.locator('.sst-event-name').innerText(), '钢铁化试炼',
+  assert.equal(await battleDialog.locator('.sst-card.is-encounter .enc-name').innerText(), '钢铁化试炼',
     '刷新后必须恢复服务端保存的同一待战斗遭遇');
   assert.ok(pendingBattleKeysAfterReload.includes(pendingBattleRequestKey),
     '刷新后的战斗必须来自 H2 后端待处理队列，而不是仅靠浏览器内存恢复');

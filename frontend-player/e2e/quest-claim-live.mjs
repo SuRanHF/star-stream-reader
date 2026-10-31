@@ -411,14 +411,14 @@ try {
   assert.equal(storyChoiceEnvelope?.data?.pending_battle?.monster_key, 'h2_first_victory_beast');
   assert.ok(storyChoiceEnvelope?.data?.pending_battle?.request_key);
 
-  await page.locator('.sst-event-name').filter({ hasText: /^初次战斗$/ })
+  await page.locator('.sst-card.is-encounter .enc-name').filter({ hasText: /^初次战斗$/ })
     .waitFor({ state: 'visible', timeout: 10000 });
   pageReloadedAfterBattleChoice = true;
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForURL('**/game');
   await page.locator('.sst-backdrop').waitFor({ state: 'visible', timeout: 15000 });
   const restoredBattleDialog = page.locator('.sst-backdrop');
-  assert.equal(await restoredBattleDialog.locator('.sst-event-name').innerText(), '初次战斗',
+  assert.equal(await restoredBattleDialog.locator('.sst-card.is-encounter .enc-name').innerText(), '初次战斗',
     '整页刷新后应从服务端恢复待战斗故事遭遇');
   assert.ok(pendingBattleKeysAfterReload.includes(storyChoiceEnvelope.data.pending_battle.request_key),
     '刷新恢复的待战斗必须来自 H2 持久化队列');

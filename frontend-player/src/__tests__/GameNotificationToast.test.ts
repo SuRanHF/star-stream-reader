@@ -5,6 +5,7 @@ import { nextTick } from 'vue';
 import GameNotificationToast from '@/components/notification/GameNotificationToast.vue';
 import { realtimeClient } from '@/realtime/realtimeClient';
 import { useChatStore } from '@/stores/chatStore';
+import { useGameStore } from '@/stores/gameStore';
 
 let unmountToast: (() => void) | undefined;
 
@@ -44,5 +45,24 @@ describe('GameNotificationToast', () => {
     expect(document.body.querySelector('.ling-notification-type')?.textContent).toBe('系统');
     expect(document.body.querySelector('.ling-notification-body')?.textContent).toBe(content);
 
+  });
+
+  it('放送进度推送只刷新顶部放送条，不弹提示（每次执行场景都会推送一次）', async () => {
+    const wrapper = mount(GameNotificationToast, { attachTo: document.body });
+    unmountToast = () => wrapper.unmount();
+
+    for (const currentValue of [3, 4, 5]) {
+      realtimeClient.handleMessage(JSON.stringify({
+        type: 'broadcast.progress.updated',
+        data: {
+          activeCount: 1,
+          activeEvents: [{ eventKey: 'broadcast_station_cleanup', title: '车站清理', status: 'active', currentValue, targetValue: 20 }],
+        },
+      }));
+    }
+    await nextTick();
+
+    expect(document.body.querySelector('.ling-notification-toast')).toBeNull();
+    expect(useGameStore().broadcastSummary).toMatchObject({ activeCount: 1 });
   });
 });

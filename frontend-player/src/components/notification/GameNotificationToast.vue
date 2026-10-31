@@ -45,20 +45,8 @@ function handleSystemMessage(event: RealtimeEvent) {
   }
 }
 
-function handleBroadcastUpdate(event: RealtimeEvent) {
-  const data = event.data as Record<string, unknown> | undefined;
-  if (!data) return;
-  const activeEvents = data.activeEvents;
-  if (Array.isArray(activeEvents) && activeEvents.length > 0) {
-    const first = activeEvents[0] as Record<string, unknown>;
-    const title = String(first.title || '星流放送');
-    const status = String(first.status || '');
-    addToast('星流放送', `"${title}" 状态: ${status}`, event.type);
-  } else {
-    const count = data.activeCount;
-    addToast('星流放送', `活跃事件: ${count ?? 0} 个`, event.type);
-  }
-}
+// 放送进度每次有人探索或战斗都会推送一次，只用来刷新顶部放送条（realtimeClient 写入 gameStore），不弹提示。
+// 放送开始和完成时，服务端另发 system.message，由 handleSystemMessage 弹出，避免重复。
 
 function handleWorldBossUpdate(event: RealtimeEvent) {
   addToast('世界Boss', '世界Boss状态已更新', event.type);
@@ -75,7 +63,6 @@ function handleQuestCompleted(event: RealtimeEvent) {
 function handleEvent(event: RealtimeEvent) {
   switch (event.type) {
     case 'system.message': handleSystemMessage(event); break;
-    case 'broadcast.progress.updated': handleBroadcastUpdate(event); break;
     case 'worldBoss.hp.updated': handleWorldBossUpdate(event); break;
     case 'worldline.updated': handleWorldlineUpdate(event); break;
     case 'quest.completed': handleQuestCompleted(event); break;
@@ -84,7 +71,6 @@ function handleEvent(event: RealtimeEvent) {
 
 onMounted(() => {
   realtimeClient.on('system.message', handleEvent);
-  realtimeClient.on('broadcast.progress.updated', handleEvent);
   realtimeClient.on('worldBoss.hp.updated', handleEvent);
   realtimeClient.on('worldline.updated', handleEvent);
   realtimeClient.on('quest.completed', handleEvent);
@@ -92,7 +78,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   realtimeClient.off('system.message', handleEvent);
-  realtimeClient.off('broadcast.progress.updated', handleEvent);
   realtimeClient.off('worldBoss.hp.updated', handleEvent);
   realtimeClient.off('worldline.updated', handleEvent);
   realtimeClient.off('quest.completed', handleEvent);

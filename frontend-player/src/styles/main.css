@@ -5143,9 +5143,19 @@ a:focus-visible {
    宽屏传音筒：最新版灵界默认把聊天作为日志右侧常驻栏，
    手机则保留日志/传音双签。数据、发送和频道切换仍由星流读者 ConnectedPanel 驱动。
    ───────────────────────────────────────────────────────────── */
-@media (min-width: 1025px) {
-  .ling-main:not(.has-feature-panel) > .log-area .log-mid-tabs {
+@media (min-width: 900px) {
+  /* 日志/传音双签只在聊天没有常驻时出现（窄屏或聊天被折叠）。 */
+  .ling-main.has-docked-chat > .log-area .log-mid-tabs {
     display: none;
+  }
+
+  /* 参考站：传音筒占满右栏高度，操作区只在日志列下方。 */
+  .ling-main.has-docked-chat > .ling-inline-chat {
+    grid-row: 1 / -1;
+  }
+
+  .ling-main.has-docked-chat > .ling-bottom {
+    grid-column: 1;
   }
 
   .ling-inline-chat {
@@ -5212,7 +5222,7 @@ a:focus-visible {
   }
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 899px) {
   .ling-main > .ling-bottom .ling-footer-status.is-idle {
     display: none;
   }

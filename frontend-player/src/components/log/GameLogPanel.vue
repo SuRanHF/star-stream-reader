@@ -314,12 +314,6 @@ function lineClass(type?: string) {
   padding: 8px 0;
 }
 
-@media (min-width: 1025px) {
-  .log-mid-tabs {
-    display: none;
-  }
-}
-
 @media (max-width: 760px) {
   .log-panel::before {
     top: 14px;

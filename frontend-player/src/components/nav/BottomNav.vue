@@ -27,21 +27,29 @@ const visibleCount = ref(7);
 const DESKTOP_LAYOUT_MIN_WIDTH = 888;
 const isDesktopLayout = ref(window.innerWidth >= DESKTOP_LAYOUT_MIN_WIDTH);
 
+const props = withDefaults(defineProps<{
+  // 已在别处常驻的入口（如宽屏右栏的星流频道），不再占功能格。
+  hiddenPanels?: string[];
+}>(), {
+  hiddenPanels: () => [],
+});
+
 const emit = defineEmits<{
   select: [panel: string];
 }>();
 
 // 沿用星流读者原有的功能与名称，只使用参考站式图标底栏呈现。
+// 前四项跟「探索→战斗→奖励」主循环最相关，窄操作区只放得下它们和「更多」。
 const compactItems = [
-  { key: 'chat', label: '星流频道', icon: MessageCircle, panel: 'chat' },
   { key: 'party', label: '队伍', icon: Users, panel: 'party' },
   { key: 'support', label: '悬赏支援', icon: Shield, panel: 'support' },
   { key: 'market', label: '鬼怪商店', icon: Store, panel: 'trade' },
+  { key: 'book', label: '档案', icon: BookOpen, panel: 'titles' },
+  { key: 'chat', label: '星流频道', icon: MessageCircle, panel: 'chat' },
   { key: 'martial', label: '化身战场', icon: Swords, panel: 'pk' },
   { key: 'boss', label: '灾厄', icon: Flame, panel: 'worldBoss' },
   { key: 'trial', label: '场景试炼', icon: ScrollText, panel: 'quests' },
   { key: 'ranking', label: '化身排行', icon: Trophy, panel: 'ranking' },
-  { key: 'book', label: '档案', icon: BookOpen, panel: 'titles' },
   { key: 'secret', label: '隐藏场景', icon: Map, panel: 'hiddenScene' },
   { key: 'notice', label: '星流公告', icon: Megaphone, panel: 'notice' },
   { key: 'abyss', label: '冥界', icon: Skull, panel: 'underworld' },
@@ -50,7 +58,8 @@ const compactItems = [
   { key: 'feedback', label: '鬼怪反馈', icon: MessageSquareWarning, panel: 'feedback' },
 ];
 const desktopItems = compactItems;
-const items = computed(() => isDesktopLayout.value ? desktopItems : compactItems);
+const items = computed(() => (isDesktopLayout.value ? desktopItems : compactItems)
+  .filter((item) => !props.hiddenPanels.includes(item.panel)));
 
 // 手机/紧凑操作栏沿用原来的常用入口数量；桌面横向底栏按实际宽度收纳。
 const COMPACT_VISIBLE_COUNT = 7;

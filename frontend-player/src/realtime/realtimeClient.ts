@@ -136,6 +136,7 @@ class RealtimeClient {
         void queryClient.invalidateQueries({ queryKey: ['feature-panel', 'worldBoss', playerId] });
       }
     }
+    if (event.type === 'welcome' || event.type === 'online.summary') useRealtimeStore().setOnlineCount(data.onlineCount);
     if (event.type === 'chat.message') useChatStore().addMessage(data);
     if (event.type === 'system.message') useChatStore().addSystemMessage(data);
     if (event.type === 'stats.updated') gameStore.patchPlayer(data);

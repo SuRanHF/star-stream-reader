@@ -413,9 +413,34 @@ body::before {
   text-decoration: none;
 }
 
-.lingverse-replica-shell .ling-left .player-panel-replica .stat-value-clickable,
 .lingverse-replica-shell .ling-left .player-panel-replica .stat-value-link {
   text-decoration: none;
+}
+
+/* 参考站：可查看明细的数值带点状下划线和 ⓘ。 */
+.lingverse-replica-shell .ling-left .player-panel-replica .stat-value-clickable {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: underline dotted;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  text-underline-offset: 3px;
+}
+
+.lingverse-replica-shell .ling-left .player-panel-replica .stat-name-value {
+  display: inline;
+  text-decoration: none;
+}
+
+.lingverse-replica-shell .ling-left .player-panel-replica .stat-info-ic {
+  flex: 0 0 auto;
+  opacity: 0.55;
+}
+
+.lingverse-replica-shell .ling-left .player-panel-replica .stat-value-clickable:focus-visible {
+  outline: 1px solid var(--color-star);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .lingverse-replica-shell .ling-left .player-panel-replica .progress-bar-container {
@@ -1291,4 +1316,250 @@ body::before {
     background: var(--lv-fidelity-panel);
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
   }
+}
+
+/*
+ * 窄操作区（宽屏常驻传音时只占日志列）：按参考站排成三行——
+ * 两颗主按钮 / 一行方形控件 / 功能格 + 更多。按操作区自身宽度切换，而不是视口宽度。
+ */
+.lingverse-replica-shell .ling-main > .ling-bottom {
+  container: lv-action / inline-size;
+}
+
+/* 主按钮：图标与文字同一行居中（参考站「☼ 冥想」样式）。 */
+.lingverse-replica-shell .action-group--primary > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+@container lv-action (max-width: 560px) {
+  .lingverse-replica-shell .action-bar-body {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .lingverse-replica-shell .action-bar-controls {
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .lingverse-replica-shell .action-group--primary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    flex: 0 0 auto;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .lingverse-replica-shell .action-group--primary > button {
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    white-space: nowrap;
+  }
+
+  /* 继续剧情 / 继续遭遇出现时独占一行，不挤压两颗主按钮。 */
+  .lingverse-replica-shell .action-group--primary > button:nth-child(n + 3) {
+    grid-column: 1 / -1;
+  }
+
+  .lingverse-replica-shell .action-group--tools {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .lingverse-replica-shell .action-bar .ling-check,
+  .lingverse-replica-shell .action-bar .btn-setting {
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .lingverse-replica-shell .action-bar .ling-check {
+    flex: 1 1 auto;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 8px;
+    white-space: nowrap;
+  }
+
+  .lingverse-replica-shell .action-bar .btn-setting {
+    flex: 0 0 44px;
+    width: 44px;
+  }
+
+  .lingverse-replica-shell .action-bar .ling-right-nav {
+    flex: 0 0 auto;
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .lingverse-replica-shell .action-bar .fn-btn {
+    flex: 0 0 48px;
+    width: 48px;
+  }
+}
+
+/* 自动行动设置：贴在控件行上方的小面板。 */
+.lingverse-replica-shell .action-group--tools {
+  position: relative;
+}
+
+.lingverse-replica-shell .auto-action-settings {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 30;
+  display: grid;
+  gap: 8px;
+  width: min(260px, calc(100vw - 32px));
+  padding: 12px;
+  border: 1px solid var(--lv-fidelity-line);
+  border-radius: 8px;
+  background: var(--lv-fidelity-panel);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--color-text) 12%, transparent);
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.lingverse-replica-shell .auto-action-settings-title {
+  margin: 0;
+  color: var(--color-star);
+  font-weight: 600;
+}
+
+.lingverse-replica-shell .auto-action-settings label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lingverse-replica-shell .auto-action-settings input {
+  width: 64px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--lv-fidelity-line);
+  border-radius: 6px;
+  background: var(--lv-fidelity-void);
+  color: var(--color-text);
+}
+
+.lingverse-replica-shell .auto-action-settings-note {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.lingverse-replica-shell .auto-action-settings-close {
+  justify-self: end;
+  height: 30px;
+  padding: 0 14px;
+  border: 1px solid color-mix(in srgb, var(--color-star) 40%, var(--lv-fidelity-line));
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-star) 10%, transparent);
+  color: var(--color-star);
+  cursor: pointer;
+}
+
+/* 传音：在线人数、称号徽标、回复引用、加载更早。 */
+.lingverse-replica-shell .ling-chat-online {
+  margin-left: auto;
+  align-self: center;
+  color: var(--color-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.lingverse-replica-shell .ling-chat-title-badge {
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, var(--color-star) 40%, var(--lv-fidelity-line));
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-star) 8%, transparent);
+  color: var(--color-star);
+  font-size: 11px;
+  font-style: normal;
+  line-height: 18px;
+}
+
+.lingverse-replica-shell .ling-chat-reply-btn {
+  margin-left: auto;
+  padding: 0 6px;
+  border: 1px solid var(--lv-fidelity-line);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 11px;
+  line-height: 18px;
+  cursor: pointer;
+}
+
+.lingverse-replica-shell .ling-chat-reply-btn:hover,
+.lingverse-replica-shell .ling-chat-reply-btn:focus-visible {
+  border-color: color-mix(in srgb, var(--color-star) 50%, var(--lv-fidelity-line));
+  color: var(--color-star);
+}
+
+.lingverse-replica-shell .ling-chat-quote {
+  margin-bottom: 6px;
+  padding: 4px 8px;
+  border-left: 2px solid color-mix(in srgb, var(--color-star) 60%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-star) 6%, transparent);
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.lingverse-replica-shell .ling-chat-load-older {
+  align-self: center;
+  margin: 4px auto 8px;
+  padding: 2px 12px;
+  border: 1px solid var(--lv-fidelity-line);
+  border-radius: 999px;
+  background: var(--lv-fidelity-void);
+  color: var(--color-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.lingverse-replica-shell .ling-chat-reply-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-star) 8%, transparent);
+  color: var(--color-text-dim);
+  font-size: 12px;
+}
+
+.lingverse-replica-shell .ling-chat-reply-chip span {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lingverse-replica-shell .ling-chat-reply-chip button {
+  border: 0;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.lingverse-replica-shell .action-cost {
+  opacity: 0.75;
+  font-size: 12px;
+  font-weight: 500;
 }

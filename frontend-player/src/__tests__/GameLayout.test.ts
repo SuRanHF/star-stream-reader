@@ -556,4 +556,58 @@ describe('GameLayout exploration-to-log integration', () => {
     await nextTick();
     expect(wrapper.find('.ling-action-pending-battle').exists()).toBe(false);
   });
+
+  function autoToggle(wrapper: ReturnType<typeof shallowMount>) {
+    return wrapper.findAll('.action-group--tools input[type="checkbox"]')
+      .find((input) => input.element.parentElement?.textContent?.includes('自动行动'))!;
+  }
+
+  it('自动行动：有待选剧情（弹窗已关）时不再探索，并记录停止原因', async () => {
+    const pendingStory = makeResult({
+      result_type: 'story',
+      result: {
+        event_key: 'waiting_branch',
+        event_type: 'story',
+        name: '等待选择',
+        description: '',
+        choices: [{ label: '继续', consequence_text: '' }],
+      },
+    });
+    mocks.getPendingStories.mockResolvedValue({ pending_stories: [pendingStory] });
+    const wrapper = mountLayout();
+    await flushPromises();
+
+    await autoToggle(wrapper).setValue(true);
+    await flushPromises();
+
+    expect(mocks.startExplore).not.toHaveBeenCalled();
+    expect(mocks.appendRecentLogs).toHaveBeenCalledWith([
+      expect.objectContaining({ message: expect.stringContaining('有待选择的剧情') }),
+    ]);
+  });
+
+  it('自动行动：快速关闭再开启不会留下第二个循环', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const wrapper = mountLayout();
+      await vi.runOnlyPendingTimersAsync();
+      await flushPromises();
+      const toggle = autoToggle(wrapper);
+
+      await toggle.setValue(true);   // 第一轮：立即探索一次，然后进入 1.2 秒等待
+      await flushPromises();
+      expect(mocks.startExplore).toHaveBeenCalledTimes(1);
+
+      await toggle.setValue(false);  // 在等待中关闭
+      await toggle.setValue(true);   // 立刻重开：第二轮马上探索一次
+      await flushPromises();
+      expect(mocks.startExplore).toHaveBeenCalledTimes(2);
+
+      await vi.advanceTimersByTimeAsync(1200); // 两轮的等待同时到期：只有新一轮应继续
+      await flushPromises();
+      expect(mocks.startExplore).toHaveBeenCalledTimes(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

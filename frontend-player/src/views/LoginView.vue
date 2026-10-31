@@ -47,7 +47,7 @@ async function submit() {
       <div class="mb-8 text-center">
         <p class="text-xs tracking-[0.5em] text-muted uppercase">Terminal of the Star Stream</p>
         <h1 class="mt-4 text-4xl font-bold tracking-[0.3em] login-title">
-          灵 界
+          星 流
         </h1>
         <p class="mt-3 text-sm text-spirit/70">观测者登录</p>
       </div>

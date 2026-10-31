@@ -116,7 +116,17 @@ export interface MapNode {
   connectedTo: string[];
 }
 
+// 单次执行场景的行动力区间（服务端预估，不考虑累计余数）；实际扣费以 /explore/start 为准。
+export interface ExploreCostPreview {
+  minStaminaCost: number;
+  maxStaminaCost: number;
+  currentStamina: number;
+}
+
 export const exploreApi = {
+  getCostPreview(playerId: number) {
+    return http.get<unknown, ExploreCostPreview>(`/explore/cost-preview/${playerId}`);
+  },
   getLocations(playerId: number) {
     return http.get<unknown, ApiRecord>(`/explore/locations/${playerId}`);
   },

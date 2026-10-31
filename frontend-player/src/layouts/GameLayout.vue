@@ -6,7 +6,7 @@ import { BookOpen, Map, Settings, Sparkles } from 'lucide-vue-next';
 import { useRouter } from 'vue-router';
 import type { ApiRecord } from '@/types/api';
 import { broadcastApi } from '@/api/broadcastApi';
-import { exploreApi, type ExploreResult } from '@/api/exploreApi';
+import { exploreApi, type ExploreCostPreview, type ExploreResult } from '@/api/exploreApi';
 import { gameApi } from '@/api/gameApi';
 import { playerApi } from '@/api/playerApi';
 import GameLogPanel from '@/components/log/GameLogPanel.vue';
@@ -22,6 +22,7 @@ import PlayerStatusPanel from '@/components/player/PlayerStatusPanel.vue';
 import DeathOverlay from '@/components/player/DeathOverlay.vue';
 import { realtimeClient } from '@/realtime/realtimeClient';
 import { useAuthStore } from '@/stores/authStore';
+import { useChatStore } from '@/stores/chatStore';
 import { useGameStore } from '@/stores/gameStore';
 import { useUiStore } from '@/stores/uiStore';
 import type { PlayerStats } from '@/types/player';
@@ -105,6 +106,11 @@ const mobileMetrics = computed(() => [
 
 function selectPanel(panel: string) {
   headerMoreOpen.value = false;
+  // 宽屏下聊天常驻右栏，入口只负责展开并聚焦，不再占用功能侧栏。
+  if (panel === 'chat' && canDockChat.value) {
+    expandDockedChat();
+    return;
+  }
   const isClosing = gameStore.activePanel === panel;
   if (isMobile.value) {
     // 手机上打开功能面板时收起操作栏，把可视高度让给面板内容；再次点击同一入口则恢复操作栏。
@@ -314,6 +320,7 @@ let headerResizeObserver: ResizeObserver | null = null;
 
 async function logout() {
   realtimeClient.disconnect();
+  useChatStore().clear();
   authStore.logout();
   await router.push('/login');
 }
@@ -431,23 +438,56 @@ watch(selectedConstellationKey, (constellationKey) => {
   void refreshPendingBattles();
 }, { immediate: true });
 
-async function enterScene() {
-  if (exploring.value) return;
+// ─── 执行场景按钮上的「-N 行动力」：服务端预估区间，只用于展示 ───
+const costPreview = ref<ExploreCostPreview | null>(null);
+const costLabel = computed(() => {
+  const preview = costPreview.value;
+  if (!preview) return '';
+  return preview.minStaminaCost === preview.maxStaminaCost
+    ? `-${preview.minStaminaCost}`
+    : `-${preview.minStaminaCost}~${preview.maxStaminaCost}`;
+});
+
+async function refreshCostPreview() {
+  const id = Number(gameStore.player?.id || gameStore.player?.playerId || 0);
+  if (!id) return;
+  try {
+    costPreview.value = await exploreApi.getCostPreview(id);
+  } catch {
+    // 预估失败（如后端尚未升级）只是少显示一个数字，不影响执行。
+    costPreview.value = null;
+  }
+}
+
+watch(() => [gameStore.player?.id, currentLocationKey(), selectedConstellationKey()], () => {
+  void refreshCostPreview();
+}, { immediate: true });
+
+// 自动行动据此决定是否继续；手动点击时忽略返回值。
+interface SceneOutcome {
+  status: 'done' | 'interactive' | 'blocked' | 'failed';
+  reason?: string;
+}
+
+async function enterScene(options: { auto?: boolean } = {}): Promise<SceneOutcome> {
+  if (exploring.value) return { status: 'blocked', reason: '上一次行动还没结束' };
   if (isResting.value) {
-    await uiStore.showAlert('休息中无法探索', '请先结束当前休息状态，再执行场景。休息期间生命、体力与经验仍会持续恢复。');
-    return;
+    if (!options.auto) {
+      await uiStore.showAlert('休息中无法探索', '请先结束当前休息状态，再执行场景。休息期间生命、体力与经验仍会持续恢复。');
+    }
+    return { status: 'blocked', reason: '正在休息' };
   }
   if (!pendingBattlesLoaded.value) await refreshPendingBattles();
   if (pendingBattles.value.length) {
     resumePendingBattle();
-    return;
+    return { status: 'interactive', reason: '有待处理的遭遇' };
   }
   const id = Number(gameStore.player?.id || gameStore.player?.playerId || 0);
   const locationKey = currentLocationKey();
   if (!id || !locationKey) {
     selectPanel('scene-map');
-    await uiStore.showAlert('提示', '请在星图上选择场景并点击「切换到此场景」。');
-    return;
+    if (!options.auto) await uiStore.showAlert('提示', '请在星图上选择场景并点击「切换到此场景」。');
+    return { status: 'blocked', reason: '还没有选择场景' };
   }
   const previousLatestLogId = Math.max(0, ...gameStore.recentLogs
     .map((entry) => Number(entry.id))
@@ -486,15 +526,118 @@ async function enterScene() {
       showExploreResult.value = true;
       queuePendingBattle(payload);
       queuePendingStory(payload);
-    } else {
-      exploreResult.value = null;
-      showExploreResult.value = false;
+      return { status: 'interactive', reason: payload.result_type === 'battle' ? '遇到战斗' : '遇到需要选择的剧情' };
     }
+    exploreResult.value = null;
+    showExploreResult.value = false;
+    return { status: 'done' };
   } catch (error) {
-    await uiStore.showAlert('错误', error instanceof Error ? error.message : '进入场景失败');
+    const message = error instanceof Error ? error.message : '进入场景失败';
+    if (!options.auto) await uiStore.showAlert('错误', message);
+    return { status: 'failed', reason: message };
   } finally {
     exploring.value = false;
+    void refreshCostPreview();
   }
+}
+
+// ─── 自动行动：替玩家连续执行场景，遇到需要玩家决定的情况就停下；所有判定仍由服务端完成 ───
+const AUTO_SETTINGS_KEY = 'lingverse.player.autoAction';
+const AUTO_STEP_DELAY_MS = 1200;
+const autoActionOn = ref(false);
+const autoActionCount = ref(0);
+const autoSettingsOpen = ref(false);
+const autoSettings = ref(readAutoSettings());
+
+function readAutoSettings() {
+  const defaults = { minStamina: 5, maxRuns: 20 };
+  try {
+    const saved = JSON.parse(readUiPref(AUTO_SETTINGS_KEY) || '{}') as Partial<typeof defaults>;
+    return {
+      minStamina: clampInt(saved.minStamina, 0, 999, defaults.minStamina),
+      maxRuns: clampInt(saved.maxRuns, 1, 200, defaults.maxRuns),
+    };
+  } catch {
+    return defaults;
+  }
+}
+
+function clampInt(value: unknown, min: number, max: number, fallback: number) {
+  const next = Math.round(Number(value));
+  return Number.isFinite(next) ? Math.max(min, Math.min(max, next)) : fallback;
+}
+
+function saveAutoSettings() {
+  autoSettings.value = {
+    minStamina: clampInt(autoSettings.value.minStamina, 0, 999, 5),
+    maxRuns: clampInt(autoSettings.value.maxRuns, 1, 200, 20),
+  };
+  writeUiPref(AUTO_SETTINGS_KEY, JSON.stringify(autoSettings.value));
+}
+
+function currentStamina() {
+  const stats = (gameStore.player?.stats || {}) as { stamina?: unknown };
+  return numberValue(stats.stamina);
+}
+
+// 每轮自动行动一个代号：关闭、重开、卸载都会让旧轮次失效，保证同一时刻只有一个循环在跑。
+let autoRunId = 0;
+
+function stopAutoAction(reason: string) {
+  autoRunId += 1;
+  autoActionOn.value = false;
+  gameStore.appendRecentLogs([{
+    type: 'system',
+    message: `自动行动已停止：${reason}（本轮执行 ${autoActionCount.value} 次）`,
+  }]);
+}
+
+// 需要玩家亲自决定的事项：弹窗开着，或剧情 / 遭遇被关掉后仍挂着。
+function autoBlockReason() {
+  if (showExploreResult.value) return '有待处理的结果';
+  if (pendingStories.value.length) return '有待选择的剧情';
+  if (pendingBattles.value.length) return '有待处理的遭遇';
+  return '';
+}
+
+async function runAutoAction() {
+  const runId = ++autoRunId;
+  const isCurrent = () => autoActionOn.value && runId === autoRunId;
+  autoActionCount.value = 0;
+  while (isCurrent()) {
+    const blocked = autoBlockReason();
+    if (blocked) return stopAutoAction(blocked);
+    if (autoActionCount.value >= autoSettings.value.maxRuns) return stopAutoAction(`已达到单轮上限 ${autoSettings.value.maxRuns} 次`);
+    if (currentStamina() < autoSettings.value.minStamina) return stopAutoAction(`行动力低于 ${autoSettings.value.minStamina}`);
+
+    const outcome = await enterScene({ auto: true });
+    if (!isCurrent()) return;
+    if (outcome.status === 'done' || outcome.status === 'interactive') autoActionCount.value += 1;
+    if (outcome.status !== 'done') return stopAutoAction(outcome.reason || '无法继续');
+
+    await new Promise((resolve) => setTimeout(resolve, AUTO_STEP_DELAY_MS));
+  }
+}
+
+function onAutoActionToggle() {
+  if (autoActionOn.value) void runAutoAction();
+  else stopAutoAction('已手动关闭');
+}
+
+const autoSettingsTrigger = ref<HTMLButtonElement | null>(null);
+
+function toggleAutoSettings() {
+  if (autoSettingsOpen.value) {
+    closeAutoSettings();
+    return;
+  }
+  autoSettingsOpen.value = true;
+  void nextTick(() => document.querySelector<HTMLInputElement>('#autoActionSettings input')?.focus());
+}
+
+function closeAutoSettings() {
+  autoSettingsOpen.value = false;
+  autoSettingsTrigger.value?.focus();
 }
 
 function onExploreClose() {
@@ -547,16 +690,61 @@ const resizingSide = ref<'left' | null>(null);
 const headerMoreOpen = ref(false);
 const actionBarCollapsed = ref(false);
 const isLightTheme = ref(document.documentElement.dataset.theme === 'light');
-const isInlineChat = ref(window.innerWidth >= 1025);
+
+// ─── 右栏：宽屏常驻聊天；打开功能面板时临时让位，关闭后恢复 ───
+const DOCKED_CHAT_MIN_WIDTH = 900;
+const DOCKED_CHAT_MIN_COL = 280;
+const DOCKED_LOG_MIN_COL = 300;
+const CHAT_COLLAPSED_KEY = 'lingverse.player.chatCollapsed';
+const canDockChat = ref(window.innerWidth >= DOCKED_CHAT_MIN_WIDTH);
+const dockedChatCollapsed = ref(readUiPref(CHAT_COLLAPSED_KEY) === '1');
+const showDockedChat = computed(() => canDockChat.value && !gameStore.activePanel && !dockedChatCollapsed.value);
+
+function readUiPref(key: string) {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+
+function writeUiPref(key: string, value: string) {
+  try { localStorage.setItem(key, value); } catch { /* 偏好写不进去不影响游戏 */ }
+}
+
+function setDockedChatCollapsed(collapsed: boolean) {
+  dockedChatCollapsed.value = collapsed;
+  writeUiPref(CHAT_COLLAPSED_KEY, collapsed ? '1' : '0');
+}
+
+function expandDockedChat() {
+  gameStore.setActivePanel('');
+  setDockedChatCollapsed(false);
+  void nextTick(() => {
+    document.querySelector<HTMLTextAreaElement>('.ling-inline-chat textarea')?.focus();
+  });
+}
+
+function collapseDockedChat() {
+  setDockedChatCollapsed(true);
+}
 
 function checkMobile() {
   isMobile.value = window.innerWidth <= 760;
-  isInlineChat.value = window.innerWidth >= 1025;
+  canDockChat.value = window.innerWidth >= DOCKED_CHAT_MIN_WIDTH;
+  // 从窄屏拉宽时，侧栏里的聊天并入常驻栏，保证全局只有一个聊天实例。
+  if (canDockChat.value && gameStore.activePanel === 'chat') {
+    gameStore.setActivePanel('');
+  }
   if (isMobile.value) {
     leftPanelWidth.value = 240;
+  } else {
+    clampLeftPanel();
   }
 }
 window.addEventListener('resize', checkMobile);
+
+// 缩窗或右栏聊天显隐后，之前拖宽的左栏可能超出新上限，重新夹取避免挤压日志与聊天列。
+function clampLeftPanel() {
+  leftPanelWidth.value = Math.max(200, Math.min(leftPanelMaxWidth(), leftPanelWidth.value));
+}
+watch(showDockedChat, clampLeftPanel);
 
 function toggleRolePanel() {
   if (isMobile.value) {
@@ -571,7 +759,7 @@ const frameGridStyle = computed(() => {
   const hasSidePanel = Boolean(gameStore.activePanel);
   const sidePanelWidth = panelGridResized.value
     ? `minmax(260px, min(${panelGridMaxPct.value * 100}vw, 520px))`
-    : isInlineChat.value
+    : canDockChat.value
       ? 'clamp(360px, 24vw, 520px)'
       : '360px';
   return {
@@ -592,7 +780,17 @@ function startLeftResize(e: MouseEvent) {
 
 function doResize(e: MouseEvent) {
   if (!resizingSide.value) return;
-  leftPanelWidth.value = Math.max(200, Math.min(500, e.clientX));
+  leftPanelWidth.value = Math.max(200, Math.min(leftPanelMaxWidth(), e.clientX));
+}
+
+// 常驻聊天时给日志列和聊天列留出最小宽度，避免操作区被挤到折行。
+function leftPanelMaxWidth() {
+  const reserved = showDockedChat.value ? DOCKED_LOG_MIN_COL + DOCKED_CHAT_MIN_COL : DOCKED_LOG_MIN_COL;
+  return Math.max(200, Math.min(500, window.innerWidth - 8 - reserved));
+}
+
+function nudgeLeftPanel(delta: number) {
+  leftPanelWidth.value = Math.max(200, Math.min(leftPanelMaxWidth(), leftPanelWidth.value + delta));
 }
 
 function stopResize() {
@@ -639,7 +837,7 @@ const panelGridResized = ref(false);
 let panelResizeStartPct = 0;
 
 function startPanelGridResize() {
-  const defaultWidth = isInlineChat.value
+  const defaultWidth = canDockChat.value
     ? Math.max(360, Math.min(window.innerWidth * 0.24, 520))
     : 360;
   panelResizeStartPct = panelGridResized.value
@@ -662,8 +860,8 @@ provide('startPanelGridResize', startPanelGridResize);
 provide('doPanelGridResize', doPanelGridResize);
 
 const mainGridStyle = computed(() => {
-  if (isInlineChat.value && !gameStore.activePanel) {
-    return { gridTemplateColumns: 'minmax(0, 1fr) minmax(300px, 336px)' };
+  if (showDockedChat.value) {
+    return { gridTemplateColumns: `minmax(${DOCKED_LOG_MIN_COL}px, 1fr) minmax(${DOCKED_CHAT_MIN_COL}px, 336px)` };
   }
   return { gridTemplateColumns: 'minmax(0, 1fr)' };
 });
@@ -726,6 +924,8 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  autoRunId += 1;
+  autoActionOn.value = false;
   window.removeEventListener('resize', checkMobile);
   window.removeEventListener('resize', updateHeaderVisibleCount);
   headerResizeObserver?.disconnect();
@@ -825,7 +1025,7 @@ onBeforeUnmount(() => {
               >{{ item.label }}</button>
             </template>
             <span class="ling-header-more-section" role="separator">显示</span>
-            <button class="ling-core-btn" @click="toggleTheme">{{ isLightTheme ? '夜间' : '日间' }}</button>
+            <button class="ling-core-btn" :aria-pressed="!isLightTheme" @click="toggleTheme">{{ isLightTheme ? '夜间' : '日间' }}</button>
             <button class="ling-core-btn ling-header-logout" @click="selectPanel('logout')">退出</button>
           </div>
         </div>
@@ -857,9 +1057,23 @@ onBeforeUnmount(() => {
           @open-panel="selectPanel"
         />
       </aside>
-      <div v-if="!isMobile && !desktopPlayerPanelCollapsed" class="ling-resize-handle" @mousedown="startLeftResize"></div>
+      <div
+        v-if="!isMobile && !desktopPlayerPanelCollapsed"
+        class="ling-resize-handle"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="调整角色栏宽度"
+        aria-controls="playerPanel"
+        :aria-valuenow="leftPanelWidth"
+        aria-valuemin="200"
+        :aria-valuemax="leftPanelMaxWidth()"
+        tabindex="0"
+        @mousedown="startLeftResize"
+        @keydown.left.prevent="nudgeLeftPanel(-16)"
+        @keydown.right.prevent="nudgeLeftPanel(16)"
+      ></div>
 
-      <main :class="['ling-main', 'main-panel', { 'has-feature-panel': Boolean(gameStore.activePanel) }]" :style="mainGridStyle">
+      <main :class="['ling-main', 'main-panel', { 'has-feature-panel': Boolean(gameStore.activePanel), 'has-docked-chat': showDockedChat }]" :style="mainGridStyle">
         <GameLogPanel
           v-if="!isMobile || !gameStore.activePanel"
           class="log-area log-area--log"
@@ -869,11 +1083,11 @@ onBeforeUnmount(() => {
           @select-tab="selectPanel"
         />
         <ConnectedPanel
-          v-if="isInlineChat && !gameStore.activePanel"
+          v-if="showDockedChat"
           class="ling-inline-chat"
           panel="chat"
           @select-panel="selectPanel"
-          @close-panel="closePanel"
+          @close-panel="collapseDockedChat"
         />
         <div v-if="isMobile && gameStore.activePanel === 'scene-map'" class="ling-mobile-scene-map">
           <SceneMapPanel @close-panel="closePanel" />
@@ -912,10 +1126,11 @@ onBeforeUnmount(() => {
               :disabled="exploring"
               :title="isResting ? '休息期间不能探索，请先结束休息' : undefined"
               :aria-label="isResting ? '休息期间不能执行场景，请先结束休息' : undefined"
-              @click="enterScene"
+              @click="enterScene()"
             >
               <Map class="action-icon" :size="15" :stroke-width="1.8" aria-hidden="true" />
-              <span>{{ exploring ? '执行中...' : '执行场景' }}</span>
+              <span>{{ autoActionOn ? `自动中 ${autoActionCount}/${autoSettings.maxRuns}` : exploring ? '执行中...' : '执行场景' }}</span>
+              <span v-if="costLabel && !autoActionOn && !exploring" class="action-cost" :title="'预计消耗行动力，实际以结算为准'">({{ costLabel }})</span>
             </button>
             <button
               v-if="pendingStories.length"
@@ -939,17 +1154,47 @@ onBeforeUnmount(() => {
             </button>
           </div>
           <div class="action-group action-group--tools">
-            <select class="ling-select explore-multiplier-trigger" aria-label="探索倍率">
-              <option value="1">×1</option>
-              <option value="5">×5</option>
-              <option value="10">×10</option>
-            </select>
             <label class="ling-check"><input type="checkbox" /> 概率修正</label>
-            <label class="ling-check"><input type="checkbox" /> 自动行动</label>
-            <button type="button" class="btn-setting" title="自动处理设置" aria-label="自动处理设置"><Settings :size="15" :stroke-width="1.8" aria-hidden="true" /></button>
+            <label class="ling-check">
+              <input v-model="autoActionOn" type="checkbox" :disabled="isResting" @change="onAutoActionToggle" /> 自动行动
+            </label>
+            <button
+              type="button"
+              class="btn-setting"
+              title="自动行动设置"
+              aria-label="自动行动设置"
+              aria-haspopup="dialog"
+              :aria-expanded="autoSettingsOpen"
+              aria-controls="autoActionSettings"
+              ref="autoSettingsTrigger"
+              @keydown.esc="autoSettingsOpen && closeAutoSettings()"
+              @click="toggleAutoSettings"
+            ><Settings :size="15" :stroke-width="1.8" aria-hidden="true" /></button>
+            <div
+              v-if="autoSettingsOpen"
+              id="autoActionSettings"
+              class="auto-action-settings"
+              role="dialog"
+              aria-label="自动行动设置"
+              @keydown.esc="closeAutoSettings"
+            >
+              <p class="auto-action-settings-title">自动行动</p>
+              <label>
+                <span>行动力低于</span>
+                <input v-model.number="autoSettings.minStamina" type="number" min="0" max="999" @change="saveAutoSettings" />
+                <span>时停止</span>
+              </label>
+              <label>
+                <span>单轮最多</span>
+                <input v-model.number="autoSettings.maxRuns" type="number" min="1" max="200" @change="saveAutoSettings" />
+                <span>次</span>
+              </label>
+              <p class="auto-action-settings-note">遇到战斗、剧情选择、休息或出错时会自动停下，等你处理。</p>
+              <button type="button" class="auto-action-settings-close" @click="closeAutoSettings">完成</button>
+            </div>
           </div>
         </div>
-        <BottomNav :active="gameStore.activePanel" @select="selectPanel" />
+        <BottomNav :active="gameStore.activePanel" :hidden-panels="showDockedChat ? ['chat'] : []" @select="selectPanel" />
       </div>
       <div v-if="isResting && !isMobile" class="ling-footer-status ling-rest-card" aria-live="polite">
         <span class="ling-rest-orb" aria-hidden="true"><Sparkles :size="18" :stroke-width="1.7" /></span>

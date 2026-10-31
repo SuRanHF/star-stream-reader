@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, ref, watch, onBeforeUnmount } from 'vue';
+import { computed, inject, nextTick, ref, watch, onBeforeUnmount } from 'vue';
 import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import { useRouter } from 'vue-router';
 import { bountyApi } from '@/api/bountyApi';
@@ -24,7 +24,9 @@ import { tradeApi } from '@/api/tradeApi';
 import { worldBossApi } from '@/api/worldBossApi';
 import { realtimeClient } from '@/realtime/realtimeClient';
 import { useAuthStore } from '@/stores/authStore';
+import { useChatStore } from '@/stores/chatStore';
 import { useGameStore } from '@/stores/gameStore';
+import { useRealtimeStore } from '@/stores/realtimeStore';
 import type { ApiRecord } from '@/types/api';
 import { formatItemUseSuccess, formatQuestClaimSuccess } from '@/utils/actionFeedback';
 import { refreshActionState } from '@/utils/actionRefresh';
@@ -498,13 +500,119 @@ const chatChannel = computed(() => ({
   队伍: 'team',
 }[activeSubMenu.value] || 'world'));
 
+// 历史（首屏 + 加载更早）与实时推送合并；服务端只把队伍/阵营消息推给同归属成员，这里按频道筛即可。
+const chatStore = useChatStore();
+const realtimeStore = useRealtimeStore();
+const CHAT_PAGE_SIZE = 50;
+const olderChatMessages = ref<ApiRecord[]>([]);
+const chatHasMoreOlder = ref(true);
+const chatLoadingOlder = ref(false);
+const chatReplyTarget = ref<ApiRecord | null>(null);
+// 「加载更早」请求的上下文代号：频道或玩家变了，迟到的响应直接丢弃。
+let chatOlderRequestId = 0;
+
+function resetChatPaging() {
+  chatOlderRequestId += 1;
+  olderChatMessages.value = [];
+  chatHasMoreOlder.value = true;
+  chatLoadingOlder.value = false;
+  chatReplyTarget.value = null;
+}
+
+watch(chatChannel, resetChatPaging);
+watch(playerId, (next, previous) => {
+  if (previous && next !== previous) chatStore.clear();
+  resetChatPaging();
+});
+
+// 每次拿到服务端历史，以它为准清掉旧归属残留的实时消息。
+watch(() => (props.panel === 'chat' ? panelData.value.recent : undefined), (recent) => {
+  if (!Array.isArray(recent)) return;
+  const channel = chatChannel.value;
+  if (channel === 'world') return;
+  chatStore.pruneChannel(channel, asArray(recent).map((entry) => pickNumber(entry, ['id'], 0)).filter((id) => id > 0));
+});
+
 const chatMessages = computed(() => {
   const channel = chatChannel.value;
-  return asArray(panelData.value.recent).filter((entry) => {
+  const byKey = new Map<string, ApiRecord>();
+  [
+    ...olderChatMessages.value,
+    ...asArray(panelData.value.recent),
+    ...chatStore.messages,
+    ...(channel === 'world' ? chatStore.systemMessages : []),
+  ].forEach((entry) => {
     const entryChannel = pickText(entry, ['channel'], channel).toLowerCase();
-    return entryChannel === channel || (channel === 'world' && entryChannel === 'system');
+    if (entryChannel !== channel && !(channel === 'world' && entryChannel === 'system')) return;
+    byKey.set(pickKey(entry, ['id'], `${pickText(entry, ['createdAt'], '')}-${pickText(entry, ['content'], '')}`), entry);
   });
+  return [...byKey.values()].sort((a, b) => pickNumber(a, ['id'], 0) - pickNumber(b, ['id'], 0));
 });
+
+// 默认停在最新消息；玩家往上翻时不打扰，回到底部附近后恢复跟随。
+const chatScroller = ref<HTMLElement | null>(null);
+const chatStickToBottom = ref(true);
+
+function onChatScroll() {
+  const el = chatScroller.value;
+  if (!el) return;
+  chatStickToBottom.value = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+}
+
+watch(() => [chatMessages.value.length, chatChannel.value], () => {
+  if (!chatStickToBottom.value) return;
+  void nextTick(() => {
+    const el = chatScroller.value;
+    if (el) el.scrollTop = el.scrollHeight;
+  });
+}, { flush: 'post' });
+
+watch(chatChannel, () => {
+  chatStickToBottom.value = true;
+});
+
+function chatReplyOf(message: ApiRecord) {
+  const reply = asRecord(pick(message, ['replyTo', 'reply_to']));
+  if (!pick(reply, ['id'])) return null;
+  return {
+    senderName: pickText(reply, ['senderName'], ''),
+    preview: pickText(reply, ['contentPreview'], ''),
+  };
+}
+
+async function loadOlderChat() {
+  // 游标只取服务端历史，不用实时缓存，免得一条残留旧消息让分页跳过当前归属的记录。
+  const ids = [...olderChatMessages.value, ...asArray(panelData.value.recent)]
+    .map((entry) => pickNumber(entry, ['id'], 0))
+    .filter((id) => id > 0);
+  if (!ids.length || chatLoadingOlder.value) return;
+  const requestId = ++chatOlderRequestId;
+  chatLoadingOlder.value = true;
+  try {
+    const rows = await chatApi.getRecentMessages(chatChannel.value, CHAT_PAGE_SIZE, {
+      playerId: playerId.value,
+      beforeId: Math.min(...ids),
+    });
+    if (requestId !== chatOlderRequestId) return;
+    if (rows.length < CHAT_PAGE_SIZE) chatHasMoreOlder.value = false;
+    // 往上插入旧消息时保持玩家当前看到的位置，不跳动。
+    const el = chatScroller.value;
+    const distanceFromBottom = el ? el.scrollHeight - el.scrollTop : 0;
+    chatStickToBottom.value = false;
+    olderChatMessages.value = [...rows, ...olderChatMessages.value];
+    await nextTick();
+    if (el) el.scrollTop = el.scrollHeight - distanceFromBottom;
+  } catch (error) {
+    if (requestId === chatOlderRequestId) flashToast(error instanceof Error ? error.message : '加载更早消息失败', true);
+  } finally {
+    if (requestId === chatOlderRequestId) chatLoadingOlder.value = false;
+  }
+}
+
+function replyToChat(message: ApiRecord) {
+  chatReplyTarget.value = message;
+  document.querySelector<HTMLTextAreaElement>('.ling-chat-input')?.focus();
+}
 
 const visibleChatMessages = computed(() => {
   if (chatFilter.value === 'all') return chatMessages.value;
@@ -870,7 +978,7 @@ function formatPanelTime(value: unknown): string {
 }
 
 function chatInitial(entry: ApiRecord): string {
-  return pickText(entry, ['senderName', 'sender_name'], '灵').trim().slice(0, 1) || '灵';
+  return pickText(entry, ['senderName', 'sender_name'], '星').trim().slice(0, 1) || '星';
 }
 
 function chatMessageIsSelf(entry: ApiRecord): boolean {
@@ -1611,8 +1719,11 @@ async function sendChat() {
     flashToast('请输入消息', true);
     return;
   }
-  await runAction('发送消息', `发送到${activeSubMenu.value || '星流'}频道？`, () => chatApi.sendMessage(playerId.value, content, chatChannel.value));
+  const replyToId = chatReplyTarget.value ? pickNumber(chatReplyTarget.value, ['id'], 0) || undefined : undefined;
+  const outcome = await runActionOutcome('发送消息', `发送到${activeSubMenu.value || '星流'}频道？`, () => chatApi.sendMessage(playerId.value, content, chatChannel.value, replyToId));
+  if (outcome !== 'done') return;
   chatText.value = '';
+  chatReplyTarget.value = null;
 }
 
 async function publishBounty() {
@@ -1691,9 +1802,9 @@ function constellationActions(entry: ApiRecord): PanelAction[] {
   const currentKey = String(pickText(stats as ApiRecord, ['constellation'], '') || '');
   const hasValidConstellation = VALID_CONSTELLATION_KEYS.has(currentKey);
   if (!hasValidConstellation) {
-    return [{ label: '选择', disabled: !key, onClick: () => runAction('选择背后星', `选择 ${pickText(entry, ['name', 'title'], key)} 作为你的背后星？`, () => playerApi.selectConstellation(playerId.value, key)) }];
+    return [{ label: '选择', disabled: !key, onClick: async () => { await runAction('选择背后星', `选择 ${pickText(entry, ['name', 'title'], key)} 作为你的背后星？`, () => playerApi.selectConstellation(playerId.value, key)); } }];
   }
-  return [{ label: '更换', danger: true, disabled: !key, onClick: () => runAction('更换背后星', `更换为 ${pickText(entry, ['name', 'title'], key)}？消耗200故事碎片。`, () => playerApi.changeConstellation(playerId.value, key)) }];
+  return [{ label: '更换', danger: true, disabled: !key, onClick: async () => { await runAction('更换背后星', `更换为 ${pickText(entry, ['name', 'title'], key)}？消耗200故事碎片。`, () => playerApi.changeConstellation(playerId.value, key)); } }];
 }
 
 async function checkForGhost() {
@@ -1763,6 +1874,11 @@ function formatActionSuccess(label: string, result: unknown): string {
 }
 
 async function runAction(label: string, confirmMessage: string, action: () => Promise<unknown>) {
+  await runActionOutcome(label, confirmMessage, action);
+}
+
+// 同 runAction，但把结果交给调用方区分成功、取消和失败（例如发送失败时保留草稿）。
+async function runActionOutcome(label: string, confirmMessage: string, action: () => Promise<unknown>): Promise<'done' | 'cancelled' | 'failed'> {
   actionBusy.value = label;
   clearTimeout(toastTimer);
   actionMessage.value = '';
@@ -1786,9 +1902,12 @@ async function runAction(label: string, confirmMessage: string, action: () => Pr
       } else {
         flashToast(`${successMessage}；页面状态刷新不完整，请点击“刷新”重试。`, true);
       }
+      return 'done';
     }
+    return 'cancelled';
   } catch (error) {
     flashToast(error instanceof Error ? error.message : '操作失败', true);
+    return 'failed';
   } finally {
     actionBusy.value = '';
   }
@@ -2014,9 +2133,17 @@ onBeforeUnmount(() => {
         >
           {{ channel }}
         </button>
+        <span v-if="realtimeStore.onlineCount !== null" class="ling-chat-online">在线 {{ realtimeStore.onlineCount }}</span>
       </nav>
 
-      <div class="ling-chat-messages" role="log" aria-live="polite">
+      <div ref="chatScroller" class="ling-chat-messages" role="log" aria-live="polite" @scroll.passive="onChatScroll">
+        <button
+          v-if="chatMessages.length && chatHasMoreOlder"
+          type="button"
+          class="ling-chat-load-older"
+          :disabled="chatLoadingOlder"
+          @click="loadOlderChat"
+        >{{ chatLoadingOlder ? '加载中…' : '加载更早消息' }}</button>
         <div v-if="visibleChatMessages.length === 0" class="ling-chat-empty">
           <span class="ling-chat-empty-mark">◇</span>
           <strong>暂无消息</strong>
@@ -2031,10 +2158,24 @@ onBeforeUnmount(() => {
           <div class="ling-chat-stack">
             <div class="ling-chat-message-meta">
               <strong>{{ pickText(message, ['senderName', 'sender_name'], '未命名玩家') }}</strong>
-              <span>{{ chatChannelLabel(pickText(message, ['channel'], chatChannel)) }}</span>
+              <i v-if="pickText(message, ['senderTitle'], '')" class="ling-chat-title-badge">{{ pickText(message, ['senderTitle'], '') }}</i>
+              <span>{{ pickText(message, ['senderStage'], '') || chatChannelLabel(pickText(message, ['channel'], chatChannel)) }}</span>
               <time>{{ formatPanelTime(pick(message, ['createdAt', 'created_at'])) }}</time>
+              <button
+                v-if="pickText(message, ['messageType', 'message_type'], 'player') === 'player' && pickNumber(message, ['id'], 0) > 0"
+                type="button"
+                class="ling-chat-reply-btn"
+                :aria-label="`回复 ${pickText(message, ['senderName'], '')}`"
+                @click="replyToChat(message)"
+              >回复</button>
             </div>
-            <div class="ling-chat-bubble">{{ pickText(message, ['content', 'message'], '暂无消息内容') }}</div>
+            <div class="ling-chat-bubble">
+              <div v-if="chatReplyOf(message)" class="ling-chat-quote">
+                <template v-if="chatReplyOf(message)?.senderName">回复 {{ chatReplyOf(message)?.senderName }}：{{ chatReplyOf(message)?.preview }}</template>
+                <template v-else>回复的消息已不可见</template>
+              </div>
+              {{ pickText(message, ['content', 'message'], '暂无消息内容') }}
+            </div>
           </div>
         </article>
       </div>
@@ -2044,6 +2185,10 @@ onBeforeUnmount(() => {
           <button type="button" :class="{ active: chatFilter === 'all' }" @click="chatFilter = 'all'">全部</button>
           <button type="button" :class="{ active: chatFilter === 'chat' }" @click="chatFilter = 'chat'">聊天</button>
           <button type="button" :class="{ active: chatFilter === 'notice' }" @click="chatFilter = 'notice'">告示</button>
+        </div>
+        <div v-if="chatReplyTarget" class="ling-chat-reply-chip">
+          <span>回复 {{ pickText(chatReplyTarget, ['senderName'], '') }}：{{ pickText(chatReplyTarget, ['content'], '').slice(0, 24) }}</span>
+          <button type="button" aria-label="取消回复" @click="chatReplyTarget = null">×</button>
         </div>
         <form class="ling-chat-input-bar" @submit.prevent="sendChat">
           <textarea v-model="chatText" class="ling-chat-input" rows="1" maxlength="200" placeholder="说点什么…" aria-label="输入频道消息" @keydown.enter.exact.prevent="sendChat"></textarea>
@@ -2734,7 +2879,7 @@ onBeforeUnmount(() => {
         <div class="ling-ranking-list">
           <article v-for="(entry, index) in rankingRows.slice(0, rankingVisibleLimit)" :key="pickKey(entry, ['id', 'playerId', 'playerName'], `ranking-${index}`)" :class="['ling-ranking-row', { 'is-top': index < 3 && (rankingBoard === '成长阶' || rankingBoard === '近7日故事发现' || rankingBoard === '近7日PK表现' || rankingBoard === '近7日探索行动' || truthyRecordValue(entry, ['ranked'])), 'is-self': (rankingBoard === '近7日故事发现' || rankingBoard === '近7日PK表现' || rankingBoard === '近7日探索行动') && isMyRanking(entry) }]">
           <span class="ling-ranking-place">{{ rankingBoard === 'PK评分' && !truthyRecordValue(entry, ['ranked']) ? '—' : pickText(entry, ['rank'], String(index + 1)) }}</span>
-          <div class="ling-ranking-avatar" aria-hidden="true">{{ chatInitial({ senderName: pickText(entry, ['player_name', 'playerName', 'name'], '灵') }) }}</div>
+          <div class="ling-ranking-avatar" aria-hidden="true">{{ chatInitial({ senderName: pickText(entry, ['player_name', 'playerName', 'name'], '星') }) }}</div>
           <div class="ling-ranking-copy">
             <strong>{{ pickText(entry, ['player_name', 'playerName', 'name'], '未命名玩家') }}</strong>
             <span v-if="rankingBoard === '成长阶'">成长阶 {{ pickText(entry, ['avatarRank'], 'F') }} · 等级 {{ pickText(entry, ['level'], '1') }}</span>
@@ -2779,7 +2924,7 @@ onBeforeUnmount(() => {
             :class="['ling-ranking-row', { 'is-self': isMyRanking(entry) }]"
           >
             <span class="ling-ranking-place">{{ pickText(entry, ['rank'], '—') }}</span>
-            <div class="ling-ranking-avatar" aria-hidden="true">{{ chatInitial({ senderName: pickText(entry, ['playerName', 'player_name'], '灵') }) }}</div>
+            <div class="ling-ranking-avatar" aria-hidden="true">{{ chatInitial({ senderName: pickText(entry, ['playerName', 'player_name'], '星') }) }}</div>
             <div class="ling-ranking-copy">
               <strong>{{ pickText(entry, ['playerName', 'player_name'], '未命名玩家') }}</strong>
               <span>{{ rankingNearbyLabel(entry) }} · 胜{{ pickText(entry, ['wins'], '0') }}负{{ pickText(entry, ['losses'], '0') }}</span>

@@ -123,7 +123,7 @@ export async function loadConnectedPanelData(
     case 'underworld':
       return { deadList: await playerApi.getDeadList() };
     case 'chat':
-      return { recent: await chatApi.getRecentMessages(context.chatChannel) };
+      return { recent: await chatApi.getRecentMessages(context.chatChannel, 50, { playerId: id }) };
     case 'trade':
       return {
         listings: await tradeApi.getListings(),

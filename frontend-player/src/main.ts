@@ -7,9 +7,9 @@ import router from './router';
 import './styles/main.css';
 import './styles/lingverse-fidelity.css';
 
-// 默认使用暗色；保留一个显式的 light 分支，方便后续设置页接入主题切换。
+// 默认使用浅色；用户在「更多 → 日间/夜间」里选过的主题优先。
 const savedTheme = localStorage.getItem('lingverse.player.theme');
-document.documentElement.dataset.theme = savedTheme === 'light' ? 'light' : 'dark';
+document.documentElement.dataset.theme = savedTheme === 'dark' ? 'dark' : 'light';
 
 const app = createApp(App);
 const pinia = createPinia();

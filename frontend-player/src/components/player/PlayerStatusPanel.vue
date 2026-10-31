@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { Info } from 'lucide-vue-next';
 import type { Player, PlayerStats } from '@/types/player';
 import type { ApiRecord } from '@/types/api';
 import { equipmentApi } from '@/api/equipmentApi';
@@ -526,7 +527,7 @@ const tooltipText = computed(() => {
   return key ? lines[key] || '' : '';
 });
 
-function showTooltip(key: string, e: MouseEvent) {
+function showTooltip(key: string, e: Event) {
   if (tooltipKey.value === key) {
     tooltipKey.value = null;
     return;
@@ -709,7 +710,15 @@ async function repairAllEquipment() {
       </div>
       <div class="stat-row">
         <span class="stat-label">经验</span>
-        <span class="stat-value stat-value-clickable" role="button" tabindex="0" @click="showTooltip('exp', $event)">{{ compact(experience.current) }} / {{ compact(experience.required) }}</span>
+        <span
+          class="stat-value stat-value-clickable"
+          role="button"
+          tabindex="0"
+          :aria-expanded="tooltipKey === 'exp'"
+          @click="showTooltip('exp', $event)"
+          @keydown.enter.prevent="showTooltip('exp', $event)"
+          @keydown.space.prevent="showTooltip('exp', $event)"
+        >{{ compact(experience.current) }} / {{ compact(experience.required) }}<Info class="stat-info-ic" :size="12" :stroke-width="1.8" aria-hidden="true" /></span>
       </div>
       <div class="progress-bar-container">
         <div class="progress-bar" :style="{ width: `${experience.percent}%` }"></div>
@@ -790,8 +799,11 @@ async function repairAllEquipment() {
           role="button"
           tabindex="0"
           :title="`${item.label}详情`"
+          :aria-expanded="tooltipKey === item.key"
           @click.stop="showTooltip(item.key, $event)"
-        >{{ item.display }}</span>
+          @keydown.enter.prevent="showTooltip(item.key, $event)"
+          @keydown.space.prevent="showTooltip(item.key, $event)"
+        >{{ item.display }}<Info class="stat-info-ic" :size="12" :stroke-width="1.8" aria-hidden="true" /></span>
       </div>
     </section>
 

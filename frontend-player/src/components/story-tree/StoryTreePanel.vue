@@ -110,7 +110,8 @@ const routeStatsText = computed(() => {
               :d="edgePath(item.x1, item.y1, item.x2, item.y2)"
               :class="['stp-edge', { 'is-taken': item.edge.taken, 'is-faint': !item.edge.choice_label, 'is-and': item.kind === 'and' }]"
             />
-            <g v-if="item.edge.choice_label" class="stp-edge-label" :transform="`translate(${(item.x1 + item.x2) / 2}, ${(item.y1 + item.y2) / 2})`">
+            <!-- 标签贴在子节点正上方：同一父节点的多条边在中点挤在一起，子节点之间则至少隔一个节点宽 -->
+            <g v-if="item.edge.choice_label" class="stp-edge-label" :transform="`translate(${item.x2}, ${item.y2 - 24})`">
               <text text-anchor="middle" y="-5" :class="{ 'is-taken': item.edge.taken }">{{ edgeLabel(item.edge) }}</text>
               <text text-anchor="middle" y="10" class="stp-edge-stats">{{ statsText(item.edge.stats) }}</text>
             </g>

@@ -210,6 +210,7 @@ class ExploreRecoveryRollbackIntegrationTest {
         assertFalse("ending_dream_continuation_choice".equals(
                         ((Map<?, ?>) prematureDraw.get("result")).get("event_key")),
                 "仅触发旧梦剧情、尚未作出履约选择时，不得越级抽到接续梦境");
+        jdbcTemplate.update("UPDATE exploration_events SET enabled=0 WHERE event_key='h2_recovery_cost_five'");
         Map<String, Object> firstPromise = exploreService.makeChoice(
                 PLAYER_ID, "ending_old_dream_promise", 0, "finale-promise-player-one",
                 (String) firstPromiseDraw.get("story_instance_key"), USER_ID);

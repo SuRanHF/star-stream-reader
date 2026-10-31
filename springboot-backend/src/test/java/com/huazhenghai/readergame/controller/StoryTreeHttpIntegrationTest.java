@@ -97,8 +97,8 @@ class StoryTreeHttpIntegrationTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
         JsonNode data = fetch(1);
-        assertEquals(15, data.path("nodes").size());
-        assertEquals(3, data.path("chapters").size());
+        assertEquals(27, data.path("nodes").size());
+        assertEquals(4, data.path("chapters").size());
         assertTrue(data.path("route_continuation").path("event_key").isNull());
         assertEquals("available", node(data, "root", "vol1_ch1").path("state").asText());
         for (JsonNode n : data.path("nodes")) {
@@ -151,8 +151,9 @@ class StoryTreeHttpIntegrationTest {
                 "{\"level\":6}");
         JsonNode data = fetch(1);
         JsonNode tip = findByEvent(data, "chungmuro_conspiracy_story");
-        assertEquals("tip", tip.path("state").asText());
-        assertEquals("to_be_continued", data.path("route_continuation").path("status").asText());
+        assertEquals("done", tip.path("state").asText());
+        assertEquals("active", data.path("route_continuation").path("status").asText());
+        assertTrue(hasAvailableAt(data, "vol1_ch4", "companion"));
         for (JsonNode n : data.path("nodes")) if ("nameless".equals(n.path("branch").asText())) {
             assertEquals("closed", n.path("state").asText());
             assertFalse(n.has("event_key"));
@@ -170,6 +171,44 @@ class StoryTreeHttpIntegrationTest {
         }
         assertTrue(andGates >= 2, "root and iron-king constraints share one AND gate");
         assertTrue(orGates >= 2, "the direct choice unlocker accepts both options");
+    }
+
+    @Test
+    void completedOldTipsDrawTheirOwnFirstContinuationAtTheCorrectLocation() throws Exception {
+        Map<String, List<Map<String, Object>>> histories = Map.of(
+                "A0", List.of(choice("station_first_trace", 0), choice("dongmyo_market_story", 0),
+                        choice("dongmyo_whisperer_story", 1), choice("chungmuro_iron_king_story", 0),
+                        choice("chungmuro_shadow_king_story", 1), choice("chungmuro_conspiracy_story", 0)),
+                "A1", List.of(choice("station_first_trace", 0), choice("dongmyo_market_story", 1),
+                        choice("dongmyo_whisperer_story", 2), choice("chungmuro_iron_king_story", 1),
+                        choice("chungmuro_underground_resistance", 0), choice("chungmuro_compromise_ledger", 1)),
+                "U0", List.of(choice("station_first_trace", 1), choice("geumho_shelter_story", 0),
+                        choice("geumho_underground_story", 1), choice("chungmuro_unnamed_crossing", 0),
+                        choice("chungmuro_revelation_story", 1), choice("chungmuro_script_blank", 0)),
+                "U1", List.of(choice("station_first_trace", 1), choice("geumho_shelter_story", 1),
+                        choice("geumho_underground_story", 0), choice("chungmuro_unnamed_crossing", 1),
+                        choice("chungmuro_nameless_drift", 1), choice("chungmuro_hidden_reader_wall", 1)));
+        Map<String, String> next = Map.of(
+                "A0", "chungmuro_council_audit", "A1", "dongmyo_ledger_delivery",
+                "U0", "chungmuro_paper_summon", "U1", "geumho_wall_message");
+        Map<String, String> locations = Map.of(
+                "A0", "chungmuro", "A1", "dongmyo", "U0", "chungmuro", "U1", "geumho_station");
+        for (String route : List.of("A0", "A1", "U0", "U1")) {
+            List<Map<String, Object>> history = histories.get(route);
+            List<String> triggered = history.stream().map(d -> (String) d.get("event_key")).toList();
+            String oldTip = triggered.get(5);
+            jdbc.update("UPDATE players SET decision_history_json=?,stage_progress_json=?,stats_json=? WHERE id=1",
+                    encoded(history), encoded(Map.of("storyEventsTriggered", triggered,
+                            "routePending", true, "routePendingEventKey", oldTip)),
+                    "{\"level\":6,\"stamina\":100}");
+            JsonNode tree = fetch(1);
+            assertEquals("active", tree.path("route_continuation").path("status").asText(), route);
+            assertTrue(hasAvailableAt(tree, "vol1_ch4", route.startsWith("A") ? "companion" : "nameless"));
+            Map<String, Object> draw = exploreService.startExplore(
+                    1L, locations.get(route), "second-growth-old-tip-" + route, 1L);
+            assertEquals("story", draw.get("result_type"), route);
+            assertEquals(next.get(route), ((Map<?, ?>) draw.get("result")).get("event_key"), route);
+        }
     }
 
     @Test

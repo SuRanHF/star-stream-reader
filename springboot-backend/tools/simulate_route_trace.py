@@ -17,7 +17,7 @@ DATA = json.loads((Path(__file__).parents[1] / "src/main/resources/db/seed_explo
 EVENTS = [item for item in DATA if item["type"] == "event"]
 LOCATIONS = {item["location_key"]: item for item in DATA if item["type"] == "location"}
 BY_KEY = {event["event_key"]: event for event in EVENTS}
-ROUTES = {
+TRUNKS = {
     "A0": (["station_first_trace", "dongmyo_market_story", "dongmyo_whisperer_story",
             "chungmuro_iron_king_story", "chungmuro_shadow_king_story",
             "chungmuro_conspiracy_story"], [0, 0, 1, 0, 1, 0], [1, 2, 2, 5, 5, 5]),
@@ -30,6 +30,20 @@ ROUTES = {
     "U1": (["station_first_trace", "geumho_shelter_story", "geumho_underground_story",
             "chungmuro_unnamed_crossing", "chungmuro_nameless_drift",
             "chungmuro_hidden_reader_wall"], [1, 1, 0, 1, 1, 1], [1, 3, 3, 5, 5, 5]),
+}
+GROWTH = {
+    "A0": ["chungmuro_council_audit", "chungmuro_shadow_vote", "chungmuro_power_fork"],
+    "A1": ["dongmyo_ledger_delivery", "dongmyo_resistance_weigh", "geumho_resistance_muster"],
+    "U0": ["chungmuro_paper_summon", "chungmuro_blank_revision", "chungmuro_name_fork"],
+    "U1": ["geumho_wall_message", "geumho_nameless_cell", "chungmuro_reader_anchor"],
+}
+LEAVES = {"A0a": ("A0", 0), "A0b": ("A0", 1), "A1a": ("A1", 0),
+          "U0a": ("U0", 0), "U0b": ("U0", 1), "U1a": ("U1", 0)}
+ROUTES = {
+    leaf: (TRUNKS[trunk][0] + GROWTH[trunk],
+           TRUNKS[trunk][1] + [0, 0, final_choice],
+           TRUNKS[trunk][2] + [5, 5, 5])
+    for leaf, (trunk, final_choice) in LEAVES.items()
 }
 
 

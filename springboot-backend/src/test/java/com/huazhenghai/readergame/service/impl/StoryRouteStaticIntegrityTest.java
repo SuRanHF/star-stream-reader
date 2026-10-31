@@ -25,6 +25,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Seed-only graph check: no application context or live database is opened. */
 class StoryRouteStaticIntegrityTest {
+    private static final Set<String> SECOND_GROWTH = Set.of(
+            "chungmuro_council_audit", "chungmuro_shadow_vote", "chungmuro_power_fork",
+            "dongmyo_ledger_delivery", "dongmyo_resistance_weigh", "geumho_resistance_muster",
+            "chungmuro_paper_summon", "chungmuro_blank_revision", "chungmuro_name_fork",
+            "geumho_wall_message", "geumho_nameless_cell", "chungmuro_reader_anchor");
     private final Map<String, JsonNode> events = new LinkedHashMap<>();
     private final Map<String, JsonNode> locations = new LinkedHashMap<>();
     private final List<String> problems = new ArrayList<>();
@@ -89,7 +94,9 @@ class StoryRouteStaticIntegrityTest {
                 "U1", List.of(1, 3, 3, 5, 5, 5));
         Set<String> legacyLaterStories = new HashSet<>();
         for (JsonNode event : events.values()) {
-            if (deferredStory(event)) legacyLaterStories.add(event.path("event_key").asText());
+            if (deferredStory(event) && !SECOND_GROWTH.contains(event.path("event_key").asText())) {
+                legacyLaterStories.add(event.path("event_key").asText());
+            }
         }
         assertEquals(20, legacyLaterStories.size());
         for (String key : List.of("chungmuro_unnamed_crossing", "chungmuro_nameless_drift",
@@ -136,10 +143,10 @@ class StoryRouteStaticIntegrityTest {
                         route + " must not enter any old ch4+ story before reaching its tip");
             }
             JsonNode tip = events.get(expected.get(5));
-            assertTrue(tip.path("choices").get(selections.get(route).get(5))
-                    .path("route_pending").asBoolean(), route + " must end pending");
-            assertTrue(tip.path("choices").get(1 - selections.get(route).get(5))
-                    .path("route_pending").asBoolean(), route + " alternate tip choice must also be pending");
+            assertFalse(tip.path("choices").get(selections.get(route).get(5))
+                    .has("route_pending"), route + " old tip must continue");
+            assertFalse(tip.path("choices").get(1 - selections.get(route).get(5))
+                    .has("route_pending"), route + " alternate old tip must continue");
         }
 
         Set<String> companions = new HashSet<>(routes.get("A0"));
@@ -150,8 +157,8 @@ class StoryRouteStaticIntegrityTest {
         nameless.remove("station_first_trace");
         companions.retainAll(nameless);
         assertTrue(companions.isEmpty(), "同行者与无名者分流后不得共享主线事件");
-        for (String tip : List.of("chungmuro_conspiracy_story", "chungmuro_compromise_ledger",
-                "chungmuro_script_blank", "chungmuro_hidden_reader_wall")) {
+        for (String tip : List.of("chungmuro_power_fork", "geumho_resistance_muster",
+                "chungmuro_name_fork", "chungmuro_reader_anchor")) {
             for (JsonNode event : events.values()) {
                 JsonNode conditions = event.path("required_conditions");
                 for (JsonNode dependency : conditions.path("required_events")) {
@@ -179,6 +186,115 @@ class StoryRouteStaticIntegrityTest {
                 }
             }
         }
+    }
+
+    @Test
+    void secondGrowthHasSixPendingLeavesAndFourIsolatedNineStoryPaths() throws Exception {
+        try (InputStream input = getClass().getResourceAsStream("/db/seed_explore.json")) {
+            assertNotNull(input);
+            for (JsonNode entry : new ObjectMapper().readTree(input)) {
+                if ("event".equals(entry.path("type").asText())) {
+                    events.put(entry.path("event_key").asText(), entry);
+                } else if ("location".equals(entry.path("type").asText())) {
+                    locations.put(entry.path("location_key").asText(), entry);
+                }
+            }
+        }
+        Map<String, List<String>> trunks = Map.of(
+                "A0", List.of("station_first_trace", "dongmyo_market_story",
+                        "dongmyo_whisperer_story", "chungmuro_iron_king_story",
+                        "chungmuro_shadow_king_story", "chungmuro_conspiracy_story"),
+                "A1", List.of("station_first_trace", "dongmyo_market_story",
+                        "dongmyo_whisperer_story", "chungmuro_iron_king_story",
+                        "chungmuro_underground_resistance", "chungmuro_compromise_ledger"),
+                "U0", List.of("station_first_trace", "geumho_shelter_story",
+                        "geumho_underground_story", "chungmuro_unnamed_crossing",
+                        "chungmuro_revelation_story", "chungmuro_script_blank"),
+                "U1", List.of("station_first_trace", "geumho_shelter_story",
+                        "geumho_underground_story", "chungmuro_unnamed_crossing",
+                        "chungmuro_nameless_drift", "chungmuro_hidden_reader_wall"));
+        Map<String, List<String>> growth = Map.of(
+                "A0", List.of("chungmuro_council_audit", "chungmuro_shadow_vote", "chungmuro_power_fork"),
+                "A1", List.of("dongmyo_ledger_delivery", "dongmyo_resistance_weigh", "geumho_resistance_muster"),
+                "U0", List.of("chungmuro_paper_summon", "chungmuro_blank_revision", "chungmuro_name_fork"),
+                "U1", List.of("geumho_wall_message", "geumho_nameless_cell", "chungmuro_reader_anchor"));
+        Map<String, List<Integer>> selections = Map.of(
+                "A0", List.of(0, 0, 1, 0, 1, 0), "A1", List.of(0, 1, 2, 1, 0, 1),
+                "U0", List.of(1, 0, 1, 0, 1, 0), "U1", List.of(1, 1, 0, 1, 1, 1));
+        Set<String> growthSeen = new HashSet<>();
+        Set<String> leafFlags = new HashSet<>();
+        Set<String> pendingLeaves = new HashSet<>();
+        for (String route : List.of("A0", "A1", "U0", "U1")) {
+            List<String> expected = new ArrayList<>(trunks.get(route));
+            expected.addAll(growth.get(route));
+            assertEquals(9, expected.size());
+            for (String key : growth.get(route)) {
+                assertTrue(growthSeen.add(key), "主枝重复使用事件 " + key);
+                JsonNode event = events.get(key);
+                assertNotNull(event);
+                assertEquals("story", event.path("event_type").asText());
+                assertEquals("vol1_ch4", event.path("stage_key").asText());
+                assertEquals(0, event.path("repeatable").asInt());
+                assertTrue(event.path("rewards").isObject() && event.path("rewards").isEmpty());
+                for (JsonNode choice : event.path("choices")) {
+                    assertTrue(choice.path("rewards_override").isObject());
+                    assertTrue(choice.path("title_bias").isObject());
+                }
+                String prose = event.path("description").asText() + event.path("choices").toString();
+                for (String forbidden : List.of("死亡", "死去", "尸体", "葬")) {
+                    assertFalse(prose.contains(forbidden), key + " contains " + forbidden);
+                }
+            }
+            for (int leafChoice = 0; leafChoice < 2; leafChoice++) {
+                Map<String, Integer> decisions = new LinkedHashMap<>();
+                for (int step = 0; step < expected.size(); step++) {
+                    String key = expected.get(step);
+                    JsonNode event = events.get(key);
+                    Set<String> candidates = new LinkedHashSet<>();
+                    for (JsonNode candidate : events.values()) {
+                        String candidateKey = candidate.path("event_key").asText();
+                        if ("story".equals(candidate.path("event_type").asText())
+                                && !decisions.containsKey(candidateKey)
+                                && available(candidate, decisions)) {
+                            candidates.add(candidateKey);
+                        }
+                    }
+                    assertEquals(Set.of(key), candidates, route + " step " + step);
+                    if (step == 6) {
+                        String oldTip = expected.get(5);
+                        assertEquals(Set.of(key), Set.copyOf(candidates), "旧枝尖续章必须可抽中");
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> conditions = new ObjectMapper().convertValue(
+                                event.path("required_conditions"), Map.class);
+                        assertTrue(RouteContinuationPolicy.allowsStory(
+                                Map.of("routePending", true, "routePendingEventKey", oldTip), conditions));
+                    }
+                    int choice = step < 6 ? selections.get(route).get(step)
+                            : step == 8 ? leafChoice : 0;
+                    decisions.put(key, choice);
+                    if (step == 5) {
+                        JsonNode oldChoice = event.path("choices").get(choice);
+                        assertFalse(oldChoice.has("route_pending"));
+                        assertEquals(expected.get(6),
+                                oldChoice.path("unlock_events").get(0).asText());
+                    }
+                    if (step == 8) {
+                        JsonNode tipChoice = event.path("choices").get(choice);
+                        assertTrue(tipChoice.path("route_pending").asBoolean());
+                        pendingLeaves.add(route.equals("A0") || route.equals("U0")
+                                ? route + leafChoice : route);
+                        tipChoice.path("set_story_flags").fieldNames().forEachRemaining(flag ->
+                                assertTrue(leafFlags.add(flag), "枝尖旗标重复 " + flag));
+                    }
+                }
+            }
+        }
+        assertEquals(12, growthSeen.size());
+        assertEquals(6, pendingLeaves.size());
+        assertEquals(8, leafFlags.size());
+        assertTrue(locations.get("geumho_station").path("unlock_conditions")
+                .path("prerequisite_events").toString().contains("station_first_trace"),
+                "A1 已经过站台起点，金湖站应可达");
     }
 
     @Test
@@ -284,11 +400,12 @@ class StoryRouteStaticIntegrityTest {
             assertNotNull(input);
             growthMigration = new String(input.readAllBytes(), StandardCharsets.UTF_8);
         }
-        String finalConfiguration = sql.substring(sql.indexOf(growthMarker));
+        String finalConfiguration = sql.substring(sql.indexOf(growthMarker),
+                sql.indexOf("-- Second story tree growth:"));
         String guardedConfiguration = growthMigration.substring(growthMigration.indexOf(growthMarker));
         String newLibraryConfiguration = guardedConfiguration.replaceAll(
                 "(?s)(WHERE `(?:event_key|location_key)` = '[^']+')\\R  AND .*?;", "$1;");
-        assertEquals(finalConfiguration, newLibraryConfiguration,
+        assertEquals(finalConfiguration.strip(), newLibraryConfiguration.strip(),
                 "新库种子与旧库迁移必须应用同一组静态配置变更");
         assertFalse(growthMigration.contains("UPDATE `players`")
                 || growthMigration.contains("DELETE FROM `players`"));
@@ -356,6 +473,39 @@ class StoryRouteStaticIntegrityTest {
         assertEquals(removedRateKeys, removedRates);
         assertTrue(!migration.contains("UPDATE `players`") && !migration.contains("DELETE FROM `players`"));
         assertTrue(!migration.contains("INSERT INTO") && !migration.contains("DELETE FROM"));
+    }
+
+    @Test
+    void secondGrowthSqlSeedMatchesGuardedRepeatableMigration() throws Exception {
+        String sql;
+        String migration;
+        try (InputStream sqlInput = getClass().getResourceAsStream("/db/seed_explore.sql");
+             InputStream migrationInput = getClass().getResourceAsStream(
+                     "/db/migrations/20261101_story_tree_second_growth.sql")) {
+            assertNotNull(sqlInput);
+            assertNotNull(migrationInput);
+            sql = new String(sqlInput.readAllBytes(), StandardCharsets.UTF_8);
+            migration = new String(migrationInput.readAllBytes(), StandardCharsets.UTF_8);
+        }
+        String marker = "-- Second story tree growth: authoritative final state for the new-library SQL seed.";
+        assertTrue(sql.contains(marker));
+        assertTrue(migration.contains(marker));
+        String newLibrary = sql.substring(sql.indexOf(marker));
+        String guarded = migration.substring(migration.indexOf(marker));
+        String unguarded = guarded.replaceAll(
+                "(?s)(WHERE `event_key` = '[^']+')\\R  AND .*?;", "$1;");
+        assertEquals(newLibrary.strip(), unguarded.strip());
+        assertEquals(4, count(guarded, "UPDATE `exploration_events`"));
+        assertEquals(12, count(guarded, "INSERT IGNORE INTO `exploration_events`"));
+        Matcher updates = Pattern.compile("UPDATE `exploration_events`[\\s\\S]*?;")
+                .matcher(guarded);
+        while (updates.find()) {
+            String update = updates.group();
+            assertTrue(update.contains("WHERE `event_key` = '"));
+            assertTrue(update.contains("  AND JSON_CONTAINS(`choices_json`"),
+                    "旧枝尖更新必须有旧值守卫");
+        }
+        assertFalse(guarded.contains("UPDATE `players`") || guarded.contains("DELETE "));
     }
 
     private static int count(String text, String token) {
@@ -484,7 +634,8 @@ class StoryRouteStaticIntegrityTest {
             String targetKey = target.path("event_key").asText();
             for (JsonNode gate : target.path("required_conditions").path("choice_unlockers")) {
                 String sourceKey = gate.path("event_key").asText();
-                if (deferredStory(target) && !deferredStory(events.get(sourceKey))) continue;
+                if (deferredStory(target) && !SECOND_GROWTH.contains(targetKey)
+                        && !deferredStory(events.get(sourceKey))) continue;
                 for (JsonNode index : gate.path("choice_indices")) {
                     unlockedByChoice.computeIfAbsent(sourceKey + "[" + index.asInt() + "]",
                             unused -> new HashSet<>()).add(targetKey);

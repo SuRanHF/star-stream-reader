@@ -17,6 +17,14 @@ spring:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai
     default-property-inclusion: non_null
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      database: ${REDIS_DATABASE:0}
+      password: ${REDIS_PASSWORD:}
+      connect-timeout: ${REDIS_CONNECT_TIMEOUT:500ms}
+      timeout: ${REDIS_TIMEOUT:500ms}
 
 # ==================== MyBatis-Plus 配置 ====================
 mybatis-plus:
@@ -40,10 +48,14 @@ app:
     # 全局 tick 间隔（毫秒），默认 60 秒
     tick-interval-ms: 60000
   jwt:
-    # JWT 签名密钥 (生产环境必须通过环境变量覆盖)
-    secret: ${JWT_SECRET:dev-secret-change-me}
+    # 必须由本机/部署环境提供，不在仓库保存密钥
+    secret: ${JWT_SECRET}
     # Token 过期时间 (小时)
     expire-hours: 168
+  cache:
+    key-prefix: ${CACHE_KEY_PREFIX:star-reader}
+    public-ranking:
+      ttl: ${PUBLIC_RANKING_CACHE_TTL:15s}
 
 # ==================== Knife4j 接口文档 ====================
 knife4j:

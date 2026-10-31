@@ -12,7 +12,6 @@ http.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  config.headers['X-Admin-Key'] = 'reader-admin-2026';
   return config;
 });
 

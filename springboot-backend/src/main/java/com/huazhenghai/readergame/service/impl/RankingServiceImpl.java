@@ -4,6 +4,7 @@ import com.huazhenghai.readergame.entity.Player;
 import com.huazhenghai.readergame.entity.Ranking;
 import com.huazhenghai.readergame.mapper.PlayerMapper;
 import com.huazhenghai.readergame.mapper.RankingMapper;
+import com.huazhenghai.readergame.service.cache.PublicRankingCache;
 import com.huazhenghai.readergame.service.RankingService;
 import com.huazhenghai.readergame.vo.PlayerRankVO;
 import com.huazhenghai.readergame.vo.RankingVO;
@@ -25,16 +26,23 @@ public class RankingServiceImpl implements RankingService {
 
     private final RankingMapper rankingMapper;
     private final PlayerMapper playerMapper;
+    private final PublicRankingCache publicRankingCache;
 
     public RankingServiceImpl(RankingMapper rankingMapper,
-                              PlayerMapper playerMapper) {
+                              PlayerMapper playerMapper,
+                              PublicRankingCache publicRankingCache) {
         this.rankingMapper = rankingMapper;
         this.playerMapper = playerMapper;
+        this.publicRankingCache = publicRankingCache;
     }
 
     @Override
     public List<RankingVO> getRankings(int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 100));
+        return publicRankingCache.getEloLeaderboard(safeLimit, () -> loadRankings(safeLimit));
+    }
+
+    private List<RankingVO> loadRankings(int safeLimit) {
         List<Map<String, Object>> rows = rankingMapper.selectEloLeaderboard(safeLimit);
         List<RankingVO> result = new java.util.ArrayList<>(rows.size());
         int rank = 0;

@@ -4,6 +4,7 @@ import com.huazhenghai.readergame.entity.Player;
 import com.huazhenghai.readergame.entity.Ranking;
 import com.huazhenghai.readergame.mapper.PlayerMapper;
 import com.huazhenghai.readergame.mapper.RankingMapper;
+import com.huazhenghai.readergame.service.cache.PublicRankingCache;
 import com.huazhenghai.readergame.vo.PlayerRankVO;
 import com.huazhenghai.readergame.vo.RankingVO;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.time.Duration;
 import java.time.LocalDateTime;
 
@@ -34,16 +36,18 @@ class RankingServiceImplTest {
 
     @Mock private RankingMapper rankingMapper;
     @Mock private PlayerMapper playerMapper;
+    @Mock private PublicRankingCache publicRankingCache;
 
     private RankingServiceImpl rankingService;
 
     @BeforeEach
     void setUp() {
-        rankingService = new RankingServiceImpl(rankingMapper, playerMapper);
+        rankingService = new RankingServiceImpl(rankingMapper, playerMapper, publicRankingCache);
     }
 
     @Test
     void leaderboardIncludesRankedAndUnrankedPlayersWithoutPerPlayerQueries() {
+        passThroughLeaderboardCache(50);
         Map<String, Object> rankedRow = row(12L, "Ranked player", 1, 1180, 4, 2, 1250);
         Map<String, Object> unrankedRow = row(13L, "New player", 0, 1000, 0, 0, 1000);
         when(rankingMapper.selectEloLeaderboard(50)).thenReturn(List.of(rankedRow, unrankedRow));
@@ -228,6 +232,8 @@ class RankingServiceImplTest {
 
     @Test
     void leaderboardLimitIsClampedToOneThroughOneHundred() {
+        passThroughLeaderboardCache(1);
+        passThroughLeaderboardCache(100);
         when(rankingMapper.selectEloLeaderboard(1)).thenReturn(List.of());
         when(rankingMapper.selectEloLeaderboard(100)).thenReturn(List.of());
 
@@ -236,6 +242,13 @@ class RankingServiceImplTest {
 
         verify(rankingMapper).selectEloLeaderboard(1);
         verify(rankingMapper).selectEloLeaderboard(100);
+    }
+
+    private void passThroughLeaderboardCache(int limit) {
+        when(publicRankingCache.getEloLeaderboard(eq(limit), any())).thenAnswer(invocation -> {
+            Supplier<List<RankingVO>> mysqlLoader = invocation.getArgument(1);
+            return mysqlLoader.get();
+        });
     }
 
     private static Map<String, Object> row(long playerId, String playerName, int ranked,

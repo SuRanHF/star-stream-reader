@@ -122,7 +122,7 @@ public class ExploreController {
     public Result<Map<String, Object>> startExplore(@Valid @RequestBody ExploreRequest req) {
         Long userId = LoginUserContext.get().getUserId();
         Map<String, Object> result = exploreService.startExplore(
-                req.getPlayerId(), req.getLocationKey(), req.getRequestKey(), userId);
+                req.getPlayerId(), req.getLocationKey(), req.getRequestKey(), req.isTraceRoute(), userId);
         return Result.ok(result);
     }
 

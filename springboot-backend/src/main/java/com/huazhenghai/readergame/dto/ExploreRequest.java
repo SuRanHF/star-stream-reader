@@ -15,10 +15,14 @@ public class ExploreRequest {
     @Size(max = 64, message = "requestKey 长度不能超过 64")
     private String requestKey;
 
+    private boolean traceRoute;
+
     public Long getPlayerId() { return playerId; }
     public void setPlayerId(Long playerId) { this.playerId = playerId; }
     public String getLocationKey() { return locationKey; }
     public void setLocationKey(String locationKey) { this.locationKey = locationKey; }
     public String getRequestKey() { return requestKey; }
     public void setRequestKey(String requestKey) { this.requestKey = requestKey; }
+    public boolean isTraceRoute() { return traceRoute; }
+    public void setTraceRoute(boolean traceRoute) { this.traceRoute = traceRoute; }
 }

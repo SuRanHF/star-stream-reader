@@ -81,6 +81,187 @@ class ExploreServiceImplTest {
 
     private ExploreServiceImpl exploreService;
 
+    private Player tracePlayer;
+
+    private ExplorationEvent traceStory;
+
+    private void prepareTraceFixture() {
+        tracePlayer = new Player();
+        tracePlayer.setId(1L);
+        tracePlayer.setUserId(9L);
+        tracePlayer.setCurrentLocation("trace_station");
+        tracePlayer.setCoins(0);
+        tracePlayer.setStoryFragments(0);
+        tracePlayer.setStatsJson("{\"level\":1,\"stamina\":40,\"exp\":0,\"maxHp\":100}");
+        tracePlayer.setStoryFlagsJson("{}");
+        tracePlayer.setStageProgressJson("{\"storyEventsTriggered\":[\"my_choice\"]}");
+        tracePlayer.setDecisionHistoryJson("[{\"event_key\":\"my_choice\",\"choice_index\":0}]");
+        lenient().when(playerMapper.selectById(1L)).thenReturn(tracePlayer);
+        lenient().when(playerMapper.selectByIdForUpdate(1L)).thenReturn(tracePlayer);
+        lenient().when(recoveryService.applyRecovery(tracePlayer)).thenAnswer(invocation ->
+                new LinkedHashMap<>(Map.of("level", 1, "stamina", 40,
+                        "exp", 0, "maxHp", 100, "isResting", false)));
+        Location location = new Location();
+        location.setLocationKey("trace_station");
+        location.setName("寻踪站");
+        location.setMinLevel(1);
+        location.setUnlockConditionsJson("{}");
+        location.setEventRatesJson("{}");
+        lenient().when(locationMapper.selectOne(any())).thenReturn(location);
+        lenient().when(locationMapper.selectList(any())).thenReturn(List.of());
+        traceStory = new ExplorationEvent();
+        traceStory.setEventKey("my_route_story");
+        traceStory.setEventType("story");
+        traceStory.setLocationKey("trace_station");
+        traceStory.setName("我的路线");
+        traceStory.setWeight(10);
+        traceStory.setStaminaCost(6);
+        traceStory.setEnabled(1);
+        traceStory.setRepeatable(0);
+        traceStory.setRequiredConditionsJson("{\"choice_unlockers\":[{\"event_key\":\"my_choice\",\"choice_indices\":[0]}]}");
+        traceStory.setRewardsJson("{}");
+        traceStory.setProgressEffectsJson("{}");
+        traceStory.setChoicesJson("[]");
+        lenient().when(eventMapper.selectList(any())).thenReturn(List.of(traceStory));
+        lenient().when(skillService.calculateSkillBonus(1L)).thenReturn(Map.of());
+        lenient().when(titleService.calculateTitleEffects(1L)).thenReturn(Map.of());
+        lenient().when(titleService.evaluateAndUnlockTitles(1L, null)).thenReturn(List.of());
+    }
+
+    @Test
+    void traceRouteBiasesOnlyEligibleRouteStories() {
+        prepareTraceFixture();
+        ExplorationEvent neutral = new ExplorationEvent();
+        neutral.setEventKey("neutral_story");
+        neutral.setEventType("story");
+        neutral.setWeight(10);
+        neutral.setRequiredConditionsJson("{}");
+        ExplorationEvent wrong = new ExplorationEvent();
+        wrong.setEventKey("wrong_route_story");
+        wrong.setEventType("story");
+        wrong.setWeight(1000);
+        wrong.setRequiredConditionsJson("{\"choice_unlockers\":[{\"event_key\":\"my_choice\",\"choice_indices\":[1]}]}");
+        List<?> decisions = List.of(Map.of("event_key", "my_choice", "choice_index", 0));
+        Map<String, Object> progress = Map.of("storyEventsTriggered", List.of("my_choice"));
+        Location location = new Location();
+        location.setLocationKey("trace_station");
+        List<ExplorationEvent> eligible = List.of(traceStory, neutral, wrong).stream().filter(event ->
+                ExploreCandidatePolicy.canDraw(event, parseConditions(event),
+                        location, Map.of(), Map.of("level", 1), Map.of(), "vol1_ch1",
+                        progress, decisions, List.of("my_choice"), List.of(), Map.of(), false,
+                        key -> Map.of())).toList();
+        assertEquals(2, eligible.size());
+        assertTrue(ExploreRouteTrace.isTracedStory(traceStory, parseConditions(traceStory), progress, decisions));
+        assertFalse(ExploreRouteTrace.isTracedStory(neutral, Map.of(), progress, decisions));
+        Random off = new Random(1122L);
+        Random on = new Random(1122L);
+        int offHits = 0;
+        int onHits = 0;
+        for (int i = 0; i < 10000; i++) {
+            if (ExploreEventSelector.selectEvent(eligible, 0, Map.of(), 0, off) == traceStory) offHits++;
+            if (ExploreEventSelector.selectEvent(eligible, 0, Map.of(), 0, on,
+                    event -> event == traceStory, 3.0) == traceStory) onHits++;
+        }
+        assertTrue(onHits > offHits + 1500, offHits + " -> " + onHits);
+    }
+
+    private Map<String, Object> parseConditions(ExplorationEvent event) {
+        try {
+            return new ObjectMapper().readValue(event.getRequiredConditionsJson(), Map.class);
+        } catch (Exception exception) {
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    @Test
+    void traceRouteChargesExtraOnlyWhenAvailable() {
+        prepareTraceFixture();
+        Map<String, Object> traced = exploreService.startExplore(1L, "trace_station", "trace-on", true, 9L);
+        assertEquals(true, traced.get("trace_applied"));
+        assertEquals(3, traced.get("trace_extra_cost"));
+        assertEquals(9, traced.get("stamina_cost_paid"));
+
+        tracePlayer.setDecisionHistoryJson("[]");
+        tracePlayer.setStageProgressJson("{}");
+        ExplorationEvent resource = new ExplorationEvent();
+        resource.setEventKey("plain_resource");
+        resource.setEventType("resource");
+        resource.setLocationKey("trace_station");
+        resource.setName("补给");
+        resource.setWeight(1);
+        resource.setStaminaCost(6);
+        resource.setEnabled(1);
+        resource.setRepeatable(1);
+        resource.setRequiredConditionsJson("{}");
+        resource.setRewardsJson("{}");
+        resource.setProgressEffectsJson("{}");
+        when(eventMapper.selectList(any())).thenReturn(List.of(resource));
+        Map<String, Object> plain = exploreService.startExplore(1L, "trace_station", "trace-unavailable", true, 9L);
+        assertEquals(false, plain.get("trace_applied"));
+        assertEquals(0, plain.get("trace_extra_cost"));
+        assertEquals(6, plain.get("stamina_cost_paid"));
+    }
+
+    @Test
+    void tracePreviewMatchesActualCharge() {
+        prepareTraceFixture();
+        Map<String, Object> preview = exploreService.getCostPreview(1L);
+        assertEquals(Map.of("available", true, "extra_min", 3, "extra_max", 3),
+                preview.get("trace_preview"));
+        Map<String, Object> result = exploreService.startExplore(1L, "trace_station", "trace-preview", true, 9L);
+        assertEquals(preview.get("minStaminaCost"),
+                (int) result.get("stamina_cost_paid") - (int) result.get("trace_extra_cost"));
+        assertEquals(((Map<?, ?>) preview.get("trace_preview")).get("extra_min"), result.get("trace_extra_cost"));
+    }
+
+    @Test
+    void traceRouteDoesNotBypassRoutePending() {
+        prepareTraceFixture();
+        Map<String, Object> progress = Map.of("routePending", true, "routePendingEventKey", "other_tip",
+                "storyEventsTriggered", List.of("my_choice"));
+        List<?> decisions = List.of(Map.of("event_key", "my_choice", "choice_index", 0));
+        assertFalse(ExploreCandidatePolicy.canDraw(traceStory, parseConditions(traceStory),
+                new Location(), Map.of(), Map.of("level", 1), Map.of(), "vol1_ch1",
+                progress, decisions, List.of("my_choice"), List.of(), Map.of(), false,
+                key -> Map.of()));
+        tracePlayer.setStageProgressJson("{\"storyEventsTriggered\":[\"my_choice\"],"
+                + "\"routePending\":true,\"routePendingEventKey\":\"other_tip\"}");
+        ExplorationEvent resource = new ExplorationEvent();
+        resource.setEventKey("pending_supply");
+        resource.setEventType("resource");
+        resource.setLocationKey("trace_station");
+        resource.setName("补给");
+        resource.setWeight(1);
+        resource.setStaminaCost(6);
+        resource.setEnabled(1);
+        resource.setRepeatable(1);
+        resource.setRequiredConditionsJson("{}");
+        resource.setRewardsJson("{}");
+        resource.setProgressEffectsJson("{}");
+        when(eventMapper.selectList(any())).thenReturn(List.of(traceStory, resource));
+        assertEquals(false, ((Map<?, ?>) exploreService.getCostPreview(1L)
+                .get("trace_preview")).get("available"));
+        Map<String, Object> result = exploreService.startExplore(1L, "trace_station", "pending-trace", true, 9L);
+        assertEquals("pending_supply", ((Map<?, ?>) result.get("result")).get("event_key"));
+        assertEquals(false, result.get("trace_applied"));
+        assertEquals(0, result.get("trace_extra_cost"));
+    }
+
+    @Test
+    void traceRouteReplayPayloadIncludesFlag() {
+        prepareTraceFixture();
+        Map<String, Object> first = exploreService.startExplore(1L, "trace_station", "trace-replay", true, 9L);
+        org.mockito.ArgumentCaptor<Map<String, Object>> metadata = org.mockito.ArgumentCaptor.forClass(Map.class);
+        verify(playerLogService).addLog(eq(1L), anyString(), anyString(), metadata.capture());
+        assertEquals(true, metadata.getValue().get("requestTraceRoute"));
+        when(playerLogService.findExplorationReceipt(1L, "trace-replay")).thenReturn(metadata.getValue());
+        Map<String, Object> replay = exploreService.startExplore(1L, "trace_station", "trace-replay", true, 9L);
+        assertEquals(true, replay.get("request_replayed"));
+        assertEquals(first.get("trace_extra_cost"), replay.get("trace_extra_cost"));
+        assertThrows(BusinessException.class, () -> exploreService.startExplore(
+                1L, "trace_station", "trace-replay", false, 9L));
+    }
+
     @BeforeEach
     void setUp() {
         exploreService = new ExploreServiceImpl(

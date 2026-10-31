@@ -84,6 +84,10 @@ app:
     public-ranking:
       ttl: ${PUBLIC_RANKING_CACHE_TTL:15s}
 
+trace:
+  weightMultiplier: ${TRACE_WEIGHT_MULTIPLIER:3}
+  extraCostRatio: ${TRACE_EXTRA_COST_RATIO:0.5}
+
 # ==================== Knife4j 接口文档 ====================
 knife4j:
   enable: true

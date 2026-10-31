@@ -38,6 +38,7 @@ import com.huazhenghai.readergame.vo.InventoryItemVO;
 import com.huazhenghai.readergame.vo.EquipmentVO;
 import com.huazhenghai.readergame.vo.PlayerTitleVO;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
 import javax.sql.DataSource;
 import java.time.LocalDateTime;
@@ -67,6 +68,12 @@ public class ExploreServiceImpl implements ExploreService {
     private final DataSource dataSource;
     private static final String SKILL_STAMINA_SAVINGS_REMAINDER = "skillStaminaSavingsRemainder";
     private static final Logger log = LoggerFactory.getLogger(ExploreServiceImpl.class);
+
+    @Value("${trace.weightMultiplier:3}")
+    private double traceWeightMultiplier = 3.0;
+
+    @Value("${trace.extraCostRatio:0.5}")
+    private double traceExtraCostRatio = 0.5;
 
     public ExploreServiceImpl(PlayerMapper playerMapper,
                               LocationMapper locationMapper,
@@ -208,6 +215,9 @@ public class ExploreServiceImpl implements ExploreService {
             available.removeIf(e -> !"story".equals(e.getEventType()));
         if (available.isEmpty()) throw new BusinessException(ErrorCode.NO_AVAILABLE_EVENT, "该地点暂无可用的探索事件");
 
+        boolean traceAvailable = available.stream().anyMatch(event -> ExploreRouteTrace.isTracedStory(
+                event, parseJsonMap(event.getRequiredConditionsJson()), progress, decisions));
+
         Map<String, Object> bonuses = skillService.calculateSkillBonus(playerId);
         double reduction = bonuses != null && bonuses.get("staminaCostReduce") instanceof Number value
                 ? value.doubleValue() : 0.0;
@@ -223,6 +233,9 @@ public class ExploreServiceImpl implements ExploreService {
         result.put("minStaminaCost", min);
         result.put("maxStaminaCost", max);
         result.put("currentStamina", toInt(stats.get("stamina"), 50));
+        result.put("trace_preview", Map.of("available", traceAvailable,
+                "extra_min", traceAvailable ? ExploreRouteTrace.extraCost(min, traceExtraCostRatio) : 0,
+                "extra_max", traceAvailable ? ExploreRouteTrace.extraCost(max, traceExtraCostRatio) : 0));
         result.put("route_continuation", routeContinuationResponse(player, progress, stats));
         return result;
     }
@@ -231,6 +244,13 @@ public class ExploreServiceImpl implements ExploreService {
     @Transactional
     public Map<String, Object> startExplore(Long playerId, String locationKey,
                                            String requestKey, Long userId) {
+        return startExplore(playerId, locationKey, requestKey, false, userId);
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> startExplore(Long playerId, String locationKey,
+                                           String requestKey, boolean traceRoute, Long userId) {
         if (requestKey == null || requestKey.isBlank())
             throw new BusinessException(ErrorCode.BAD_REQUEST, "requestKey 不能为空");
         if (requestKey.length() > 64)
@@ -251,7 +271,7 @@ public class ExploreServiceImpl implements ExploreService {
             locationKey = "ruined_station";
         }
         Map<String, Object> receipt = playerLogService.findExplorationReceipt(playerId, requestKey);
-        if (receipt != null) return replayExploreReceipt(player, locationKey, requestKey, receipt);
+        if (receipt != null) return replayExploreReceipt(player, locationKey, requestKey, traceRoute, receipt);
 
         // Preserve idempotent replay above, but do not let a fresh action bypass a battle
         // encounter that the UI requires the player to resolve first.
@@ -338,6 +358,17 @@ public class ExploreServiceImpl implements ExploreService {
         if (availableEvents.isEmpty())
             throw new BusinessException(ErrorCode.NO_AVAILABLE_EVENT, "该地点暂无可用的探索事件");
 
+        Set<String> tracedEventKeys = new HashSet<>();
+        if (traceRoute) {
+            for (ExplorationEvent event : availableEvents) {
+                if (ExploreRouteTrace.isTracedStory(event,
+                        parseJsonMap(event.getRequiredConditionsJson()), stageProgress, decisionHistory)) {
+                    tracedEventKeys.add(event.getEventKey());
+                }
+            }
+        }
+        boolean traceApplied = traceRoute && !tracedEventKeys.isEmpty();
+
         Map<String, Object> skillBonuses = skillService.calculateSkillBonus(playerId);
         if (skillBonuses == null) skillBonuses = Collections.emptyMap();
         Map<String, Object> titleEffects = titleService.calculateTitleEffects(playerId);
@@ -349,7 +380,8 @@ public class ExploreServiceImpl implements ExploreService {
 
         // 7. 按 event_rates_json 权重 + storyPity 保底抽取事件
         ExplorationEvent selected = ExploreEventSelector.selectEvent(availableEvents, storyPity,
-                parseJsonMap(location.getEventRatesJson()), storyEventBonus, new Random());
+                parseJsonMap(location.getEventRatesJson()), storyEventBonus, new Random(),
+                event -> tracedEventKeys.contains(event.getEventKey()), traceWeightMultiplier);
 
         // 7a. 检测该地点故事是否已全部耗尽
         boolean storiesExhausted = checkStoriesExhausted(
@@ -359,8 +391,11 @@ public class ExploreServiceImpl implements ExploreService {
         double staminaCostReduce = skillBonuses.get("staminaCostReduce") instanceof Number value
                 ? value.doubleValue() : 0.0;
         int baseStaminaCost = selected.getStaminaCost() != null ? selected.getStaminaCost() : 5;
-        int staminaCost = applySkillStaminaCostReduction(
+        int reducedBaseCost = applySkillStaminaCostReduction(
                 baseStaminaCost, staminaCostReduce, stageProgress);
+        int traceExtraCost = traceApplied
+                ? ExploreRouteTrace.extraCost(reducedBaseCost, traceExtraCostRatio) : 0;
+        int staminaCost = reducedBaseCost + traceExtraCost;
         int stamina = toInt(stats.get("stamina"), 50);
         if (stamina < staminaCost)
             throw new BusinessException(ErrorCode.STAMINA_NOT_ENOUGH,
@@ -381,6 +416,8 @@ public class ExploreServiceImpl implements ExploreService {
             Map<String, Object> battleResult = new LinkedHashMap<>();
             battleResult.put("result_type", "battle");
             battleResult.put("stamina_cost_paid", staminaCost);
+            battleResult.put("trace_applied", traceApplied);
+            battleResult.put("trace_extra_cost", traceExtraCost);
             battleResult.put("location_key", location.getLocationKey());
             battleResult.put("location_name", location.getName());
             Map<String, Object> eventData = new LinkedHashMap<>();
@@ -413,6 +450,7 @@ public class ExploreServiceImpl implements ExploreService {
             receiptMetadata.put("eventType", selected.getEventType());
             receiptMetadata.put("requestKey", requestKey);
             receiptMetadata.put("requestLocationKey", locationKey);
+            receiptMetadata.put("requestTraceRoute", traceRoute);
             receiptMetadata.put("staminaCost", staminaCost);
             receiptMetadata.put("requestResponse", receiptResponse);
             ensureReceiptSerializable(receiptMetadata);
@@ -526,6 +564,8 @@ public class ExploreServiceImpl implements ExploreService {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("result_type", selected.getEventType());
         result.put("stamina_cost_paid", staminaCost);
+        result.put("trace_applied", traceApplied);
+        result.put("trace_extra_cost", traceExtraCost);
 
         Map<String, Object> eventData = new LinkedHashMap<>();
         eventData.put("event_key", selected.getEventKey());
@@ -573,6 +613,7 @@ public class ExploreServiceImpl implements ExploreService {
 
         exploreLogMetadata.put("requestKey", requestKey);
         exploreLogMetadata.put("requestLocationKey", locationKey);
+        exploreLogMetadata.put("requestTraceRoute", traceRoute);
         Map<String, Object> receiptResponse = new LinkedHashMap<>(result);
         receiptResponse.remove("player");
         exploreLogMetadata.put("requestResponse", receiptResponse);
@@ -629,10 +670,12 @@ public class ExploreServiceImpl implements ExploreService {
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> replayExploreReceipt(Player player, String locationKey,
-                                                     String requestKey, Map<String, Object> receipt) {
-        if (!Objects.equals(receipt.get("requestLocationKey"), locationKey)) {
+                                                     String requestKey, boolean traceRoute,
+                                                     Map<String, Object> receipt) {
+        if (!Objects.equals(receipt.get("requestLocationKey"), locationKey)
+                || Boolean.TRUE.equals(receipt.get("requestTraceRoute")) != traceRoute) {
             throw new BusinessException(ErrorCode.BAD_REQUEST,
-                    "该请求键已用于其他探索地点，请为本次探索重新生成请求键");
+                    "该请求键已用于其他探索地点或寻踪设置，请为本次探索重新生成请求键");
         }
         Object storedResponse = receipt.get("requestResponse");
         if (!(storedResponse instanceof Map<?, ?> response)) {

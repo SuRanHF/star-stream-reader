@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.function.Predicate;
 
 /** 探索事件的纯选择与权重计算，不读取或写入玩家状态。 */
 final class ExploreEventSelector {
@@ -19,6 +20,17 @@ final class ExploreEventSelector {
             Map<String, Object> eventRates,
             double storyEventBonus,
             Random random) {
+        return selectEvent(events, storyPity, eventRates, storyEventBonus, random, event -> false, 1.0);
+    }
+
+    static ExplorationEvent selectEvent(
+            List<ExplorationEvent> events,
+            int storyPity,
+            Map<String, Object> eventRates,
+            double storyEventBonus,
+            Random random,
+            Predicate<ExplorationEvent> tracedStory,
+            double traceMultiplier) {
         List<ExplorationEvent> selectionEvents = events;
         // 硬保底只排除非主线事件；主线之间仍按配置权重随机，避免依赖数据库返回顺序。
         if (storyPity >= 8) {
@@ -48,6 +60,7 @@ final class ExploreEventSelector {
             if ("story".equals(event.getEventType())) {
                 adjustedWeight = applyStoryEventBonusToWeight(weight, storyEventBonus);
             }
+            if (tracedStory.test(event)) adjustedWeight *= traceMultiplier;
             adjustedWeights.put(event.getEventKey(), adjustedWeight);
             totalWeight += adjustedWeight;
         }

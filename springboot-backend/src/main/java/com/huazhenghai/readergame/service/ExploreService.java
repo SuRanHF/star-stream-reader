@@ -18,6 +18,9 @@ public interface ExploreService {
      */
     Map<String, Object> startExplore(Long playerId, String locationKey, String requestKey, Long userId);
 
+    Map<String, Object> startExplore(Long playerId, String locationKey, String requestKey,
+                                     boolean traceRoute, Long userId);
+
     /**
      * 在故事事件中做出选择.
      *

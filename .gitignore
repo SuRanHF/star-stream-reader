@@ -44,6 +44,10 @@ public/fonts/*.woff2
 # One-off local browser diagnostics and live account scripts
 /frontend-player/e2e/_inspect_*.py
 /frontend-player/e2e/*.mjs
+# These browser journeys use only a random-port H2 test database and are shared CI sources.
+!/frontend-player/e2e/character-creation-live.mjs
+!/frontend-player/e2e/story-combat-live.mjs
+!/frontend-player/e2e/quest-claim-live.mjs
 /frontend-player/pnpm-lock.yaml
 /frontend-player/pnpm-workspace.yaml
 /scripts/download-lingverse-assets.ps1

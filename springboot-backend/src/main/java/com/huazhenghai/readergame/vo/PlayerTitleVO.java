@@ -1,6 +1,8 @@
 package com.huazhenghai.readergame.vo;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 public class PlayerTitleVO {
     private String titleKey;
@@ -11,6 +13,10 @@ public class PlayerTitleVO {
     private boolean equipped;
     private String source;
     private LocalDateTime unlockedAt;
+    private Map<String, Number> effects;
+    private List<String> inactiveEffects;
+    private List<String> uncertainEffects;
+    private String effectScope;
 
     public String getTitleKey() { return titleKey; }
     public void setTitleKey(String titleKey) { this.titleKey = titleKey; }
@@ -28,4 +34,12 @@ public class PlayerTitleVO {
     public void setSource(String source) { this.source = source; }
     public LocalDateTime getUnlockedAt() { return unlockedAt; }
     public void setUnlockedAt(LocalDateTime unlockedAt) { this.unlockedAt = unlockedAt; }
+    public Map<String, Number> getEffects() { return effects; }
+    public void setEffects(Map<String, Number> effects) { this.effects = effects; }
+    public List<String> getInactiveEffects() { return inactiveEffects; }
+    public void setInactiveEffects(List<String> inactiveEffects) { this.inactiveEffects = inactiveEffects; }
+    public List<String> getUncertainEffects() { return uncertainEffects; }
+    public void setUncertainEffects(List<String> uncertainEffects) { this.uncertainEffects = uncertainEffects; }
+    public String getEffectScope() { return effectScope; }
+    public void setEffectScope(String effectScope) { this.effectScope = effectScope; }
 }

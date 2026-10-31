@@ -10,6 +10,9 @@ public class TitleVO {
     private String rarity;
     private String description;
     private Map<String, Object> effects;
+    private List<String> inactiveEffects;
+    private List<String> uncertainEffects;
+    private String effectScope;
 
     public String getTitleKey() { return titleKey; }
     public void setTitleKey(String titleKey) { this.titleKey = titleKey; }
@@ -23,4 +26,10 @@ public class TitleVO {
     public void setDescription(String description) { this.description = description; }
     public Map<String, Object> getEffects() { return effects; }
     public void setEffects(Map<String, Object> effects) { this.effects = effects; }
+    public List<String> getInactiveEffects() { return inactiveEffects; }
+    public void setInactiveEffects(List<String> inactiveEffects) { this.inactiveEffects = inactiveEffects; }
+    public List<String> getUncertainEffects() { return uncertainEffects; }
+    public void setUncertainEffects(List<String> uncertainEffects) { this.uncertainEffects = uncertainEffects; }
+    public String getEffectScope() { return effectScope; }
+    public void setEffectScope(String effectScope) { this.effectScope = effectScope; }
 }

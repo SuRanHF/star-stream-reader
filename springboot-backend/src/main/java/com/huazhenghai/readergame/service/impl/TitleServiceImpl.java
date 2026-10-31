@@ -51,7 +51,7 @@ public class TitleServiceImpl implements TitleService {
             vo.setCategory(t.getCategory());
             vo.setRarity(t.getRarity());
             vo.setDescription(t.getDescription());
-            vo.setEffects(parseJsonMap(t.getEffectsJson()));
+            TitleEffectAudit.populate(vo, parseJsonMap(t.getEffectsJson()));
             result.add(vo);
         }
         return result;
@@ -84,6 +84,7 @@ public class TitleServiceImpl implements TitleService {
             vo.setEquipped(pt.getEquipped() != null && pt.getEquipped() == 1);
             vo.setSource(pt.getSource());
             vo.setUnlockedAt(pt.getUnlockedAt());
+            TitleEffectAudit.populate(vo, parseJsonMap(def.getEffectsJson()));
             result.add(vo);
         }
         return result;
@@ -109,6 +110,7 @@ public class TitleServiceImpl implements TitleService {
         vo.setEquipped(true);
         vo.setSource(pt.getSource());
         vo.setUnlockedAt(pt.getUnlockedAt());
+        TitleEffectAudit.populate(vo, parseJsonMap(def.getEffectsJson()));
         return vo;
     }
 
@@ -155,6 +157,7 @@ public class TitleServiceImpl implements TitleService {
                 vo.setEquipped(false);
                 vo.setSource("系统解锁");
                 vo.setUnlockedAt(pt.getUnlockedAt());
+                TitleEffectAudit.populate(vo, parseJsonMap(def.getEffectsJson()));
                 newlyUnlocked.add(vo);
             }
         }
@@ -257,6 +260,7 @@ public class TitleServiceImpl implements TitleService {
         vo.setEquipped(true);
         vo.setSource(target.getSource());
         vo.setUnlockedAt(target.getUnlockedAt());
+        TitleEffectAudit.populate(vo, def == null ? Collections.emptyMap() : parseJsonMap(def.getEffectsJson()));
         return vo;
     }
 

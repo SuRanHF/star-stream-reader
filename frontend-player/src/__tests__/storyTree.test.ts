@@ -160,6 +160,8 @@ describe('StoryTreePanel', () => {
     expect(wrapper.find('.stp-node.is-tip .stp-node-badge').text()).toBe('待续');
     // 前端从不显示内部事件键
     expect(wrapper.html()).not.toContain('dongmyo_market_story');
+    // 打开时画布滚到「我现在在哪」（枝尖），而不是停在最左上
+    expect((wrapper.get('.stp-canvas').element as HTMLElement).scrollTop).toBeGreaterThan(0);
   });
 
   it('选项占比带分档，样本不足时显示「数据不足」，并显示路线稀有度与待续提示', async () => {

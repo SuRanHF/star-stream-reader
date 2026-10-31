@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { useQuery } from '@tanstack/vue-query';
 import { exploreApi, type ChoiceStats, type StoryTreeEdge, type StoryTreeNode } from '@/api/exploreApi';
 import { useGameStore } from '@/stores/gameStore';
@@ -69,6 +69,24 @@ function edgePath(x1: number, y1: number, x2: number, y2: number) {
   return `M ${x1} ${y1} C ${x1} ${mid}, ${x2} ${mid}, ${x2} ${y2}`;
 }
 
+// 打开或数据刷新后，把画布滚到「我现在在哪」：枝尖 > 等我选择 > 最深的已经历节点。
+const canvasEl = ref<HTMLElement | null>(null);
+const focusNode = computed(() => {
+  const nodes = layout.value?.nodes || [];
+  const pick = (state: string) => nodes.filter((p) => p.node.state === state);
+  const candidates = pick('tip').length ? pick('tip') : pick('pending_choice').length ? pick('pending_choice') : pick('done');
+  return candidates.sort((a, b) => b.row - a.row)[0] || null;
+});
+watch(focusNode, (target) => {
+  if (!target) return;
+  void nextTick(() => {
+    const canvas = canvasEl.value;
+    if (!canvas) return;
+    canvas.scrollLeft = Math.max(0, target.x + NODE_WIDTH / 2 - canvas.clientWidth / 2);
+    canvas.scrollTop = Math.max(0, target.y + NODE_HEIGHT / 2 - canvas.clientHeight / 2);
+  });
+}, { immediate: true });
+
 const routeStatsText = computed(() => {
   const stats = tree.value?.route_stats;
   return stats ? `走过和你完全一样这条路的读者：${stats.percent}%（${stats.sample_band}）` : '';
@@ -100,7 +118,7 @@ const routeStatsText = computed(() => {
     <div v-else-if="treeQuery.isError.value" class="stp-empty">
       流程图暂时读不到。<button type="button" class="stp-retry" @click="treeQuery.refetch()">重试</button>
     </div>
-    <div v-else-if="layout && layout.nodes.length" class="stp-canvas">
+    <div v-else-if="layout && layout.nodes.length" ref="canvasEl" class="stp-canvas">
       <svg
         :width="layout.width"
         :height="layout.height"
@@ -161,6 +179,9 @@ const routeStatsText = computed(() => {
 .stp-root {
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   gap: 8px;
   height: 100%;
   min-height: 0;
@@ -222,6 +243,8 @@ const routeStatsText = computed(() => {
 
 .stp-canvas {
   flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
   min-height: 0;
   overflow: auto;
   border: 1px solid var(--color-border);

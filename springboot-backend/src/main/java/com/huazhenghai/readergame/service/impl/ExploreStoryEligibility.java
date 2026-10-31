@@ -1,12 +1,15 @@
 package com.huazhenghai.readergame.service.impl;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 
 /** 按玩家已有进度判断个人剧情是否可进入或已永久关闭。 */
-final class ExploreStoryEligibility {
+public final class ExploreStoryEligibility {
 
     private static final Map<String, Integer> AVATAR_RANK_ORDER = Map.of(
             "F", 1, "E", 2, "D", 3, "C", 4, "B", 5,
@@ -22,6 +25,41 @@ final class ExploreStoryEligibility {
     static boolean choiceHistoryPermanentlyClosesEvent(
             Map<String, Object> conditions,
             List<?> decisionHistory) {
+        return choiceHistoryPermanentlyClosesEvent(conditions, decisionHistory,
+                Collections.emptyList(), key -> null);
+    }
+
+    /** An AND prerequisite closes the event if any ancestor is closed; OR choice gates close it
+     * only when every alternative is closed. Unknown ancestors and cycles stay potentially open. */
+    public static boolean choiceHistoryPermanentlyClosesEvent(
+            Map<String, Object> conditions, List<?> decisionHistory,
+            List<String> triggeredStories,
+            Function<String, Map<String, Object>> ancestorConditions) {
+        return permanentlyClosed(conditions, decisionHistory, triggeredStories,
+                ancestorConditions, new HashSet<>());
+    }
+
+    public static boolean isUnfinishedStory(String eventKey, Map<String, Object> conditions,
+            List<String> triggeredStories, List<?> decisionHistory,
+            Function<String, Map<String, Object>> ancestorConditions, Map<String, Object> stageProgress) {
+        return RouteContinuationPolicy.allowsStory(stageProgress, conditions)
+                && !triggeredStories.contains(eventKey)
+                && !choiceHistoryPermanentlyClosesEvent(conditions, decisionHistory,
+                        triggeredStories, ancestorConditions);
+    }
+
+    private static boolean permanentlyClosed(Map<String, Object> conditions,
+            List<?> decisionHistory, List<String> triggeredStories,
+            Function<String, Map<String, Object>> ancestorConditions, Set<String> visiting) {
+        Object requiredValue = conditions.get("required_events");
+        if (requiredValue instanceof List<?> requiredEvents) {
+            for (Object required : requiredEvents) {
+                if (!(required instanceof String key) || triggeredStories.contains(key)) continue;
+                if (ancestorClosed(key, decisionHistory, triggeredStories, ancestorConditions, visiting)) {
+                    return true;
+                }
+            }
+        }
         if (!conditions.containsKey("choice_unlockers")) {
             return false;
         }
@@ -61,11 +99,25 @@ final class ExploreStoryEligibility {
                 }
             }
             if (!sourceDecisionFound) {
-                return false;
+                if (!ancestorClosed(requiredEventKey, decisionHistory, triggeredStories,
+                        ancestorConditions, visiting)) return false;
             }
         }
         // No valid gate, or every gate was decided against, means the event cannot be reached.
         return true;
+    }
+
+    private static boolean ancestorClosed(String key, List<?> decisionHistory,
+            List<String> triggeredStories,
+            Function<String, Map<String, Object>> ancestorConditions, Set<String> visiting) {
+        if (triggeredStories.contains(key) || !visiting.add(key)) return false;
+        try {
+            Map<String, Object> ancestor = ancestorConditions.apply(key);
+            return ancestor != null && permanentlyClosed(ancestor, decisionHistory,
+                    triggeredStories, ancestorConditions, visiting);
+        } finally {
+            visiting.remove(key);
+        }
     }
 
     @SuppressWarnings("unchecked")

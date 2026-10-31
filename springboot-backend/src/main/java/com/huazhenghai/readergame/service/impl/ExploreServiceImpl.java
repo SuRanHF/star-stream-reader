@@ -42,6 +42,7 @@ import org.springframework.stereotype.Service;
 import javax.sql.DataSource;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.function.Function;
 
 @Service
 public class ExploreServiceImpl implements ExploreService {
@@ -202,8 +203,11 @@ public class ExploreServiceImpl implements ExploreService {
                 Object choices = parseJsonList(event.getChoicesJson());
                 if (choices instanceof List<?> list && !list.isEmpty()) continue;
             }
+            Map<String, Object> conditions = parseJsonMap(event.getRequiredConditionsJson());
+            if ("story".equals(event.getEventType())
+                    && !RouteContinuationPolicy.allowsStory(progress, conditions)) continue;
             if (!ExploreStoryEligibility.checkRequiredConditions(stats, progress, decisions,
-                    parseJsonMap(event.getRequiredConditionsJson()))) continue;
+                    conditions)) continue;
             if (blockStories && ("story".equals(event.getEventType()) || "side_story".equals(event.getEventType())))
                 continue;
             available.add(event);
@@ -227,6 +231,7 @@ public class ExploreServiceImpl implements ExploreService {
         result.put("minStaminaCost", min);
         result.put("maxStaminaCost", max);
         result.put("currentStamina", toInt(stats.get("stamina"), 50));
+        result.put("route_continuation", routeContinuationResponse(player, progress, stats));
         return result;
     }
 
@@ -316,6 +321,9 @@ public class ExploreServiceImpl implements ExploreService {
         List<ExplorationEvent> availableEvents = new ArrayList<>();
         boolean pendingStoryWasSkipped = false;
         for (ExplorationEvent e : allEvents) {
+            Map<String, Object> conditions = parseJsonMap(e.getRequiredConditionsJson());
+            if ("story".equals(e.getEventType())
+                    && !RouteContinuationPolicy.allowsStory(stageProgress, conditions)) continue;
             List<String> triggeredEvents = "story".equals(e.getEventType())
                     ? triggeredStoryEvents : triggeredSideEvents;
             if (triggeredEvents.contains(e.getEventKey())
@@ -333,7 +341,7 @@ public class ExploreServiceImpl implements ExploreService {
             }
             // 检查 required_conditions_json
             if (!ExploreStoryEligibility.checkRequiredConditions(
-                    stats, stageProgress, decisionHistory, parseJsonMap(e.getRequiredConditionsJson()))) {
+                     stats, stageProgress, decisionHistory, conditions)) {
                 continue;
             }
             // 低等级地点有未完成剧情 → 当前地点屏蔽 story/side_story 事件
@@ -367,7 +375,7 @@ public class ExploreServiceImpl implements ExploreService {
 
         // 7a. 检测该地点故事是否已全部耗尽
         boolean storiesExhausted = checkStoriesExhausted(
-                allEvents, triggeredStoryEvents, decisionHistory);
+                allEvents, triggeredStoryEvents, decisionHistory, stageProgress);
 
         // 每次探索抽取结果时扣除一次行动体力，包括战斗遭遇；迎战、撤退和同请求重放都不再额外扣除。
         double staminaCostReduce = skillBonuses.get("staminaCostReduce") instanceof Number value
@@ -414,6 +422,7 @@ public class ExploreServiceImpl implements ExploreService {
             battleResult.put("stories_exhausted", storiesExhausted);
             battleResult.put("stories_blocked", storiesBlocked);
             battleResult.put("lower_unfinished", lowerUnfinishedStories);
+            battleResult.put("route_continuation", routeContinuationResponse(player, stageProgress, stats));
             battleResult.put("player", buildPlayerSnapshot(player, stats, stageProgress));
             battleResult.put("new_logs", new ArrayList<>());
             battleResult.put("request_key", requestKey);
@@ -448,8 +457,19 @@ public class ExploreServiceImpl implements ExploreService {
                 && parsedChoices instanceof List<?> choices && !choices.isEmpty();
 
         // 11. 应用进度效果
+        Map<String, Object> progressEffects = parseJsonMap(selected.getProgressEffectsJson());
+        if ("story".equals(selected.getEventType())) {
+            RouteContinuationPolicy.clearIfContinued(stageProgress,
+                    parseJsonMap(selected.getRequiredConditionsJson()));
+        }
         Map<String, Object> appliedProgress = ExploreProgressEffects.apply(
-                stageProgress, selected, parseJsonMap(selected.getProgressEffectsJson()));
+                stageProgress, selected, progressEffects);
+        if ("story".equals(selected.getEventType()) && !hasStoryChoices
+                && Boolean.TRUE.equals(progressEffects.get("route_pending"))) {
+            RouteContinuationPolicy.markPending(stageProgress, selected.getEventKey());
+        }
+        storiesExhausted = checkStoriesExhausted(allEvents,
+                toStringList(stageProgress.get("storyEventsTriggered")), decisionHistory, stageProgress);
         StoryCombatRelationRules.unlockHintForEvent(selected.getEventKey())
                 .ifPresent(hint -> appliedProgress.put("storyRelationHint", hint));
 
@@ -554,6 +574,7 @@ public class ExploreServiceImpl implements ExploreService {
         result.put("stories_exhausted", storiesExhausted);
         result.put("stories_blocked", storiesBlocked);
         result.put("lower_unfinished", lowerUnfinishedStories);
+        result.put("route_continuation", routeContinuationResponse(player, stageProgress, stats));
 
         // 玩家快照
         Map<String, Object> playerSnapshot = buildPlayerSnapshot(player, stats, stageProgress);
@@ -692,6 +713,7 @@ public class ExploreServiceImpl implements ExploreService {
         List<String> triggeredEvents = toStringList(stageProgress.get("storyEventsTriggered"));
 
         List<String> result = new ArrayList<>();
+        Function<String, Map<String, Object>> ancestors = ancestorConditionsLookup();
         for (Location loc : lowerLocations) {
             QueryWrapper<ExplorationEvent> evQw = new QueryWrapper<>();
             evQw.eq("location_key", loc.getLocationKey())
@@ -702,9 +724,9 @@ public class ExploreServiceImpl implements ExploreService {
             long unfinishedCount = storyEvents.stream()
                     // A branch ruled out by this player's recorded choices is not unfinished work.
                     // Counting it here can permanently block every higher-location story.
-                    .filter(e -> !triggeredEvents.contains(e.getEventKey()))
-                    .filter(e -> !ExploreStoryEligibility.choiceHistoryPermanentlyClosesEvent(
-                            parseJsonMap(e.getRequiredConditionsJson()), decisionHistory))
+                    .filter(e -> ExploreStoryEligibility.isUnfinishedStory(e.getEventKey(),
+                            parseJsonMap(e.getRequiredConditionsJson()), triggeredEvents,
+                             decisionHistory, ancestors, stageProgress))
                     .count();
 
             if (unfinishedCount > 0) {
@@ -718,16 +740,47 @@ public class ExploreServiceImpl implements ExploreService {
 
     private boolean checkStoriesExhausted(List<ExplorationEvent> allEvents,
                                           List<String> triggeredEvents,
-                                          List<?> decisionHistory) {
+                                          List<?> decisionHistory,
+                                          Map<String, Object> stageProgress) {
+        Function<String, Map<String, Object>> ancestors = ancestorConditionsLookup();
         for (ExplorationEvent e : allEvents) {
             if (!"story".equals(e.getEventType())) continue;
-            if (!triggeredEvents.contains(e.getEventKey()) && e.getEnabled() != null && e.getEnabled() == 1
-                    && !ExploreStoryEligibility.choiceHistoryPermanentlyClosesEvent(
-                            parseJsonMap(e.getRequiredConditionsJson()), decisionHistory)) {
+            if (e.getEnabled() != null && e.getEnabled() == 1
+                    && ExploreStoryEligibility.isUnfinishedStory(e.getEventKey(),
+                            parseJsonMap(e.getRequiredConditionsJson()), triggeredEvents,
+                             decisionHistory, ancestors, stageProgress)) {
                 return false; // 还有未触发的故事事件
             }
         }
         return true;
+    }
+
+    private Map<String, Object> routeContinuationResponse(Player player,
+            Map<String, Object> stageProgress, Map<String, Object> stats) {
+        if (!RouteContinuationPolicy.isPending(stageProgress)) {
+            return RouteContinuationPolicy.response(stageProgress, false);
+        }
+        List<ExplorationEvent> stories = eventMapper.selectList(new QueryWrapper<ExplorationEvent>()
+                .eq("event_type", "story").eq("enabled", 1));
+        List<Location> locations = locationMapper.selectList(null);
+        Object decisionValue = parseJsonList(player.getDecisionHistoryJson());
+        List<?> decisions = decisionValue instanceof List<?> list ? list : Collections.emptyList();
+        boolean available = RouteContinuationPolicy.hasAvailableContinuation(stageProgress,
+                stories, locations, stats, parseJsonMap(player.getStoryFlagsJson()),
+                player.getCurrentChapter(), toStringList(stageProgress.get("storyEventsTriggered")),
+                decisions, event -> parseJsonMap(event.getRequiredConditionsJson()),
+                location -> parseJsonMap(location.getUnlockConditionsJson()));
+        return RouteContinuationPolicy.response(stageProgress, available);
+    }
+
+    private Function<String, Map<String, Object>> ancestorConditionsLookup() {
+        Map<String, Map<String, Object>> cache = new HashMap<>();
+        return key -> cache.computeIfAbsent(key, missing -> {
+            ExplorationEvent event = eventMapper.selectOne(
+                    new QueryWrapper<ExplorationEvent>().eq("event_key", missing).eq("enabled", 1));
+            return event == null || !"story".equals(event.getEventType())
+                    ? null : parseJsonMap(event.getRequiredConditionsJson());
+        });
     }
 
     // ─── 选项处理 ───
@@ -802,6 +855,9 @@ public class ExploreServiceImpl implements ExploreService {
         }
 
         Map<String, Object> chosen = choices.get(choiceIndex);
+        if ("story".equals(event.getEventType()) && Boolean.TRUE.equals(chosen.get("route_pending"))) {
+            RouteContinuationPolicy.markPending(stageProgress, eventKey);
+        }
 
         // 构建返回结果
         Map<String, Object> result = new LinkedHashMap<>();
@@ -1001,6 +1057,7 @@ public class ExploreServiceImpl implements ExploreService {
         }
         result.put("request_key", requestKey);
         result.put("request_replayed", false);
+        result.put("route_continuation", routeContinuationResponse(player, stageProgress, stats));
         choiceLogMetadata.put("requestKey", requestKey);
         if (storyInstanceKey != null) choiceLogMetadata.put("storyInstanceKey", storyInstanceKey);
         Map<String, Object> receiptResponse = new LinkedHashMap<>(result);

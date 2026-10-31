@@ -191,6 +191,19 @@ class StoryRouteStaticIntegrityTest {
     private void validateReferencesAndRates() {
         for (JsonNode event : events.values()) {
             String key = event.path("event_key").asText();
+            JsonNode eventMarker = event.path("progress_effects").path("route_pending");
+            if (!eventMarker.isMissingNode() && (!"story".equals(event.path("event_type").asText())
+                    || !eventMarker.isBoolean() || !eventMarker.asBoolean()
+                    || !event.path("choices").isEmpty())) {
+                problems.add(key + " 的事件级 route_pending 只允许无选项 story 且值为 true");
+            }
+            for (JsonNode choice : event.path("choices")) {
+                JsonNode marker = choice.path("route_pending");
+                if (!marker.isMissingNode() && (!"story".equals(event.path("event_type").asText())
+                        || !marker.isBoolean() || !marker.asBoolean())) {
+                    problems.add(key + " 的选项级 route_pending 只允许 story 且值为 true");
+                }
+            }
             if (!locations.containsKey(event.path("location_key").asText())) {
                 problems.add(key + " 引用不存在的地点 " + event.path("location_key").asText());
             }
@@ -378,7 +391,14 @@ class StoryRouteStaticIntegrityTest {
     private void enumerate(List<String> relevant, int index, Map<String, Integer> decisions,
                            String nextStage, List<String> targets, Set<String> coveredChoices) {
         if (index == relevant.size()) {
-            boolean nextAvailable = targets.stream().anyMatch(key -> available(events.get(key), decisions));
+            boolean routePending = decisions.entrySet().stream().anyMatch(entry ->
+                    events.get(entry.getKey()).path("choices").get(entry.getValue())
+                            .path("route_pending").asBoolean(false))
+                    || relevant.stream().anyMatch(key -> events.get(key).path("progress_effects")
+                            .path("route_pending").asBoolean(false)
+                            && available(events.get(key), decisions));
+            boolean nextAvailable = routePending
+                    || targets.stream().anyMatch(key -> available(events.get(key), decisions));
             if (!nextAvailable) {
                 String route = decisions.entrySet().stream()
                         .filter(entry -> targets.stream().anyMatch(target -> dependsOn(target, entry.getKey(), new HashSet<>())))

@@ -383,6 +383,232 @@ class ExploreServiceImplTest {
         assertEquals(false, result.get("stories_exhausted"));
     }
 
+    @Test
+    void rejectedSecondLayerDescendantDoesNotBlockHigherLocation() {
+        Player player = new Player();
+        player.setId(1L);
+        player.setUserId(9L);
+        player.setCoins(0);
+        player.setStoryFragments(0);
+        player.setStatsJson("{\"level\":10,\"stamina\":30}");
+        player.setStageProgressJson("{\"storyEventsTriggered\":[\"root\"]}");
+        player.setStoryFlagsJson("{}");
+        player.setDecisionHistoryJson("[{\"event_key\":\"root\",\"choice_index\":0}]");
+        when(playerMapper.selectByIdForUpdate(1L)).thenReturn(player);
+        when(recoveryService.applyRecovery(player)).thenReturn(new LinkedHashMap<>(Map.of(
+                "level", 10, "stamina", 30, "isResting", false)));
+        when(skillService.calculateSkillBonus(1L)).thenReturn(Map.of());
+        when(titleService.calculateTitleEffects(1L)).thenReturn(Map.of());
+        when(titleService.evaluateAndUnlockTitles(1L, null)).thenReturn(List.of());
+
+        Location high = new Location();
+        high.setLocationKey("high");
+        high.setName("高等级地点");
+        high.setMinLevel(10);
+        high.setUnlockConditionsJson("{}");
+        high.setEventRatesJson("{}");
+        Location low = new Location();
+        low.setLocationKey("low");
+        low.setName("低等级地点");
+        low.setMinLevel(2);
+        when(locationMapper.selectOne(any())).thenReturn(high);
+        when(locationMapper.selectList(any())).thenReturn(List.of(low));
+
+        ExplorationEvent b1 = new ExplorationEvent();
+        b1.setEventKey("b1");
+        b1.setEventType("story");
+        b1.setRequiredConditionsJson("{\"choice_unlockers\":["
+                + "{\"event_key\":\"root\",\"choice_indices\":[1]}]}");
+        ExplorationEvent b2 = new ExplorationEvent();
+        b2.setEventKey("b2");
+        b2.setEventType("story");
+        b2.setEnabled(1);
+        b2.setRequiredConditionsJson("{\"required_events\":[\"b1\"]}");
+        when(eventMapper.selectOne(any())).thenReturn(b1);
+
+        ExplorationEvent resource = new ExplorationEvent();
+        resource.setEventKey("resource");
+        resource.setEventType("resource");
+        resource.setName("补给");
+        resource.setWeight(1);
+        resource.setStaminaCost(1);
+        resource.setEnabled(1);
+        resource.setRepeatable(1);
+        resource.setRequiredConditionsJson("{}");
+        resource.setRewardsJson("{}");
+        resource.setProgressEffectsJson("{}");
+        when(eventMapper.selectList(any())).thenReturn(List.of(b2), List.of(resource));
+
+        Map<String, Object> response = exploreService.startExplore(1L, "high", "second-layer", 9L);
+        assertEquals(false, response.get("stories_blocked"));
+        assertEquals(List.of(), response.get("lower_unfinished"));
+    }
+
+    @Test
+    void terminalChoicePersistsContinuationAndLaterExplorationSelectsOrdinaryEvent() throws Exception {
+        Player player = new Player();
+        player.setId(1L);
+        player.setUserId(9L);
+        player.setCurrentLocation("test_station");
+        player.setStatsJson("{\"level\":10,\"stamina\":30,\"exp\":0,\"maxHp\":100}");
+        player.setStageProgressJson("{\"storyEventsTriggered\":[\"route_finale\"]}");
+        player.setStoryFlagsJson("{}");
+        player.setDecisionHistoryJson("[]");
+        when(playerMapper.selectByIdForUpdate(1L)).thenReturn(player);
+        when(playerMapper.selectById(1L)).thenReturn(player);
+
+        ExplorationEvent terminal = new ExplorationEvent();
+        terminal.setEventKey("route_finale");
+        terminal.setEventType("story");
+        terminal.setStageKey("vol1_ch3");
+        terminal.setLocationKey("test_station");
+        terminal.setName("路线终点");
+        terminal.setRepeatable(0);
+        terminal.setChoicesJson("[{\"label\":\"暂时收束\",\"route_pending\":true}]");
+        when(eventMapper.selectOne(any())).thenReturn(terminal);
+        when(titleService.evaluateAndUnlockTitles(1L, null)).thenReturn(List.of());
+
+        Map<String, Object> choice = exploreService.makeChoice(
+                1L, "route_finale", 0, "terminal-choice", 9L);
+        assertEquals("to_be_continued", ((Map<?, ?>) choice.get("route_continuation")).get("status"));
+        assertEquals("route_finale", ((Map<?, ?>) choice.get("route_continuation")).get("event_key"));
+        assertTrue(new ObjectMapper().readTree(player.getStageProgressJson()).path("routePending").asBoolean());
+
+        Location location = new Location();
+        location.setLocationKey("test_station");
+        location.setName("测试站");
+        location.setMinLevel(1);
+        location.setUnlockConditionsJson("{}");
+        location.setEventRatesJson("{}");
+        when(locationMapper.selectOne(any())).thenReturn(location);
+        when(recoveryService.applyRecovery(player)).thenReturn(new LinkedHashMap<>(Map.of(
+                "level", 10, "stamina", 30, "isResting", false)));
+        when(skillService.calculateSkillBonus(1L)).thenReturn(Map.of());
+
+        ExplorationEvent sharedChapterFour = new ExplorationEvent();
+        sharedChapterFour.setEventKey("shared_ch4");
+        sharedChapterFour.setEventType("story");
+        sharedChapterFour.setEnabled(1);
+        sharedChapterFour.setRepeatable(0);
+        sharedChapterFour.setWeight(100);
+        sharedChapterFour.setRequiredConditionsJson("{}");
+        ExplorationEvent ordinary = new ExplorationEvent();
+        ordinary.setEventKey("ordinary_supply");
+        ordinary.setEventType("resource");
+        ordinary.setName("普通补给");
+        ordinary.setEnabled(1);
+        ordinary.setRepeatable(1);
+        ordinary.setWeight(1);
+        ordinary.setStaminaCost(1);
+        ordinary.setRequiredConditionsJson("{}");
+        ordinary.setRewardsJson("{}");
+        ordinary.setProgressEffectsJson("{}");
+        when(eventMapper.selectList(any())).thenReturn(List.of(sharedChapterFour, ordinary));
+
+        Map<String, Object> preview = exploreService.getCostPreview(1L);
+        assertEquals(1, preview.get("minStaminaCost"));
+        Map<String, Object> exploration = exploreService.startExplore(
+                1L, "test_station", "after-terminal", 9L);
+        assertEquals("ordinary_supply", ((Map<?, ?>) exploration.get("result")).get("event_key"));
+        assertEquals(true, exploration.get("stories_exhausted"));
+        assertEquals("to_be_continued", ((Map<?, ?>) exploration.get("route_continuation")).get("status"));
+    }
+
+    @Test
+    void newStoryAfterPendingTipBecomesAvailableAndAdvancesTip() throws Exception {
+        Player player = new Player();
+        player.setId(1L);
+        player.setUserId(9L);
+        player.setCurrentLocation("test_station");
+        player.setStatsJson("{\"level\":10,\"stamina\":30,\"exp\":0,\"maxHp\":100}");
+        player.setStageProgressJson("{\"storyEventsTriggered\":[\"my_tip\"],"
+                + "\"routePending\":true,\"routePendingEventKey\":\"my_tip\",\"storyPity\":8}");
+        player.setStoryFlagsJson("{}");
+        player.setDecisionHistoryJson("[]");
+        when(playerMapper.selectById(1L)).thenReturn(player);
+        when(playerMapper.selectByIdForUpdate(1L)).thenReturn(player);
+        when(recoveryService.applyRecovery(player)).thenReturn(new LinkedHashMap<>(Map.of(
+                "level", 10, "stamina", 30, "exp", 0, "maxHp", 100, "isResting", false)));
+        when(skillService.calculateSkillBonus(1L)).thenReturn(Map.of());
+        when(titleService.calculateTitleEffects(1L)).thenReturn(Map.of());
+        when(titleService.evaluateAndUnlockTitles(1L, null)).thenReturn(List.of());
+
+        Location location = new Location();
+        location.setLocationKey("test_station");
+        location.setName("测试站");
+        location.setMinLevel(1);
+        location.setUnlockConditionsJson("{}");
+        location.setEventRatesJson("{}");
+        when(locationMapper.selectOne(any())).thenReturn(location);
+        when(locationMapper.selectList(any())).thenReturn(List.of());
+        when(locationMapper.selectList(org.mockito.ArgumentMatchers.isNull())).thenReturn(List.of(location));
+
+        ExplorationEvent other = storyContinuation("other_story", "other_tip", false);
+        ExplorationEvent ordinary = new ExplorationEvent();
+        ordinary.setEventKey("ordinary_supply");
+        ordinary.setEventType("resource");
+        ordinary.setName("普通补给");
+        ordinary.setEnabled(1);
+        ordinary.setRepeatable(1);
+        ordinary.setWeight(1);
+        ordinary.setStaminaCost(1);
+        ordinary.setRequiredConditionsJson("{}");
+        ordinary.setRewardsJson("{}");
+        ordinary.setProgressEffectsJson("{}");
+        when(eventMapper.selectList(any())).thenReturn(List.of(other, ordinary));
+
+        Map<String, Object> beforeUpdate = exploreService.getCostPreview(1L);
+        assertEquals("to_be_continued", ((Map<?, ?>) beforeUpdate.get("route_continuation")).get("status"));
+        assertEquals(1, beforeUpdate.get("minStaminaCost"));
+        assertEquals("ordinary_supply", ((Map<?, ?>) exploreService.startExplore(
+                1L, "test_station", "before-update", 9L).get("result")).get("event_key"));
+        assertTrue(new ObjectMapper().readTree(player.getStageProgressJson()).path("routePending").asBoolean());
+
+        ExplorationEvent continuation = storyContinuation("new_story", "my_tip", false);
+        when(eventMapper.selectList(any())).thenReturn(List.of(other, ordinary, continuation));
+        Map<String, Object> afterUpdate = exploreService.getCostPreview(1L);
+        assertEquals("active", ((Map<?, ?>) afterUpdate.get("route_continuation")).get("status"));
+        assertEquals("my_tip", ((Map<?, ?>) afterUpdate.get("route_continuation")).get("event_key"));
+
+        Map<String, Object> drawn = exploreService.startExplore(1L, "test_station", "after-update", 9L);
+        assertEquals("new_story", ((Map<?, ?>) drawn.get("result")).get("event_key"));
+        assertEquals("active", ((Map<?, ?>) drawn.get("route_continuation")).get("status"));
+        JsonNode progress = new ObjectMapper().readTree(player.getStageProgressJson());
+        assertFalse(progress.has("routePending"));
+        assertFalse(progress.has("routePendingEventKey"));
+
+        Map<String, Object> nextProgress = new ObjectMapper().readValue(
+                player.getStageProgressJson(), new com.fasterxml.jackson.core.type.TypeReference<>() {});
+        RouteContinuationPolicy.markPending(nextProgress, "new_story");
+        nextProgress.put("storyPity", 8);
+        player.setStageProgressJson(new ObjectMapper().writeValueAsString(nextProgress));
+        ExplorationEvent nextTip = storyContinuation("next_tip", "new_story", true);
+        when(eventMapper.selectList(any())).thenReturn(List.of(other, ordinary, nextTip));
+        Map<String, Object> nextDraw = exploreService.startExplore(1L, "test_station", "next-update", 9L);
+        assertEquals("next_tip", ((Map<?, ?>) nextDraw.get("result")).get("event_key"));
+        assertEquals("to_be_continued", ((Map<?, ?>) nextDraw.get("route_continuation")).get("status"));
+        JsonNode nextSaved = new ObjectMapper().readTree(player.getStageProgressJson());
+        assertTrue(nextSaved.path("routePending").asBoolean());
+        assertEquals("next_tip", nextSaved.path("routePendingEventKey").asText());
+    }
+
+    private ExplorationEvent storyContinuation(String key, String predecessor, boolean pending) {
+        ExplorationEvent event = new ExplorationEvent();
+        event.setEventKey(key);
+        event.setEventType("story");
+        event.setLocationKey("test_station");
+        event.setName(key);
+        event.setStageKey("vol1_ch4");
+        event.setEnabled(1);
+        event.setRepeatable(0);
+        event.setWeight(1);
+        event.setStaminaCost(1);
+        event.setRequiredConditionsJson("{\"required_events\":[\"" + predecessor + "\"]}");
+        event.setRewardsJson("{}");
+        event.setProgressEffectsJson(pending ? "{\"route_pending\":true}" : "{}");
+        return event;
+    }
+
     private Map<String, Object> exploreAcrossLowerLocationBranch(Integer selectedChoice) {
         Player player = new Player();
         player.setId(1L);

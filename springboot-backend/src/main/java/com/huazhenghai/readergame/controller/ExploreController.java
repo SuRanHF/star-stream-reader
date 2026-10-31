@@ -16,12 +16,15 @@ import com.huazhenghai.readergame.mapper.PlayerMapper;
 import com.huazhenghai.readergame.security.LoginUserContext;
 import com.huazhenghai.readergame.service.ExploreService;
 import com.huazhenghai.readergame.service.LocationUnlockPolicy;
+import com.huazhenghai.readergame.service.impl.ExploreStoryEligibility;
+import com.huazhenghai.readergame.service.impl.RouteContinuationPolicy;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
+import java.util.function.Function;
 
 @RestController
 @RequestMapping("/api/explore")
@@ -54,6 +57,9 @@ public class ExploreController {
 
         // 获取玩家已触发的故事事件列表
         final List<String> triggered = getTriggeredStoryEvents(player);
+        Map<String, Object> stageProgress = parseJsonMap(player.getStageProgressJson());
+        List<?> decisions = getDecisionHistory(player);
+        Function<String, Map<String, Object>> ancestors = ancestorConditionsLookup();
         // 解析玩家状态用于解锁检查
         Map<String, Object> playerStats = parseJsonMap(player.getStatsJson());
 
@@ -82,7 +88,9 @@ public class ExploreController {
                .eq("enabled", 1);
             List<ExplorationEvent> storyEvents = eventMapper.selectList(evQ);
             boolean exhausted = !storyEvents.isEmpty() && storyEvents.stream()
-                    .allMatch(e -> triggered.contains(e.getEventKey()));
+                    .noneMatch(e -> ExploreStoryEligibility.isUnfinishedStory(e.getEventKey(),
+                            parseJsonMap(e.getRequiredConditionsJson()), triggered, decisions,
+                            ancestors, stageProgress));
             m.put("stories_exhausted", exhausted);
             m.put("total_stories", storyEvents.size());
             long triggeredCount = storyEvents.stream()
@@ -93,6 +101,8 @@ public class ExploreController {
         }
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("locations", list);
+        result.put("route_continuation", routeContinuationResponse(player, stageProgress,
+                playerStats, locations, triggered, decisions));
         return Result.ok(result);
     }
 
@@ -169,6 +179,9 @@ public class ExploreController {
         Player player = requireOwnedPlayer(playerId);
         List<Location> locations = locationMapper.selectList(null);
         final List<String> triggered = getTriggeredStoryEvents(player);
+        Map<String, Object> stageProgress = parseJsonMap(player.getStageProgressJson());
+        List<?> decisions = getDecisionHistory(player);
+        Function<String, Map<String, Object>> ancestors = ancestorConditionsLookup();
         Map<String, Object> playerStats = parseJsonMap(player.getStatsJson());
 
         // 地图元数据：每个位置在地图上的坐标和连线
@@ -194,7 +207,9 @@ public class ExploreController {
             evQ.eq("location_key", loc.getLocationKey()).eq("event_type", "story").eq("enabled", 1);
             List<ExplorationEvent> storyEvents = eventMapper.selectList(evQ);
             boolean exhausted = !storyEvents.isEmpty() && storyEvents.stream()
-                    .allMatch(e -> triggered.contains(e.getEventKey()));
+                    .noneMatch(e -> ExploreStoryEligibility.isUnfinishedStory(e.getEventKey(),
+                            parseJsonMap(e.getRequiredConditionsJson()), triggered, decisions,
+                            ancestors, stageProgress));
             node.put("completed", exhausted);
             node.put("totalStories", storyEvents.size());
             node.put("triggeredStories", (int) storyEvents.stream()
@@ -227,6 +242,8 @@ public class ExploreController {
         }
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("nodes", nodes);
+        result.put("route_continuation", routeContinuationResponse(player, stageProgress,
+                playerStats, locations, triggered, decisions));
         return Result.ok(result);
     }
 
@@ -313,6 +330,40 @@ public class ExploreController {
         } catch (Exception e) {
             return new LinkedHashMap<>();
         }
+    }
+
+    private List<?> getDecisionHistory(Player player) {
+        try {
+            return objectMapper.readValue(player.getDecisionHistoryJson(), List.class);
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
+    }
+
+    private Map<String, Object> routeContinuationResponse(Player player,
+            Map<String, Object> progress, Map<String, Object> stats, List<Location> locations,
+            List<String> triggered, List<?> decisions) {
+        if (!RouteContinuationPolicy.isPending(progress)) {
+            return RouteContinuationPolicy.response(progress, false);
+        }
+        List<ExplorationEvent> stories = eventMapper.selectList(new QueryWrapper<ExplorationEvent>()
+                .eq("event_type", "story").eq("enabled", 1));
+        boolean available = RouteContinuationPolicy.hasAvailableContinuation(progress,
+                stories, locations, stats, parseJsonMap(player.getStoryFlagsJson()),
+                player.getCurrentChapter(), triggered, decisions,
+                event -> parseJsonMap(event.getRequiredConditionsJson()),
+                location -> parseJsonMap(location.getUnlockConditionsJson()));
+        return RouteContinuationPolicy.response(progress, available);
+    }
+
+    private Function<String, Map<String, Object>> ancestorConditionsLookup() {
+        Map<String, Map<String, Object>> cache = new HashMap<>();
+        return key -> cache.computeIfAbsent(key, missing -> {
+            ExplorationEvent event = eventMapper.selectOne(new QueryWrapper<ExplorationEvent>()
+                    .eq("event_key", missing).eq("enabled", 1));
+            return event == null || !"story".equals(event.getEventType())
+                    ? null : parseJsonMap(event.getRequiredConditionsJson());
+        });
     }
 
     private boolean checkUnlockConditions(Map<String, Object> conds, Map<String, Object> playerStats,

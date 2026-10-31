@@ -5,29 +5,43 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huazhenghai.readergame.security.JwtUtil;
 import com.huazhenghai.readergame.service.ExploreService;
+import com.huazhenghai.readergame.service.impl.StoryTreeService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.jdbc.Sql;
+import org.springframework.test.context.transaction.AfterTransaction;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.sql.DataSource;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
+import java.util.concurrent.atomic.AtomicReference;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -53,6 +67,7 @@ class StoryTreeHttpIntegrationTest {
     @Autowired private JwtUtil jwt;
     @Autowired private ObjectMapper json;
     @Autowired private ExploreService exploreService;
+    @Autowired private StoryTreeService storyTreeService;
     @MockitoBean private StringRedisTemplate redis;
     private ValueOperations<String, String> values;
     private List<Map<String, Object>> seed;
@@ -264,6 +279,8 @@ class StoryTreeHttpIntegrationTest {
 
     @Test
     void redisOutageFallsBackToUncachedPlayerAggregation() throws Exception {
+        assertInstanceOf(java.util.concurrent.atomic.AtomicLong.class,
+                ReflectionTestUtils.getField(storyTreeService, "redisRetryAfterNanos")).set(0);
         jdbc.update("UPDATE players SET decision_history_json=?,stage_progress_json=? WHERE id=1",
                 encoded(List.of(choice("station_first_trace", 0))),
                 "{\"storyEventsTriggered\":[\"station_first_trace\"]}");
@@ -277,6 +294,8 @@ class StoryTreeHttpIntegrationTest {
         JsonNode data = fetch(1);
         assertTrue(data.path("edges").findValues("stats").stream()
                 .anyMatch(s -> "20+".equals(s.path("sample_band").asText())));
+        fetch(1);
+        verify(values, times(1)).get(anyString());
     }
 
     @Test
@@ -298,6 +317,133 @@ class StoryTreeHttpIntegrationTest {
         }
         Arrays.sort(nanos);
         System.out.println("STORY_TREE_H2_COLD_P95_MS=" + nanos[9] / 1_000_000.0);
+    }
+
+    /** Run explicitly with -Dtest=StoryTreeHttpIntegrationTest#storyTreePerformanceBenchmark -DstoryTreeBenchmark=true. */
+    @Test
+    @Tag("benchmark")
+    @EnabledIfSystemProperty(named = "storyTreeBenchmark", matches = "true")
+    @Transactional // All synthetic users and players are rolled back after the benchmark.
+    void storyTreePerformanceBenchmark() throws Exception {
+        Map<String, Integer> choiceCounts = new java.util.HashMap<>();
+        for (Map<String, Object> event : seed) if ("event".equals(event.get("type"))
+                && event.get("choices") instanceof List<?> choices)
+            choiceCounts.put((String) event.get("event_key"), choices.size());
+        for (int route = 0; route < 6; route++) for (Map<String, Object> decision : benchmarkRoute(route)) {
+            String key = (String) decision.get("event_key");
+            assertTrue(choiceCounts.containsKey(key), key);
+            assertTrue((int) decision.get("choice_index") < choiceCounts.get(key), key);
+        }
+        jdbc.update("UPDATE players SET decision_history_json=? WHERE id=1", encoded(benchmarkRoute(0)));
+        for (int total : List.of(1_000, 5_000)) {
+            addBenchmarkPlayers(total == 1_000 ? 2 : 1_001, total);
+            assertEquals(total, jdbc.queryForObject("SELECT COUNT(*) FROM players", Integer.class));
+            assertEquals(total, jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM players p JOIN users u ON u.id=p.user_id WHERE u.role='player'",
+                    Integer.class));
+            for (String mode : List.of("cold", "hot", "redis_down")) {
+                assertInstanceOf(java.util.concurrent.atomic.AtomicLong.class,
+                        ReflectionTestUtils.getField(storyTreeService, "redisRetryAfterNanos")).set(0);
+                reset(values);
+                if ("hot".equals(mode)) {
+                    AtomicReference<String> cached = new AtomicReference<>();
+                    when(values.get(anyString())).thenAnswer(invocation -> cached.get());
+                    org.mockito.Mockito.doAnswer(invocation -> {
+                        cached.set(invocation.getArgument(1));
+                        return null;
+                    }).when(values).set(anyString(), anyString(), any(java.time.Duration.class));
+                    fetch(1); // Populate this run's Redis substitute before timing.
+                    assertNotNull(cached.get());
+                } else if ("redis_down".equals(mode)) {
+                    when(values.get(anyString())).thenAnswer(invocation -> {
+                        Thread.sleep(500); // Simulate the configured Redis timeout, without a real Redis server.
+                        throw new IllegalStateException("isolated Redis timeout");
+                    });
+                    doThrow(new IllegalStateException("isolated Redis outage"))
+                            .when(values).set(anyString(), anyString(), any(java.time.Duration.class));
+                } else {
+                    when(values.get(anyString())).thenReturn(null);
+                }
+                if (!"redis_down".equals(mode)) for (int i = 0; i < 5; i++) fetch(1);
+                double[] millis = new double[20];
+                for (int i = 0; i < millis.length; i++) {
+                    long start = System.nanoTime();
+                    JsonNode data = fetch(1);
+                    millis[i] = (System.nanoTime() - start) / 1_000_000.0;
+                    assertEquals(27, data.path("nodes").size());
+                }
+                Arrays.sort(millis);
+                System.out.printf(Locale.ROOT,
+                        "STORY_TREE_BENCH players=%d mode=%s p50_ms=%.2f p95_ms=%.2f max_ms=%.2f%n",
+                        total, mode, millis[9], millis[18], millis[19]);
+                if ("redis_down".equals(mode)) {
+                    verify(values, times(1)).get(anyString());
+                    assertTrue(millis[18] < 200,
+                            "Redis outage P95 exceeds the 200 ms story-tree contract");
+                }
+            }
+        }
+    }
+
+    @AfterTransaction
+    void benchmarkPlayersWereRolledBack() {
+        if (Boolean.getBoolean("storyTreeBenchmark"))
+            assertEquals(0, jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM players WHERE player_name LIKE '树图基准%'", Integer.class));
+    }
+
+    private void addBenchmarkPlayers(int from, int to) throws Exception {
+        List<String> histories = new java.util.ArrayList<>();
+        for (int id = from; id <= to; id++) histories.add(encoded(benchmarkRoute(id % 6)));
+        jdbc.batchUpdate("INSERT INTO users(id,username,email,password_hash,role) VALUES(?,?,?,?,?)",
+                new BatchPreparedStatementSetter() {
+                    @Override public void setValues(PreparedStatement ps, int i) throws SQLException {
+                        int id = from + i;
+                        ps.setInt(1, id);
+                        ps.setString(2, "tree-" + id);
+                        ps.setString(3, "tree-" + id + "@example.test");
+                        ps.setString(4, "unused");
+                        ps.setString(5, "player");
+                    }
+                    @Override public int getBatchSize() { return histories.size(); }
+                });
+        jdbc.batchUpdate("INSERT INTO players(id,user_id,player_name,stats_json,story_flags_json,"
+                        + "stage_progress_json,decision_history_json,current_chapter) VALUES(?,?,?,?,?,?,?,?)",
+                new BatchPreparedStatementSetter() {
+                    @Override public void setValues(PreparedStatement ps, int i) throws SQLException {
+                        int id = from + i;
+                        ps.setInt(1, id);
+                        ps.setInt(2, id);
+                        ps.setString(3, "树图基准" + id);
+                        ps.setString(4, "{\"level\":6,\"stamina\":100}");
+                        ps.setString(5, "{}");
+                        ps.setString(6, "{}");
+                        ps.setString(7, histories.get(i));
+                        ps.setString(8, "1");
+                    }
+                    @Override public int getBatchSize() { return histories.size(); }
+                });
+    }
+
+    private List<Map<String, Object>> benchmarkRoute(int route) {
+        if (route <= 2) return List.of(
+                choice("station_first_trace", 0), choice("dongmyo_market_story", route == 2 ? 1 : 0),
+                choice("dongmyo_whisperer_story", route == 2 ? 2 : 1),
+                choice("chungmuro_iron_king_story", route == 2 ? 1 : 0),
+                choice(route == 2 ? "chungmuro_underground_resistance" : "chungmuro_shadow_king_story", 0),
+                choice(route == 2 ? "chungmuro_compromise_ledger" : "chungmuro_conspiracy_story", 0),
+                choice(route == 2 ? "dongmyo_ledger_delivery" : "chungmuro_council_audit", 0),
+                choice(route == 2 ? "dongmyo_resistance_weigh" : "chungmuro_shadow_vote", 0),
+                choice(route == 2 ? "geumho_resistance_muster" : "chungmuro_power_fork", route == 2 ? 0 : route));
+        return List.of(
+                choice("station_first_trace", 1), choice("geumho_shelter_story", route == 5 ? 1 : 0),
+                choice("geumho_underground_story", route == 5 ? 0 : 1),
+                choice("chungmuro_unnamed_crossing", route == 5 ? 1 : 0),
+                choice(route == 5 ? "chungmuro_nameless_drift" : "chungmuro_revelation_story", 1),
+                choice(route == 5 ? "chungmuro_hidden_reader_wall" : "chungmuro_script_blank", 0),
+                choice(route == 5 ? "geumho_wall_message" : "chungmuro_paper_summon", 0),
+                choice(route == 5 ? "geumho_nameless_cell" : "chungmuro_blank_revision", 0),
+                choice(route == 5 ? "chungmuro_reader_anchor" : "chungmuro_name_fork", route == 3 ? 0 : 1));
     }
 
     private void insertUser(long id, String role) {

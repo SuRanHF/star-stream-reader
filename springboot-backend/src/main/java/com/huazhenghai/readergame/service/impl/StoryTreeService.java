@@ -39,6 +39,7 @@ import java.util.function.Function;
 public class StoryTreeService {
     private static final Logger LOG = LoggerFactory.getLogger(StoryTreeService.class);
     private static final Duration STATS_TTL = Duration.ofMinutes(7);
+    private static final Duration REDIS_RETRY_DELAY = Duration.ofSeconds(30);
     private final ExplorationEventMapper eventMapper;
     private final LocationMapper locationMapper;
     private final PlayerMapper playerMapper;
@@ -47,6 +48,7 @@ public class StoryTreeService {
     private final byte[] nodeSecret;
     private final String cachePrefix;
     private final AtomicLong lastRedisWarningNanos = new AtomicLong();
+    private final AtomicLong redisRetryAfterNanos = new AtomicLong();
 
     public StoryTreeService(ExplorationEventMapper eventMapper, LocationMapper locationMapper,
             PlayerMapper playerMapper, ObjectMapper json, StringRedisTemplate redis,
@@ -248,10 +250,10 @@ public class StoryTreeService {
 
     private Aggregate aggregate(List<ExplorationEvent> all, Map<String, ExplorationEvent> events) {
         String cacheKey = cachePrefix + ":cache:v2:story-tree-stats:" + contentVersion(all);
-        try {
+        if (redisReady()) try {
             String cached = redis.opsForValue().get(cacheKey);
             if (cached != null) return json.readValue(cached, Aggregate.class);
-        } catch (Exception e) { warnRedis("read", e); }
+        } catch (Exception e) { redisFailed("read", e); }
         Map<String, Integer> denominators = new HashMap<>();
         Map<String, Integer> choices = new HashMap<>();
         Map<Integer, Integer> routeDenominators = new HashMap<>();
@@ -277,9 +279,19 @@ public class StoryTreeService {
             }
         }
         Aggregate aggregate = new Aggregate(denominators, choices, routeDenominators, routes);
-        try { redis.opsForValue().set(cacheKey, json.writeValueAsString(aggregate), STATS_TTL); }
-        catch (Exception e) { warnRedis("write", e); }
+        if (redisReady()) try { redis.opsForValue().set(cacheKey, json.writeValueAsString(aggregate), STATS_TTL); }
+        catch (Exception e) { redisFailed("write", e); }
         return aggregate;
+    }
+
+    private boolean redisReady() {
+        long retryAfter = redisRetryAfterNanos.get();
+        return retryAfter == 0 || System.nanoTime() - retryAfter >= 0;
+    }
+
+    private void redisFailed(String operation, Exception error) {
+        redisRetryAfterNanos.set(System.nanoTime() + REDIS_RETRY_DELAY.toNanos());
+        warnRedis(operation, error);
     }
 
     private void warnRedis(String operation, Exception error) {

@@ -249,6 +249,8 @@ kill-all.bat                  # 根目录兼容入口，转发到 scripts/kill-a
 
 数据库结构以 `springboot-backend/src/main/resources/db/init.sql` 和 `db/migrations/` 中的迁移脚本为准。
 
+数据库初始化、旧库升级、迁移脚本编写和版本记录规则见 [`docs/database-migration-runbook.md`](docs/database-migration-runbook.md)。
+
 ## API 文档
 
 本地启动后端后，可在 `http://localhost:3174/doc.html` 查看当前 Controller 实际提供的接口，避免手工维护过期路由清单。

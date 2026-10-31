@@ -444,12 +444,23 @@ watch(selectedConstellationKey, (constellationKey) => {
 
 // ─── 执行场景按钮上的「-N 行动力」：服务端预估区间，只用于展示 ───
 const costPreview = ref<ExploreCostPreview | null>(null);
+// 主线寻踪：开关只是界面偏好，每次执行场景显式带上；是否生效、扣多少由服务端决定。
+const TRACE_ROUTE_KEY = 'lingverse.player.traceRoute';
+const traceRouteOn = ref(readUiPref(TRACE_ROUTE_KEY) === '1');
+watch(traceRouteOn, (on) => writeUiPref(TRACE_ROUTE_KEY, on ? '1' : '0'));
+const traceAvailable = computed(() => costPreview.value?.trace_preview?.available ?? false);
+const traceActive = computed(() => traceRouteOn.value && traceAvailable.value);
+const traceHint = computed(() => {
+  if (!traceRouteOn.value || !costPreview.value?.trace_preview) return '';
+  return traceAvailable.value ? '' : '此地暂无你的主线';
+});
 const costLabel = computed(() => {
   const preview = costPreview.value;
   if (!preview) return '';
-  return preview.minStaminaCost === preview.maxStaminaCost
-    ? `-${preview.minStaminaCost}`
-    : `-${preview.minStaminaCost}~${preview.maxStaminaCost}`;
+  const extra = traceActive.value ? preview.trace_preview! : { extra_min: 0, extra_max: 0 };
+  const min = preview.minStaminaCost + extra.extra_min;
+  const max = preview.maxStaminaCost + extra.extra_max;
+  return min === max ? `-${min}` : `-${min}~${max}`;
 });
 
 async function refreshCostPreview() {
@@ -533,11 +544,12 @@ async function enterScene(options: { auto?: boolean } = {}): Promise<SceneOutcom
   const previousLatestLogId = Math.max(0, ...gameStore.recentLogs
     .map((entry) => Number(entry.id))
     .filter((value) => Number.isFinite(value) && value > 0));
-  const requestKey = getPendingExploreRequestKey(id, locationKey);
+  const traceRoute = traceRouteOn.value;
+  const requestKey = getPendingExploreRequestKey(id, locationKey, traceRoute);
   exploring.value = true;
   try {
-    const payload = await exploreApi.startExplore(id, locationKey, requestKey);
-    clearPendingExploreRequestKey(id, locationKey, requestKey);
+    const payload = await exploreApi.startExplore(id, locationKey, requestKey, traceRoute);
+    clearPendingExploreRequestKey(id, locationKey, requestKey, traceRoute);
     invalidateQuestPanel();
     if (payload.player) gameStore.patchPlayer(payload.player);
 
@@ -1225,9 +1237,12 @@ onBeforeUnmount(() => {
             </button>
           </div>
           <div class="action-group action-group--tools">
-            <label class="ling-check" title="概率修正">
-              <input type="checkbox" aria-label="概率修正" />
-              <span class="ling-check-long" aria-hidden="true">概率修正</span><span class="ling-check-short" aria-hidden="true">修正</span>
+            <label
+              :class="['ling-check', { 'is-muted': Boolean(traceHint) }]"
+              :title="traceHint || '主线寻踪：多耗行动力，更容易遇到你路线上的主线剧情（不保证）'"
+            >
+              <input v-model="traceRouteOn" type="checkbox" aria-label="主线寻踪" :aria-description="traceHint || '多耗行动力，更容易遇到你路线上的主线剧情，但不保证'" />
+              <span class="ling-check-long" aria-hidden="true">主线寻踪</span><span class="ling-check-short" aria-hidden="true">寻踪</span>
             </label>
             <label class="ling-check" title="自动行动">
               <input v-model="autoActionOn" type="checkbox" aria-label="自动行动" :disabled="isResting" @change="onAutoActionToggle" />

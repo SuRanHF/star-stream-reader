@@ -166,7 +166,7 @@ describe('GameLayout exploration-to-log integration', () => {
     await wrapper.get('.ling-action-main').trigger('click');
     await flushPromises();
 
-    expect(mocks.startExplore).toHaveBeenCalledWith(7, 'abandoned_station', expect.any(String));
+    expect(mocks.startExplore).toHaveBeenCalledWith(7, 'abandoned_station', expect.any(String), false);
     expect(sessionStorage.length).toBe(0);
     expect(mocks.getBootstrap).toHaveBeenCalledOnce();
     expect(mocks.applyBootstrap).toHaveBeenCalledOnce();
@@ -183,6 +183,34 @@ describe('GameLayout exploration-to-log integration', () => {
     expect(wrapper.findComponent(GameLogPanel).props('titles')).toEqual([
       { titleKey: 'station_watcher', name: '车站守望者' },
     ]);
+  });
+
+  it('主线寻踪：开启后请求带 traceRoute，消耗区间加上寻踪额外消耗；此地无主线时提示且不加价', async () => {
+    mocks.getCostPreview.mockResolvedValue({
+      minStaminaCost: 4, maxStaminaCost: 6, currentStamina: 50,
+      trace_preview: { available: true, extra_min: 2, extra_max: 3 },
+    });
+    const wrapper = mountLayout();
+    await flushPromises();
+    expect(wrapper.get('.action-cost').text()).toBe('(-4~6)');
+
+    const trace = wrapper.get('input[aria-label="主线寻踪"]');
+    await trace.setValue(true);
+    expect(wrapper.get('.action-cost').text()).toBe('(-6~9)');
+    expect(localStorage.getItem('lingverse.player.traceRoute')).toBe('1');
+
+    await wrapper.get('.ling-action-main').trigger('click');
+    await flushPromises();
+    expect(mocks.startExplore).toHaveBeenCalledWith(7, 'abandoned_station', expect.any(String), true);
+
+    mocks.getCostPreview.mockResolvedValue({
+      minStaminaCost: 4, maxStaminaCost: 6, currentStamina: 50,
+      trace_preview: { available: false, extra_min: 0, extra_max: 0 },
+    });
+    mocks.gameStore!.player.currentLocationKey = 'geumho_station';
+    await flushPromises();
+    expect(wrapper.get('.action-cost').text()).toBe('(-4~6)');
+    expect(trace.element.closest('label')?.getAttribute('title')).toBe('此地暂无你的主线');
   });
 
   it('探索结算后刷新仍打开的任务面板，让探索次数与可领取状态及时更新', async () => {

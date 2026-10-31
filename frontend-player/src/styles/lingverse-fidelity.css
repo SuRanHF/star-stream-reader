@@ -1671,3 +1671,8 @@ body::before {
   min-width: 0;
 }
 
+
+/* 主线寻踪开着但此地没有你的主线：开关变淡，说明放在 title。 */
+.lingverse-replica-shell .action-bar .ling-check.is-muted {
+  opacity: 0.6;
+}

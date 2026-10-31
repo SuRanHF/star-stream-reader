@@ -24,6 +24,9 @@ export interface ExploreResult {
   request_key?: string;
   request_replayed?: boolean;
   story_instance_key?: string;
+  // 主线寻踪（契约「献祭称号复活与主线寻踪」）：本次是否生效、额外消耗了多少行动力
+  trace_applied?: boolean;
+  trace_extra_cost?: number;
   player?: ApiRecord;
   new_logs?: unknown[];
 }
@@ -162,11 +165,19 @@ export interface StoryTree {
   route_stats?: ChoiceStats | null;
 }
 
+// available = false：当前地点没有你路线上可遇到的主线，寻踪不生效也不加价。
+export interface TracePreview {
+  available: boolean;
+  extra_min: number;
+  extra_max: number;
+}
+
 export interface ExploreCostPreview {
   minStaminaCost: number;
   maxStaminaCost: number;
   currentStamina: number;
   route_continuation?: RouteContinuation;
+  trace_preview?: TracePreview;
 }
 
 export const exploreApi = {
@@ -182,8 +193,8 @@ export const exploreApi = {
   getMapNodes(playerId: number) {
     return http.get<unknown, { nodes: MapNode[] }>(`/explore/map-nodes/${playerId}`);
   },
-  startExplore(playerId: number, locationKey: string, requestKey: string) {
-    return http.post<unknown, ExploreResult>('/explore/start', { playerId, locationKey, requestKey });
+  startExplore(playerId: number, locationKey: string, requestKey: string, traceRoute = false) {
+    return http.post<unknown, ExploreResult>('/explore/start', { playerId, locationKey, requestKey, traceRoute });
   },
   makeChoice(
     playerId: number,

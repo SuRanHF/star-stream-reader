@@ -1,8 +1,9 @@
 const pendingKeys = new Map<string, string>();
 const STORAGE_PREFIX = 'reader-game:pending-explore:v1:';
 
-function storageKey(playerId: number, locationKey: string): string {
-  return `${STORAGE_PREFIX}${playerId}:${encodeURIComponent(locationKey)}`;
+// 寻踪开关进入服务端回执载荷，开与关必须用不同的待确认键，否则切换后重试会撞上回执冲突。
+function storageKey(playerId: number, locationKey: string, traceRoute = false): string {
+  return `${STORAGE_PREFIX}${playerId}:${encodeURIComponent(locationKey)}${traceRoute ? ':trace' : ''}`;
 }
 
 function createRequestKey(): string {
@@ -13,8 +14,8 @@ function createRequestKey(): string {
 }
 
 /** Reuse an unconfirmed action key only for the same player and scene. */
-export function getPendingExploreRequestKey(playerId: number, locationKey: string): string {
-  const key = storageKey(playerId, locationKey);
+export function getPendingExploreRequestKey(playerId: number, locationKey: string, traceRoute = false): string {
+  const key = storageKey(playerId, locationKey, traceRoute);
   try {
     const existing = globalThis.sessionStorage.getItem(key);
     if (existing && existing.length <= 64) return existing;
@@ -37,8 +38,9 @@ export function clearPendingExploreRequestKey(
   playerId: number,
   locationKey: string,
   requestKey: string,
+  traceRoute = false,
 ): void {
-  const key = storageKey(playerId, locationKey);
+  const key = storageKey(playerId, locationKey, traceRoute);
   if (pendingKeys.get(key) === requestKey) pendingKeys.delete(key);
   try {
     if (globalThis.sessionStorage.getItem(key) === requestKey) {

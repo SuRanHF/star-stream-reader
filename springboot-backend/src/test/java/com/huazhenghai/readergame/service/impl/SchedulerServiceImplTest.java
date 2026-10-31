@@ -24,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -110,6 +111,44 @@ class SchedulerServiceImplTest {
         } finally {
             start.countDown();
             pool.shutdownNow();
+        }
+    }
+
+    @Test
+    void aiBroadcastDedupIgnoresNonAiKeys() throws Exception {
+        try (var connection = DriverManager.getConnection("jdbc:h2:mem:ai_broadcast_prefix;MODE=MySQL", "sa", "");
+             var create = connection.createStatement()) {
+            create.execute("CREATE TABLE broadcast_events (event_key VARCHAR(100), status VARCHAR(20))");
+            create.execute("INSERT INTO broadcast_events VALUES ('aix_event', 'active'), ('air_raid', 'active')");
+            when(broadcastEventMapper.selectCount(any())).thenAnswer(invocation -> {
+                @SuppressWarnings("unchecked")
+                QueryWrapper<com.huazhenghai.readergame.entity.BroadcastEvent> query = invocation.getArgument(0);
+                var parameters = new ArrayList<Object>();
+                var matcher = java.util.regex.Pattern.compile("#\\{ew\\.paramNameValuePairs\\.([^}]+)}")
+                        .matcher(query.getSqlSegment());
+                var sqlSegment = new StringBuffer();
+                while (matcher.find()) {
+                    parameters.add(query.getParamNameValuePairs().get(matcher.group(1)));
+                    matcher.appendReplacement(sqlSegment, "?");
+                }
+                matcher.appendTail(sqlSegment);
+                String sql = "SELECT COUNT(*) FROM broadcast_events WHERE " + sqlSegment;
+                try (var statement = connection.prepareStatement(sql)) {
+                    int position = 1;
+                    for (Object value : parameters)
+                        statement.setObject(position++, value);
+                    try (var rows = statement.executeQuery()) {
+                        rows.next();
+                        return rows.getLong(1);
+                    }
+                }
+            });
+            when(aiDirectorService.generateBroadcastDraft()).thenReturn(Map.of("title", "AI 放送"));
+            when(broadcastService.createEvent(any())).thenReturn("ai_2026110104");
+            assertEquals(1, scheduler.runSingleTask("generateAiBroadcast").get("affectedCount"));
+            create.execute("INSERT INTO broadcast_events VALUES ('ai_2026110104', 'active')");
+            assertEquals(0, scheduler.runSingleTask("generateAiBroadcast").get("affectedCount"));
+            verify(broadcastService, times(1)).createEvent(any());
         }
     }
 

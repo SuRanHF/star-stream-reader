@@ -31,6 +31,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
@@ -49,6 +50,7 @@ public class StoryTreeService {
     private final String cachePrefix;
     private final AtomicLong lastRedisWarningNanos = new AtomicLong();
     private final AtomicLong redisRetryAfterNanos = new AtomicLong();
+    private final AtomicBoolean redisRecoveryProbe = new AtomicBoolean();
 
     public StoryTreeService(ExplorationEventMapper eventMapper, LocationMapper locationMapper,
             PlayerMapper playerMapper, ObjectMapper json, StringRedisTemplate redis,
@@ -250,43 +252,61 @@ public class StoryTreeService {
 
     private Aggregate aggregate(List<ExplorationEvent> all, Map<String, ExplorationEvent> events) {
         String cacheKey = cachePrefix + ":cache:v2:story-tree-stats:" + contentVersion(all);
-        if (redisReady()) try {
-            String cached = redis.opsForValue().get(cacheKey);
-            if (cached != null) return json.readValue(cached, Aggregate.class);
-        } catch (Exception e) { redisFailed("read", e); }
-        Map<String, Integer> denominators = new HashMap<>();
-        Map<String, Integer> choices = new HashMap<>();
-        Map<Integer, Integer> routeDenominators = new HashMap<>();
-        Map<String, Integer> routes = new HashMap<>();
-        Map<String, Map<String, Object>> conditions = conditionsFor(events);
-        Set<String> forks = criticalSources(events, conditions);
-        List<String> histories = playerMapper.selectPlayerDecisionHistoriesForStoryTree();
-        if (histories != null) for (String history : histories) {
-            List<?> decisions = list(history);
-            Set<String> counted = new HashSet<>();
-            for (Object value : decisions) {
-                if (!(value instanceof Map<?, ?> decision)) continue;
-                String key = decisionKey(decision);
-                Integer index = decisionIndex(decision);
-                if (!events.containsKey(key) || index == null || !counted.add(key)) continue;
-                denominators.merge(key, 1, Integer::sum);
-                choices.merge(key + ":" + index, 1, Integer::sum);
+        int redisAccess = redisAccessMode();
+        boolean readFailed = false;
+        try {
+            if (redisAccess != 0) try {
+                String cached = redis.opsForValue().get(cacheKey);
+                if (cached != null) {
+                    Aggregate value = json.readValue(cached, Aggregate.class);
+                    if (redisAccess == 2) redisRetryAfterNanos.set(0);
+                    return value;
+                }
+            } catch (Exception e) {
+                readFailed = true;
+                redisFailed("read", e);
             }
-            List<String> route = criticalChoices(decisions, forks);
-            if (!route.isEmpty()) {
-                routeDenominators.merge(route.size(), 1, Integer::sum);
-                routes.merge(routeKey(route), 1, Integer::sum);
+            Map<String, Integer> denominators = new HashMap<>();
+            Map<String, Integer> choices = new HashMap<>();
+            Map<Integer, Integer> routeDenominators = new HashMap<>();
+            Map<String, Integer> routes = new HashMap<>();
+            Map<String, Map<String, Object>> conditions = conditionsFor(events);
+            Set<String> forks = criticalSources(events, conditions);
+            List<String> histories = playerMapper.selectPlayerDecisionHistoriesForStoryTree();
+            if (histories != null) for (String history : histories) {
+                List<?> decisions = list(history);
+                Set<String> counted = new HashSet<>();
+                for (Object value : decisions) {
+                    if (!(value instanceof Map<?, ?> decision)) continue;
+                    String key = decisionKey(decision);
+                    Integer index = decisionIndex(decision);
+                    if (!events.containsKey(key) || index == null || !counted.add(key)) continue;
+                    denominators.merge(key, 1, Integer::sum);
+                    choices.merge(key + ":" + index, 1, Integer::sum);
+                }
+                List<String> route = criticalChoices(decisions, forks);
+                if (!route.isEmpty()) {
+                    routeDenominators.merge(route.size(), 1, Integer::sum);
+                    routes.merge(routeKey(route), 1, Integer::sum);
+                }
             }
+            Aggregate aggregate = new Aggregate(denominators, choices, routeDenominators, routes);
+            if (redisAccess != 0 && !readFailed) try {
+                redis.opsForValue().set(cacheKey, json.writeValueAsString(aggregate), STATS_TTL);
+                if (redisAccess == 2) redisRetryAfterNanos.set(0);
+            } catch (Exception e) { redisFailed("write", e); }
+            return aggregate;
+        } finally {
+            if (redisAccess == 2) redisRecoveryProbe.set(false);
         }
-        Aggregate aggregate = new Aggregate(denominators, choices, routeDenominators, routes);
-        if (redisReady()) try { redis.opsForValue().set(cacheKey, json.writeValueAsString(aggregate), STATS_TTL); }
-        catch (Exception e) { redisFailed("write", e); }
-        return aggregate;
     }
 
-    private boolean redisReady() {
+    /** 0 skips Redis, 1 is normal access, 2 holds the sole recovery probe. */
+    private int redisAccessMode() {
         long retryAfter = redisRetryAfterNanos.get();
-        return retryAfter == 0 || System.nanoTime() - retryAfter >= 0;
+        if (retryAfter == 0) return 1;
+        if (System.nanoTime() - retryAfter < 0) return 0;
+        return redisRecoveryProbe.compareAndSet(false, true) ? 2 : 0;
     }
 
     private void redisFailed(String operation, Exception error) {

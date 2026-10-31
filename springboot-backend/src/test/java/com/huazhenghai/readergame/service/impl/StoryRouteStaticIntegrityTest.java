@@ -2,6 +2,7 @@ package com.huazhenghai.readergame.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
@@ -33,6 +34,26 @@ class StoryRouteStaticIntegrityTest {
     private final Map<String, JsonNode> events = new LinkedHashMap<>();
     private final Map<String, JsonNode> locations = new LinkedHashMap<>();
     private final List<String> problems = new ArrayList<>();
+
+    @Test
+    void positiveLocationRatesRequireEnabledEvents() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        locations.put("test_station", mapper.readTree("""
+                {"location_key":"test_station","event_rates":{"battle_placeholder":12,"resource":0}}
+                """));
+        ObjectNode event = (ObjectNode) mapper.readTree("""
+                {"event_key":"disabled_battle","event_type":"battle_placeholder",
+                 "location_key":"test_station","enabled":0,"choices":[]}
+                """);
+        events.put("disabled_battle", event);
+        validateReferencesAndRates();
+        assertTrue(problems.contains("死权重 test_station.battle_placeholder"));
+        assertFalse(problems.contains("死权重 test_station.resource"));
+        problems.clear();
+        event.put("enabled", 1);
+        validateReferencesAndRates();
+        assertFalse(problems.contains("死权重 test_station.battle_placeholder"));
+    }
 
     @Test
     void everyChoiceCanReachTheNextStoryChapterAndSeedReferencesAreSound() throws Exception {
@@ -616,13 +637,14 @@ class StoryRouteStaticIntegrityTest {
             String key = location.path("location_key").asText();
             Set<String> availableTypes = new HashSet<>();
             for (JsonNode event : events.values()) {
-                if (key.equals(event.path("location_key").asText())) {
+                if (key.equals(event.path("location_key").asText())
+                        && event.path("enabled").asInt(1) != 0) {
                     availableTypes.add(event.path("event_type").asText());
                 }
             }
-            location.path("event_rates").fieldNames().forEachRemaining(type -> {
-                if (!availableTypes.contains(type)) {
-                    problems.add("死权重 " + key + "." + type);
+            location.path("event_rates").fields().forEachRemaining(rate -> {
+                if (rate.getValue().asDouble() != 0 && !availableTypes.contains(rate.getKey())) {
+                    problems.add("死权重 " + key + "." + rate.getKey());
                 }
             });
         }

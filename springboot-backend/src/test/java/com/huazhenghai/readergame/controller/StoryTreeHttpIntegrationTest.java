@@ -30,6 +30,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -296,6 +300,39 @@ class StoryTreeHttpIntegrationTest {
                 .anyMatch(s -> "20+".equals(s.path("sample_band").asText())));
         fetch(1);
         verify(values, times(1)).get(anyString());
+    }
+
+    @Test
+    void redisRecoveryAllowsOnlyOneConcurrentProbe() throws Exception {
+        var retryAfter = (java.util.concurrent.atomic.AtomicLong)
+                ReflectionTestUtils.getField(storyTreeService, "redisRetryAfterNanos");
+        assertNotNull(retryAfter);
+        retryAfter.set(System.nanoTime() - 1);
+        CountDownLatch probeEntered = new CountDownLatch(1);
+        CountDownLatch releaseProbe = new CountDownLatch(1);
+        when(values.get(anyString())).thenAnswer(invocation -> {
+            probeEntered.countDown();
+            if (!releaseProbe.await(5, TimeUnit.SECONDS))
+                throw new IllegalStateException("probe was not released");
+            return null;
+        });
+        try (var pool = Executors.newFixedThreadPool(2)) {
+            CompletableFuture<JsonNode> first = CompletableFuture.supplyAsync(() -> {
+                try { return fetch(1); } catch (Exception e) { throw new RuntimeException(e); }
+            }, pool);
+            assertTrue(probeEntered.await(5, TimeUnit.SECONDS));
+            CompletableFuture<JsonNode> second = CompletableFuture.supplyAsync(() -> {
+                try { return fetch(1); } catch (Exception e) { throw new RuntimeException(e); }
+            }, pool);
+            assertTrue(second.get(5, TimeUnit.SECONDS).path("nodes").isArray());
+            verify(values, times(1)).get(anyString());
+            releaseProbe.countDown();
+            assertTrue(first.get(5, TimeUnit.SECONDS).path("nodes").isArray());
+            verify(values, times(1)).get(anyString());
+        } finally {
+            releaseProbe.countDown();
+            retryAfter.set(0);
+        }
     }
 
     @Test

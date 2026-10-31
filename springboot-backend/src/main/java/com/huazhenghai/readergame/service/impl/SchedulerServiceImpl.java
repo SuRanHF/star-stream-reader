@@ -432,7 +432,7 @@ public class SchedulerServiceImpl implements SchedulerService {
             // between scheduler instances via broadcast_events.event_key's unique index.
             QueryWrapper<BroadcastEvent> eq = new QueryWrapper<>();
             eq.eq("status", "active")
-              .like("event_key", "ai_");
+              .apply("event_key LIKE {0} ESCAPE '!'", "ai!_%");
             long activeAiCount = broadcastEventMapper.selectCount(eq);
             if (activeAiCount >= 1) return 0;
 

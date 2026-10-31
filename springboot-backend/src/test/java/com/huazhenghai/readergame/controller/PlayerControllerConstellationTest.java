@@ -70,7 +70,7 @@ class PlayerControllerConstellationTest {
         controller = new PlayerController(playerService, recoveryService, maxHpProjectionService, playerMapper,
                 playerFactionMapper, constellationFactionMapper, locationMapper,
                 objectMapper, pkService, playerLogService,
-                actionReceiptService, resourceTransactionService, staminaProjectionService);
+                actionReceiptService, resourceTransactionService, staminaProjectionService, null);
         LoginUserContext.set(new LoginUser(USER_ID, "test-user", "player"));
     }
 

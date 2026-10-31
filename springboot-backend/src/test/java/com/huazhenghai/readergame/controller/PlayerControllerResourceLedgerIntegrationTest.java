@@ -4,9 +4,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huazhenghai.readergame.common.BusinessException;
 import com.huazhenghai.readergame.entity.Player;
+import com.huazhenghai.readergame.dto.ReviveRequest;
+import com.huazhenghai.readergame.dto.PeerReviveRequest;
 import com.huazhenghai.readergame.mapper.PlayerMapper;
 import com.huazhenghai.readergame.security.LoginUser;
 import com.huazhenghai.readergame.security.LoginUserContext;
+import com.huazhenghai.readergame.service.TitleService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,6 +46,7 @@ class PlayerControllerResourceLedgerIntegrationTest {
     @Autowired private JdbcTemplate jdbcTemplate;
     @Autowired private DataSource dataSource;
     @Autowired private ObjectMapper objectMapper;
+    @Autowired private TitleService titleService;
 
     @BeforeEach
     void seedDisposableH2Player() throws Exception {
@@ -53,6 +57,8 @@ class PlayerControllerResourceLedgerIntegrationTest {
         jdbcTemplate.update("DELETE FROM player_action_receipts");
         jdbcTemplate.update("DELETE FROM player_logs");
         jdbcTemplate.update("DELETE FROM player_factions");
+        jdbcTemplate.update("DELETE FROM player_titles");
+        jdbcTemplate.update("DELETE FROM titles");
         jdbcTemplate.update("DELETE FROM players");
         jdbcTemplate.update("DELETE FROM users");
         jdbcTemplate.update("INSERT INTO users (id, username, email, password_hash, role, status) "
@@ -137,5 +143,98 @@ class PlayerControllerResourceLedgerIntegrationTest {
                 "SELECT COUNT(*) FROM player_logs WHERE player_id = ?", Integer.class, PLAYER_ID));
         assertEquals(0, jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM player_factions WHERE player_id = ?", Integer.class, PLAYER_ID));
+    }
+
+    private void seedSacrificeTitle(long ownerId, String key) {
+        jdbcTemplate.update("INSERT INTO titles (title_key, name, enabled) VALUES (?, ?, 1)", key, "夜行者");
+        jdbcTemplate.update("INSERT INTO player_titles (player_id, title_key, equipped) VALUES (?, ?, 1)",
+                ownerId, key);
+    }
+
+    private void makeDead(long playerId) {
+        jdbcTemplate.update("UPDATE players SET stats_json = ? WHERE id = ?",
+                "{\"level\":2,\"maxHp\":120,\"hp\":0,\"isDead\":true,\"constellation\":\"demon_judge_of_fire\"}", playerId);
+    }
+
+    private ReviveRequest titleRevive(String titleKey, String requestKey) {
+        ReviveRequest request = new ReviveRequest();
+        request.setPlayerId(PLAYER_ID);
+        request.setMethod("title");
+        request.setTitleKey(titleKey);
+        request.setRequestKey(requestKey);
+        return request;
+    }
+
+    @Test
+    void titleReviveRemovesOwnedTitle() throws Exception {
+        makeDead(PLAYER_ID);
+        seedSacrificeTitle(PLAYER_ID, "night_walker");
+        jdbcTemplate.update("UPDATE players SET titles_json = ? WHERE id = ?",
+                "[\"night_walker\"]", PLAYER_ID);
+        LoginUserContext.set(new LoginUser(USER_ID, "h2-constellation-player", "player"));
+
+        var result = playerController.revivePlayer(titleRevive("night_walker", "sacrifice-self"));
+        assertEquals("title", result.getData().get("method"));
+        assertEquals(Map.of("title_key", "night_walker", "name", "夜行者"),
+                result.getData().get("sacrificed_title"));
+        assertEquals(60, ((Number) objectMapper.readValue(playerMapper.selectById(PLAYER_ID).getStatsJson(),
+                new TypeReference<Map<String, Object>>() {}).get("hp")).intValue());
+        assertEquals(0, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM player_titles WHERE player_id = ?",
+                Integer.class, PLAYER_ID));
+        assertEquals("[]", playerMapper.selectById(PLAYER_ID).getTitlesJson());
+        assertTrue(playerMapper.selectById(PLAYER_ID).getTitleProgressJson().contains("night_walker"));
+        titleService.grantTitle(PLAYER_ID, "night_walker");
+        assertEquals(0, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM player_titles WHERE player_id = ?",
+                Integer.class, PLAYER_ID));
+        assertEquals(1, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM player_resource_transactions "
+                + "WHERE source_type = 'title_sacrifice' AND resource_key = 'night_walker' "
+                + "AND source_id = ?", Integer.class, String.valueOf(PLAYER_ID)));
+    }
+
+    @Test
+    void peerReviveSacrificesReviverTitle() throws Exception {
+        jdbcTemplate.update("INSERT INTO users (id, username, email, password_hash, role, status) "
+                + "VALUES (?, ?, ?, ?, ?, ?)", USER_ID + 1, "target", "target@example.invalid",
+                "test-only", "player", "normal");
+        jdbcTemplate.update("INSERT INTO players (id, user_id, player_name, coins, stats_json) "
+                + "VALUES (?, ?, ?, ?, ?)", PLAYER_ID + 1, USER_ID + 1, "目标", 0,
+                "{\"level\":2,\"maxHp\":120,\"hp\":0,\"isDead\":true}");
+        seedSacrificeTitle(PLAYER_ID, "night_walker");
+        LoginUserContext.set(new LoginUser(USER_ID, "h2-constellation-player", "player"));
+        PeerReviveRequest request = new PeerReviveRequest();
+        request.setReviverId(PLAYER_ID);
+        request.setTargetId(PLAYER_ID + 1);
+        request.setMethod("title");
+        request.setTitleKey("night_walker");
+        request.setRequestKey("sacrifice-peer");
+
+        var result = playerController.peerRevive(request);
+        assertEquals("title", result.getData().get("method"));
+        assertEquals(result.getData(), playerController.peerRevive(request).getData());
+        request.setTitleKey("another_title");
+        assertThrows(BusinessException.class, () -> playerController.peerRevive(request));
+        assertEquals(0, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM player_titles WHERE player_id = ?",
+                Integer.class, PLAYER_ID));
+        assertEquals(1, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM player_resource_transactions "
+                + "WHERE player_id = ? AND source_type = 'title_sacrifice' AND source_id = ?",
+                Integer.class, PLAYER_ID, String.valueOf(PLAYER_ID + 1)));
+        Map<String, Object> targetStats = objectMapper.readValue(playerMapper.selectById(PLAYER_ID + 1)
+                .getStatsJson(), new TypeReference<>() {});
+        assertEquals(false, targetStats.get("isDead"));
+        assertEquals(60, ((Number) targetStats.get("hp")).intValue());
+    }
+
+    @Test
+    void titleReviveReplayPayloadIncludesTitle() {
+        makeDead(PLAYER_ID);
+        seedSacrificeTitle(PLAYER_ID, "night_walker");
+        LoginUserContext.set(new LoginUser(USER_ID, "h2-constellation-player", "player"));
+        var first = playerController.revivePlayer(titleRevive("night_walker", "sacrifice-replay"));
+        var replay = playerController.revivePlayer(titleRevive("night_walker", "sacrifice-replay"));
+        assertEquals(first.getData(), replay.getData());
+        assertEquals(1, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM player_resource_transactions "
+                + "WHERE source_type = 'title_sacrifice'", Integer.class));
+        assertThrows(BusinessException.class, () -> playerController.revivePlayer(
+                titleRevive("different_title", "sacrifice-replay")));
     }
 }

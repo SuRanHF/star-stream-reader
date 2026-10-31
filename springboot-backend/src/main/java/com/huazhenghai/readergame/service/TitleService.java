@@ -5,6 +5,7 @@ import com.huazhenghai.readergame.vo.TitleVO;
 
 import java.util.List;
 import java.util.Map;
+import com.huazhenghai.readergame.entity.Player;
 
 /**
  * 称号系统服务接口.
@@ -48,4 +49,7 @@ public interface TitleService {
      * 直接授予玩家指定称号 (任务奖励等内部调用).
      */
     void grantTitle(Long playerId, String titleKey);
+
+    /** Removes an owned title from both title stores and records a permanent sacrifice. Caller locks and saves player. */
+    Map<String, Object> sacrificeTitle(Player player, String titleKey);
 }

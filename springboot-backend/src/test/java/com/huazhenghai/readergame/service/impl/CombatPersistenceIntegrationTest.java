@@ -1426,21 +1426,21 @@ class CombatPersistenceIntegrationTest {
     }
 
     @Test
-    void titleSelfReviveKeepsItsNonCurrencyBehavior() throws Exception {
+    void titleReviveWithoutSacrificeIsRejected() throws Exception {
         seedPlayerForRevive(0, true);
         String token = performLogin();
         ResponseEntity<String> response = performHttp(HttpMethod.POST, "/api/player/revive", token,
                 Map.of("playerId", PLAYER_ID, "method", "title", "requestKey", "h2-title-revive"));
 
-        assertEquals(200, response.getStatusCode().value());
+        assertEquals(400, response.getStatusCode().value());
         assertEquals(0, playerMapper.selectById(PLAYER_ID).getCoins());
-        assertFalse(objectMapper.readTree(playerMapper.selectById(PLAYER_ID).getStatsJson())
+        assertTrue(objectMapper.readTree(playerMapper.selectById(PLAYER_ID).getStatsJson())
                 .get("isDead").asBoolean());
         assertEquals(0, jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM player_resource_transactions", Integer.class));
-        assertEquals(1, jdbcTemplate.queryForObject(
+        assertEquals(0, jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM player_logs WHERE type = 'player_revive'", Integer.class));
-        assertEquals(1, jdbcTemplate.queryForObject(
+        assertEquals(0, jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM player_action_receipts WHERE action_type = 'player.revive'",
                 Integer.class));
     }
@@ -2141,6 +2141,7 @@ class CombatPersistenceIntegrationTest {
                 .andExpect(status().isUnauthorized());
 
         String token = performLogin();
+        seedPendingCombat("h2_test_beast", REQUEST_KEY);
         CombatResultVO first = performCombatStart(token);
 
         assertEquals("win", first.getResult());
@@ -2167,7 +2168,8 @@ class CombatPersistenceIntegrationTest {
 
         List<PlayerLog> logs = playerLogMapper.selectList(
                 new QueryWrapper<PlayerLog>().eq("player_id", PLAYER_ID));
-        PlayerLog combatLog = logs.stream().filter(log -> "battle".equals(log.getType()))
+        PlayerLog combatLog = logs.stream().filter(log -> "battle".equals(log.getType())
+                        && log.getMetadataJson().contains("combat_result"))
                 .findFirst().orElseThrow();
         JsonNode metadata = objectMapper.readTree(combatLog.getMetadataJson());
         assertEquals(objectMapper.valueToTree(expectedDrops), metadata.get("drops"));
@@ -2191,8 +2193,37 @@ class CombatPersistenceIntegrationTest {
         assertEquals(5, jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM player_resource_transactions WHERE player_id = ?",
                 Integer.class, PLAYER_ID), "同一战斗请求重放不能重复记资源流水");
-        assertEquals(2, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM player_logs WHERE player_id = ?",
+        assertEquals(3, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM player_logs WHERE player_id = ?",
                 Integer.class, PLAYER_ID));
+    }
+
+    @Test
+    void combatStartRequiresMatchingEncounter() throws Exception {
+        String token = performLogin();
+        String requestKey = "h2-matched-encounter";
+        ResponseEntity<String> withoutEncounter = performHttp(HttpMethod.POST, "/api/combat/start", token,
+                Map.of("playerId", PLAYER_ID, "monsterKey", "h2_test_beast", "requestKey", requestKey));
+        assertEquals(400, withoutEncounter.getStatusCode().value());
+
+        seedPendingCombat("h2_test_beast", requestKey);
+        ResponseEntity<String> wrongMonster = performHttp(HttpMethod.POST, "/api/combat/start", token,
+                Map.of("playerId", PLAYER_ID, "monsterKey", "another_monster", "requestKey", requestKey));
+        assertEquals(400, wrongMonster.getStatusCode().value());
+        ResponseEntity<String> wrongRequestKey = performHttp(HttpMethod.POST, "/api/combat/start", token,
+                Map.of("playerId", PLAYER_ID, "monsterKey", "h2_test_beast", "requestKey", "unrelated"));
+        assertEquals(400, wrongRequestKey.getStatusCode().value());
+        assertEquals(0, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM battle_logs", Integer.class));
+
+        CombatResultVO result = performHttpCombatStart(token, "h2_test_beast", requestKey);
+        assertEquals("win", result.getResult());
+        assertEquals(1, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM battle_logs", Integer.class));
+    }
+
+    private void seedPendingCombat(String monsterKey, String requestKey) {
+        playerLogService.addLog(PLAYER_ID, "battle", "待处理战斗",
+                Map.of("kind", "exploration_result", "requestKey", requestKey,
+                        "requestResponse", Map.of("result_type", "battle", "monster_key", monsterKey,
+                                "request_key", requestKey)));
     }
 
     @Test

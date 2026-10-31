@@ -15,6 +15,8 @@ public class PeerReviveRequest {
     @Size(max = 16, message = "复活方式不合法")
     private String method = "coins";
 
+    private String titleKey;
+
     @NotBlank(message = "requestKey 不能为空")
     @Size(max = 64, message = "requestKey 长度不能超过 64")
     private String requestKey;
@@ -25,6 +27,8 @@ public class PeerReviveRequest {
     public void setTargetId(Long targetId) { this.targetId = targetId; }
     public String getMethod() { return method; }
     public void setMethod(String method) { this.method = method; }
+    public String getTitleKey() { return titleKey; }
+    public void setTitleKey(String titleKey) { this.titleKey = titleKey; }
     public String getRequestKey() { return requestKey; }
     public void setRequestKey(String requestKey) { this.requestKey = requestKey; }
 }

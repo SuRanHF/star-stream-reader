@@ -104,12 +104,19 @@ public class CombatServiceImpl implements CombatService {
     @Override
     @Transactional
     public CombatResultVO startCombat(Long playerId, String monsterKey, String requestKey, Long userId) {
-        return startCombatInternal(playerId, monsterKey, requestKey, userId, "fight");
+        return startCombatInternal(playerId, monsterKey, requestKey, userId, "fight", false);
+    }
+
+    @Override
+    @Transactional
+    public CombatResultVO startEncounterCombat(Long playerId, String monsterKey,
+                                               String requestKey, Long userId) {
+        return startCombatInternal(playerId, monsterKey, requestKey, userId, "fight", true);
     }
 
     private CombatResultVO startCombatInternal(Long playerId, String monsterKey,
                                                String requestKey, Long userId,
-                                               String requestAction) {
+                                               String requestAction, boolean requireEncounter) {
         validateCombatRequest(monsterKey, requestKey);
         // 1. 校验玩家
         Player player = playerMapper.selectByIdForUpdate(playerId);
@@ -121,6 +128,8 @@ public class CombatServiceImpl implements CombatService {
         BattleLog previous = findReplay(playerId, monsterKey, requestKey, requestAction);
         if (previous != null)
             return readCombatReceipt(previous.getResultJson());
+
+        if (requireEncounter) requirePendingEncounter(playerId, monsterKey, requestKey);
 
         // 2. 应用恢复
         Map<String, Object> stats = recoveryService.applyRecovery(player);
@@ -686,6 +695,18 @@ public class CombatServiceImpl implements CombatService {
     @Transactional
     public Map<String, Object> resolveCombat(Long playerId, String monsterKey, String action,
                                              String requestKey, Long userId) {
+        return resolveCombatInternal(playerId, monsterKey, action, requestKey, userId, false);
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> resolveEncounterCombat(Long playerId, String monsterKey, String action,
+                                                      String requestKey, Long userId) {
+        return resolveCombatInternal(playerId, monsterKey, action, requestKey, userId, true);
+    }
+
+    private Map<String, Object> resolveCombatInternal(Long playerId, String monsterKey, String action,
+                                                       String requestKey, Long userId, boolean requireEncounter) {
         validateCombatRequest(monsterKey, requestKey);
         Map<String, Object> result = new LinkedHashMap<>();
         String requestAction = "flee".equals(action) ? "flee" : "attack";
@@ -699,6 +720,8 @@ public class CombatServiceImpl implements CombatService {
         BattleLog previous = findReplay(playerId, monsterKey, requestKey, requestAction);
         if (previous != null)
             return readMapReceipt(previous.getResultJson());
+
+        if (requireEncounter) requirePendingEncounter(playerId, monsterKey, requestKey);
 
         if ("flee".equals(action)) {
             Map<String, Object> stats = recoveryService.applyRecovery(lockedPlayer);
@@ -757,7 +780,7 @@ public class CombatServiceImpl implements CombatService {
 
         // For "attack" and other actions, run full combat
         CombatResultVO combatResult = startCombatInternal(
-                playerId, monsterKey, requestKey, userId, requestAction);
+                playerId, monsterKey, requestKey, userId, requestAction, requireEncounter);
         Player player = playerMapper.selectById(playerId);
         Map<String, Object> stats = parseJsonMap(player.getStatsJson());
 
@@ -806,6 +829,15 @@ public class CombatServiceImpl implements CombatService {
         }
 
         return result;
+    }
+
+    private void requirePendingEncounter(Long playerId, String monsterKey, String requestKey) {
+        boolean matching = playerLogService.findPendingBattleEncounters(playerId).stream()
+                .anyMatch(pending -> Objects.equals(monsterKey, pending.get("monster_key"))
+                        && Objects.equals(requestKey, pending.get("request_key")));
+        if (!matching)
+            throw new BusinessException(ErrorCode.PENDING_BATTLE_UNRESOLVED,
+                    "战斗目标与待处理遭遇不一致");
     }
 
     @Override

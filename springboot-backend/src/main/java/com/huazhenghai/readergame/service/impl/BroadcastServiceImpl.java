@@ -673,7 +673,9 @@ public class BroadcastServiceImpl implements BroadcastService {
         int targetValue = objectives.stream().mapToInt(o -> toInt(o.get("target"), 0)).sum();
 
         // Build event key
-        String eventKey = "ai_" + System.currentTimeMillis();
+        String requestedKey = Objects.toString(draft.get("eventKey"), "");
+        String eventKey = requestedKey.matches("ai_\\d{10}")
+                ? requestedKey : "ai_" + System.currentTimeMillis();
 
         BroadcastEvent event = new BroadcastEvent();
         event.setEventKey(eventKey);

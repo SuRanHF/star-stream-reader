@@ -15,6 +15,8 @@ public interface CombatService {
 
     CombatResultVO startCombat(Long playerId, String monsterKey, String requestKey, Long userId);
 
+    CombatResultVO startEncounterCombat(Long playerId, String monsterKey, String requestKey, Long userId);
+
     List<BattleLogVO> getBattleLogs(Long playerId, Long userId);
 
     CombatStatsVO calculateCombatPower(Long playerId);
@@ -23,4 +25,7 @@ public interface CombatService {
 
     Map<String, Object> resolveCombat(Long playerId, String monsterKey, String action,
                                       String requestKey, Long userId);
+
+    Map<String, Object> resolveEncounterCombat(Long playerId, String monsterKey, String action,
+                                               String requestKey, Long userId);
 }

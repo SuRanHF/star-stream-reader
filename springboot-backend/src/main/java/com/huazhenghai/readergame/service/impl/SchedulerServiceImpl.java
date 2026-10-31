@@ -22,6 +22,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -425,16 +426,21 @@ public class SchedulerServiceImpl implements SchedulerService {
         }
     }
 
-    private int generateAiBroadcast() {
+    private synchronized int generateAiBroadcast() {
         try {
-            // Limit: keep at most 2 active AI-generated broadcasts
+            // One active AI broadcast at a time. The slot key also closes the race
+            // between scheduler instances via broadcast_events.event_key's unique index.
             QueryWrapper<BroadcastEvent> eq = new QueryWrapper<>();
             eq.eq("status", "active")
               .like("event_key", "ai_");
             long activeAiCount = broadcastEventMapper.selectCount(eq);
-            if (activeAiCount >= 2) return 0;
+            if (activeAiCount >= 1) return 0;
 
             Map<String, Object> draft = aiDirectorService.generateBroadcastDraft();
+            if (draft == null || draft.isEmpty()) return 0;
+            draft = new LinkedHashMap<>(draft);
+            draft.put("eventKey", "ai_" + LocalDateTime.now()
+                    .format(DateTimeFormatter.ofPattern("yyyyMMddHH")));
             String eventKey = broadcastService.createEvent(draft);
             if (eventKey != null) {
                 log.info("AI Director generated broadcast: {} ({})", draft.get("title"), eventKey);

@@ -475,7 +475,7 @@ public class NarrativeServiceImpl implements NarrativeService {
                 Player player = playerMapper.selectById(playerId);
                 List<String> titles = parseJsonList(player.getTitlesJson()).stream()
                         .map(String::valueOf).collect(java.util.stream.Collectors.toList());
-                if (!titles.contains(titleKey)) {
+                if (!titles.contains(titleKey) && !com.huazhenghai.readergame.service.TitleSacrificeHistory.contains(player, titleKey, objectMapper)) {
                     titles.add(titleKey);
                     player.setTitlesJson(toJson(titles));
                     playerMapper.updateById(player);

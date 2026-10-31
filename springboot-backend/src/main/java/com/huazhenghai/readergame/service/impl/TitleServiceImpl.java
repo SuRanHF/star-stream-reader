@@ -12,6 +12,7 @@ import com.huazhenghai.readergame.mapper.PlayerMapper;
 import com.huazhenghai.readergame.mapper.PlayerTitleMapper;
 import com.huazhenghai.readergame.mapper.TitleMapper;
 import com.huazhenghai.readergame.service.TitleService;
+import com.huazhenghai.readergame.service.TitleSacrificeHistory;
 import com.huazhenghai.readergame.vo.PlayerTitleVO;
 import com.huazhenghai.readergame.vo.TitleVO;
 import org.springframework.stereotype.Service;
@@ -131,6 +132,7 @@ public class TitleServiceImpl implements TitleService {
 
         for (Title def : allTitles) {
             if (alreadyOwned.contains(def.getTitleKey())) continue;
+            if (TitleSacrificeHistory.contains(player, def.getTitleKey(), objectMapper)) continue;
 
             Map<String, Object> conditions = parseJsonMap(def.getUnlockConditionsJson());
             if (conditions.isEmpty()) continue;
@@ -162,6 +164,8 @@ public class TitleServiceImpl implements TitleService {
 
     @Override
     public void grantTitle(Long playerId, String titleKey) {
+        Player player = playerMapper.selectById(playerId);
+        if (player != null && TitleSacrificeHistory.contains(player, titleKey, objectMapper)) return;
         Title title = titleMapper.selectOne(
                 new QueryWrapper<Title>().eq("title_key", titleKey));
         if (title == null) {
@@ -179,6 +183,39 @@ public class TitleServiceImpl implements TitleService {
         pt.setSource("任务奖励");
         pt.setUnlockedAt(LocalDateTime.now());
         playerTitleMapper.insert(pt);
+    }
+
+    @Override
+    public Map<String, Object> sacrificeTitle(Player player, String titleKey) {
+        if (titleKey == null || titleKey.isBlank())
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "请选择要献祭的称号");
+        QueryWrapper<PlayerTitle> ownedQuery = new QueryWrapper<>();
+        ownedQuery.eq("player_id", player.getId()).eq("title_key", titleKey);
+        PlayerTitle owned = playerTitleMapper.selectOne(ownedQuery);
+        List<String> legacy = new ArrayList<>();
+        try {
+            if (player.getTitlesJson() != null && !player.getTitlesJson().isBlank())
+                legacy = objectMapper.readValue(player.getTitlesJson(), new TypeReference<>() {});
+        } catch (Exception exception) {
+            throw new BusinessException(ErrorCode.SERVER_ERROR, "读取称号列表失败");
+        }
+        if (owned == null && !legacy.contains(titleKey))
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "未拥有该称号");
+        if (owned != null && playerTitleMapper.deleteById(owned.getId()) <= 0)
+            throw new IllegalStateException("删除已献祭称号失败");
+        if (legacy.removeIf(titleKey::equals)) {
+            try {
+                player.setTitlesJson(objectMapper.writeValueAsString(legacy));
+            } catch (Exception exception) {
+                throw new BusinessException(ErrorCode.SERVER_ERROR, "保存称号列表失败");
+            }
+        }
+        TitleSacrificeHistory.add(player, titleKey, objectMapper);
+        Title definition = titleMapper.selectOne(new QueryWrapper<Title>().eq("title_key", titleKey));
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("title_key", titleKey);
+        result.put("name", definition != null ? definition.getName() : titleKey);
+        return result;
     }
 
     @Override

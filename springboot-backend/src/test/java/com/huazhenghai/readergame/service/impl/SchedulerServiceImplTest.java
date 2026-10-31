@@ -27,6 +27,12 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -69,6 +75,42 @@ class SchedulerServiceImplTest {
                 friendRequestMapper, taskLogMapper, factionService, worldlineService,
                 worldBossService, worldBossMapper, questService, aiDirectorService,
                 broadcastService, sessionManager);
+    }
+
+    @Test
+    void concurrentAiBroadcastCreatesOnce() throws Exception {
+        AtomicInteger created = new AtomicInteger();
+        when(broadcastEventMapper.selectCount(any())).thenAnswer(invocation -> (long) created.get());
+        when(aiDirectorService.generateBroadcastDraft()).thenReturn(Map.of("title", "测试放送"));
+        when(broadcastService.createEvent(any())).thenAnswer(invocation -> {
+            created.incrementAndGet();
+            return ((Map<?, ?>) invocation.getArgument(0)).get("eventKey");
+        });
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        try {
+            var first = CompletableFuture.supplyAsync(() -> {
+                ready.countDown();
+                try { start.await(); } catch (InterruptedException e) { throw new RuntimeException(e); }
+                return scheduler.runSingleTask("generateAiBroadcast");
+            }, pool);
+            var second = CompletableFuture.supplyAsync(() -> {
+                ready.countDown();
+                try { start.await(); } catch (InterruptedException e) { throw new RuntimeException(e); }
+                return scheduler.runSingleTask("generateAiBroadcast");
+            }, pool);
+            assertTrue(ready.await(5, TimeUnit.SECONDS));
+            start.countDown();
+            int total = ((Number) first.get(5, TimeUnit.SECONDS).get("affectedCount")).intValue()
+                    + ((Number) second.get(5, TimeUnit.SECONDS).get("affectedCount")).intValue();
+            assertEquals(1, total);
+            assertEquals(1, created.get());
+            verify(broadcastService, times(1)).createEvent(any());
+        } finally {
+            start.countDown();
+            pool.shutdownNow();
+        }
     }
 
     @Test

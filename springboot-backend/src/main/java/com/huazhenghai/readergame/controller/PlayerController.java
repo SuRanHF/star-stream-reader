@@ -31,6 +31,7 @@ import com.huazhenghai.readergame.service.PkService;
 import com.huazhenghai.readergame.service.PlayerActionReceiptService;
 import com.huazhenghai.readergame.service.PlayerResourceTransactionService;
 import com.huazhenghai.readergame.service.PlayerStaminaProjectionService;
+import com.huazhenghai.readergame.service.TitleService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
@@ -72,6 +73,7 @@ public class PlayerController {
     private final PlayerActionReceiptService actionReceiptService;
     private final PlayerResourceTransactionService resourceTransactionService;
     private final PlayerStaminaProjectionService staminaProjectionService;
+    private final TitleService titleService;
 
     public PlayerController(PlayerService playerService,
                             RecoveryService recoveryService,
@@ -85,7 +87,8 @@ public class PlayerController {
                             PlayerLogService playerLogService,
                             PlayerActionReceiptService actionReceiptService,
                             PlayerResourceTransactionService resourceTransactionService,
-                            PlayerStaminaProjectionService staminaProjectionService) {
+                            PlayerStaminaProjectionService staminaProjectionService,
+                            TitleService titleService) {
         this.playerService = playerService;
         this.recoveryService = recoveryService;
         this.maxHpProjectionService = maxHpProjectionService;
@@ -99,6 +102,7 @@ public class PlayerController {
         this.actionReceiptService = actionReceiptService;
         this.resourceTransactionService = resourceTransactionService;
         this.staminaProjectionService = staminaProjectionService;
+        this.titleService = titleService;
     }
 
     /**
@@ -642,7 +646,14 @@ public class PlayerController {
             throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "复活方式不合法");
 
         String requestKey = request.getRequestKey();
-        Map<String, Object> requestPayload = Map.of("playerId", playerId, "method", method);
+        Map<String, Object> requestPayload = new LinkedHashMap<>();
+        requestPayload.put("playerId", playerId);
+        requestPayload.put("method", method);
+        if ("title".equals(method)) {
+            if (request.getTitleKey() == null || request.getTitleKey().isBlank())
+                throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "请选择要献祭的称号");
+            requestPayload.put("titleKey", request.getTitleKey());
+        }
         Map<String, Object> replay = actionReceiptService.findReplay(
                 playerId, "player.revive", requestKey, requestPayload, Map.class);
         if (replay != null) return Result.ok(replay);
@@ -655,6 +666,7 @@ public class PlayerController {
         int coinsBefore = player.getCoins() != null ? player.getCoins() : 0;
         int coinsAfter = coinsBefore;
         int cost = 0;
+        Map<String, Object> sacrificedTitle = null;
         int level = Math.max(1, toInt(stats.get("level"), 1));
         if ("coins".equals(method)) {
             cost = Math.multiplyExact(100, level);
@@ -665,7 +677,8 @@ public class PlayerController {
             coinsAfter = Math.subtractExact(coinsBefore, cost);
             player.setCoins(coinsAfter);
         }
-        // title sacrifice method: just revive (title is handled by frontend)
+        if ("title".equals(method))
+            sacrificedTitle = titleService.sacrificeTitle(player, request.getTitleKey());
 
         stats.put("isDead", false);
         int maxHp = toInt(stats.get("maxHp"), 100);
@@ -680,10 +693,19 @@ public class PlayerController {
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("message", "你从冥界归来了。HP已恢复至" + (maxHp / 2) + "点，请休息恢复更多生命值。");
+        if (sacrificedTitle != null) {
+            result.put("method", "title");
+            result.put("sacrificed_title", sacrificedTitle);
+        }
         Map<String, Object> metadata = new LinkedHashMap<>();
         metadata.put("method", method);
         metadata.put("level", level);
         metadata.put("hpAfter", maxHp / 2);
+        if (sacrificedTitle != null) {
+            metadata.put("titleKey", request.getTitleKey());
+            metadata.put("targetPlayerId", playerId);
+            recordTitleSacrifice(playerId, playerId, request.getTitleKey(), requestKey, "revive", metadata);
+        }
         if (cost > 0) {
             metadata.put("cost", cost);
             metadata.put("coinsBefore", coinsBefore);
@@ -726,8 +748,15 @@ public class PlayerController {
         if (!"coins".equals(method) && !"title".equals(method))
             throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "复活方式不合法");
         String requestKey = request.getRequestKey();
-        Map<String, Object> requestPayload = Map.of(
-                "reviverId", reviverId, "targetId", targetId, "method", method);
+        Map<String, Object> requestPayload = new LinkedHashMap<>();
+        requestPayload.put("reviverId", reviverId);
+        requestPayload.put("targetId", targetId);
+        requestPayload.put("method", method);
+        if ("title".equals(method)) {
+            if (request.getTitleKey() == null || request.getTitleKey().isBlank())
+                throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "请选择要献祭的称号");
+            requestPayload.put("titleKey", request.getTitleKey());
+        }
         Map<String, Object> replay = actionReceiptService.findReplay(
                 reviverId, "player.peer-revive", requestKey, requestPayload, Map.class);
         if (replay != null) return Result.ok(replay);
@@ -740,6 +769,7 @@ public class PlayerController {
         int coinsBefore = reviver.getCoins() != null ? reviver.getCoins() : 0;
         int coinsAfter = coinsBefore;
         int cost = 0;
+        Map<String, Object> sacrificedTitle = null;
         int level = Math.max(1, toInt(targetStats.get("level"), 1));
         if ("coins".equals(method)) {
             String constellation = String.valueOf(targetStats.getOrDefault("constellation", ""));
@@ -751,6 +781,8 @@ public class PlayerController {
             coinsAfter = Math.subtractExact(coinsBefore, cost);
             reviver.setCoins(coinsAfter);
         }
+        if ("title".equals(method))
+            sacrificedTitle = titleService.sacrificeTitle(reviver, request.getTitleKey());
 
         targetStats.put("isDead", false);
         int maxHp = toInt(targetStats.get("maxHp"), 100);
@@ -763,17 +795,26 @@ public class PlayerController {
         }
         if (playerMapper.updateById(target) <= 0)
             throw new IllegalStateException("保存被援救玩家的复活状态失败");
-        if (cost > 0 && playerMapper.updateById(reviver) <= 0)
-            throw new IllegalStateException("保存施救者的星币扣除失败");
+        if ((cost > 0 || sacrificedTitle != null) && playerMapper.updateById(reviver) <= 0)
+            throw new IllegalStateException("保存施救者的资源扣除失败");
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("message", "你从冥界拉回了一位玩家。");
+        if (sacrificedTitle != null) {
+            result.put("method", "title");
+            result.put("sacrificed_title", sacrificedTitle);
+        }
         Map<String, Object> metadata = new LinkedHashMap<>();
         metadata.put("method", method);
         metadata.put("reviverId", reviverId);
         metadata.put("targetId", targetId);
         metadata.put("targetLevel", level);
         metadata.put("hpAfter", hpAfter);
+        if (sacrificedTitle != null) {
+            metadata.put("titleKey", request.getTitleKey());
+            recordTitleSacrifice(reviverId, targetId, request.getTitleKey(), requestKey,
+                    "peer-revive", metadata);
+        }
         if (cost > 0) {
             metadata.put("cost", cost);
             metadata.put("coinsBefore", coinsBefore);
@@ -792,6 +833,15 @@ public class PlayerController {
                 + reviver.getPlayerName() + "」将你从冥界拉回。", metadata);
         actionReceiptService.record(reviverId, "player.peer-revive", requestKey, requestPayload, result);
         return Result.ok(result);
+    }
+
+    private void recordTitleSacrifice(Long ownerId, Long targetId, String titleKey,
+                                      String requestKey, String action, Map<String, Object> metadata) {
+        String transactionGroupId = action + ":" + ownerId + ":" + UUID.nameUUIDFromBytes(
+                (ownerId + ":" + targetId + ":" + requestKey).getBytes(StandardCharsets.UTF_8));
+        resourceTransactionService.record(new PlayerResourceTransactionService.Change(
+                ownerId, "title", titleKey, -1, 1, 0, "title_sacrifice",
+                String.valueOf(targetId), transactionGroupId, transactionGroupId + ":title", metadata));
     }
 
     // ─── 属性分配 ───

@@ -730,6 +730,18 @@ class QuestGameplayPersistenceIntegrationTest {
                 "playerId", playerId,
                 "monsterKey", "h2_first_victory_beast",
                 "requestKey", requestKey);
+        if (!liveUi) {
+            try {
+                String receipt = objectMapper.writeValueAsString(Map.of(
+                        "kind", "exploration_result", "requestKey", requestKey,
+                        "requestResponse", Map.of("result_type", "battle",
+                                "monster_key", "h2_first_victory_beast", "request_key", requestKey)));
+                jdbcTemplate.update("INSERT INTO player_logs (player_id, type, message, metadata_json) "
+                                + "VALUES (?, 'battle', '测试遭遇', ?)", playerId, receipt);
+            } catch (Exception exception) {
+                throw new AssertionError("构造隔离测试战斗遭遇失败", exception);
+            }
+        }
         JsonNode battle = liveUi
                 ? liveFlow.path("combatResponse").path("data")
                 : successfulRequest("/api/combat/start", HttpMethod.POST, combatRequest, true);

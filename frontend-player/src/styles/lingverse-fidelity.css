@@ -1326,12 +1326,15 @@ body::before {
   container: lv-action / inline-size;
 }
 
-/* 主按钮：图标与文字同一行居中（参考站「☼ 冥想」样式）。 */
+/* 主按钮：图标与文字同一行居中（参考站「☼ 冥想」样式），宽度至少容下整行文字，不许折成竖排。 */
 .lingverse-replica-shell .action-group--primary > button {
   display: inline-flex;
+  flex: 1 0 auto;
   align-items: center;
   justify-content: center;
   gap: 6px;
+  padding-inline: 12px;
+  white-space: nowrap;
 }
 
 @container lv-action (max-width: 560px) {

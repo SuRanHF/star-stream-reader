@@ -5144,8 +5144,8 @@ a:focus-visible {
    手机则保留日志/传音双签。数据、发送和频道切换仍由星流读者 ConnectedPanel 驱动。
    ───────────────────────────────────────────────────────────── */
 @media (min-width: 900px) {
-  /* 日志/传音双签只在聊天没有常驻时出现（窄屏或聊天被折叠）。 */
-  .ling-main.has-docked-chat > .log-area .log-mid-tabs {
+  /* 日志/传音双签是手机布局；宽屏一律不显示（聊天折叠或让位时从顶栏「星流频道」打开）。 */
+  .ling-main .ling-log > .log-mid-tabs {
     display: none;
   }
 

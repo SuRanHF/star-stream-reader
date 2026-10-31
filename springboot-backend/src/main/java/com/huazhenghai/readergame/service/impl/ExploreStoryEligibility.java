@@ -51,6 +51,31 @@ public final class ExploreStoryEligibility {
     private static boolean permanentlyClosed(Map<String, Object> conditions,
             List<?> decisionHistory, List<String> triggeredStories,
             Function<String, Map<String, Object>> ancestorConditions, Set<String> visiting) {
+        Object requiredChoicesValue = conditions.get("required_choices");
+        if (requiredChoicesValue instanceof List<?> requiredChoices) {
+            for (Object value : requiredChoices) {
+                if (!(value instanceof Map<?, ?> requiredChoice)
+                        || !(requiredChoice.get("event_key") instanceof String source)
+                        || !(requiredChoice.get("choice_indices") instanceof List<?> indices)) continue;
+                boolean decided = false;
+                boolean matched = false;
+                for (Object decisionValue : decisionHistory) {
+                    if (!(decisionValue instanceof Map<?, ?> decision)) continue;
+                    Object decisionKey = decision.containsKey("event_key")
+                            ? decision.get("event_key") : decision.get("eventKey");
+                    if (!source.equals(decisionKey)) continue;
+                    decided = true;
+                    Object index = decision.containsKey("choice_index")
+                            ? decision.get("choice_index") : decision.get("choiceIndex");
+                    if (indices.stream().anyMatch(allowed -> toInt(allowed, -2) == toInt(index, -1))) {
+                        matched = true;
+                        break;
+                    }
+                }
+                if (decided && !matched || !decided && ancestorClosed(source, decisionHistory,
+                        triggeredStories, ancestorConditions, visiting)) return true;
+            }
+        }
         Object requiredValue = conditions.get("required_events");
         if (requiredValue instanceof List<?> requiredEvents) {
             for (Object required : requiredEvents) {
@@ -161,6 +186,32 @@ public final class ExploreStoryEligibility {
             Integer requiredOrder = AVATAR_RANK_ORDER.get(required.trim().toUpperCase(Locale.ROOT));
             if (currentOrder == null || requiredOrder == null || currentOrder < requiredOrder) {
                 return false;
+            }
+        }
+        if (conditions.containsKey("required_choices")) {
+            Object requiredChoicesValue = conditions.get("required_choices");
+            if (!(requiredChoicesValue instanceof List<?> requiredChoices) || requiredChoices.isEmpty()) {
+                return false;
+            }
+            for (Object value : requiredChoices) {
+                if (!(value instanceof Map<?, ?> requiredChoice)
+                        || !(requiredChoice.get("event_key") instanceof String source)
+                        || !(requiredChoice.get("choice_indices") instanceof List<?> indices)
+                        || indices.isEmpty()) return false;
+                boolean matched = false;
+                for (Object decisionValue : decisionHistory) {
+                    if (!(decisionValue instanceof Map<?, ?> decision)) continue;
+                    Object decisionKey = decision.containsKey("event_key")
+                            ? decision.get("event_key") : decision.get("eventKey");
+                    Object index = decision.containsKey("choice_index")
+                            ? decision.get("choice_index") : decision.get("choiceIndex");
+                    if (source.equals(decisionKey) && indices.stream().anyMatch(allowed ->
+                            toInt(allowed, -2) == toInt(index, -1))) {
+                        matched = true;
+                        break;
+                    }
+                }
+                if (!matched) return false;
             }
         }
         if (conditions.containsKey("choice_unlockers")) {

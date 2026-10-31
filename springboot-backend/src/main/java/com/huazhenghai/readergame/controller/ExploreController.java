@@ -59,6 +59,7 @@ public class ExploreController {
         final List<String> triggered = getTriggeredStoryEvents(player);
         Map<String, Object> stageProgress = parseJsonMap(player.getStageProgressJson());
         List<?> decisions = getDecisionHistory(player);
+        RouteContinuationPolicy.restoreCompletedFirstGrowthTip(stageProgress, decisions);
         Function<String, Map<String, Object>> ancestors = ancestorConditionsLookup();
         // 解析玩家状态用于解锁检查
         Map<String, Object> playerStats = parseJsonMap(player.getStatsJson());
@@ -181,6 +182,7 @@ public class ExploreController {
         final List<String> triggered = getTriggeredStoryEvents(player);
         Map<String, Object> stageProgress = parseJsonMap(player.getStageProgressJson());
         List<?> decisions = getDecisionHistory(player);
+        RouteContinuationPolicy.restoreCompletedFirstGrowthTip(stageProgress, decisions);
         Function<String, Map<String, Object>> ancestors = ancestorConditionsLookup();
         Map<String, Object> playerStats = parseJsonMap(player.getStatsJson());
 

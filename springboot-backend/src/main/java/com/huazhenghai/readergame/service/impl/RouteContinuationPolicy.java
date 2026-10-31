@@ -23,6 +23,34 @@ public final class RouteContinuationPolicy {
         progress.put("routePendingEventKey", eventKey);
     }
 
+    /** Recover the already-completed A0 tip in pre-growth saves without rewriting player rows.
+     * The marker prevents a later continuation from being mistaken for the old tip again. */
+    public static void restoreCompletedFirstGrowthTip(Map<String, Object> progress, List<?> decisions) {
+        if (Boolean.TRUE.equals(progress.get("firstGrowthTipReviewed"))) return;
+        Object triggeredValue = progress.get("storyEventsTriggered");
+        if (!(triggeredValue instanceof List<?> triggered)
+                || !triggered.contains("chungmuro_conspiracy_story")
+                || !hasChoice(decisions, "station_first_trace", 0)
+                || !hasChoice(decisions, "chungmuro_iron_king_story", 0)
+                || !(hasChoice(decisions, "chungmuro_conspiracy_story", 0)
+                        || hasChoice(decisions, "chungmuro_conspiracy_story", 1))) return;
+        if (!isPending(progress)) markPending(progress, "chungmuro_conspiracy_story");
+        progress.put("firstGrowthTipReviewed", true);
+    }
+
+    private static boolean hasChoice(List<?> decisions, String eventKey, int index) {
+        for (Object value : decisions) {
+            if (!(value instanceof Map<?, ?> decision)) continue;
+            Object key = decision.containsKey("event_key")
+                    ? decision.get("event_key") : decision.get("eventKey");
+            Object selected = decision.containsKey("choice_index")
+                    ? decision.get("choice_index") : decision.get("choiceIndex");
+            if (eventKey.equals(key) && selected instanceof Number number
+                    && number.intValue() == index) return true;
+        }
+        return false;
+    }
+
     static boolean allowsStory(Map<String, Object> progress, Map<String, Object> conditions) {
         if (!isPending(progress)) return true;
         Object tip = progress.get("routePendingEventKey");

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.huazhenghai.readergame.entity.BattleLog;
 import com.huazhenghai.readergame.entity.BroadcastContribution;
 import com.huazhenghai.readergame.entity.BroadcastEvent;
@@ -3461,7 +3462,11 @@ class CombatPersistenceIntegrationTest {
         jdbcTemplate.update("INSERT INTO locations (location_key, name, unlock_conditions_json, "
                         + "event_rates_json, min_level, recommended_rank) VALUES (?, ?, ?, ?, ?, ?)",
                 "demon_gate", "恶魔之门", "{}", "{\"story\":100}", 1, "F");
-        insertExploreSeedEvent(findExploreSeedRow("event", eventKey));
+        JsonNode testEvent = findExploreSeedRow("event", eventKey).deepCopy();
+        // This test exercises the final-wall combat flow, so only its H2 fixture bypasses
+        // the temporary main-story pause; the production seed remains route-gated.
+        ((ObjectNode) testEvent.path("required_conditions")).remove("required_choices");
+        insertExploreSeedEvent(testEvent);
 
         String completedFinaleProgress = "{\"storyEventsTriggered\":[\"ending_dream_continuation_choice\"]}";
         String continuedDecision = "[{\"event_key\":\"ending_dream_continuation_choice\","

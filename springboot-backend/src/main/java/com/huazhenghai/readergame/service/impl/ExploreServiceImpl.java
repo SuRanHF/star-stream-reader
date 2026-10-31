@@ -180,7 +180,7 @@ public class ExploreServiceImpl implements ExploreService {
         if (location == null) throw new BusinessException(ErrorCode.LOCATION_NOT_FOUND, "该地点不存在");
 
         Map<String, Object> stats = parseJsonMap(player.getStatsJson());
-        Map<String, Object> progress = parseJsonMap(player.getStageProgressJson());
+        Map<String, Object> progress = stageProgressWithLegacyTip(player);
         List<String> triggeredStories = toStringList(progress.get("storyEventsTriggered"));
         if (!LocationUnlockPolicy.canAccessLocation(parseJsonMap(location.getUnlockConditionsJson()),
                 stats, parseJsonMap(player.getStoryFlagsJson()), player.getCurrentChapter(), triggeredStories))
@@ -270,7 +270,7 @@ public class ExploreServiceImpl implements ExploreService {
 
         // 3. 应用恢复
         Map<String, Object> stats = recoveryService.applyRecovery(player);
-        Map<String, Object> stageProgress = parseJsonMap(player.getStageProgressJson());
+        Map<String, Object> stageProgress = stageProgressWithLegacyTip(player);
         List<String> triggeredStoryEvents = toStringList(stageProgress.get("storyEventsTriggered"));
         Object decisionHistoryValue = parseJsonList(player.getDecisionHistoryJson());
         List<?> decisionHistory = decisionHistoryValue instanceof List<?> history
@@ -663,7 +663,7 @@ public class ExploreServiceImpl implements ExploreService {
 
         Map<String, Object> replay = new LinkedHashMap<>((Map<String, Object>) response);
         Map<String, Object> stats = parseJsonMap(player.getStatsJson());
-        Map<String, Object> stageProgress = parseJsonMap(player.getStageProgressJson());
+        Map<String, Object> stageProgress = stageProgressWithLegacyTip(player);
         replay.put("player", buildPlayerSnapshot(player, stats, stageProgress));
         replay.put("request_key", requestKey);
         replay.put("request_replayed", true);
@@ -755,6 +755,14 @@ public class ExploreServiceImpl implements ExploreService {
         return true;
     }
 
+    private Map<String, Object> stageProgressWithLegacyTip(Player player) {
+        Map<String, Object> progress = parseJsonMap(player.getStageProgressJson());
+        Object history = parseJsonList(player.getDecisionHistoryJson());
+        RouteContinuationPolicy.restoreCompletedFirstGrowthTip(progress,
+                history instanceof List<?> decisions ? decisions : Collections.emptyList());
+        return progress;
+    }
+
     private Map<String, Object> routeContinuationResponse(Player player,
             Map<String, Object> stageProgress, Map<String, Object> stats) {
         if (!RouteContinuationPolicy.isPending(stageProgress)) {
@@ -831,7 +839,7 @@ public class ExploreServiceImpl implements ExploreService {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "无效的选项");
 
         // 检查玩家是否已经触发过此事件 (防止重复选择)
-        Map<String, Object> stageProgress = parseJsonMap(player.getStageProgressJson());
+        Map<String, Object> stageProgress = stageProgressWithLegacyTip(player);
         List<String> triggered = (List<String>) stageProgress.getOrDefault(
                 "storyEventsTriggered", new ArrayList<>());
         if (!triggered.contains(eventKey))
@@ -855,7 +863,13 @@ public class ExploreServiceImpl implements ExploreService {
         }
 
         Map<String, Object> chosen = choices.get(choiceIndex);
-        if ("story".equals(event.getEventType()) && Boolean.TRUE.equals(chosen.get("route_pending"))) {
+        Object pendingDecisionValue = parseJsonList(player.getDecisionHistoryJson());
+        List<?> pendingDecisions = pendingDecisionValue instanceof List<?> list
+                ? list : Collections.emptyList();
+        if ("story".equals(event.getEventType()) && Boolean.TRUE.equals(chosen.get("route_pending"))
+                && ExploreStoryEligibility.checkRequiredConditions(
+                        parseJsonMap(player.getStatsJson()), stageProgress, pendingDecisions,
+                        parseJsonMap(event.getRequiredConditionsJson()))) {
             RouteContinuationPolicy.markPending(stageProgress, eventKey);
         }
 
@@ -1175,7 +1189,7 @@ public class ExploreServiceImpl implements ExploreService {
         if (!Objects.equals(player.getUserId(), userId))
             throw new BusinessException(ErrorCode.FORBIDDEN, "无权查看此玩家的剧情");
 
-        Map<String, Object> stageProgress = parseJsonMap(player.getStageProgressJson());
+        Map<String, Object> stageProgress = stageProgressWithLegacyTip(player);
         List<String> triggered = (List<String>) stageProgress.getOrDefault(
                 "storyEventsTriggered", Collections.emptyList());
         List<String> completedRoutes = (List<String>) stageProgress.getOrDefault(

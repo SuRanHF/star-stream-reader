@@ -11,7 +11,7 @@
       "opportunity": 15,
       "boss_clue": 10,
       "battle_placeholder": 12,
-          "empty": 25
+      "empty": 25
     },
     "min_level": 1,
     "danger_level": 2,
@@ -25,7 +25,9 @@
     "description": "第一个相对安全的避难所。幸存者们在这里建立了临时据点，微弱但持久的烛光照亮了黑暗的地下通道。",
     "unlock_conditions": {
       "required_level": 3,
-      "prerequisite_events": ["station_first_trace"]
+      "prerequisite_events": [
+        "station_first_trace"
+      ]
     },
     "event_rates": {
       "story": 15,
@@ -33,7 +35,7 @@
       "resource": 25,
       "opportunity": 15,
       "battle_placeholder": 12,
-          "empty": 25
+      "empty": 25
     },
     "min_level": 3,
     "danger_level": 2,
@@ -54,7 +56,7 @@
       "resource": 30,
       "opportunity": 20,
       "battle_placeholder": 12,
-          "empty": 20
+      "empty": 20
     },
     "min_level": 2,
     "danger_level": 1,
@@ -68,7 +70,11 @@
     "description": "\"十王\"团体控制的地铁站。铁王座上的统治者用铁腕手段维持秩序——但秩序从来不是免费的。",
     "unlock_conditions": {
       "required_level": 5,
-      "prerequisite_events_any": ["geumho_shelter_first", "geumho_shelter_story"]
+      "prerequisite_events_any": [
+        "geumho_shelter_first",
+        "geumho_shelter_story",
+        "dongmyo_whisperer_story"
+      ]
     },
     "event_rates": {
       "story": 20,
@@ -78,7 +84,7 @@
       "boss_clue": 20,
       "hidden": 5,
       "battle_placeholder": 12,
-          "empty": 20
+      "empty": 20
     },
     "min_level": 5,
     "danger_level": 4,
@@ -92,7 +98,10 @@
     "description": "站外盘踞着强大的恶灵\"火焰巨人\"。这里曾是首尔最繁华的商业区，现在是最危险的战场之一。",
     "unlock_conditions": {
       "required_level": 8,
-      "prerequisite_events_any": ["chungmuro_tenkings_arrival", "chungmuro_revelation_story"]
+      "prerequisite_events_any": [
+        "chungmuro_tenkings_arrival",
+        "chungmuro_revelation_story"
+      ]
     },
     "event_rates": {
       "story": 15,
@@ -101,7 +110,7 @@
       "boss_clue": 20,
       "hidden": 5,
       "battle_placeholder": 12,
-          "empty": 20
+      "empty": 20
     },
     "min_level": 8,
     "danger_level": 6,
@@ -123,7 +132,7 @@
       "opportunity": 15,
       "hidden": 10,
       "battle_placeholder": 12,
-          "empty": 20
+      "empty": 20
     },
     "min_level": 6,
     "danger_level": 3,
@@ -145,7 +154,7 @@
       "opportunity": 10,
       "hidden": 5,
       "battle_placeholder": 12,
-          "empty": 27
+      "empty": 27
     },
     "min_level": 10,
     "danger_level": 7,
@@ -159,7 +168,10 @@
     "description": "首尔最大的地下城入口。高等级的怪物和丰厚的奖励等待着勇敢的读者。但越深入黑暗，越容易迷失。",
     "unlock_conditions": {
       "required_level": 12,
-      "prerequisite_events_any": ["gwangjin_bridge_crossing", "gwangjin_bridge_trap_story"]
+      "prerequisite_events_any": [
+        "gwangjin_bridge_crossing",
+        "gwangjin_bridge_trap_story"
+      ]
     },
     "event_rates": {
       "story": 15,
@@ -167,7 +179,7 @@
       "resource": 25,
       "boss_clue": 17,
       "battle_placeholder": 12,
-          "empty": 20
+      "empty": 20
     },
     "min_level": 12,
     "danger_level": 8,
@@ -189,7 +201,7 @@
       "opportunity": 10,
       "hidden": 20,
       "battle_placeholder": 12,
-          "empty": 20
+      "empty": 20
     },
     "min_level": 15,
     "danger_level": 9,
@@ -203,7 +215,10 @@
     "description": "通往恶魔世界的次元裂缝。穿过这道门，将进入完全不同的异世界。72柱恶魔中的强者统治着这片土地。",
     "unlock_conditions": {
       "required_level": 18,
-      "prerequisite_events_any": ["gangnam_entrance_discovery", "gangnam_dungeon_gate_story"]
+      "prerequisite_events_any": [
+        "gangnam_entrance_discovery",
+        "gangnam_dungeon_gate_story"
+      ]
     },
     "event_rates": {
       "story": 15,
@@ -244,7 +259,16 @@
         "consequence_text": "刘众赫的表情变化了一瞬——那不是惊讶，而是确认。他盯着你看了很久。\"你读过那本书。\"这不是一个疑问句。\"那就跟上来。别拖后腿。\"他转身走入了黑暗。",
         "title_bias": {
           "title_regression_witness": 1
-        }
+        },
+        "unlock_events": [
+          "dongmyo_market_story"
+        ],
+        "set_story_flags": {
+          "story_route_companion": true
+        },
+        "unlock_locations": [
+          "dongmyo"
+        ]
       },
       {
         "label": "\"我只是一个普通的幸存者。\"",
@@ -254,6 +278,12 @@
         ],
         "title_bias": {
           "title_humble_reader": 1
+        },
+        "unlock_events": [
+          "geumho_shelter_story"
+        ],
+        "set_story_flags": {
+          "story_route_nameless": true
         }
       }
     ],
@@ -313,14 +343,58 @@
         }
       }
     ],
-    "log_template": "你在金湖站认识了李智慧，第一次听说了\"星座\"的存在——那些注视着下界的未知存在。"
+    "log_template": "你在金湖站认识了李智慧，第一次听说了\"星座\"的存在——那些注视着下界的未知存在。",
+    "required_conditions": {
+      "choice_unlockers": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
+      ],
+      "personal_contexts": [
+        {
+          "story_flag": "story_route_nameless",
+          "text": "你说自己是普通人。在金湖站，这句话让你轻松混进了人群——可你总觉得，暗处有人记住了它。"
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
+      ]
+    }
   },
   {
     "type": "event",
     "event_key": "geumho_underground_story",
     "required_conditions": {
       "choice_unlockers": [
-        {"event_key": "geumho_shelter_story", "choice_indices": [0, 1]}
+        {
+          "event_key": "geumho_shelter_story",
+          "choice_indices": [
+            0,
+            1
+          ]
+        }
+      ],
+      "personal_contexts": [
+        {
+          "story_flag": "story_route_nameless",
+          "text": "这里没人知道你读过那本书。你打算让它一直这样。"
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
       ]
     },
     "event_type": "story",
@@ -358,7 +432,7 @@
           "dongmyo"
         ],
         "unlock_events": [
-          "chungmuro_iron_king_story"
+          "chungmuro_unnamed_crossing"
         ],
         "title_bias": {
           "title_information_broker": 1
@@ -368,7 +442,7 @@
         "label": "\"我只是看看。\"",
         "consequence_text": "\"随便看。\"男人耸了耸肩。\"但别告诉别人这里——金湖站的规矩是：知道得越少，活得越久。\"他在你转身时又说了一句：\"对了——如果你去忠武路，小心那个叫'铁王'的。他的拳头比他的脑袋硬十倍。\"",
         "unlock_events": [
-          "chungmuro_iron_king_story"
+          "chungmuro_unnamed_crossing"
         ],
         "title_bias": {
           "title_cautious": 1
@@ -407,7 +481,10 @@
         },
         "title_bias": {
           "title_memory_trader": 2
-        }
+        },
+        "unlock_events": [
+          "dongmyo_whisperer_story"
+        ]
       },
       {
         "label": "\"不，谢谢。我不想失去任何东西。\"",
@@ -424,10 +501,37 @@
         },
         "title_bias": {
           "title_cautious": 2
-        }
+        },
+        "unlock_events": [
+          "dongmyo_whisperer_story"
+        ]
       }
     ],
-    "log_template": "你在东庙遇到了一位交易记忆的神秘老人。有些记忆不是用来记住的——而是用来交换的。"
+    "log_template": "你在东庙遇到了一位交易记忆的神秘老人。有些记忆不是用来记住的——而是用来交换的。",
+    "required_conditions": {
+      "choice_unlockers": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        }
+      ],
+      "personal_contexts": [
+        {
+          "story_flag": "story_route_companion",
+          "text": "刘众赫让你先来东庙。他说这里卖的东西，有一半是从未来偷来的。从你说出他名字的那一刻起，他就在考你。"
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        }
+      ]
+    }
   },
   {
     "type": "event",
@@ -466,7 +570,10 @@
         ],
         "title_bias": {
           "title_information_broker": 2
-        }
+        },
+        "unlock_events": [
+          "chungmuro_iron_king_story"
+        ]
       },
       {
         "label": "\"关于星座——它们到底想要什么？\"",
@@ -477,7 +584,10 @@
         },
         "title_bias": {
           "title_starstream_observed": 3
-        }
+        },
+        "unlock_events": [
+          "chungmuro_iron_king_story"
+        ]
       },
       {
         "label": "\"你怎么知道那本书的事？\"",
@@ -489,17 +599,66 @@
         },
         "title_bias": {
           "title_omniscient_reader": 3
-        }
+        },
+        "unlock_events": [
+          "chungmuro_iron_king_story"
+        ]
       }
     ],
-    "log_template": "东庙的情报贩子似乎知道太多秘密。她不仅知道星座——还知道那本书。"
+    "log_template": "东庙的情报贩子似乎知道太多秘密。她不仅知道星座——还知道那本书。",
+    "required_conditions": {
+      "choice_unlockers": [
+        {
+          "event_key": "dongmyo_market_story",
+          "choice_indices": [
+            0,
+            1
+          ]
+        }
+      ],
+      "personal_contexts": [
+        {
+          "story_flag": "story_route_companion",
+          "text": "刘众赫在市场另一头等你，没有跟过来——他想看你自己能问出什么。"
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        }
+      ]
+    }
   },
   {
     "type": "event",
     "event_key": "chungmuro_iron_king_story",
     "required_conditions": {
       "choice_unlockers": [
-        {"event_key": "geumho_underground_story", "choice_indices": [0, 1]}
+        {
+          "event_key": "dongmyo_whisperer_story",
+          "choice_indices": [
+            0,
+            1,
+            2
+          ]
+        }
+      ],
+      "personal_contexts": [
+        {
+          "story_flag": "story_route_companion",
+          "text": "刘众赫把你留在忠武路入口，自己往深处去了。走前只说了一句：\"他会让你跪。你自己决定。\""
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        }
       ]
     },
     "event_type": "story",
@@ -538,22 +697,27 @@
         ],
         "title_bias": {
           "title_defiant": 3
+        },
+        "set_story_flags": {
+          "story_iron_king_defied": true
         }
       },
       {
         "label": "交出一点故事碎片作为\"通行费\"——暂且妥协",
-        "consequence_text": "铁王接过你的碎片，在手中掂了掂。\"聪明。\"他坐回王座。\"忠武路有十位王——但只有聪明人活得久。影王会喜欢你的。\"他的手下给你让开了一条路。你失去了碎片，但获得了一个机会——潜入这个王国的内部。",
+        "consequence_text": "铁王接过你的碎片，在手中掂了掂。\"聪明。\"他坐回王座。\"忠武路有十位王——但只有聪明人活得久。\"他的手下给你让开了一条路。你失去了碎片，但获得了一个机会——潜入这个王国的内部。",
         "rewards_override": {
           "storyFragments": -1,
           "exp": 80,
           "coins": 20
         },
         "unlock_events": [
-          "chungmuro_shadow_king_story",
           "chungmuro_underground_resistance"
         ],
         "title_bias": {
           "title_calculating": 2
+        },
+        "set_story_flags": {
+          "story_iron_king_paid": true
         }
       }
     ],
@@ -564,7 +728,20 @@
     "event_key": "chungmuro_shadow_king_story",
     "required_conditions": {
       "choice_unlockers": [
-        {"event_key": "chungmuro_iron_king_story", "choice_indices": [0, 1]}
+        {
+          "event_key": "chungmuro_iron_king_story",
+          "choice_indices": [
+            0
+          ]
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        }
       ]
     },
     "event_type": "story",
@@ -636,7 +813,20 @@
     "event_key": "chungmuro_underground_resistance",
     "required_conditions": {
       "choice_unlockers": [
-        {"event_key": "chungmuro_iron_king_story", "choice_indices": [1]}
+        {
+          "event_key": "chungmuro_iron_king_story",
+          "choice_indices": [
+            1
+          ]
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        }
       ]
     },
     "event_type": "story",
@@ -658,12 +848,9 @@
     "choices": [
       {
         "label": "\"星流图书馆？在哪里？\"",
-        "consequence_text": "\"在明洞。\"朴素英摊开一张旧地图。\"明洞的地下商业街——曾经的购物天堂，现在的禁忌区域。图书馆就藏在那里。馆中有一本书——《故事之书》，据说记载了所有已发生和将要发生的剧本。\"她将地图递给你。\"把它带回来。整个抵抗组织——不，整个忠武路——都需要它。\"",
-        "unlock_locations": [
-          "myeongdong"
-        ],
+        "consequence_text": "\"在明洞。\"朴素英摊开一张旧地图，看了一眼，又把它折了回去。\"但不是现在。铁王的人最近盯得紧，谁往外走都会被跟上。\"她把地图塞回怀里，\"等时机到了，我们会来找你。\"",
         "unlock_events": [
-          "myeongdong_library_story"
+          "chungmuro_compromise_ledger"
         ],
         "title_bias": {
           "title_revolutionary": 2
@@ -674,7 +861,10 @@
         "consequence_text": "朴素英看了你好一会儿。\"每个人都想活下去。\"她说。\"但在忠武路——仅仅活下去是不够的。铁王迟早会来找你。到那时候——你打算怎么办？\"她没有等你回答。\"当你改变主意的时候——我们知道去哪里找你。\"",
         "title_bias": {
           "title_survivor": 2
-        }
+        },
+        "unlock_events": [
+          "chungmuro_compromise_ledger"
+        ]
       }
     ],
     "log_template": "忠武路地下存在着抵抗组织——他们的目标是推翻铁王，找到写满真相的星流图书馆。"
@@ -684,7 +874,27 @@
     "event_key": "chungmuro_conspiracy_story",
     "required_conditions": {
       "choice_unlockers": [
-        {"event_key": "chungmuro_shadow_king_story", "choice_indices": [0, 1]}
+        {
+          "event_key": "chungmuro_shadow_king_story",
+          "choice_indices": [
+            0,
+            1
+          ]
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        },
+        {
+          "event_key": "chungmuro_iron_king_story",
+          "choice_indices": [
+            0
+          ]
+        }
       ]
     },
     "event_type": "story",
@@ -712,12 +922,13 @@
           "channelHeat": 50,
           "exp": 250
         },
-        "unlock_events": [
-          "chungmuro_revelation_story"
-        ],
         "title_bias": {
           "title_truth_bringer": 5
-        }
+        },
+        "set_story_flags": {
+          "story_council_spoke": true
+        },
+        "route_pending": true
       },
       {
         "label": "保持沉默，暗中观察会议的走向",
@@ -727,12 +938,13 @@
           "exp": 120,
           "channelHeat": 30
         },
-        "unlock_events": [
-          "chungmuro_revelation_story"
-        ],
         "title_bias": {
           "title_silent_watcher": 3
-        }
+        },
+        "set_story_flags": {
+          "story_council_silent": true
+        },
+        "route_pending": true
       }
     ],
     "log_template": "十王的会议揭示了一个惊人的真相：这个世界正在被一个\"做梦者\"书写。而剧本——即将在忠武路写下一个毁灭的结局。"
@@ -742,7 +954,20 @@
     "event_key": "chungmuro_revelation_story",
     "required_conditions": {
       "choice_unlockers": [
-        {"event_key": "chungmuro_conspiracy_story", "choice_indices": [0, 1]}
+        {
+          "event_key": "chungmuro_unnamed_crossing",
+          "choice_indices": [
+            0
+          ]
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
       ]
     },
     "event_type": "story",
@@ -779,12 +1004,12 @@
             }
           ]
         },
-        "unlock_locations": [
-          "dongdaemun"
-        ],
         "title_bias": {
           "title_script_rewriter": 5
-        }
+        },
+        "unlock_events": [
+          "chungmuro_script_blank"
+        ]
       },
       {
         "label": "合上剧本——\"有些未来最好不要知道。\"",
@@ -801,12 +1026,12 @@
             }
           ]
         },
-        "unlock_locations": [
-          "dongdaemun"
-        ],
         "title_bias": {
           "title_acceptance": 3
-        }
+        },
+        "unlock_events": [
+          "chungmuro_script_blank"
+        ]
       }
     ],
     "log_template": "你亲手改写了忠武路的剧本——阻止了一场即将发生的毁灭。但你也学到了一个残酷的真理：每一行被写下的文字，都有一个作者。而每一个作者——都有自己的读者。"
@@ -866,14 +1091,49 @@
         }
       }
     ],
-    "log_template": "东大门广场上，一个陨落的星座在烈焰中哀嚎。它的愤怒不是天生的——而是被读者的背叛塑造出来的。"
+    "log_template": "东大门广场上，一个陨落的星座在烈焰中哀嚎。它的愤怒不是天生的——而是被读者的背叛塑造出来的。",
+    "required_conditions": {
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        },
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
+      ]
+    }
   },
   {
     "type": "event",
     "event_key": "dongdaemun_missing_chapter_story",
     "required_conditions": {
       "choice_unlockers": [
-        {"event_key": "dongdaemun_flame_giant_story", "choice_indices": [0]}
+        {
+          "event_key": "dongdaemun_flame_giant_story",
+          "choice_indices": [
+            0
+          ]
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        },
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
       ]
     },
     "event_type": "story",
@@ -996,14 +1256,49 @@
         }
       }
     ],
-    "log_template": "东大门的猎人给了你一个痛苦的选择——向左还是向右，两条路都通向不同的未来。你只能选一条。"
+    "log_template": "东大门的猎人给了你一个痛苦的选择——向左还是向右，两条路都通向不同的未来。你只能选一条。",
+    "required_conditions": {
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        },
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
+      ]
+    }
   },
   {
     "type": "event",
     "event_key": "myeongdong_library_story",
     "required_conditions": {
       "choice_unlockers": [
-        {"event_key": "chungmuro_underground_resistance", "choice_indices": [0]}
+        {
+          "event_key": "chungmuro_underground_resistance",
+          "choice_indices": [
+            0
+          ]
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        },
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
       ]
     },
     "event_type": "story",
@@ -1064,7 +1359,26 @@
     "event_key": "myeongdong_forbidden_story",
     "required_conditions": {
       "choice_unlockers": [
-        {"event_key": "myeongdong_library_story", "choice_indices": [0]}
+        {
+          "event_key": "myeongdong_library_story",
+          "choice_indices": [
+            0
+          ]
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        },
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
       ]
     },
     "event_type": "story",
@@ -1175,7 +1489,23 @@
         }
       }
     ],
-    "log_template": "广津大桥是一座门槛——只有带着足够\"重量\"的人才能通过。不是力量的重量，而是故事的重量。每一段经历都是一份重量。"
+    "log_template": "广津大桥是一座门槛——只有带着足够\"重量\"的人才能通过。不是力量的重量，而是故事的重量。每一段经历都是一份重量。",
+    "required_conditions": {
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        },
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
+      ]
+    }
   },
   {
     "type": "event",
@@ -1223,7 +1553,23 @@
         }
       }
     ],
-    "log_template": "广津大桥的守护者已经在桥上站了数百年——不是因为无法离开，而是因为没人邀请她离开。一个真正的守护者需要的不是解放——而是被感谢。"
+    "log_template": "广津大桥的守护者已经在桥上站了数百年——不是因为无法离开，而是因为没人邀请她离开。一个真正的守护者需要的不是解放——而是被感谢。",
+    "required_conditions": {
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        },
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
+      ]
+    }
   },
   {
     "type": "event",
@@ -1278,14 +1624,49 @@
         }
       }
     ],
-    "log_template": "江南站的地下城入口——一千零三十六个人在你之前进去了。六百个再也没有出来。你即将成为第一千零三十七位签下名字的探索者。"
+    "log_template": "江南站的地下城入口——一千零三十六个人在你之前进去了。六百个再也没有出来。你即将成为第一千零三十七位签下名字的探索者。",
+    "required_conditions": {
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        },
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
+      ]
+    }
   },
   {
     "type": "event",
     "event_key": "gangnam_deep_floor_story",
     "required_conditions": {
       "choice_unlockers": [
-        {"event_key": "gangnam_dungeon_gate_story", "choice_indices": [0]}
+        {
+          "event_key": "gangnam_dungeon_gate_story",
+          "choice_indices": [
+            0
+          ]
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        },
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
       ]
     },
     "event_type": "story",
@@ -1340,7 +1721,26 @@
     "event_key": "gangnam_memory_wall_story",
     "required_conditions": {
       "choice_unlockers": [
-        {"event_key": "gangnam_deep_floor_story", "choice_indices": [1]}
+        {
+          "event_key": "gangnam_deep_floor_story",
+          "choice_indices": [
+            1
+          ]
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        },
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
       ]
     },
     "event_type": "story",
@@ -1453,7 +1853,23 @@
         }
       }
     ],
-    "log_template": "在首尔森林的深处——你用陨落星座作为沃土，培育了一株来自最初故事的世界树苗。当你离开时——你知道这棵树将在某一天开花。"
+    "log_template": "在首尔森林的深处——你用陨落星座作为沃土，培育了一株来自最初故事的世界树苗。当你离开时——你知道这棵树将在某一天开花。",
+    "required_conditions": {
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        },
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
+      ]
+    }
   },
   {
     "type": "event",
@@ -1507,7 +1923,23 @@
         }
       }
     ],
-    "log_template": "你踏入恶魔之门——旧世界在身后合上，新世界在眼前翻开。恶魔的目录上多了一个名字：你的。"
+    "log_template": "你踏入恶魔之门——旧世界在身后合上，新世界在眼前翻开。恶魔的目录上多了一个名字：你的。",
+    "required_conditions": {
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        },
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
+      ]
+    }
   },
   {
     "type": "event",
@@ -1521,7 +1953,23 @@
     "stamina_cost": 0,
     "repeatable": 0,
     "required_conditions": {
-      "required_events": ["demon_gate_first_step_story"]
+      "required_events": [
+        "demon_gate_first_step_story"
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        },
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
+      ]
     },
     "rewards": {},
     "progress_effects": {
@@ -1531,7 +1979,9 @@
       {
         "label": "履行约定，终结最古老的梦",
         "consequence_text": "你兑现了先前的承诺。旧梦终于结束，世界的故事抵达了它的终点；而终点之后，留下一个无人接替的位置。",
-        "unlock_events": ["ending_dream_continuation_choice"],
+        "unlock_events": [
+          "ending_dream_continuation_choice"
+        ],
         "set_story_flags": {
           "ending_old_dream_ended": true
         }
@@ -1551,11 +2001,15 @@
     "stamina_cost": 0,
     "repeatable": 0,
     "required_conditions": {
-      "required_events": ["ending_old_dream_promise"],
+      "required_events": [
+        "ending_old_dream_promise"
+      ],
       "choice_unlockers": [
         {
           "event_key": "ending_old_dream_promise",
-          "choice_indices": [0]
+          "choice_indices": [
+            0
+          ]
         }
       ],
       "personal_contexts": [
@@ -1566,6 +2020,20 @@
         {
           "story_flag": "oldest_dream_last_page",
           "text": "你记得最古之梦说过：最后一页还没有写出来，而你正在用自己的选择写下它。"
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        },
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
         }
       ]
     },
@@ -1604,7 +2072,9 @@
     "stamina_cost": 0,
     "repeatable": 0,
     "required_conditions": {
-      "required_events": ["ending_dream_continuation_choice"],
+      "required_events": [
+        "ending_dream_continuation_choice"
+      ],
       "personal_contexts": [
         {
           "story_flag": "ending_new_oldest_dream",
@@ -1613,6 +2083,20 @@
         {
           "story_flag": "ending_world_frozen",
           "text": "你选择让世界停在此刻。这里不是世界恢复运转，而是终局留下的一段个人回声；它不会撤销你的结局选择。"
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        },
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
         }
       ]
     },
@@ -2448,14 +2932,49 @@
         }
       }
     ],
-    "log_template": "深夜里只有你能听到的钟声——李智慧告诉你，那是\"晦日之钟\"，来自一位被封印在深渊中的古老女神。"
+    "log_template": "深夜里只有你能听到的钟声——李智慧告诉你，那是\"晦日之钟\"，来自一位被封印在深渊中的古老女神。",
+    "required_conditions": {
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        },
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
+      ]
+    }
   },
   {
     "type": "event",
     "event_key": "darkest_spring_forest_vision",
     "required_conditions": {
       "choice_unlockers": [
-        {"event_key": "darkest_spring_first_omen", "choice_indices": [1]}
+        {
+          "event_key": "darkest_spring_first_omen",
+          "choice_indices": [
+            1
+          ]
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        },
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
       ]
     },
     "event_type": "story",
@@ -2521,10 +3040,35 @@
     "type": "event",
     "event_key": "darkest_spring_story_stitch",
     "required_conditions": {
-      "required_events": ["darkest_spring_first_omen", "darkest_spring_forest_vision"],
-      "required_side_events": ["geumho_echo_whisper"],
+      "required_events": [
+        "darkest_spring_first_omen",
+        "darkest_spring_forest_vision"
+      ],
+      "required_side_events": [
+        "geumho_echo_whisper"
+      ],
       "choice_unlockers": [
-        {"event_key": "darkest_spring_forest_vision", "choice_indices": [0, 1]}
+        {
+          "event_key": "darkest_spring_forest_vision",
+          "choice_indices": [
+            0,
+            1
+          ]
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        },
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
       ]
     },
     "event_type": "story",
@@ -2541,12 +3085,16 @@
       {
         "label": "把两段记录写在同一页",
         "consequence_text": "你把日记末页的“请继续”和晦日钟声的警告写在同一页。两段叙事在你的时间线里相互接续，形成一条新的个人理解。",
-        "set_story_flags": {"story_dark_spring_interwoven": true}
+        "set_story_flags": {
+          "story_dark_spring_interwoven": true
+        }
       },
       {
         "label": "分别保存，不替它们下结论",
         "consequence_text": "你把两份记录分别封存，拒绝让其中一段改写另一段。它们仍各自保留原貌，你决定暂时不替它们下结论。",
-        "set_story_flags": {"story_dark_spring_separated": true}
+        "set_story_flags": {
+          "story_dark_spring_separated": true
+        }
       }
     ],
     "log_template": "你发现李智慧日记与晦日钟声之间的呼应，并决定如何记录在自己的时间线上。"
@@ -2556,7 +3104,13 @@
     "event_key": "darkest_spring_abyss_gate",
     "required_conditions": {
       "choice_unlockers": [
-        {"event_key": "darkest_spring_forest_vision", "choice_indices": [0, 1]}
+        {
+          "event_key": "darkest_spring_forest_vision",
+          "choice_indices": [
+            0,
+            1
+          ]
+        }
       ],
       "personal_contexts": [
         {
@@ -2566,6 +3120,20 @@
         {
           "story_flag": "story_dark_spring_separated",
           "text": "你曾选择把日记与钟声分开保存；此刻你仍能分清哪些是读到的，哪些是推想。"
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        },
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
         }
       ]
     },
@@ -2624,7 +3192,26 @@
     "event_key": "darkest_spring_seed_of_hope",
     "required_conditions": {
       "choice_unlockers": [
-        {"event_key": "darkest_spring_abyss_gate", "choice_indices": [1]}
+        {
+          "event_key": "darkest_spring_abyss_gate",
+          "choice_indices": [
+            1
+          ]
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        },
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
       ]
     },
     "event_type": "story",
@@ -2680,41 +3267,979 @@
       }
     ],
     "log_template": "女神将她的本质——\"晦日之种\"——托付给你。接受还是拒绝，将定义你和晦日之春之间永恒的关系。"
+  },
+  {
+    "type": "event",
+    "event_key": "ruined_station_battle_rat",
+    "event_type": "battle_placeholder",
+    "location_key": "ruined_station",
+    "name": "变异站鼠出现",
+    "description": "一只被星流辐射变异的巨大老鼠从阴影中冲出——它的眼睛闪烁着诡异的绿光。",
+    "weight": 12,
+    "stamina_cost": 6,
+    "repeatable": 1,
+    "risks_json": {
+      "monsterKey": "station_rat"
+    },
+    "rewards": {},
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "你在废弃车站的阴影中遭遇了一只变异站鼠。"
+  },
+  {
+    "type": "event",
+    "event_key": "geumho_station_battle_shadow",
+    "event_type": "battle_placeholder",
+    "location_key": "geumho_station",
+    "name": "破碎化身影子",
+    "description": "一个残缺模糊的人形影子从避难所的角落浮现——它漫无目的地游荡，直到感知到你的存在。",
+    "weight": 12,
+    "stamina_cost": 7,
+    "repeatable": 1,
+    "risks_json": {
+      "monsterKey": "broken_avatar_shadow"
+    },
+    "rewards": {},
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "金湖站的角落中浮现出一个破碎化身影子。"
+  },
+  {
+    "type": "event",
+    "event_key": "dongmyo_battle_rat",
+    "event_type": "battle_placeholder",
+    "location_key": "dongmyo",
+    "name": "市场老鼠",
+    "description": "东庙市场堆积的物资吸引了一些不速之客——变异站鼠们在摊位间穿梭觅食。",
+    "weight": 12,
+    "stamina_cost": 6,
+    "repeatable": 1,
+    "risks_json": {
+      "monsterKey": "station_rat"
+    },
+    "rewards": {},
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "你在东庙市场遇到了正在觅食的变异站鼠。"
+  },
+  {
+    "type": "event",
+    "event_key": "chungmuro_battle_keeper",
+    "event_type": "battle_placeholder",
+    "location_key": "chungmuro",
+    "name": "车站看门人残影",
+    "description": "忠武路的废弃通道中——看守者的残影仍在不倦地巡逻。它的力量远超普通残影。",
+    "weight": 12,
+    "stamina_cost": 9,
+    "repeatable": 1,
+    "risks_json": {
+      "monsterKey": "station_keeper_fragment"
+    },
+    "rewards": {},
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "你在忠武路遭遇了曾经的车站看门人残影。"
+  },
+  {
+    "type": "event",
+    "event_key": "dongdaemun_battle_flame",
+    "event_type": "battle_placeholder",
+    "location_key": "dongdaemun",
+    "name": "火焰残影",
+    "description": "东大门广场的焦黑地面上——一团人形火焰突然凝聚成型。它的核心是一颗跳动的心脏——那是火之主在这个世界线上的投影。",
+    "weight": 12,
+    "stamina_cost": 10,
+    "repeatable": 1,
+    "risks_json": {
+      "monsterKey": "fire_lord_projection"
+    },
+    "rewards": {},
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "你在东大门遭遇了火之主的一道残影。"
+  },
+  {
+    "type": "event",
+    "event_key": "myeongdong_battle_bookworm",
+    "event_type": "battle_placeholder",
+    "location_key": "myeongdong",
+    "name": "图书馆的饥饿回声",
+    "description": "星流图书馆深处的书页突然猛翻——一本被诅咒的书释放出了它吞噬的记忆残渣。",
+    "weight": 12,
+    "stamina_cost": 7,
+    "repeatable": 1,
+    "risks_json": {
+      "monsterKey": "library_hunger_echo"
+    },
+    "rewards": {},
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "图书馆的深处——一本被诅咒的书释放出了饥饿的记忆残渣。"
+  },
+  {
+    "type": "event",
+    "event_key": "gwangjin_battle_hunger",
+    "event_type": "battle_placeholder",
+    "location_key": "gwangjin_bridge",
+    "name": "饥饿的桥下之物",
+    "description": "广津大桥的雾气中——一个由黑水凝结而成的人形缓缓爬上岸。它的轮廓像是一个溺死的人，但它的嘴在不断变化——不断从空气中吸取什么。不是氧气——是故事。",
+    "weight": 12,
+    "stamina_cost": 9,
+    "repeatable": 1,
+    "risks_json": {
+      "monsterKey": "bridge_hunger_entity"
+    },
+    "rewards": {},
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "广津大桥的桥下爬出了一个由黑水凝结而成的饥饿实体。"
+  },
+  {
+    "type": "event",
+    "event_key": "gangnam_battle_dungeon",
+    "event_type": "battle_placeholder",
+    "location_key": "gangnam_station",
+    "name": "地下城守卫者",
+    "description": "地下城的铁门前——一个穿着古老铠甲的守卫从黑暗中踏步而出。它不是活人——是旧世界留下的自动战斗程式。",
+    "weight": 12,
+    "stamina_cost": 10,
+    "repeatable": 1,
+    "risks_json": {
+      "monsterKey": "dungeon_guardian_program"
+    },
+    "rewards": {},
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "江南站地下城的铁门前出现了一个古老的守卫者。"
+  },
+  {
+    "type": "event",
+    "event_key": "seoul_forest_battle_beast",
+    "event_type": "battle_placeholder",
+    "location_key": "seoul_forest",
+    "name": "森林魔物",
+    "description": "首尔森林的深处传来沉重的脚步声。一棵树被拦腰折断——一个被魔化的野兽出现在你面前。它的眼睛燃烧着绿色的火焰。",
+    "weight": 12,
+    "stamina_cost": 9,
+    "repeatable": 1,
+    "risks_json": {
+      "monsterKey": "corrupted_forest_beast"
+    },
+    "rewards": {},
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "首尔森林深处出现了一只被魔化的野兽。"
+  },
+  {
+    "type": "event",
+    "event_key": "demon_gate_battle_echo",
+    "event_type": "battle_placeholder",
+    "location_key": "demon_gate",
+    "name": "恶魔世界的间谍",
+    "description": "恶魔之门的裂缝突然扩张——一个低级的恶魔穿越了次元，试图在旧世界扎下根。它看到了你——\"一个新读者。这正是我们需要的。\"",
+    "weight": 12,
+    "stamina_cost": 10,
+    "repeatable": 1,
+    "risks_json": {
+      "monsterKey": "chaos_spawn"
+    },
+    "rewards": {},
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "恶魔之门的裂缝中跳出一个低级恶魔——它嗅到了这个世界尚未被编入剧本的可能性。"
+  },
+  {
+    "type": "event",
+    "event_key": "geumho_battle_scavenger",
+    "event_type": "battle_placeholder",
+    "location_key": "geumho_station",
+    "name": "疯狂的拾荒者",
+    "description": "一个被饥饿逼疯的拾荒者向你扑来——他的眼睛已经失去了理性，只剩下生存本能。",
+    "weight": 12,
+    "stamina_cost": 7,
+    "repeatable": 1,
+    "risks_json": {
+      "monsterKey": "shelter_scavenger"
+    },
+    "rewards": {},
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "金湖站的避难所角落——你被一个失去理智的拾荒者袭击了。"
+  },
+  {
+    "type": "event",
+    "event_key": "dongmyo_battle_thug",
+    "event_type": "battle_placeholder",
+    "location_key": "dongmyo",
+    "name": "市场恶棍的勒索",
+    "description": "两个市场恶棍挡在你面前，手里转着生锈的刀片。\"新手？交保护费。否则——你知道后果。\"",
+    "weight": 12,
+    "stamina_cost": 7,
+    "repeatable": 1,
+    "risks_json": {
+      "monsterKey": "market_thug"
+    },
+    "rewards": {},
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "东庙市场的恶棍试图向你勒索保护费——你选择了用武力回应。"
+  },
+  {
+    "type": "event",
+    "event_key": "chungmuro_battle_knight",
+    "event_type": "battle_placeholder",
+    "location_key": "chungmuro",
+    "name": "铁王近卫的拦截",
+    "description": "一个身披铁甲的骑士拦住了你的去路。\"铁王有令——所有未经登记的化身必须接受搜查。\"他的手按在剑柄上。",
+    "weight": 12,
+    "stamina_cost": 10,
+    "repeatable": 1,
+    "risks_json": {
+      "monsterKey": "iron_king_knight"
+    },
+    "rewards": {},
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "忠武路——铁王的近卫骑士拦住了你的去路。"
+  },
+  {
+    "type": "event",
+    "event_key": "dongdaemun_battle_spark",
+    "event_type": "battle_placeholder",
+    "location_key": "dongdaemun",
+    "name": "火焰余烬",
+    "description": "广场的废墟中——一块还在燃烧的余烬突然爆裂开来。火星在空中凝聚成一个人形——火之主的碎片仍在战斗。",
+    "weight": 12,
+    "stamina_cost": 10,
+    "repeatable": 1,
+    "risks_json": {
+      "monsterKey": "flame_spark"
+    },
+    "rewards": {},
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "东大门广场的余烬中凝聚出了火之主的碎片。"
+  },
+  {
+    "type": "event",
+    "event_key": "myeongdong_battle_wraith",
+    "event_type": "battle_placeholder",
+    "location_key": "myeongdong",
+    "name": "禁书页幽灵",
+    "description": "图书馆禁书区的一本被焚书页中——一道苍白的灵体缓缓升起。它携带着禁书中被烧毁的所有知识——以及所有危险。",
+    "weight": 12,
+    "stamina_cost": 8,
+    "repeatable": 1,
+    "risks_json": {
+      "monsterKey": "forbidden_page_wraith"
+    },
+    "rewards": {},
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "明洞禁书区——一本被焚的书页释放出了它的守护幽灵。"
+  },
+  {
+    "type": "event",
+    "event_key": "gwangjin_battle_drowned",
+    "event_type": "battle_placeholder",
+    "location_key": "gwangjin_bridge",
+    "name": "溺水记忆",
+    "description": "桥下的黑水泛起涟漪——一个由黑水凝结而成的人形缓缓走上岸。它的嘴里不断流出黑色的液体——那是未说完的话语。",
+    "weight": 12,
+    "stamina_cost": 10,
+    "repeatable": 1,
+    "risks_json": {
+      "monsterKey": "drowned_memory"
+    },
+    "rewards": {},
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "广津大桥的桥下——一个溺水的记忆实体爬上了岸。"
+  },
+  {
+    "type": "event",
+    "event_key": "gangnam_battle_crawler",
+    "event_type": "battle_placeholder",
+    "location_key": "gangnam_station",
+    "name": "地下城爬行者",
+    "description": "地下城的走廊中响起拖曳的声音——一个由探索者残骸拼接而成的怪物从黑暗中爬出。它的每一部分都来自不同的人。",
+    "weight": 12,
+    "stamina_cost": 10,
+    "repeatable": 1,
+    "risks_json": {
+      "monsterKey": "dungeon_crawler"
+    },
+    "rewards": {},
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "江南站地下城——一个由探索者残骸拼接的怪物从黑暗中爬出。"
+  },
+  {
+    "type": "event",
+    "event_key": "seoul_forest_battle_deer",
+    "event_type": "battle_placeholder",
+    "location_key": "seoul_forest",
+    "name": "星辰鹿",
+    "description": "密林深处——你遇到了一头巨大的白色鹿。它的角上刻着已灭绝星座的名字。它看着你——不是敌意，而是考验。它在判断你是否值得继续前行。",
+    "weight": 12,
+    "stamina_cost": 10,
+    "repeatable": 1,
+    "risks_json": {
+      "monsterKey": "star_deer"
+    },
+    "rewards": {},
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "首尔森林——一头刻着灭绝星座之名的星辰鹿挡住了去路。"
+  },
+  {
+    "type": "event",
+    "event_key": "geumho_side_inventory",
+    "event_type": "side_story",
+    "location_key": "geumho_station",
+    "name": "共享物资清单",
+    "description": "避难所的公告栏上贴着一张物资共享清单——笔迹各不相同，有工整的印刷体也有歪扭的儿童字。有人捐献了一整箱急救绷带，有人只放了一块体力面包。\n\n清单底部的空白处写着签名和留言：\"金哲洙——3块面包。我只是想帮忙。\"  \"匿名——5枚硬币。不用谢，用它们活下去。\"  \"李智慧——一本书。不是故事书——是世界末日前写给自己的日记。也许对你有用。\"",
+    "weight": 8,
+    "stamina_cost": 4,
+    "repeatable": 0,
+    "rewards": {
+      "storyFragments": 3,
+      "coins": 25,
+      "exp": 60
+    },
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "你读了避难所的共享物资清单——每一笔捐献都是一个小故事。"
+  },
+  {
+    "type": "event",
+    "event_key": "dongmyo_side_coin",
+    "event_type": "side_story",
+    "location_key": "dongmyo",
+    "name": "记忆硬币",
+    "description": "东庙最老的摊位前，一个老人独自坐着。他面前摆着几十枚一模一样的铜币——每一枚都铸着闭着的眼睛。\n\n\"这些都是记忆。\"他说。\"不是我的——是别人的。有人用记忆换食物。有人用记忆换遗忘。我把这些记忆铸成硬币——这样它们至少还有价值。\"\n\n他举起一枚硬币。\"这枚值一百星币。因为里面的记忆是关于一个母亲在末日那天最后对女儿说的话。\"",
+    "weight": 8,
+    "stamina_cost": 4,
+    "repeatable": 0,
+    "rewards": {
+      "storyFragments": 4,
+      "channelHeat": 15,
+      "exp": 80
+    },
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "东庙老人手中的每一枚硬币都是一段被交换的记忆。"
+  },
+  {
+    "type": "event",
+    "event_key": "chungmuro_side_wall",
+    "event_type": "side_story",
+    "location_key": "chungmuro",
+    "name": "墙上的十封信",
+    "description": "忠武路最偏僻的通道墙上贴了十封信——每一封都是写给不同的王的。有人花了很长时间写下这些：\n\n\"致铁王：你的拳头很强——但真正的力量是即使能够毁灭一切，仍选择不去做。\"\n\"致影王：你是对的。有些秘密确实不该被知道——但有些必须被知道。\"\n\"致纸王：你面前的稿纸是空白的——不是因为没有故事可写，而是因为你在等待一个真正的读者来读。\"\n\n最后一行写着：\"你们以为自己在统治——但你们从来只是角色。而角色——永远无法统治作者。\"",
+    "weight": 8,
+    "stamina_cost": 5,
+    "repeatable": 0,
+    "rewards": {
+      "storyFragments": 5,
+      "exp": 80,
+      "channelHeat": 20
+    },
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "你在忠武路找到了十封寄给王们的信——写信的人和你一样是读者。"
+  },
+  {
+    "type": "event",
+    "event_key": "dongdaemun_side_hunter",
+    "event_type": "side_story",
+    "location_key": "dongdaemun",
+    "name": "猎人的便当",
+    "description": "东大门广场的一角——你看到那个背着巨剑的猎人独自坐在台阶上，面前摆着一个便当盒。\n\n\"要吃吗？\"他问。便当盒里装的是最普通的食物——米饭、泡菜、煎蛋。旧世界的食物。\n\n\"我每天都会做两份。\"他说，目光看着远处火焰巨人曾站立的位置。\"一份给自己。一份给'万一有人一起吃饭的话'。\"\n\n他笑了笑。\"今天——那个万一来了。\"",
+    "weight": 5,
+    "stamina_cost": 3,
+    "repeatable": 0,
+    "rewards": {
+      "coins": 10,
+      "exp": 40
+    },
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "你和东大门的猎人分享了一顿便当——最普通的旧世界食物。"
+  },
+  {
+    "type": "event",
+    "event_key": "myeongdong_side_notebook",
+    "event_type": "side_story",
+    "location_key": "myeongdong",
+    "name": "被丢弃的笔记本",
+    "description": "图书馆的某个角落——一本被丢弃的笔记本静静躺在桌上。翻开第一页：\n\n\"我试了一天——没找到那本书。\"\n\"第三天——找到了。但我没敢翻开。\"\n\"第十天——我翻开了。然后我开始写这本笔记。\"\n\n后面的页面越来越疯狂——文字从整齐变成潦草，从叙述变成疑问，从疑问变成绝望：\"如果我是角色——那我还在写什么？角色不能写日记。但我在写。所以我不是角色？还是我在被更上面的读者写着？\"\n\n最后一页只有一行字：\"我不写了。我决定选择当读者。\"",
+    "weight": 8,
+    "stamina_cost": 4,
+    "repeatable": 0,
+    "rewards": {
+      "storyFragments": 6,
+      "exp": 100,
+      "channelHeat": 25
+    },
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "你在图书馆找到了一本关于读者身份危机的笔记本——也许写下它的人就是你。"
+  },
+  {
+    "type": "event",
+    "event_key": "gwangjin_side_boat",
+    "event_type": "side_story",
+    "location_key": "gwangjin_bridge",
+    "name": "桥下的渡船",
+    "description": "广津大桥下的黑水边——一条小木船停在那里。船主是一个沉默的老人，他没有问你要去哪里——他只是划船。\n\n船到了桥底的正下方时，他开口了：\"你知道为什么这座桥会审判人吗？不是因为桥本身——而是因为这里的江水喝了太多人的故事。每一个淹死在江里的人的故事，都会流入汉江。汉江现在已经不止是水了——它是液体化的遗憾。\"\n\n他划回岸边。\"下次想过桥——先来河边听听。你会听到那些声音在告诉你：活下去。别让故事断在这里。\"",
+    "weight": 8,
+    "stamina_cost": 5,
+    "repeatable": 0,
+    "rewards": {
+      "storyFragments": 5,
+      "exp": 80,
+      "channelHeat": 20
+    },
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "汉江——不是一个水体，而是所有在这个场景中淹没的故事的集合。"
+  },
+  {
+    "type": "event",
+    "event_key": "gangnam_side_register",
+    "event_type": "side_story",
+    "location_key": "gangnam_station",
+    "name": "冒险者登记册",
+    "description": "地下城入口的商贩帐篷里——那本登记册今天没有新的签名。商贩在打瞌睡。\n\n你翻开登记册。第一千零三十六位签名者的名字下面写着简短的信息：\n\n#1: \"第一天。出发。\"\n#48: \"我听到声音了——它在叫我往下。\"\n#237: \"别往下走。回来。回来。回来。\"\n#516: \"六百米——看到光。不是灯笼的光。是别的什么。\"\n#901: \"最后一层。这里什么都没有。不——有。有一本书。什么都没有写。我要写了。\"\n\n#1036没有签名——只有一个手印。",
+    "weight": 8,
+    "stamina_cost": 5,
+    "repeatable": 0,
+    "rewards": {
+      "storyFragments": 8,
+      "exp": 120,
+      "channelHeat": 30
+    },
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "冒险者登记册中的每一笔签名都记录着一个探索者的命运。"
+  },
+  {
+    "type": "event",
+    "event_key": "seoul_forest_side_watcher",
+    "event_type": "side_story",
+    "location_key": "seoul_forest",
+    "name": "守树人的故事",
+    "description": "世界树旁的守树人今天愿意多说一些话。他讲起了自己为什么会守在这里：\n\n\"我是第一个在世界树苗下埋下故事碎片的人。不是自愿的——是有人拜托我的。我的女儿。她在场景降临的第一天死在了地铁里。她最后的信息是：'爸——把我的日记埋到首尔森林的那棵怪树下。有人会读到的。'\"\n\n\"我把日记埋下去了。然后我就在这里留着——确保有一个人确实读到了她写的故事。\"他转向你。\"那个人可能是你。\"",
+    "weight": 8,
+    "stamina_cost": 4,
+    "repeatable": 0,
+    "rewards": {
+      "storyFragments": 10,
+      "exp": 150,
+      "channelHeat": 30
+    },
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "守树人告诉你了一段悲伤的故事——世界树苗下埋着他女儿最后的日记。"
+  },
+  {
+    "type": "event",
+    "event_key": "demon_gate_side_merchant",
+    "event_type": "side_story",
+    "location_key": "demon_gate",
+    "name": "恶魔商人的目录",
+    "description": "在恶魔之门入口处——一个长角的恶魔商人支起了摊位。他的商品目录比你见过的任何东西都要怪异：\n\n\"绝望碎片——500星币。来自第883号世界线的失败者。比任何武器都更能让你坚强。\"\n\"希望残骸——特价300星币。曾经是个伟大故事的结局，被作者废弃了。你在寻找灵感时或许用得到。\"\n\"未完成的情节——按重量计价。越多空白越贵。空白意味着可能性。\"\n\n最后一页写着：\"一切都有价格——除了当读者。阅读永远是免费的。\"",
+    "weight": 8,
+    "stamina_cost": 5,
+    "repeatable": 0,
+    "rewards": {
+      "storyFragments": 8,
+      "exp": 200,
+      "coins": 50
+    },
+    "progress_effects": {
+      "storyPityAdd": 1
+    },
+    "log_template": "恶魔商人的商品目录提醒你——即使在地狱，故事也是可以买到的。"
+  },
+  {
+    "type": "event",
+    "event_key": "geumho_hidden_signal",
+    "event_type": "hidden",
+    "location_key": "geumho_station",
+    "name": "来自其他世界线的信号",
+    "description": "你的终端突然接收到一段微弱的信号——不是普通的频道广播，而是来自另一个世界线的声音。一个女生在说：\"如果你能听到这段话——那条世界线已经比我的更好。在大多数世界线里，你在废弃车站就死了。但你还活着。这意味着——你是少数的那个。\"信号中断。频道热度+25。",
+    "weight": 3,
+    "stamina_cost": 5,
+    "repeatable": 0,
+    "rewards": {
+      "channelHeat": 25,
+      "worldLineShift": 10,
+      "storyFragments": 3,
+      "exp": 100
+    },
+    "progress_effects": {
+      "storyPityAdd": 0
+    },
+    "log_template": "你接收到了来自另一条世界线的信号——另一个读者在为你加油。"
+  },
+  {
+    "type": "event",
+    "event_key": "dongmyo_hidden_mirror",
+    "event_type": "hidden",
+    "location_key": "dongmyo",
+    "name": "情报贩子的镜子",
+    "description": "东庙情报贩子的摊位深处——你注意到一面被布盖住的镜子。情报贩子头也没抬：\"别碰那面镜子。\"当然——你碰了。\n\n镜子里映出的不是你——而是另一个你。不同的装备，不同的伤疤，不同的眼神。另一个你似乎在另一个世界线做出了完全不同的选择。\n\n情报贩子叹了口气：\"那面镜子不照当下——它照'曾经可能的你'。你现在看到了另一个选项的结果。现在——把它盖回去。有些知识不是力量——是毒。\"",
+    "weight": 3,
+    "stamina_cost": 5,
+    "repeatable": 0,
+    "rewards": {
+      "storyFragments": 8,
+      "exp": 150,
+      "channelHeat": 30
+    },
+    "progress_effects": {
+      "storyPityAdd": 0
+    },
+    "log_template": "东庙的镜子里照出了另一个世界线的你——一条你从未走过的路。"
+  },
+  {
+    "type": "event",
+    "event_key": "dongdaemun_hidden_heart",
+    "event_type": "hidden",
+    "location_key": "dongdaemun",
+    "name": "火之主的最后心声",
+    "description": "在东大门广场最偏僻的角落——你捡到了一块仍在跳动的焦黑石头。把它拿起来的那一刻——火之主最后的声音灌入你的脑海：\n\n\"不是我失败了——是我停止了。停止了取悦。停止了表演。停止了用燃烧自己来照亮别人的夜晚。他们说这是失败。我说——这是自由。第一个在星流历史上主动关闭频道的行为。\"\n\n石头碎了。但它的碎片在你手中留下了一个纹身——一颗小小的、安静的火星图案。",
+    "weight": 3,
+    "stamina_cost": 5,
+    "repeatable": 0,
+    "rewards": {
+      "storyFragments": 10,
+      "exp": 200,
+      "channelHeat": 40,
+      "items": [
+        {
+          "itemKey": "火之主的最后火星",
+          "quantity": 1,
+          "dropRate": 1.0
+        }
+      ]
+    },
+    "progress_effects": {
+      "storyPityAdd": 0
+    },
+    "log_template": "火之主最后的心声告诉你——它不是在失败中陨落的，而是在自由中选择沉默的。"
+  },
+  {
+    "type": "event",
+    "event_key": "gwangjin_hidden_bridge_below",
+    "event_type": "hidden",
+    "location_key": "gwangjin_bridge",
+    "name": "桥底的留言",
+    "description": "你沿着广津大桥的维修梯爬到了桥底。桥底的金属梁上——有人用指甲刻满了字。不是一个两个——是成百上千个名字。每一个名字下面都有一行简短的留言：\n\n\"李在勋——别过桥。活着回去。\"\n\"崔秀英——等你看到这个的时候我已经在桥那边了。这里什么都没有。只有更冷的雾。回来吧。求你了回来。\"\n\"无名氏——没有故事的人过不了桥。但如果你看到了这段话——说明你至少有一个故事：你现在在读这段话。加油。\"\n\n所有的名字——都是被桥审判过的人。桥底的留言——是桥唯一不会审判的东西。",
+    "weight": 3,
+    "stamina_cost": 8,
+    "repeatable": 0,
+    "rewards": {
+      "storyFragments": 12,
+      "exp": 200,
+      "channelHeat": 40
+    },
+    "progress_effects": {
+      "storyPityAdd": 0
+    },
+    "log_template": "广津大桥的桥底刻满了被审判者的名字和留言——桥唯一不会审判的东西就是这些无人看见的话。"
+  },
+  {
+    "type": "event",
+    "event_key": "demon_gate_hidden_contract",
+    "event_type": "hidden",
+    "location_key": "demon_gate",
+    "name": "恶魔的契约",
+    "description": "恶魔商人趁你不注意时塞给你一卷发光的卷轴。展开它——上面用恶魔文字写着：\n\n\"签名者同意：在任何世界线中，永远保有一颗好奇的心。永远拒绝接受预写的结局。永远相信——最黑暗的春天之后，会有一朵连恶魔都无法染指的花。\"\n\n最后一行的签名栏已经有人签了——不是名字，而是一个符号：一只闭着的眼睛。\n\n\"那是'她'签的。\"恶魔商人说，声音里有罕见的尊敬。\"晦日之春——唯一一个拒绝成为恶魔的恶魔。她的签名——是无价的。你的签名——将是她的继任者。\"",
+    "weight": 3,
+    "stamina_cost": 8,
+    "repeatable": 0,
+    "rewards": {
+      "storyFragments": 15,
+      "exp": 300,
+      "channelHeat": 60,
+      "coins": 100
+    },
+    "progress_effects": {
+      "storyPityAdd": 0
+    },
+    "log_template": "你收到了一份恶魔契约——上面已有晦日之春的签名。她邀请你——成为第二个拒绝预定结局的人。"
+  },
+  {
+    "type": "event",
+    "event_key": "chungmuro_unnamed_crossing",
+    "required_conditions": {
+      "choice_unlockers": [
+        {
+          "event_key": "geumho_underground_story",
+          "choice_indices": [
+            0,
+            1
+          ]
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
+      ]
+    },
+    "event_type": "story",
+    "stage_key": "vol1_ch3",
+    "location_key": "chungmuro",
+    "name": "被认出",
+    "description": "忠武路的入口没有守卫，只有一张折叠桌。一个戴圆框眼镜的瘦小男人坐在桌后，面前摊着一本厚厚的名册——十王的录事。每个进站的人都要报上名字，他就在名册上写一行。\n\n轮到你时，他的笔停住了。他抬头看了你很久，然后把名册转过来：你的名字已经在上面了，笔迹不是他的。旁边一行小字——「读过那本书的人」。\n\n\"我没见过你。\"录事压低声音，\"可名册认识你。\"",
+    "weight": 12,
+    "stamina_cost": 7,
+    "repeatable": 0,
+    "rewards": {},
+    "progress_effects": {
+      "storyPityReset": true
+    },
+    "choices": [
+      {
+        "label": "是我。我读过。",
+        "consequence_text": "录事的手抖了一下。他合上名册，四下看了一眼，才凑近说：\"这一页不是我写的，是它自己长出来的。\"他撕下一角纸条塞给你，上面只有一个地址。\"纸王想见你。他找这一行字，找了很久。\"",
+        "rewards_override": {
+          "storyFragments": 5,
+          "exp": 120,
+          "channelHeat": 30
+        },
+        "unlock_events": [
+          "chungmuro_revelation_story"
+        ],
+        "set_story_flags": {
+          "story_nameless_admitted": true
+        },
+        "title_bias": {
+          "title_omniscient_reader": 2
+        }
+      },
+      {
+        "label": "你认错人了。我叫……",
+        "consequence_text": "你报出一个随口编的名字。录事看看你，又看看名册，最终在那一行旁边画了个问号。\"进去吧。\"走过闸机时，你听见身后笔尖划纸的声音——他把那一行字，划掉了一半。",
+        "rewards_override": {
+          "exp": 100,
+          "coins": 60,
+          "channelHeat": 15
+        },
+        "unlock_events": [
+          "chungmuro_nameless_drift"
+        ],
+        "set_story_flags": {
+          "story_nameless_hidden": true
+        },
+        "title_bias": {
+          "title_survivor": 2
+        }
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "event_key": "chungmuro_nameless_drift",
+    "required_conditions": {
+      "choice_unlockers": [
+        {
+          "event_key": "chungmuro_unnamed_crossing",
+          "choice_indices": [
+            1
+          ]
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
+      ]
+    },
+    "event_type": "story",
+    "stage_key": "vol1_ch3",
+    "location_key": "chungmuro",
+    "name": "名单上的红圈",
+    "description": "你在忠武路待了三天。白天跟着搬运队往站台上扛物资，夜里睡在通风口旁边。没人多看你一眼——这正是你想要的。\n\n第四天早上，搬运队的工头点名。点到最后，他看了看手里的纸，又看了看你。\"你，\"他说，\"上面要见你。\"\n\n那张名单上，你的名字被人用红笔单独圈了出来，旁边是半截问号。",
+    "weight": 12,
+    "stamina_cost": 7,
+    "repeatable": 0,
+    "rewards": {},
+    "progress_effects": {
+      "storyPityReset": true
+    },
+    "choices": [
+      {
+        "label": "是谁要见我？",
+        "consequence_text": "工头耸耸肩。\"不知道。名单是从地下送上来的。\"他压低声音：\"劝你别去。去过的人，回来以后都不太说话了。\"他把名单塞回口袋，走前多给了你一个罐头。",
+        "rewards_override": {
+          "exp": 90,
+          "coins": 50
+        },
+        "unlock_events": [
+          "chungmuro_hidden_reader_wall"
+        ],
+        "title_bias": {
+          "title_cautious": 2
+        }
+      },
+      {
+        "label": "今天先不去了。",
+        "consequence_text": "你又扛了一整天箱子。可到了晚上，铺盖上多了一张纸，画着一条往地下去的路线，终点是一面墙。纸的背面写着：\"你迟早会来的。我们都是。\"",
+        "rewards_override": {
+          "storyFragments": 4,
+          "channelHeat": 25
+        },
+        "unlock_events": [
+          "chungmuro_hidden_reader_wall"
+        ],
+        "title_bias": {
+          "title_silent_watcher": 2
+        }
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "event_key": "chungmuro_hidden_reader_wall",
+    "required_conditions": {
+      "choice_unlockers": [
+        {
+          "event_key": "chungmuro_nameless_drift",
+          "choice_indices": [
+            0,
+            1
+          ]
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
+      ]
+    },
+    "event_type": "story",
+    "stage_key": "vol1_ch3",
+    "location_key": "chungmuro",
+    "name": "读者之墙",
+    "description": "地下通道尽头，是一面写满粉笔字的墙。字迹各不相同：有的工整，有的潦草，有的被水渍泡得只剩一半。\n\n你很快看出来，他们都在写同一件事——他们读过一本书，他们藏了起来。\n\n最新的一行，粉笔灰还没落干净：\"下一个来的人：你可以继续藏，也可以写下你的名字。不论哪种，你都不再是一个人。\"",
+    "weight": 12,
+    "stamina_cost": 7,
+    "repeatable": 0,
+    "rewards": {},
+    "progress_effects": {
+      "storyPityReset": true
+    },
+    "choices": [
+      {
+        "label": "拿起粉笔，写下自己的名字。",
+        "consequence_text": "你写得很慢。最后一笔落下时，墙上有几行旧字微微亮了一下，像是有人在很远的地方点了点头。你知道，从今天起，会有人来找你。",
+        "rewards_override": {
+          "storyFragments": 8,
+          "exp": 180,
+          "channelHeat": 40
+        },
+        "set_story_flags": {
+          "story_nameless_signed_wall": true
+        },
+        "route_pending": true,
+        "title_bias": {
+          "title_first_reader": 2
+        }
+      },
+      {
+        "label": "什么也不写，把每一行都读完。",
+        "consequence_text": "你读到深夜，把每个名字、每句话都记在心里。离开时，你在墙角画了一个很小的记号，只有读过这面墙的人才认得出。你还没准备好被找到——但你已经知道，他们在哪里。",
+        "rewards_override": {
+          "storyFragments": 6,
+          "exp": 150,
+          "coins": 80
+        },
+        "set_story_flags": {
+          "story_nameless_read_wall": true
+        },
+        "route_pending": true,
+        "title_bias": {
+          "title_wall_listener": 2
+        }
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "event_key": "chungmuro_script_blank",
+    "required_conditions": {
+      "choice_unlockers": [
+        {
+          "event_key": "chungmuro_revelation_story",
+          "choice_indices": [
+            0,
+            1
+          ]
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            1
+          ]
+        }
+      ]
+    },
+    "event_type": "story",
+    "stage_key": "vol1_ch3",
+    "location_key": "chungmuro",
+    "name": "空白的一页",
+    "description": "纸王带你走进他的书房。四面墙都是稿纸，每一张都在轻轻翻动，像在呼吸。他从最底下抽出一页，铺在你面前。\n\n那一页最上方写着你的名字，下面是你从车厢里醒来之后做过的每一件事，一行不差。你记得剧本上曾经写过一个日期，属于你的日期。现在，它不见了。再往下，是一大片空白。\n\n\"所有人的那一页，我都能看到结尾。\"纸王说，\"只有你的，是空的。\"他第一次露出了一点不安，\"要么你很快会被删掉——要么，你的结局，还没有人敢写。\"",
+    "weight": 12,
+    "stamina_cost": 7,
+    "repeatable": 0,
+    "rewards": {},
+    "progress_effects": {
+      "storyPityReset": true
+    },
+    "choices": [
+      {
+        "label": "那就由我自己来写。",
+        "consequence_text": "你拿起他桌上的笔。笔尖碰到纸面的瞬间，空白处浮出一行很淡的字，又迅速退了回去，像是什么东西在犹豫。纸王屏住呼吸：\"它……在等你。\"你把笔放下。还不是时候——但你已经知道，这一页会听你的。",
+        "rewards_override": {
+          "storyFragments": 10,
+          "exp": 200,
+          "channelHeat": 50
+        },
+        "set_story_flags": {
+          "story_script_self_written": true
+        },
+        "route_pending": true,
+        "title_bias": {
+          "title_script_rewriter": 3
+        }
+      },
+      {
+        "label": "先空着吧。空白也是一种答案。",
+        "consequence_text": "纸王愣了很久，然后笑了——你第一次见他笑。\"你是我见过的第一个，不急着知道自己结局的读者。\"他把那一页小心地夹回最底下，\"我替你守着。等你想好了，再来。\"",
+        "rewards_override": {
+          "storyFragments": 8,
+          "exp": 160,
+          "coins": 100
+        },
+        "set_story_flags": {
+          "story_script_kept_blank": true
+        },
+        "route_pending": true,
+        "title_bias": {
+          "title_acceptance": 3
+        }
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "event_key": "chungmuro_compromise_ledger",
+    "required_conditions": {
+      "choice_unlockers": [
+        {
+          "event_key": "chungmuro_underground_resistance",
+          "choice_indices": [
+            0,
+            1
+          ]
+        }
+      ],
+      "required_choices": [
+        {
+          "event_key": "station_first_trace",
+          "choice_indices": [
+            0
+          ]
+        }
+      ]
+    },
+    "event_type": "story",
+    "stage_key": "vol1_ch3",
+    "location_key": "chungmuro",
+    "name": "另一本账",
+    "description": "交了通行费之后，铁王的人把你当成了自己人。第三天，他们派你去仓库清点物资。\n\n你在最底层的抽屉里翻出另一本账。上面记的不是罐头，是人——每一个进过忠武路的「读者」：名字，来的日子，交了多少碎片。\n\n最新一页上是你的名字。铁王用粗重的笔迹在旁边批了一句：\"交了钱的那个。黑衣服那人带来的。留着。\"",
+    "weight": 12,
+    "stamina_cost": 7,
+    "repeatable": 0,
+    "rewards": {},
+    "progress_effects": {
+      "storyPityReset": true
+    },
+    "choices": [
+      {
+        "label": "把这一页撕下来带走。",
+        "consequence_text": "纸撕开的声音在仓库里格外响。你把它折好，贴身放着。那天夜里，朴素英出现在你的铺位旁——她说过，她们知道去哪里找你。她看完那一页，沉默了很久：\"他留着你，是因为你还有用。\"她把纸还给你，\"那就让他看看，你到底有什么用。\"",
+        "rewards_override": {
+          "storyFragments": 8,
+          "exp": 180,
+          "channelHeat": 35
+        },
+        "set_story_flags": {
+          "story_ledger_taken": true
+        },
+        "route_pending": true,
+        "title_bias": {
+          "title_revolutionary": 2
+        }
+      },
+      {
+        "label": "把账本放回原处，假装没看见。",
+        "consequence_text": "你把抽屉推回去，连灰尘的印子都抹平了。在铁王眼里，你还是那个交了钱、低着头的人——在忠武路，这就是最好的掩护。走出仓库时，你想起车厢里那个黑衣男人看你的眼神：被人小看，有时是一种保护。",
+        "rewards_override": {
+          "storyFragments": 6,
+          "exp": 150,
+          "coins": 90
+        },
+        "set_story_flags": {
+          "story_ledger_hidden": true
+        },
+        "route_pending": true,
+        "title_bias": {
+          "title_calculating": 2
+        }
+      }
+    ]
   }
-  ,
-  {"type":"event","event_key":"ruined_station_battle_rat","event_type":"battle_placeholder","location_key":"ruined_station","name":"变异站鼠出现","description":"一只被星流辐射变异的巨大老鼠从阴影中冲出——它的眼睛闪烁着诡异的绿光。","weight":12,"stamina_cost":6,"repeatable":1,"risks_json":{"monsterKey":"station_rat"},"rewards":{},"progress_effects":{"storyPityAdd":1},"log_template":"你在废弃车站的阴影中遭遇了一只变异站鼠。"},
-  {"type":"event","event_key":"geumho_station_battle_shadow","event_type":"battle_placeholder","location_key":"geumho_station","name":"破碎化身影子","description":"一个残缺模糊的人形影子从避难所的角落浮现——它漫无目的地游荡，直到感知到你的存在。","weight":12,"stamina_cost":7,"repeatable":1,"risks_json":{"monsterKey":"broken_avatar_shadow"},"rewards":{},"progress_effects":{"storyPityAdd":1},"log_template":"金湖站的角落中浮现出一个破碎化身影子。"},
-  {"type":"event","event_key":"dongmyo_battle_rat","event_type":"battle_placeholder","location_key":"dongmyo","name":"市场老鼠","description":"东庙市场堆积的物资吸引了一些不速之客——变异站鼠们在摊位间穿梭觅食。","weight":12,"stamina_cost":6,"repeatable":1,"risks_json":{"monsterKey":"station_rat"},"rewards":{},"progress_effects":{"storyPityAdd":1},"log_template":"你在东庙市场遇到了正在觅食的变异站鼠。"},
-  {"type":"event","event_key":"chungmuro_battle_keeper","event_type":"battle_placeholder","location_key":"chungmuro","name":"车站看门人残影","description":"忠武路的废弃通道中——看守者的残影仍在不倦地巡逻。它的力量远超普通残影。","weight":12,"stamina_cost":9,"repeatable":1,"risks_json":{"monsterKey":"station_keeper_fragment"},"rewards":{},"progress_effects":{"storyPityAdd":1},"log_template":"你在忠武路遭遇了曾经的车站看门人残影。"},
-  {"type":"event","event_key":"dongdaemun_battle_flame","event_type":"battle_placeholder","location_key":"dongdaemun","name":"火焰残影","description":"东大门广场的焦黑地面上——一团人形火焰突然凝聚成型。它的核心是一颗跳动的心脏——那是火之主在这个世界线上的投影。","weight":12,"stamina_cost":10,"repeatable":1,"risks_json":{"monsterKey":"fire_lord_projection"},"rewards":{},"progress_effects":{"storyPityAdd":1},"log_template":"你在东大门遭遇了火之主的一道残影。"},
-  {"type":"event","event_key":"myeongdong_battle_bookworm","event_type":"battle_placeholder","location_key":"myeongdong","name":"图书馆的饥饿回声","description":"星流图书馆深处的书页突然猛翻——一本被诅咒的书释放出了它吞噬的记忆残渣。","weight":12,"stamina_cost":7,"repeatable":1,"risks_json":{"monsterKey":"library_hunger_echo"},"rewards":{},"progress_effects":{"storyPityAdd":1},"log_template":"图书馆的深处——一本被诅咒的书释放出了饥饿的记忆残渣。"},
-  {"type":"event","event_key":"gwangjin_battle_hunger","event_type":"battle_placeholder","location_key":"gwangjin_bridge","name":"饥饿的桥下之物","description":"广津大桥的雾气中——一个由黑水凝结而成的人形缓缓爬上岸。它的轮廓像是一个溺死的人，但它的嘴在不断变化——不断从空气中吸取什么。不是氧气——是故事。","weight":12,"stamina_cost":9,"repeatable":1,"risks_json":{"monsterKey":"bridge_hunger_entity"},"rewards":{},"progress_effects":{"storyPityAdd":1},"log_template":"广津大桥的桥下爬出了一个由黑水凝结而成的饥饿实体。"},
-  {"type":"event","event_key":"gangnam_battle_dungeon","event_type":"battle_placeholder","location_key":"gangnam_station","name":"地下城守卫者","description":"地下城的铁门前——一个穿着古老铠甲的守卫从黑暗中踏步而出。它不是活人——是旧世界留下的自动战斗程式。","weight":12,"stamina_cost":10,"repeatable":1,"risks_json":{"monsterKey":"dungeon_guardian_program"},"rewards":{},"progress_effects":{"storyPityAdd":1},"log_template":"江南站地下城的铁门前出现了一个古老的守卫者。"},
-  {"type":"event","event_key":"seoul_forest_battle_beast","event_type":"battle_placeholder","location_key":"seoul_forest","name":"森林魔物","description":"首尔森林的深处传来沉重的脚步声。一棵树被拦腰折断——一个被魔化的野兽出现在你面前。它的眼睛燃烧着绿色的火焰。","weight":12,"stamina_cost":9,"repeatable":1,"risks_json":{"monsterKey":"corrupted_forest_beast"},"rewards":{},"progress_effects":{"storyPityAdd":1},"log_template":"首尔森林深处出现了一只被魔化的野兽。"},
-  {"type":"event","event_key":"demon_gate_battle_echo","event_type":"battle_placeholder","location_key":"demon_gate","name":"恶魔世界的间谍","description":"恶魔之门的裂缝突然扩张——一个低级的恶魔穿越了次元，试图在旧世界扎下根。它看到了你——\"一个新读者。这正是我们需要的。\"","weight":12,"stamina_cost":10,"repeatable":1,"risks_json":{"monsterKey":"chaos_spawn"},"rewards":{},"progress_effects":{"storyPityAdd":1},"log_template":"恶魔之门的裂缝中跳出一个低级恶魔——它嗅到了这个世界尚未被编入剧本的可能性。"},
-
-  {"type":"event","event_key":"geumho_battle_scavenger","event_type":"battle_placeholder","location_key":"geumho_station","name":"疯狂的拾荒者","description":"一个被饥饿逼疯的拾荒者向你扑来——他的眼睛已经失去了理性，只剩下生存本能。","weight":12,"stamina_cost":7,"repeatable":1,"risks_json":{"monsterKey":"shelter_scavenger"},"rewards":{},"progress_effects":{"storyPityAdd":1},"log_template":"金湖站的避难所角落——你被一个失去理智的拾荒者袭击了。"},
-  {"type":"event","event_key":"dongmyo_battle_thug","event_type":"battle_placeholder","location_key":"dongmyo","name":"市场恶棍的勒索","description":"两个市场恶棍挡在你面前，手里转着生锈的刀片。\"新手？交保护费。否则——你知道后果。\"","weight":12,"stamina_cost":7,"repeatable":1,"risks_json":{"monsterKey":"market_thug"},"rewards":{},"progress_effects":{"storyPityAdd":1},"log_template":"东庙市场的恶棍试图向你勒索保护费——你选择了用武力回应。"},
-  {"type":"event","event_key":"chungmuro_battle_knight","event_type":"battle_placeholder","location_key":"chungmuro","name":"铁王近卫的拦截","description":"一个身披铁甲的骑士拦住了你的去路。\"铁王有令——所有未经登记的化身必须接受搜查。\"他的手按在剑柄上。","weight":12,"stamina_cost":10,"repeatable":1,"risks_json":{"monsterKey":"iron_king_knight"},"rewards":{},"progress_effects":{"storyPityAdd":1},"log_template":"忠武路——铁王的近卫骑士拦住了你的去路。"},
-  {"type":"event","event_key":"dongdaemun_battle_spark","event_type":"battle_placeholder","location_key":"dongdaemun","name":"火焰余烬","description":"广场的废墟中——一块还在燃烧的余烬突然爆裂开来。火星在空中凝聚成一个人形——火之主的碎片仍在战斗。","weight":12,"stamina_cost":10,"repeatable":1,"risks_json":{"monsterKey":"flame_spark"},"rewards":{},"progress_effects":{"storyPityAdd":1},"log_template":"东大门广场的余烬中凝聚出了火之主的碎片。"},
-  {"type":"event","event_key":"myeongdong_battle_wraith","event_type":"battle_placeholder","location_key":"myeongdong","name":"禁书页幽灵","description":"图书馆禁书区的一本被焚书页中——一道苍白的灵体缓缓升起。它携带着禁书中被烧毁的所有知识——以及所有危险。","weight":12,"stamina_cost":8,"repeatable":1,"risks_json":{"monsterKey":"forbidden_page_wraith"},"rewards":{},"progress_effects":{"storyPityAdd":1},"log_template":"明洞禁书区——一本被焚的书页释放出了它的守护幽灵。"},
-  {"type":"event","event_key":"gwangjin_battle_drowned","event_type":"battle_placeholder","location_key":"gwangjin_bridge","name":"溺水记忆","description":"桥下的黑水泛起涟漪——一个由黑水凝结而成的人形缓缓走上岸。它的嘴里不断流出黑色的液体——那是未说完的话语。","weight":12,"stamina_cost":10,"repeatable":1,"risks_json":{"monsterKey":"drowned_memory"},"rewards":{},"progress_effects":{"storyPityAdd":1},"log_template":"广津大桥的桥下——一个溺水的记忆实体爬上了岸。"},
-  {"type":"event","event_key":"gangnam_battle_crawler","event_type":"battle_placeholder","location_key":"gangnam_station","name":"地下城爬行者","description":"地下城的走廊中响起拖曳的声音——一个由探索者残骸拼接而成的怪物从黑暗中爬出。它的每一部分都来自不同的人。","weight":12,"stamina_cost":10,"repeatable":1,"risks_json":{"monsterKey":"dungeon_crawler"},"rewards":{},"progress_effects":{"storyPityAdd":1},"log_template":"江南站地下城——一个由探索者残骸拼接的怪物从黑暗中爬出。"},
-  {"type":"event","event_key":"seoul_forest_battle_deer","event_type":"battle_placeholder","location_key":"seoul_forest","name":"星辰鹿","description":"密林深处——你遇到了一头巨大的白色鹿。它的角上刻着已灭绝星座的名字。它看着你——不是敌意，而是考验。它在判断你是否值得继续前行。","weight":12,"stamina_cost":10,"repeatable":1,"risks_json":{"monsterKey":"star_deer"},"rewards":{},"progress_effects":{"storyPityAdd":1},"log_template":"首尔森林——一头刻着灭绝星座之名的星辰鹿挡住了去路。"},
-
-  {"type":"event","event_key":"geumho_side_inventory","event_type":"side_story","location_key":"geumho_station","name":"共享物资清单","description":"避难所的公告栏上贴着一张物资共享清单——笔迹各不相同，有工整的印刷体也有歪扭的儿童字。有人捐献了一整箱急救绷带，有人只放了一块体力面包。\n\n清单底部的空白处写着签名和留言：\"金哲洙——3块面包。我只是想帮忙。\"  \"匿名——5枚硬币。不用谢，用它们活下去。\"  \"李智慧——一本书。不是故事书——是世界末日前写给自己的日记。也许对你有用。\"","weight":8,"stamina_cost":4,"repeatable":0,"rewards":{"storyFragments":3,"coins":25,"exp":60},"progress_effects":{"storyPityAdd":1},"log_template":"你读了避难所的共享物资清单——每一笔捐献都是一个小故事。"},
-  {"type":"event","event_key":"dongmyo_side_coin","event_type":"side_story","location_key":"dongmyo","name":"记忆硬币","description":"东庙最老的摊位前，一个老人独自坐着。他面前摆着几十枚一模一样的铜币——每一枚都铸着闭着的眼睛。\n\n\"这些都是记忆。\"他说。\"不是我的——是别人的。有人用记忆换食物。有人用记忆换遗忘。我把这些记忆铸成硬币——这样它们至少还有价值。\"\n\n他举起一枚硬币。\"这枚值一百星币。因为里面的记忆是关于一个母亲在末日那天最后对女儿说的话。\"","weight":8,"stamina_cost":4,"repeatable":0,"rewards":{"storyFragments":4,"channelHeat":15,"exp":80},"progress_effects":{"storyPityAdd":1},"log_template":"东庙老人手中的每一枚硬币都是一段被交换的记忆。"},
-  {"type":"event","event_key":"chungmuro_side_wall","event_type":"side_story","location_key":"chungmuro","name":"墙上的十封信","description":"忠武路最偏僻的通道墙上贴了十封信——每一封都是写给不同的王的。有人花了很长时间写下这些：\n\n\"致铁王：你的拳头很强——但真正的力量是即使能够毁灭一切，仍选择不去做。\"\n\"致影王：你是对的。有些秘密确实不该被知道——但有些必须被知道。\"\n\"致纸王：你面前的稿纸是空白的——不是因为没有故事可写，而是因为你在等待一个真正的读者来读。\"\n\n最后一行写着：\"你们以为自己在统治——但你们从来只是角色。而角色——永远无法统治作者。\"","weight":8,"stamina_cost":5,"repeatable":0,"rewards":{"storyFragments":5,"exp":80,"channelHeat":20},"progress_effects":{"storyPityAdd":1},"log_template":"你在忠武路找到了十封寄给王们的信——写信的人和你一样是读者。"},
-  {"type":"event","event_key":"dongdaemun_side_hunter","event_type":"side_story","location_key":"dongdaemun","name":"猎人的便当","description":"东大门广场的一角——你看到那个背着巨剑的猎人独自坐在台阶上，面前摆着一个便当盒。\n\n\"要吃吗？\"他问。便当盒里装的是最普通的食物——米饭、泡菜、煎蛋。旧世界的食物。\n\n\"我每天都会做两份。\"他说，目光看着远处火焰巨人曾站立的位置。\"一份给自己。一份给'万一有人一起吃饭的话'。\"\n\n他笑了笑。\"今天——那个万一来了。\"","weight":5,"stamina_cost":3,"repeatable":0,"rewards":{"coins":10,"exp":40},"progress_effects":{"storyPityAdd":1},"log_template":"你和东大门的猎人分享了一顿便当——最普通的旧世界食物。"},
-  {"type":"event","event_key":"myeongdong_side_notebook","event_type":"side_story","location_key":"myeongdong","name":"被丢弃的笔记本","description":"图书馆的某个角落——一本被丢弃的笔记本静静躺在桌上。翻开第一页：\n\n\"我试了一天——没找到那本书。\"\n\"第三天——找到了。但我没敢翻开。\"\n\"第十天——我翻开了。然后我开始写这本笔记。\"\n\n后面的页面越来越疯狂——文字从整齐变成潦草，从叙述变成疑问，从疑问变成绝望：\"如果我是角色——那我还在写什么？角色不能写日记。但我在写。所以我不是角色？还是我在被更上面的读者写着？\"\n\n最后一页只有一行字：\"我不写了。我决定选择当读者。\"","weight":8,"stamina_cost":4,"repeatable":0,"rewards":{"storyFragments":6,"exp":100,"channelHeat":25},"progress_effects":{"storyPityAdd":1},"log_template":"你在图书馆找到了一本关于读者身份危机的笔记本——也许写下它的人就是你。"},
-  {"type":"event","event_key":"gwangjin_side_boat","event_type":"side_story","location_key":"gwangjin_bridge","name":"桥下的渡船","description":"广津大桥下的黑水边——一条小木船停在那里。船主是一个沉默的老人，他没有问你要去哪里——他只是划船。\n\n船到了桥底的正下方时，他开口了：\"你知道为什么这座桥会审判人吗？不是因为桥本身——而是因为这里的江水喝了太多人的故事。每一个淹死在江里的人的故事，都会流入汉江。汉江现在已经不止是水了——它是液体化的遗憾。\"\n\n他划回岸边。\"下次想过桥——先来河边听听。你会听到那些声音在告诉你：活下去。别让故事断在这里。\"","weight":8,"stamina_cost":5,"repeatable":0,"rewards":{"storyFragments":5,"exp":80,"channelHeat":20},"progress_effects":{"storyPityAdd":1},"log_template":"汉江——不是一个水体，而是所有在这个场景中淹没的故事的集合。"},
-  {"type":"event","event_key":"gangnam_side_register","event_type":"side_story","location_key":"gangnam_station","name":"冒险者登记册","description":"地下城入口的商贩帐篷里——那本登记册今天没有新的签名。商贩在打瞌睡。\n\n你翻开登记册。第一千零三十六位签名者的名字下面写着简短的信息：\n\n#1: \"第一天。出发。\"\n#48: \"我听到声音了——它在叫我往下。\"\n#237: \"别往下走。回来。回来。回来。\"\n#516: \"六百米——看到光。不是灯笼的光。是别的什么。\"\n#901: \"最后一层。这里什么都没有。不——有。有一本书。什么都没有写。我要写了。\"\n\n#1036没有签名——只有一个手印。","weight":8,"stamina_cost":5,"repeatable":0,"rewards":{"storyFragments":8,"exp":120,"channelHeat":30},"progress_effects":{"storyPityAdd":1},"log_template":"冒险者登记册中的每一笔签名都记录着一个探索者的命运。"},
-  {"type":"event","event_key":"seoul_forest_side_watcher","event_type":"side_story","location_key":"seoul_forest","name":"守树人的故事","description":"世界树旁的守树人今天愿意多说一些话。他讲起了自己为什么会守在这里：\n\n\"我是第一个在世界树苗下埋下故事碎片的人。不是自愿的——是有人拜托我的。我的女儿。她在场景降临的第一天死在了地铁里。她最后的信息是：'爸——把我的日记埋到首尔森林的那棵怪树下。有人会读到的。'\"\n\n\"我把日记埋下去了。然后我就在这里留着——确保有一个人确实读到了她写的故事。\"他转向你。\"那个人可能是你。\"","weight":8,"stamina_cost":4,"repeatable":0,"rewards":{"storyFragments":10,"exp":150,"channelHeat":30},"progress_effects":{"storyPityAdd":1},"log_template":"守树人告诉你了一段悲伤的故事——世界树苗下埋着他女儿最后的日记。"},
-  {"type":"event","event_key":"demon_gate_side_merchant","event_type":"side_story","location_key":"demon_gate","name":"恶魔商人的目录","description":"在恶魔之门入口处——一个长角的恶魔商人支起了摊位。他的商品目录比你见过的任何东西都要怪异：\n\n\"绝望碎片——500星币。来自第883号世界线的失败者。比任何武器都更能让你坚强。\"\n\"希望残骸——特价300星币。曾经是个伟大故事的结局，被作者废弃了。你在寻找灵感时或许用得到。\"\n\"未完成的情节——按重量计价。越多空白越贵。空白意味着可能性。\"\n\n最后一页写着：\"一切都有价格——除了当读者。阅读永远是免费的。\"","weight":8,"stamina_cost":5,"repeatable":0,"rewards":{"storyFragments":8,"exp":200,"coins":50},"progress_effects":{"storyPityAdd":1},"log_template":"恶魔商人的商品目录提醒你——即使在地狱，故事也是可以买到的。"},
-
-  {"type":"event","event_key":"geumho_hidden_signal","event_type":"hidden","location_key":"geumho_station","name":"来自其他世界线的信号","description":"你的终端突然接收到一段微弱的信号——不是普通的频道广播，而是来自另一个世界线的声音。一个女生在说：\"如果你能听到这段话——那条世界线已经比我的更好。在大多数世界线里，你在废弃车站就死了。但你还活着。这意味着——你是少数的那个。\"信号中断。频道热度+25。","weight":3,"stamina_cost":5,"repeatable":0,"rewards":{"channelHeat":25,"worldLineShift":10,"storyFragments":3,"exp":100},"progress_effects":{"storyPityAdd":0},"log_template":"你接收到了来自另一条世界线的信号——另一个读者在为你加油。"},
-  {"type":"event","event_key":"dongmyo_hidden_mirror","event_type":"hidden","location_key":"dongmyo","name":"情报贩子的镜子","description":"东庙情报贩子的摊位深处——你注意到一面被布盖住的镜子。情报贩子头也没抬：\"别碰那面镜子。\"当然——你碰了。\n\n镜子里映出的不是你——而是另一个你。不同的装备，不同的伤疤，不同的眼神。另一个你似乎在另一个世界线做出了完全不同的选择。\n\n情报贩子叹了口气：\"那面镜子不照当下——它照'曾经可能的你'。你现在看到了另一个选项的结果。现在——把它盖回去。有些知识不是力量——是毒。\"","weight":3,"stamina_cost":5,"repeatable":0,"rewards":{"storyFragments":8,"exp":150,"channelHeat":30},"progress_effects":{"storyPityAdd":0},"log_template":"东庙的镜子里照出了另一个世界线的你——一条你从未走过的路。"},
-  {"type":"event","event_key":"dongdaemun_hidden_heart","event_type":"hidden","location_key":"dongdaemun","name":"火之主的最后心声","description":"在东大门广场最偏僻的角落——你捡到了一块仍在跳动的焦黑石头。把它拿起来的那一刻——火之主最后的声音灌入你的脑海：\n\n\"不是我失败了——是我停止了。停止了取悦。停止了表演。停止了用燃烧自己来照亮别人的夜晚。他们说这是失败。我说——这是自由。第一个在星流历史上主动关闭频道的行为。\"\n\n石头碎了。但它的碎片在你手中留下了一个纹身——一颗小小的、安静的火星图案。","weight":3,"stamina_cost":5,"repeatable":0,"rewards":{"storyFragments":10,"exp":200,"channelHeat":40,"items":[{"itemKey":"火之主的最后火星","quantity":1,"dropRate":1.0}]},"progress_effects":{"storyPityAdd":0},"log_template":"火之主最后的心声告诉你——它不是在失败中陨落的，而是在自由中选择沉默的。"},
-  {"type":"event","event_key":"gwangjin_hidden_bridge_below","event_type":"hidden","location_key":"gwangjin_bridge","name":"桥底的留言","description":"你沿着广津大桥的维修梯爬到了桥底。桥底的金属梁上——有人用指甲刻满了字。不是一个两个——是成百上千个名字。每一个名字下面都有一行简短的留言：\n\n\"李在勋——别过桥。活着回去。\"\n\"崔秀英——等你看到这个的时候我已经在桥那边了。这里什么都没有。只有更冷的雾。回来吧。求你了回来。\"\n\"无名氏——没有故事的人过不了桥。但如果你看到了这段话——说明你至少有一个故事：你现在在读这段话。加油。\"\n\n所有的名字——都是被桥审判过的人。桥底的留言——是桥唯一不会审判的东西。","weight":3,"stamina_cost":8,"repeatable":0,"rewards":{"storyFragments":12,"exp":200,"channelHeat":40},"progress_effects":{"storyPityAdd":0},"log_template":"广津大桥的桥底刻满了被审判者的名字和留言——桥唯一不会审判的东西就是这些无人看见的话。"},
-  {"type":"event","event_key":"demon_gate_hidden_contract","event_type":"hidden","location_key":"demon_gate","name":"恶魔的契约","description":"恶魔商人趁你不注意时塞给你一卷发光的卷轴。展开它——上面用恶魔文字写着：\n\n\"签名者同意：在任何世界线中，永远保有一颗好奇的心。永远拒绝接受预写的结局。永远相信——最黑暗的春天之后，会有一朵连恶魔都无法染指的花。\"\n\n最后一行的签名栏已经有人签了——不是名字，而是一个符号：一只闭着的眼睛。\n\n\"那是'她'签的。\"恶魔商人说，声音里有罕见的尊敬。\"晦日之春——唯一一个拒绝成为恶魔的恶魔。她的签名——是无价的。你的签名——将是她的继任者。\"","weight":3,"stamina_cost":8,"repeatable":0,"rewards":{"storyFragments":15,"exp":300,"channelHeat":60,"coins":100},"progress_effects":{"storyPityAdd":0},"log_template":"你收到了一份恶魔契约——上面已有晦日之春的签名。她邀请你——成为第二个拒绝预定结局的人。"}
 ]

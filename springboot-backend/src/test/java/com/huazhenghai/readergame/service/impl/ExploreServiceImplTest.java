@@ -1269,13 +1269,13 @@ class ExploreServiceImplTest {
 
     @Test
     void storyEventBonusPreservesFractionalWeight() {
-        assertEquals(10.3, ExploreServiceImpl.applyStoryEventBonusToWeight(10.0, 0.03), 1.0e-9);
-        assertEquals(10.0, ExploreServiceImpl.applyStoryEventBonusToWeight(10.0, 0.0), 1.0e-9);
+        assertEquals(10.3, ExploreEventSelector.applyStoryEventBonusToWeight(10.0, 0.03), 1.0e-9);
+        assertEquals(10.0, ExploreEventSelector.applyStoryEventBonusToWeight(10.0, 0.0), 1.0e-9);
     }
 
     @Test
     void equippedStoryEventBonusStacksWithSkillAndTitleBonuses() {
-        double combinedBonus = ExploreServiceImpl.combineEffectBonus(
+        double combinedBonus = ExploreEventSelector.combineEffectBonus(
                 Map.of("storyEventBonus", 0.03),
                 Map.of("storyEventBonus", 0.02),
                 Map.of("storyEventBonus", 0.05),
@@ -1283,17 +1283,17 @@ class ExploreServiceImplTest {
 
         assertEquals(0.10, combinedBonus, 1.0e-9);
         assertEquals(11.0,
-                ExploreServiceImpl.applyStoryEventBonusToWeight(10.0, combinedBonus), 1.0e-9);
+                ExploreEventSelector.applyStoryEventBonusToWeight(10.0, combinedBonus), 1.0e-9);
     }
 
     @Test
     void storyPityIncreasesMinimumIntegerWeightAndClampsOverflow() {
-        assertEquals(1, ExploreServiceImpl.applyStoryPityToWeight(1, 0));
-        assertEquals(2, ExploreServiceImpl.applyStoryPityToWeight(1, 1));
-        assertEquals(8, ExploreServiceImpl.applyStoryPityToWeight(1, 7));
-        assertEquals(9, ExploreServiceImpl.applyStoryPityToWeight(5, 2));
-        assertEquals(5, ExploreServiceImpl.applyStoryPityToWeight(5, -1));
-        assertEquals(Integer.MAX_VALUE, ExploreServiceImpl.applyStoryPityToWeight(
+        assertEquals(1, ExploreEventSelector.applyStoryPityToWeight(1, 0));
+        assertEquals(2, ExploreEventSelector.applyStoryPityToWeight(1, 1));
+        assertEquals(8, ExploreEventSelector.applyStoryPityToWeight(1, 7));
+        assertEquals(9, ExploreEventSelector.applyStoryPityToWeight(5, 2));
+        assertEquals(5, ExploreEventSelector.applyStoryPityToWeight(5, -1));
+        assertEquals(Integer.MAX_VALUE, ExploreEventSelector.applyStoryPityToWeight(
                 Integer.MAX_VALUE, Integer.MAX_VALUE));
     }
 
@@ -1315,7 +1315,7 @@ class ExploreServiceImplTest {
         Set<String> selectedStories = new HashSet<>();
         Random random = new Random(20260925L);
         for (int attempt = 0; attempt < 20; attempt++) {
-            ExplorationEvent selected = ExploreServiceImpl.selectEvent(
+            ExplorationEvent selected = ExploreEventSelector.selectEvent(
                     List.of(firstStory, secondStory, resource), 8, Map.of(), 0.0, random);
             assertTrue(selected.getEventType().equals("story"));
             selectedStories.add(selected.getEventKey());

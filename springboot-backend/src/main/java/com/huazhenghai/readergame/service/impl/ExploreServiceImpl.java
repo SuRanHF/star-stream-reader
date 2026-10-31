@@ -301,12 +301,12 @@ public class ExploreServiceImpl implements ExploreService {
         if (titleEffects == null) titleEffects = Collections.emptyMap();
         Map<String, Object> equipmentEffects = equipmentService.calculateEquipmentSpecialEffectBonuses(playerId);
         if (equipmentEffects == null) equipmentEffects = Collections.emptyMap();
-        double storyEventBonus = combineEffectBonus(
+        double storyEventBonus = ExploreEventSelector.combineEffectBonus(
                 skillBonuses, titleEffects, equipmentEffects, "storyEventBonus");
 
         // 7. 按 event_rates_json 权重 + storyPity 保底抽取事件
-        ExplorationEvent selected = selectEvent(availableEvents, storyPity,
-                parseJsonMap(location.getEventRatesJson()), storyEventBonus);
+        ExplorationEvent selected = ExploreEventSelector.selectEvent(availableEvents, storyPity,
+                parseJsonMap(location.getEventRatesJson()), storyEventBonus, new Random());
 
         // 7a. 检测该地点故事是否已全部耗尽
         boolean storiesExhausted = checkStoriesExhausted(
@@ -612,73 +612,6 @@ public class ExploreServiceImpl implements ExploreService {
             stageProgress.remove(SKILL_STAMINA_SAVINGS_REMAINDER);
         }
         return paidCost;
-    }
-
-    // ─── 事件选择 ───
-
-    private ExplorationEvent selectEvent(List<ExplorationEvent> events, int storyPity,
-                                         Map<String, Object> eventRates, double storyEventBonus) {
-        return selectEvent(events, storyPity, eventRates, storyEventBonus, new Random());
-    }
-
-    static ExplorationEvent selectEvent(List<ExplorationEvent> events, int storyPity,
-                                        Map<String, Object> eventRates, double storyEventBonus,
-                                        Random random) {
-        List<ExplorationEvent> selectionEvents = events;
-        // 硬保底只排除非主线事件；主线之间仍按配置权重随机，避免依赖数据库返回顺序。
-        if (storyPity >= 8) {
-            List<ExplorationEvent> availableStories = events.stream()
-                    .filter(e -> "story".equals(e.getEventType()))
-                    .toList();
-            if (!availableStories.isEmpty()) selectionEvents = availableStories;
-        }
-
-        // 按 event_rates_json 进行加权: base_weight × type_rate_bonus
-        double totalWeight = 0.0;
-        Map<String, Double> adjustedWeights = new LinkedHashMap<>();
-        for (ExplorationEvent e : selectionEvents) {
-            int w = e.getWeight();
-            // 应用 event_rates 倍率 (event_rates 是百分比基准, 100 = 1x)
-            if (eventRates.containsKey(e.getEventType())) {
-                double rateFactor = ((Number) eventRates.get(e.getEventType())).doubleValue() / 100.0;
-                w = Math.max(1, (int) Math.round(w * rateFactor));
-            }
-            // storyPity 加成
-            if ("story".equals(e.getEventType())) {
-                w = applyStoryPityToWeight(w, storyPity);
-            }
-            double adjustedWeight = w;
-            if ("story".equals(e.getEventType())) {
-                adjustedWeight = applyStoryEventBonusToWeight(w, storyEventBonus);
-            }
-            adjustedWeights.put(e.getEventKey(), adjustedWeight);
-            totalWeight += adjustedWeight;
-        }
-
-        if (totalWeight <= 0) return selectionEvents.get(0);
-
-        double roll = random.nextDouble() * totalWeight;
-        double cumulative = 0.0;
-        for (ExplorationEvent e : selectionEvents) {
-            cumulative += adjustedWeights.get(e.getEventKey());
-            if (roll < cumulative) {
-                return e;
-            }
-        }
-        return selectionEvents.get(selectionEvents.size() - 1);
-    }
-
-    static double applyStoryEventBonusToWeight(double weight, double bonus) {
-        if (!Double.isFinite(weight) || weight <= 0.0) return 0.0;
-        double safeBonus = Double.isFinite(bonus) ? Math.max(-0.99, bonus) : 0.0;
-        return Math.max(0.01, weight * (1.0 + safeBonus));
-    }
-
-    static int applyStoryPityToWeight(int weight, int storyPity) {
-        if (weight <= 0) return 0;
-        long safePity = Math.max(0, storyPity);
-        long bonusPerMiss = Math.max(1, weight / 2);
-        return (int) Math.min(Integer.MAX_VALUE, weight + safePity * bonusPerMiss);
     }
 
     // ─── 低等级地点未完成剧情检测 ───
@@ -1648,22 +1581,6 @@ public class ExploreServiceImpl implements ExploreService {
         }
 
         return applied;
-    }
-
-    static double combineEffectBonus(Map<String, Object> skillEffects,
-                                     Map<String, Object> titleEffects,
-                                     Map<String, Object> equipmentEffects,
-                                     String effectKey) {
-        double combined = finiteNumericEffect(skillEffects, effectKey)
-                + finiteNumericEffect(titleEffects, effectKey)
-                + finiteNumericEffect(equipmentEffects, effectKey);
-        return Double.isFinite(combined) ? combined : 0.0;
-    }
-
-    private static double finiteNumericEffect(Map<String, Object> effects, String effectKey) {
-        if (effects == null || !(effects.get(effectKey) instanceof Number value)) return 0.0;
-        double number = value.doubleValue();
-        return Double.isFinite(number) ? number : 0.0;
     }
 
     // ─── 进度效果 ───

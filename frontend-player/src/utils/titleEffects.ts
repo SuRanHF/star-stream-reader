@@ -9,6 +9,7 @@ const EFFECT_LABELS: Record<string, string> = {
   critRate: '暴击率',
   critDamage: '暴击伤害',
   maxHp: '最大生命',
+  maxStamina: '行动力上限',
   channelHeatGainRate: '热度收益',
   attackBonus: '攻击加成',
   channelHeat: '频道热度',

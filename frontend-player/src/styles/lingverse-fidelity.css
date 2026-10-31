@@ -1630,3 +1630,25 @@ body::before {
   border-color: var(--color-star);
   outline: none;
 }
+
+/* 宽屏流程图浮层：绝对定位脱离网格，盖住中列与右栏（左侧角色栏仍可见），不挤压操作区。 */
+.lingverse-replica-shell .ling-frame {
+  position: relative;
+}
+
+.lingverse-replica-shell .ling-story-tree-overlay {
+  position: absolute;
+  z-index: 40;
+  inset: 0 0 0 calc(var(--ling-left-width, 240px) + var(--ling-resize-width, 8px));
+  display: flex;
+  border-left: 1px solid var(--lv-fidelity-line);
+  background: var(--lv-fidelity-panel);
+  box-shadow: -12px 0 32px rgb(0 0 0 / 0.18);
+  outline: none;
+}
+
+.lingverse-replica-shell .ling-story-tree-overlay > * {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+

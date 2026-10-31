@@ -739,7 +739,20 @@ const DOCKED_LOG_MIN_COL = 300;
 const CHAT_COLLAPSED_KEY = 'lingverse.player.chatCollapsed';
 const canDockChat = ref(window.innerWidth >= DOCKED_CHAT_MIN_WIDTH);
 const dockedChatCollapsed = ref(readUiPref(CHAT_COLLAPSED_KEY) === '1');
-const showDockedChat = computed(() => canDockChat.value && !gameStore.activePanel && !dockedChatCollapsed.value);
+// 流程图是一棵树，侧栏放不下：宽屏下改为盖住中列与右栏的浮层，不占网格，中列和操作区保持原宽。
+const storyTreeOverlay = computed(() => !isMobile.value && gameStore.activePanel === 'story-tree');
+const hasDesktopSidePanel = computed(() => !isMobile.value && Boolean(gameStore.activePanel) && !storyTreeOverlay.value);
+const showDockedChat = computed(() => canDockChat.value
+  && (!gameStore.activePanel || storyTreeOverlay.value) && !dockedChatCollapsed.value);
+const storyTreeOverlayEl = ref<HTMLElement | null>(null);
+
+watch(storyTreeOverlay, (open) => {
+  if (open) void nextTick(() => storyTreeOverlayEl.value?.focus());
+});
+
+function closeStoryTreeOnEscape(event: KeyboardEvent) {
+  if (event.key === 'Escape' && storyTreeOverlay.value) closePanel();
+}
 
 function readUiPref(key: string) {
   try { return localStorage.getItem(key); } catch { return null; }
@@ -797,7 +810,7 @@ function toggleRolePanel() {
 
 const frameGridStyle = computed(() => {
   if (isMobile.value) return undefined;
-  const hasSidePanel = Boolean(gameStore.activePanel);
+  const hasSidePanel = hasDesktopSidePanel.value;
   const sidePanelWidth = panelGridResized.value
     ? `minmax(260px, min(${panelGridMaxPct.value * 100}vw, 520px))`
     : canDockChat.value
@@ -951,6 +964,7 @@ onMounted(() => {
   pollTimer = setInterval(pollServerState, 30000);
   document.addEventListener('click', closeHeaderMoreOnOutsideClick);
   document.addEventListener('keydown', closeHeaderMoreOnEscape);
+  document.addEventListener('keydown', closeStoryTreeOnEscape);
   window.addEventListener('resize', updateHeaderVisibleCount);
   void nextTick(() => {
     updateHeaderVisibleCount();
@@ -973,6 +987,7 @@ onBeforeUnmount(() => {
   headerResizeObserver = null;
   document.removeEventListener('click', closeHeaderMoreOnOutsideClick);
   document.removeEventListener('keydown', closeHeaderMoreOnEscape);
+  document.removeEventListener('keydown', closeStoryTreeOnEscape);
   document.removeEventListener('mousemove', doResize);
   document.removeEventListener('mouseup', stopResize);
   if (pollTimer) {
@@ -1085,7 +1100,7 @@ onBeforeUnmount(() => {
       </span>
     </div>
 
-    <div :class="['ling-frame', 'game-body', { 'has-side-panel': !isMobile && Boolean(gameStore.activePanel) }]" :style="frameGridStyle">
+    <div :class="['ling-frame', 'game-body', { 'has-side-panel': hasDesktopSidePanel }]" :style="frameGridStyle">
       <aside
         id="playerPanel"
         class="ling-left player-panel"
@@ -1286,13 +1301,9 @@ onBeforeUnmount(() => {
         </footer>
       </main>
 
-      <aside v-if="!isMobile && gameStore.activePanel" class="ling-side-panel">
+      <aside v-if="hasDesktopSidePanel" class="ling-side-panel">
         <SceneMapPanel
           v-if="gameStore.activePanel === 'scene-map'"
-          @close-panel="closePanel"
-        />
-        <StoryTreePanel
-          v-else-if="gameStore.activePanel === 'story-tree'"
           @close-panel="closePanel"
         />
         <ConnectedPanel
@@ -1302,6 +1313,18 @@ onBeforeUnmount(() => {
           @close-panel="closePanel"
         />
       </aside>
+
+      <div
+        v-if="storyTreeOverlay"
+        ref="storyTreeOverlayEl"
+        class="ling-story-tree-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-label="剧情流程图"
+        tabindex="-1"
+      >
+        <StoryTreePanel @close-panel="closePanel" />
+      </div>
 
     </div>
 

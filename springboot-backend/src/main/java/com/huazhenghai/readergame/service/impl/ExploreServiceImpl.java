@@ -195,22 +195,14 @@ public class ExploreServiceImpl implements ExploreService {
                 .eq("location_key", locationKey).eq("enabled", 1));
         int storyPity = toInt(progress.get("storyPity"), 0);
         List<ExplorationEvent> available = new ArrayList<>();
+        Function<String, Map<String, Object>> previewAncestors = ancestorConditionsLookup();
+        Map<String, Object> previewFlags = parseJsonMap(player.getStoryFlagsJson());
+        Map<String, Object> previewLocationConditions = parseJsonMap(location.getUnlockConditionsJson());
         for (ExplorationEvent event : events) {
-            List<String> triggered = "story".equals(event.getEventType()) ? triggeredStories : triggeredSides;
-            if (triggered.contains(event.getEventKey()) && Integer.valueOf(0).equals(event.getRepeatable()))
-                continue;
-            if ("story".equals(event.getEventType()) && pending.containsKey(event.getEventKey())) {
-                Object choices = parseJsonList(event.getChoicesJson());
-                if (choices instanceof List<?> list && !list.isEmpty()) continue;
-            }
             Map<String, Object> conditions = parseJsonMap(event.getRequiredConditionsJson());
-            if ("story".equals(event.getEventType())
-                    && !RouteContinuationPolicy.allowsStory(progress, conditions)) continue;
-            if (!ExploreStoryEligibility.checkRequiredConditions(stats, progress, decisions,
-                    conditions)) continue;
-            if (blockStories && ("story".equals(event.getEventType()) || "side_story".equals(event.getEventType())))
-                continue;
-            available.add(event);
+            if (ExploreCandidatePolicy.canDraw(event, conditions, location, previewLocationConditions,
+                    stats, previewFlags, player.getCurrentChapter(), progress, decisions,
+                    triggeredStories, triggeredSides, pending, blockStories, previewAncestors)) available.add(event);
         }
         if (storyPity >= 8 && available.stream().anyMatch(e -> "story".equals(e.getEventType())))
             available.removeIf(e -> !"story".equals(e.getEventType()));
@@ -320,17 +312,10 @@ public class ExploreServiceImpl implements ExploreService {
                 ? snapshots : Collections.emptyMap();
         List<ExplorationEvent> availableEvents = new ArrayList<>();
         boolean pendingStoryWasSkipped = false;
+        Function<String, Map<String, Object>> drawAncestors = ancestorConditionsLookup();
+        Map<String, Object> drawFlags = parseJsonMap(player.getStoryFlagsJson());
         for (ExplorationEvent e : allEvents) {
             Map<String, Object> conditions = parseJsonMap(e.getRequiredConditionsJson());
-            if ("story".equals(e.getEventType())
-                    && !RouteContinuationPolicy.allowsStory(stageProgress, conditions)) continue;
-            List<String> triggeredEvents = "story".equals(e.getEventType())
-                    ? triggeredStoryEvents : triggeredSideEvents;
-            if (triggeredEvents.contains(e.getEventKey())
-                    && e.getRepeatable() != null && e.getRepeatable() == 0) {
-                continue;
-            }
-            // Snapshots are keyed by eventKey; do not overwrite an unresolved repeatable story instance.
             if ("story".equals(e.getEventType())
                     && pendingStorySnapshotMap.containsKey(e.getEventKey())) {
                 Object parsedChoices = parseJsonList(e.getChoicesJson());
@@ -339,17 +324,10 @@ public class ExploreServiceImpl implements ExploreService {
                     continue;
                 }
             }
-            // 检查 required_conditions_json
-            if (!ExploreStoryEligibility.checkRequiredConditions(
-                     stats, stageProgress, decisionHistory, conditions)) {
-                continue;
-            }
-            // 低等级地点有未完成剧情 → 当前地点屏蔽 story/side_story 事件
-            if (!lowerUnfinishedStories.isEmpty() &&
-                ("story".equals(e.getEventType()) || "side_story".equals(e.getEventType()))) {
-                continue;
-            }
-            availableEvents.add(e);
+            if (ExploreCandidatePolicy.canDraw(e, conditions, location, unlockConditions,
+                    stats, drawFlags, player.getCurrentChapter(), stageProgress, decisionHistory,
+                    triggeredStoryEvents, triggeredSideEvents, pendingStorySnapshotMap,
+                    !lowerUnfinishedStories.isEmpty(), drawAncestors)) availableEvents.add(e);
         }
         // 记录屏蔽原因，供前端展示
         final boolean storiesBlocked = !lowerUnfinishedStories.isEmpty();

@@ -94,6 +94,9 @@ public class ConstellationRequiredAspect {
     }
 
     private boolean isWhitelisted(String controllerName, String methodName) {
+        // Read-only story projection requires JWT and ownership, even for a new save
+        // that has not selected a constellation yet.
+        if ("ExploreController".equals(controllerName) && "getStoryTree".equals(methodName)) return true;
         if ("AuthController".equals(controllerName)
                 || "AdminController".equals(controllerName)
                 || "SystemController".equals(controllerName)

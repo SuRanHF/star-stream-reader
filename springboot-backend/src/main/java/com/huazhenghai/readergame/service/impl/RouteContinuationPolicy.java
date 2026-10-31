@@ -2,7 +2,6 @@ package com.huazhenghai.readergame.service.impl;
 
 import com.huazhenghai.readergame.entity.ExplorationEvent;
 import com.huazhenghai.readergame.entity.Location;
-import com.huazhenghai.readergame.service.LocationUnlockPolicy;
 
 import java.util.List;
 import java.util.LinkedHashMap;
@@ -91,18 +90,14 @@ public final class RouteContinuationPolicy {
         Function<String, Map<String, Object>> ancestors = conditionsByKey::get;
         Object pendingValue = progress.get("pendingStorySnapshots");
         Map<?, ?> pending = pendingValue instanceof Map<?, ?> map ? map : Map.of();
+        List<String> triggeredSides = progress.get("sideEventsTriggered") instanceof List<?> sides
+                ? sides.stream().filter(String.class::isInstance).map(String.class::cast).toList() : List.of();
         for (ExplorationEvent event : stories) {
             if (event == null || !conditionsByKey.containsKey(event.getEventKey())) continue;
             Map<String, Object> conditions = conditionsByKey.get(event.getEventKey());
-            if (!allowsStory(progress, conditions)
-                    || triggered.contains(event.getEventKey()) && Integer.valueOf(0).equals(event.getRepeatable())
-                    || pending.containsKey(event.getEventKey())
-                    || !ExploreStoryEligibility.checkRequiredConditions(stats, progress, decisions, conditions)) continue;
             Location location = byKey.get(event.getLocationKey());
-            if (location == null || !LocationUnlockPolicy.canAccessLocation(
-                    locationConditionsFor.apply(location), stats, storyFlags, chapter, triggered)) continue;
             boolean lowerBlocked = false;
-            if (location.getMinLevel() != null) {
+            if (location != null && location.getMinLevel() != null) {
                 for (ExplorationEvent lower : stories) {
                     if (lower == null || !conditionsByKey.containsKey(lower.getEventKey())) continue;
                     Location lowerLocation = byKey.get(lower.getLocationKey());
@@ -116,7 +111,10 @@ public final class RouteContinuationPolicy {
                     }
                 }
             }
-            if (!lowerBlocked) return true;
+            if (ExploreCandidatePolicy.canDraw(event, conditions, location,
+                    location == null ? Map.of() : locationConditionsFor.apply(location),
+                    stats, storyFlags, chapter, progress, decisions, triggered, triggeredSides,
+                    pending, lowerBlocked, ancestors)) return true;
         }
         return false;
     }

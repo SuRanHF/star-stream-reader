@@ -20,4 +20,9 @@ public interface PlayerMapper extends BaseMapper<Player> {
     /** Read only the stats column so public aggregation never loads player story flags or choices. */
     @Select("SELECT stats_json FROM players WHERE stats_json IS NOT NULL")
     List<String> selectStatsJsonForWorldAggregation();
+
+    /** One row per eligible character; the database filters administrators before JSON parsing. */
+    @Select("SELECT p.decision_history_json FROM players p JOIN users u ON u.id = p.user_id "
+            + "WHERE u.role = 'player' AND p.decision_history_json IS NOT NULL")
+    List<String> selectPlayerDecisionHistoriesForStoryTree();
 }

@@ -18,6 +18,7 @@ import com.huazhenghai.readergame.service.ExploreService;
 import com.huazhenghai.readergame.service.LocationUnlockPolicy;
 import com.huazhenghai.readergame.service.impl.ExploreStoryEligibility;
 import com.huazhenghai.readergame.service.impl.RouteContinuationPolicy;
+import com.huazhenghai.readergame.service.impl.StoryTreeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -36,17 +37,26 @@ public class ExploreController {
     private final ExplorationEventMapper eventMapper;
     private final PlayerMapper playerMapper;
     private final ObjectMapper objectMapper;
+    private final StoryTreeService storyTreeService;
 
     public ExploreController(ExploreService exploreService,
                              LocationMapper locationMapper,
                              ExplorationEventMapper eventMapper,
                              PlayerMapper playerMapper,
-                             ObjectMapper objectMapper) {
+                             ObjectMapper objectMapper,
+                             StoryTreeService storyTreeService) {
         this.exploreService = exploreService;
         this.locationMapper = locationMapper;
         this.eventMapper = eventMapper;
         this.playerMapper = playerMapper;
         this.objectMapper = objectMapper;
+        this.storyTreeService = storyTreeService;
+    }
+
+    @GetMapping("/story-tree/{playerId}")
+    @Operation(summary = "获取玩家剧情流程图与匿名选择占比")
+    public Result<Map<String, Object>> getStoryTree(@PathVariable Long playerId) {
+        return Result.ok(storyTreeService.getStoryTree(requireOwnedPlayer(playerId)));
     }
 
     @GetMapping("/locations/{playerId}")

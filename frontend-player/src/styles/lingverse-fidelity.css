@@ -1337,7 +1337,13 @@ body::before {
   white-space: nowrap;
 }
 
-@container lv-action (max-width: 560px) {
+.lingverse-replica-shell .ling-check-short {
+  display: none;
+}
+
+/* 窄操作区（宽屏聊天常驻或打开侧栏时约 440px，手机约 350px）：参考站式两行——
+   上行主按钮与开关（开关用短名），放不下时开关自然折到下一行；下行功能格按宽度收纳。 */
+@container lv-action (max-width: 500px) {
   .lingverse-replica-shell .action-bar-body {
     flex-direction: column;
     flex-wrap: nowrap;
@@ -1347,56 +1353,69 @@ body::before {
 
   .lingverse-replica-shell .action-bar-controls {
     flex: 0 0 auto;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
     width: 100%;
   }
 
   .lingverse-replica-shell .action-group--primary {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    flex: 0 0 auto;
+    display: flex;
+    flex: 1 1 auto;
     gap: 6px;
-    width: 100%;
     min-width: 0;
   }
 
   .lingverse-replica-shell .action-group--primary > button {
-    width: 100%;
+    flex: 1 0 auto;
     min-width: 0;
-    height: 44px;
+    height: 40px;
+    padding-inline: 10px;
     white-space: nowrap;
   }
 
   /* 继续剧情 / 继续遭遇出现时独占一行，不挤压两颗主按钮。 */
+  .lingverse-replica-shell .action-group--primary:has(> button:nth-child(3)) {
+    flex-wrap: wrap;
+    flex-basis: 100%;
+  }
+
   .lingverse-replica-shell .action-group--primary > button:nth-child(n + 3) {
-    grid-column: 1 / -1;
+    flex-basis: 100%;
   }
 
   .lingverse-replica-shell .action-group--tools {
-    width: 100%;
+    flex: 0 0 auto;
     justify-content: flex-start;
     gap: 6px;
   }
 
   .lingverse-replica-shell .action-bar .ling-check,
   .lingverse-replica-shell .action-bar .btn-setting {
-    height: 44px;
-    min-height: 44px;
+    height: 40px;
+    min-height: 40px;
   }
 
   .lingverse-replica-shell .action-bar .ling-check {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     justify-content: center;
-    gap: 6px;
+    gap: 4px;
     padding: 0 8px;
     white-space: nowrap;
   }
 
+  .lingverse-replica-shell .ling-check-long {
+    display: none;
+  }
+
+  .lingverse-replica-shell .ling-check-short {
+    display: inline;
+  }
+
   .lingverse-replica-shell .action-bar .btn-setting {
-    flex: 0 0 44px;
-    width: 44px;
+    flex: 0 0 40px;
+    width: 40px;
   }
 
   .lingverse-replica-shell .action-bar .ling-right-nav {
@@ -1611,7 +1630,7 @@ body::before {
   font-size: 11px;
 }
 
-@container lv-action (max-width: 560px) {
+@container lv-action (max-width: 500px) {
   .lingverse-replica-shell .route-status-hint {
     display: block;
   }

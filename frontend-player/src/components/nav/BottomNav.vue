@@ -24,7 +24,7 @@ const gameStore = useGameStore();
 const overflowOpen = ref(false);
 const navElement = ref<HTMLElement | null>(null);
 const visibleCount = ref(7);
-const DESKTOP_LAYOUT_MIN_WIDTH = 888;
+const DESKTOP_LAYOUT_MIN_WIDTH = 761;
 const isDesktopLayout = ref(window.innerWidth >= DESKTOP_LAYOUT_MIN_WIDTH);
 
 const props = withDefaults(defineProps<{
@@ -70,6 +70,7 @@ function updateVisibleCount() {
   if (window.innerWidth < DESKTOP_LAYOUT_MIN_WIDTH) {
     isDesktopLayout.value = false;
     visibleCount.value = Math.min(COMPACT_VISIBLE_COUNT, items.value.length);
+    void trimOverflow();
     return;
   }
 
@@ -100,7 +101,7 @@ function updateVisibleCount() {
 async function trimOverflow() {
   await nextTick();
   const nav = navElement.value;
-  while (nav && isDesktopLayout.value && visibleCount.value > 0 && nav.scrollWidth > nav.clientWidth + 1) {
+  while (nav && visibleCount.value > 0 && nav.scrollWidth > nav.clientWidth + 1) {
     visibleCount.value -= 1;
     await nextTick();
   }

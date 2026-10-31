@@ -1225,9 +1225,13 @@ onBeforeUnmount(() => {
             </button>
           </div>
           <div class="action-group action-group--tools">
-            <label class="ling-check"><input type="checkbox" /> 概率修正</label>
-            <label class="ling-check">
-              <input v-model="autoActionOn" type="checkbox" :disabled="isResting" @change="onAutoActionToggle" /> 自动行动
+            <label class="ling-check" title="概率修正">
+              <input type="checkbox" aria-label="概率修正" />
+              <span class="ling-check-long" aria-hidden="true">概率修正</span><span class="ling-check-short" aria-hidden="true">修正</span>
+            </label>
+            <label class="ling-check" title="自动行动">
+              <input v-model="autoActionOn" type="checkbox" aria-label="自动行动" :disabled="isResting" @change="onAutoActionToggle" />
+              <span class="ling-check-long" aria-hidden="true">自动行动</span><span class="ling-check-short" aria-hidden="true">自动</span>
             </label>
             <button
               type="button"

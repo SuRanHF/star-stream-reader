@@ -5122,20 +5122,10 @@ a:focus-visible {
   }
 }
 
-/* 平板横向空间不足时，功能格单独落到下一行，和线上 action-bar 的自然换行一致。 */
-@media (min-width: 761px) and (max-width: 1099px) {
-  .action-bar {
-    flex-wrap: wrap;
-    row-gap: 6px;
-  }
-
-  .action-bar-body {
-    flex-wrap: wrap;
-  }
-
+/* 参考站：主操作与功能格同一行，功能格只放得下几个就放几个，其余收进「更多」（BottomNav 测宽）。 */
+@media (min-width: 761px) {
   .action-bar .ling-right-nav {
-    flex-basis: 100%;
-    justify-content: center;
+    min-width: 62px;
   }
 }
 

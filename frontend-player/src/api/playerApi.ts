@@ -25,9 +25,10 @@ export const playerApi = {
   getDeadList() {
     return http.get<unknown, ApiRecord[]>('/player/dead-list');
   },
-  revive(playerId: number, method = 'coins') {
-    return withStableActionRequest(`player:revive:${playerId}:${method}`, (requestKey) =>
-      http.post<unknown, ApiRecord>('/player/revive', { playerId, method, requestKey }));
+  // method = 'title' 时必须带 titleKey：献祭一个自己拥有的称号换取复活，称号永久失去（服务端校验）。
+  revive(playerId: number, method = 'coins', titleKey?: string) {
+    return withStableActionRequest(`player:revive:${playerId}:${method}:${titleKey || ''}`, (requestKey) =>
+      http.post<unknown, ApiRecord>('/player/revive', { playerId, method, titleKey, requestKey }));
   },
   peerRevive(reviverId: number, targetId: number, method = 'coins') {
     return withStableActionRequest(`player:peer-revive:${reviverId}:${targetId}:${method}`, (requestKey) =>

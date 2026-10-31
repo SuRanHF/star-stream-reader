@@ -18,12 +18,39 @@ const reviveCost = computed(() => 100 * level.value);
 const coins = computed(() => Number(gameStore.player?.coins || 0));
 const canAfford = computed(() => coins.value >= reviveCost.value);
 
-async function revive() {
+// 献祭称号：从已拥有的称号里选一个，永久失去；需要再点一次确认（遮罩层级高于通用确认框）。
+const ownedTitles = computed(() => (gameStore.titles || [])
+  .map((entry) => ({
+    key: String(entry.titleKey || entry.title_key || ''),
+    name: String(entry.name || entry.titleName || entry.titleKey || ''),
+    rarity: String(entry.rarity || ''),
+  }))
+  .filter((title) => title.key));
+const selectedTitleKey = ref('');
+const sacrificeArmed = ref(false);
+const selectedTitle = computed(() => ownedTitles.value.find((title) => title.key === selectedTitleKey.value));
+
+function selectTitle(key: string) {
+  selectedTitleKey.value = selectedTitleKey.value === key ? '' : key;
+  sacrificeArmed.value = false;
+}
+
+async function sacrificeTitle() {
+  if (!selectedTitle.value) return;
+  if (!sacrificeArmed.value) {
+    sacrificeArmed.value = true;
+    return;
+  }
+  await revive('title', selectedTitle.value.key);
+  sacrificeArmed.value = false;
+}
+
+async function revive(method: 'coins' | 'title' = 'coins', titleKey?: string) {
   if (reviving.value || !playerId.value) return;
   reviving.value = true;
   errorMsg.value = '';
   try {
-    await playerApi.revive(playerId.value, 'coins');
+    await playerApi.revive(playerId.value, method, titleKey);
     const bootstrap = await gameApi.getBootstrap();
     gameStore.applyBootstrap(bootstrap);
   } catch (e: unknown) {
@@ -65,12 +92,43 @@ async function revive() {
         <button
           class="do-revive-btn"
           :disabled="!canAfford || reviving"
-          @click="revive"
+          @click="revive('coins')"
         >
           {{ reviving ? '赎回中...' : `赎回灵魂 (${reviveCost}币)` }}
         </button>
 
-        <p v-if="!canAfford" class="do-hint">
+        <section class="do-sacrifice" aria-labelledby="doSacrificeTitle">
+          <h3 id="doSacrificeTitle" class="do-sacrifice-title">或者，献上一个称号</h3>
+          <p class="do-hint">被献祭的称号会<b class="red">永久失去</b>，它带来的加成也随之消失。</p>
+          <p v-if="!ownedTitles.length" class="do-hint">你还没有可以献上的称号。</p>
+          <div v-else class="do-title-list" role="radiogroup" aria-label="选择要献祭的称号">
+            <button
+              v-for="title in ownedTitles"
+              :key="title.key"
+              type="button"
+              role="radio"
+              :aria-checked="selectedTitleKey === title.key"
+              :class="['do-title-chip', { active: selectedTitleKey === title.key }]"
+              :disabled="reviving"
+              @click="selectTitle(title.key)"
+            >
+              {{ title.name }}<small v-if="title.rarity">{{ title.rarity }}</small>
+            </button>
+          </div>
+          <button
+            v-if="ownedTitles.length"
+            type="button"
+            :class="['do-revive-btn', 'do-sacrifice-btn', { armed: sacrificeArmed }]"
+            :disabled="!selectedTitle || reviving"
+            @click="sacrificeTitle"
+          >
+            {{ !selectedTitle ? '先选择一个称号'
+              : sacrificeArmed ? `再点一次：永久献祭「${selectedTitle.name}」`
+                : `献祭「${selectedTitle.name}」并归来` }}
+          </button>
+        </section>
+
+        <p v-if="!canAfford && !ownedTitles.length" class="do-hint">
           星币不足，无法赎回灵魂。也许会有其他读者向女神献上代价，换你归来。
         </p>
       </div>
@@ -194,6 +252,52 @@ async function revive() {
   cursor: not-allowed;
 }
 
+.do-sacrifice {
+  margin: 4px 0 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+  text-align: left;
+}
+.do-sacrifice-title {
+  margin: 0 0 4px;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 700;
+}
+.do-title-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 12px;
+}
+.do-title-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill, 999px);
+  background: transparent;
+  color: var(--color-text-dim);
+  font-size: 13px;
+  cursor: pointer;
+}
+.do-title-chip small {
+  color: var(--color-muted);
+  font-size: 11px;
+}
+.do-title-chip.active {
+  border-color: var(--color-star);
+  color: var(--color-star);
+}
+.do-sacrifice-btn {
+  font-size: 14px;
+  margin-bottom: 0;
+}
+.do-sacrifice-btn.armed {
+  border-color: var(--color-danger);
+  color: var(--color-text-bright);
+}
 .do-hint {
   color: var(--color-muted);
   font-size: 12px;

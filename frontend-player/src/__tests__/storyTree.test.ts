@@ -80,6 +80,49 @@ describe('layoutStoryTree', () => {
     expect(depth.b).toBe(depth.a + 1);
   });
 
+  it('只有能证明多余时才隐藏「且」边：祖先可多选、「且」只限其中一个时照画', () => {
+    const node = (id: string) => ({ node_id: id, state: 'locked' as const, branch: 'root', stage_key: 's' });
+    const nodes = ['r', 'a', 't'].map(node);
+    const edges = [
+      { from: 'r', to: 'a', gate: 'or:0', choice_index: 0, taken: false },
+      { from: 'r', to: 'a', gate: 'or:0', choice_index: 1, taken: false },
+      { from: 'a', to: 't', gate: 'or:0', taken: false },
+      { from: 'r', to: 't', gate: 'and', choice_index: 1, taken: false },
+    ];
+    const layout = layoutStoryTree(nodes, edges);
+    expect(layout.edges.some((e) => e.kind === 'and' && e.edge.from === 'r' && e.edge.to === 't')).toBe(true);
+  });
+
+  it('同起终点的多个选项合成一组标签，按选项顺序叠放', () => {
+    const node = (id: string) => ({ node_id: id, state: 'done' as const, branch: 'root', stage_key: 's' });
+    const edges = [
+      { from: 'p', to: 'c', gate: 'or:0', choice_index: 1, choice_label: '乙', taken: true },
+      { from: 'p', to: 'c', gate: 'or:0', choice_index: 0, choice_label: '甲', taken: false },
+    ];
+    const layout = layoutStoryTree([node('p'), node('c')], edges);
+    expect(layout.labels).toHaveLength(1);
+    expect(layout.labels[0].edges.map((e) => e.choice_label)).toEqual(['甲', '乙']);
+  });
+
+  it('按章节分行：不同章节不在同一行，并返回章节带', () => {
+    const nodes = [
+      { node_id: 'r', state: 'done' as const, branch: 'root', stage_key: 'ch1' },
+      { node_id: 'a', state: 'locked' as const, branch: 'companion', stage_key: 'ch2' },
+      { node_id: 'b', state: 'locked' as const, branch: 'nameless', stage_key: 'ch1' },
+    ];
+    const edges = [
+      { from: 'r', to: 'a', gate: 'or:0', taken: false },
+      { from: 'r', to: 'b', gate: 'or:1', taken: false },
+    ];
+    const chapters = [{ stage_key: 'ch1', label: '第一章' }, { stage_key: 'ch2', label: '第二章' }];
+    const layout = layoutStoryTree(nodes, edges, chapters);
+    const byId = Object.fromEntries(layout.nodes.map((p) => [p.node.node_id, p]));
+    // a 与 b 深度相同，但章节不同，分在两行；第一章在上
+    expect(byId.b.y).toBeLessThan(byId.a.y);
+    expect(layout.chapters.map((band) => band.label)).toEqual(['第一章', '第二章']);
+    expect(layout.chapters[0].y).toBeGreaterThanOrEqual(0);
+  });
+
   it('有环时不会死循环', () => {
     const nodes = [
       { node_id: 'x', state: 'locked' as const, branch: 'root', stage_key: 's' },

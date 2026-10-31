@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { useQuery } from '@tanstack/vue-query';
 import { exploreApi, type ChoiceStats, type StoryTreeEdge, type StoryTreeNode } from '@/api/exploreApi';
 import { useGameStore } from '@/stores/gameStore';
-import { JUNCTION_OFFSET, layoutStoryTree, NODE_HEIGHT, NODE_WIDTH } from '@/utils/storyTreeLayout';
+import { JUNCTION_OFFSET, LABEL_LINE_HEIGHT, layoutStoryTree, NODE_HEIGHT, NODE_WIDTH } from '@/utils/storyTreeLayout';
 
 // 剧情流程图：数据与节点状态全部来自服务端（不剧透：未到达的节点没有标题），这里只负责画。
 const emit = defineEmits<{
@@ -21,7 +21,7 @@ const treeQuery = useQuery({
 });
 
 const tree = computed(() => treeQuery.data.value);
-const layout = computed(() => (tree.value ? layoutStoryTree(tree.value.nodes, tree.value.edges) : null));
+const layout = computed(() => (tree.value ? layoutStoryTree(tree.value.nodes, tree.value.edges, tree.value.chapters) : null));
 
 const reachedStates = new Set(['done', 'pending_choice', 'tip']);
 const reachedCount = computed(() => (tree.value?.nodes || []).filter((node) => reachedStates.has(node.state)).length);
@@ -54,9 +54,13 @@ function statsText(stats?: ChoiceStats | null) {
   return stats ? `${stats.percent}% 的读者（${stats.sample_band}）` : '数据不足';
 }
 
+function fullLabel(edge: StoryTreeEdge) {
+  return (edge.choice_label || '').replace(/^["“「]|["”」]$/g, '');
+}
+
+// 画布上截短，完整文字放在 <title>（悬停 / 读屏可见）。
 function edgeLabel(edge: StoryTreeEdge) {
-  if (!edge.choice_label) return '';
-  const label = edge.choice_label.replace(/^["“「]|["”」]$/g, '');
+  const label = fullLabel(edge);
   return label.length > 14 ? `${label.slice(0, 13)}…` : label;
 }
 
@@ -104,16 +108,29 @@ const routeStatsText = computed(() => {
         role="img"
         :aria-label="`剧情流程图，已经历 ${reachedCount} 个节点`"
       >
+        <g class="stp-chapters" aria-hidden="true">
+          <g v-for="band in layout.chapters" :key="band.stageKey" class="stp-chapter">
+            <rect x="6" :y="band.y" width="4" :height="band.height" rx="2" />
+            <text x="18" :y="band.y + 14">{{ band.label }}</text>
+          </g>
+        </g>
         <g class="stp-edges">
-          <g v-for="(item, index) in layout.edges" :key="`e-${index}`">
-            <path
-              :d="edgePath(item.x1, item.y1, item.x2, item.y2)"
-              :class="['stp-edge', { 'is-taken': item.edge.taken, 'is-faint': !item.edge.choice_label, 'is-and': item.kind === 'and' }]"
-            />
-            <!-- 标签贴在子节点正上方：同一父节点的多条边在中点挤在一起，子节点之间则至少隔一个节点宽 -->
-            <g v-if="item.edge.choice_label" class="stp-edge-label" :transform="`translate(${item.x2}, ${item.y2 - 24})`">
-              <text text-anchor="middle" y="-5" :class="{ 'is-taken': item.edge.taken }">{{ edgeLabel(item.edge) }}</text>
-              <text text-anchor="middle" y="10" class="stp-edge-stats">{{ statsText(item.edge.stats) }}</text>
+          <path
+            v-for="(item, index) in layout.edges"
+            :key="`e-${index}`"
+            :d="edgePath(item.x1, item.y1, item.x2, item.y2)"
+            :class="['stp-edge', { 'is-taken': item.edge.taken, 'is-faint': !item.edge.choice_label, 'is-and': item.kind === 'and' }]"
+          />
+          <!-- 标签贴在子节点正上方；同起终点的多个选项自下而上叠放 -->
+          <g v-for="group in layout.labels" :key="group.key" class="stp-edge-label" :transform="`translate(${group.x}, ${group.y})`">
+            <g
+              v-for="(edge, index) in group.edges"
+              :key="`${group.key}-${edge.choice_index}`"
+              :transform="`translate(0, ${-(group.edges.length - 1 - index) * LABEL_LINE_HEIGHT})`"
+            >
+              <title>{{ fullLabel(edge) }}：{{ statsText(edge.stats) }}</title>
+              <text text-anchor="middle" y="-5" :class="{ 'is-taken': edge.taken }">{{ edgeLabel(edge) }}</text>
+              <text text-anchor="middle" y="10" class="stp-edge-stats">{{ statsText(edge.stats) }}</text>
             </g>
           </g>
           <g v-for="(point, index) in layout.junctions" :key="`j-${index}`" class="stp-junction">
@@ -266,6 +283,16 @@ const routeStatsText = computed(() => {
 .stp-junction text {
   fill: var(--color-spirit);
   font-size: 9px;
+}
+
+.stp-chapter rect {
+  fill: color-mix(in srgb, var(--color-star) 35%, transparent);
+}
+
+.stp-chapter text {
+  fill: var(--color-star);
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .stp-edge-label text {

@@ -463,14 +463,18 @@ const costLabel = computed(() => {
   return min === max ? `-${min}` : `-${min}~${max}`;
 });
 
+// 快速切换地点时旧请求可能后返回：只采用最后一次请求的结果。
+let costPreviewSeq = 0;
 async function refreshCostPreview() {
   const id = Number(gameStore.player?.id || gameStore.player?.playerId || 0);
   if (!id) return;
+  const seq = ++costPreviewSeq;
   try {
-    costPreview.value = await exploreApi.getCostPreview(id);
+    const preview = await exploreApi.getCostPreview(id);
+    if (seq === costPreviewSeq) costPreview.value = preview;
   } catch {
     // 预估失败（如后端尚未升级）只是少显示一个数字，不影响执行。
-    costPreview.value = null;
+    if (seq === costPreviewSeq) costPreview.value = null;
   }
 }
 
@@ -758,12 +762,45 @@ const showDockedChat = computed(() => canDockChat.value
   && (!gameStore.activePanel || storyTreeOverlay.value) && !dockedChatCollapsed.value);
 const storyTreeOverlayEl = ref<HTMLElement | null>(null);
 
+// 模态浮层：打开时记住触发者并聚焦浮层，Tab 只在浮层内循环，关闭后把焦点还给触发者。
+// Esc 由浮层自身处理（焦点在浮层内才生效），不会越过更上层的弹窗。
+let storyTreeReturnFocus: HTMLElement | null = null;
 watch(storyTreeOverlay, (open) => {
-  if (open) void nextTick(() => storyTreeOverlayEl.value?.focus());
+  if (open) {
+    storyTreeReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    void nextTick(() => storyTreeOverlayEl.value?.focus());
+  } else {
+    const target = storyTreeReturnFocus;
+    storyTreeReturnFocus = null;
+    if (target?.isConnected) void nextTick(() => target.focus());
+  }
 });
 
-function closeStoryTreeOnEscape(event: KeyboardEvent) {
-  if (event.key === 'Escape' && storyTreeOverlay.value) closePanel();
+function onStoryTreeKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    event.stopPropagation();
+    closePanel();
+    return;
+  }
+  if (event.key !== 'Tab') return;
+  const root = storyTreeOverlayEl.value;
+  if (!root) return;
+  const focusable = [...root.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+    .filter((el) => !el.hasAttribute('disabled'));
+  if (!focusable.length) {
+    event.preventDefault();
+    return;
+  }
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const active = document.activeElement;
+  if (event.shiftKey && (active === first || active === root)) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && active === last) {
+    event.preventDefault();
+    first.focus();
+  }
 }
 
 function readUiPref(key: string) {
@@ -976,7 +1013,6 @@ onMounted(() => {
   pollTimer = setInterval(pollServerState, 30000);
   document.addEventListener('click', closeHeaderMoreOnOutsideClick);
   document.addEventListener('keydown', closeHeaderMoreOnEscape);
-  document.addEventListener('keydown', closeStoryTreeOnEscape);
   window.addEventListener('resize', updateHeaderVisibleCount);
   void nextTick(() => {
     updateHeaderVisibleCount();
@@ -999,7 +1035,6 @@ onBeforeUnmount(() => {
   headerResizeObserver = null;
   document.removeEventListener('click', closeHeaderMoreOnOutsideClick);
   document.removeEventListener('keydown', closeHeaderMoreOnEscape);
-  document.removeEventListener('keydown', closeStoryTreeOnEscape);
   document.removeEventListener('mousemove', doResize);
   document.removeEventListener('mouseup', stopResize);
   if (pollTimer) {
@@ -1341,6 +1376,7 @@ onBeforeUnmount(() => {
         aria-modal="true"
         aria-label="剧情流程图"
         tabindex="-1"
+        @keydown="onStoryTreeKeydown"
       >
         <StoryTreePanel @close-panel="closePanel" />
       </div>

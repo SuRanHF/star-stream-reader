@@ -3,8 +3,10 @@ import { ref, computed } from 'vue';
 import { playerApi } from '@/api/playerApi';
 import { gameApi } from '@/api/gameApi';
 import { useGameStore } from '@/stores/gameStore';
+import { useUiStore } from '@/stores/uiStore';
 
 const gameStore = useGameStore();
+const uiStore = useUiStore();
 
 const reviving = ref(false);
 const errorMsg = ref('');
@@ -51,10 +53,18 @@ async function revive(method: 'coins' | 'title' = 'coins', titleKey?: string) {
   errorMsg.value = '';
   try {
     await playerApi.revive(playerId.value, method, titleKey);
-    const bootstrap = await gameApi.getBootstrap();
-    gameStore.applyBootstrap(bootstrap);
   } catch (e: unknown) {
     errorMsg.value = e instanceof Error ? e.message : '复活失败';
+    reviving.value = false;
+    return;
+  }
+  // 服务端已结算（献祭不可逆）：先在本地标记已复活，遮罩随之关闭；
+  // 之后的资料刷新失败只影响数字显示，不能再报「复活失败」诱导玩家重复献祭。
+  gameStore.patchPlayer({ stats: { isDead: false } });
+  try {
+    gameStore.applyBootstrap(await gameApi.getBootstrap());
+  } catch {
+    void uiStore.showAlert('已从冥界归来', '复活已经生效，但角色资料同步失败，稍后会自动刷新。');
   } finally {
     reviving.value = false;
   }

@@ -1341,9 +1341,9 @@ body::before {
   display: none;
 }
 
-/* 窄操作区（宽屏聊天常驻或打开侧栏时约 440px，手机约 350px）：参考站式两行——
+/* 窄操作区（≤600px：窄桌面主列、宽屏聊天常驻或打开侧栏时约 440px，手机约 350px）：参考站式两行——
    上行主按钮与开关（开关用短名），放不下时开关自然折到下一行；下行功能格按宽度收纳。 */
-@container lv-action (max-width: 500px) {
+@container lv-action (max-width: 600px) {
   .lingverse-replica-shell .action-bar-body {
     flex-direction: column;
     flex-wrap: nowrap;
@@ -1630,7 +1630,7 @@ body::before {
   font-size: 11px;
 }
 
-@container lv-action (max-width: 500px) {
+@container lv-action (max-width: 600px) {
   .lingverse-replica-shell .route-status-hint {
     display: block;
   }

@@ -213,6 +213,27 @@ describe('GameLayout exploration-to-log integration', () => {
     expect(trace.element.closest('label')?.getAttribute('title')).toBe('此地暂无你的主线');
   });
 
+  it('流程图浮层：Esc 关闭；预估请求反序返回时只采用最后一次的结果', async () => {
+    mocks.gameStore!.activePanel = 'story-tree';
+    let resolveFirst: (value: unknown) => void = () => {};
+    mocks.getCostPreview
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve; }))
+      .mockResolvedValueOnce({ minStaminaCost: 4, maxStaminaCost: 6, currentStamina: 50,
+        trace_preview: { available: true, extra_min: 2, extra_max: 3 } });
+    const wrapper = mountLayout();
+    await flushPromises();
+
+    mocks.gameStore!.player.currentLocationKey = 'geumho_station';
+    await flushPromises();
+    resolveFirst({ minStaminaCost: 9, maxStaminaCost: 9, currentStamina: 50,
+      trace_preview: { available: false, extra_min: 0, extra_max: 0 } });
+    await flushPromises();
+    expect(wrapper.get('.action-cost').text()).toBe('(-4~6)');
+
+    await wrapper.get('.ling-story-tree-overlay').trigger('keydown', { key: 'Escape' });
+    expect(mocks.setActivePanel).toHaveBeenCalledWith('');
+  });
+
   it('探索结算后刷新仍打开的任务面板，让探索次数与可领取状态及时更新', async () => {
     mocks.gameStore!.activePanel = 'quests';
     const wrapper = mountLayout();

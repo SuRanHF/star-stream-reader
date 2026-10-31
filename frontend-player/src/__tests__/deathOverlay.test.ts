@@ -42,6 +42,19 @@ describe('DeathOverlay 献祭称号复活', () => {
     wrapper.unmount();
   });
 
+  it('复活成功但资料刷新失败：本地标记已复活，不再报复活失败', async () => {
+    mocks.getBootstrap.mockRejectedValue(new Error('network'));
+    const gameStore = useGameStore();
+    gameStore.player = { id: 7, coins: 999, stats: { level: 3, isDead: true } } as never;
+    const wrapper = mountOverlay();
+    await wrapper.get('.do-revive-btn').trigger('click');
+    await flushPromises();
+    expect(mocks.revive).toHaveBeenCalledWith(7, 'coins', undefined);
+    expect((gameStore.player as unknown as { stats: { isDead: boolean } }).stats.isDead).toBe(false);
+    expect(wrapper.find('.do-error').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
   it('没有称号时不显示献祭按钮', () => {
     useGameStore().titles = [] as never;
     const wrapper = mountOverlay();

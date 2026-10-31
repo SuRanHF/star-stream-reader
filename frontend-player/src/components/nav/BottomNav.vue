@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useGameStore } from '@/stores/gameStore';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import {
   BookOpen,
   CircleHelp,
@@ -78,6 +78,12 @@ function updateVisibleCount() {
   const button = nav?.querySelector<HTMLElement>('.fn-btn');
   if (!nav || !button) return;
 
+  // 宽窄态切换时按钮宽度带过渡动画；同时观察按钮本身，动画结束后再按最终宽度重算。
+  if (observedButton !== button) {
+    if (observedButton) navResizeObserver?.unobserve(observedButton);
+    navResizeObserver?.observe(button);
+    observedButton = button;
+  }
   const buttonWidth = button.getBoundingClientRect().width;
   const gap = Number.parseFloat(getComputedStyle(nav).columnGap) || 0;
   if (buttonWidth <= 0) return;
@@ -86,13 +92,29 @@ function updateVisibleCount() {
   const nextCount = slots >= items.value.length ? items.value.length : Math.max(0, slots - 1);
   visibleCount.value = nextCount;
   if (nextCount === items.value.length) overflowOpen.value = false;
+  void trimOverflow();
+}
+
+// 估算用的是测量当时的按钮宽度；操作区切换宽窄态、入口增减时可能估多。
+// 渲染后若仍溢出，就逐个收进「更多」，保证整排不出现横向滚动与被截半的按钮。
+async function trimOverflow() {
+  await nextTick();
+  const nav = navElement.value;
+  while (nav && isDesktopLayout.value && visibleCount.value > 0 && nav.scrollWidth > nav.clientWidth + 1) {
+    visibleCount.value -= 1;
+    await nextTick();
+  }
 }
 
 let navResizeObserver: ResizeObserver | null = null;
+let observedButton: HTMLElement | null = null;
+
+// 入口增减（如宽屏聊天常驻时隐藏星流频道）不会改变导航宽度，ResizeObserver 不触发，需要单独重算。
+watch(() => items.value.length, () => void nextTick(updateVisibleCount));
 
 onMounted(() => {
-  updateVisibleCount();
   navResizeObserver = new ResizeObserver(updateVisibleCount);
+  updateVisibleCount();
   if (navElement.value) navResizeObserver.observe(navElement.value);
   window.addEventListener('resize', updateVisibleCount);
 });

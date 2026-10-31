@@ -14,6 +14,7 @@ import BottomNav from '@/components/nav/BottomNav.vue';
 import BroadcastStrip from '@/components/broadcast/BroadcastStrip.vue';
 import ConnectedPanel from '@/components/panels/ConnectedPanel.vue';
 import SceneMapPanel from '@/components/scene-map/SceneMapPanel.vue';
+import StoryTreePanel from '@/components/story-tree/StoryTreePanel.vue';
 import GameConfirmDialog from '@/components/common/GameConfirmDialog.vue';
 import ExploreResultDialog from '@/components/explore/ExploreResultDialog.vue';
 import GameNotificationToast from '@/components/notification/GameNotificationToast.vue';
@@ -174,6 +175,7 @@ const headerPrimaryItems: HeaderNavItem[] = [
   { key: 'world-boss', label: '灾厄', panel: 'worldBoss' },
   { key: 'ranking', label: '化身排行', panel: 'ranking' },
   { key: 'story', label: '故事记录', panel: 'history' },
+  { key: 'story-tree', label: '流程图', panel: 'story-tree' },
   { key: 'faction', label: '星座阵营', panel: 'faction' },
 ];
 
@@ -1131,6 +1133,9 @@ onBeforeUnmount(() => {
         <div v-if="isMobile && gameStore.activePanel === 'scene-map'" class="ling-mobile-scene-map">
           <SceneMapPanel @close-panel="closePanel" />
         </div>
+        <div v-else-if="isMobile && gameStore.activePanel === 'story-tree'" class="ling-mobile-scene-map">
+          <StoryTreePanel @close-panel="closePanel" />
+        </div>
         <ConnectedPanel
           v-else-if="isMobile && gameStore.activePanel"
           :panel="gameStore.activePanel"
@@ -1155,16 +1160,18 @@ onBeforeUnmount(() => {
 
       <div v-show="!actionBarCollapsed" id="playerActionBarBody" class="action-bar-body">
         <div class="action-bar-controls">
-          <p
+          <button
             v-if="routeNotice"
+            type="button"
             :class="['route-status', `route-status--${routeNotice.kind}`]"
-            role="status"
-            :title="routeNotice.hint"
+            :title="`${routeNotice.hint}（点击查看剧情流程图）`"
+            :aria-label="`${routeNotice.text}，打开剧情流程图`"
+            @click="selectPanel('story-tree')"
           >
             <span aria-hidden="true">{{ routeNotice.kind === 'pending' ? '◇' : '✦' }}</span>
             <strong>{{ routeNotice.text }}</strong>
             <span class="route-status-hint">{{ routeNotice.hint }}</span>
-          </p>
+          </button>
           <div class="action-group action-group--primary">
             <button class="ling-action-primary btn-action--primary" @click="toggleRest">
               <Sparkles class="action-icon" :size="15" :stroke-width="1.8" aria-hidden="true" />
@@ -1282,6 +1289,10 @@ onBeforeUnmount(() => {
       <aside v-if="!isMobile && gameStore.activePanel" class="ling-side-panel">
         <SceneMapPanel
           v-if="gameStore.activePanel === 'scene-map'"
+          @close-panel="closePanel"
+        />
+        <StoryTreePanel
+          v-else-if="gameStore.activePanel === 'story-tree'"
           @close-panel="closePanel"
         />
         <ConnectedPanel

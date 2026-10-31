@@ -1613,3 +1613,17 @@ body::before {
     display: block;
   }
 }
+
+/* 状态条可点击打开流程图 */
+.lingverse-replica-shell button.route-status {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lingverse-replica-shell button.route-status:hover,
+.lingverse-replica-shell button.route-status:focus-visible {
+  border-color: var(--color-star);
+  outline: none;
+}

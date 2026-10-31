@@ -124,6 +124,44 @@ export interface RouteContinuation {
   event_key: string | null;
 }
 
+// 剧情流程图（接口契约「剧情流程图与选择占比」，以 v2 修订为准）。
+// 未到达的节点只有不透明 node_id，不含 event_key / 标题，前端不得自行推断剧情。
+export type StoryNodeState = 'done' | 'pending_choice' | 'available' | 'locked' | 'closed' | 'tip';
+export type SampleBand = '20+' | '50+' | '100+' | '500+';
+
+export interface ChoiceStats {
+  percent: number;
+  sample_band: SampleBand;
+}
+
+export interface StoryTreeNode {
+  node_id: string;
+  state: StoryNodeState;
+  branch: string;
+  stage_key: string;
+  event_key?: string | null;
+  title?: string | null;
+  location_name?: string | null;
+}
+
+export interface StoryTreeEdge {
+  from: string;
+  to: string;
+  gate: string;
+  choice_index?: number | null;
+  choice_label?: string | null;
+  taken: boolean;
+  stats?: ChoiceStats | null;
+}
+
+export interface StoryTree {
+  chapters: { stage_key: string; label: string }[];
+  nodes: StoryTreeNode[];
+  edges: StoryTreeEdge[];
+  route_continuation?: RouteContinuation;
+  route_stats?: ChoiceStats | null;
+}
+
 export interface ExploreCostPreview {
   minStaminaCost: number;
   maxStaminaCost: number;
@@ -134,6 +172,9 @@ export interface ExploreCostPreview {
 export const exploreApi = {
   getCostPreview(playerId: number) {
     return http.get<unknown, ExploreCostPreview>(`/explore/cost-preview/${playerId}`);
+  },
+  getStoryTree(playerId: number) {
+    return http.get<unknown, StoryTree>(`/explore/story-tree/${playerId}`);
   },
   getLocations(playerId: number) {
     return http.get<unknown, ApiRecord>(`/explore/locations/${playerId}`);

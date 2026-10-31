@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { watch } from 'vue';
+import { computed, watch } from 'vue';
 import { useQuery } from '@tanstack/vue-query';
 import { useRouter } from 'vue-router';
 import { gameApi } from '@/api/gameApi';
+import { queryKeys } from '@/api/queryKeys';
 import GameButton from '@/components/common/GameButton.vue';
 import CreatePlayerView from '@/views/CreatePlayerView.vue';
 import GameLayout from '@/layouts/GameLayout.vue';
@@ -23,7 +24,7 @@ if (!authStore.token) {
 }
 
 const bootstrapQuery = useQuery({
-  queryKey: ['game-bootstrap'],
+  queryKey: computed(() => queryKeys.gameBootstrap(authStore.user?.id)),
   queryFn: gameApi.getBootstrap,
   retry: 1,
 });

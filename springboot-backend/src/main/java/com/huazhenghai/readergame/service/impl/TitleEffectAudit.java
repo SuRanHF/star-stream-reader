@@ -12,10 +12,11 @@ import java.util.Set;
 /** Static classification of title effect keys; this class does not apply gameplay effects. */
 final class TitleEffectAudit {
     private static final Set<String> ACTIVE = Set.of(
-            "attack", "defense", "speed", "critRate", "critDamage", "channelHeatGainRate");
+            "attack", "defense", "speed", "critRate", "critDamage", "channelHeatGainRate",
+            "maxStamina");
     private static final Set<String> INACTIVE = Set.of(
-            "attackBonus", "channelHeat", "channelHeatBonus", "insight", "insightBonus",
-            "narrativePressureBonus", "staminaBonus", "willpower");
+            "channelHeat", "channelHeatBonus", "insight", "insightBonus",
+            "narrativePressureBonus", "willpower");
     // maxHp reaches CombatStatsVO but combat HP is still read from the saved snapshot.
     // Keep it uncertain until the actual health behavior is specified and verified.
 

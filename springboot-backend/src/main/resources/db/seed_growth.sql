@@ -11,7 +11,7 @@ VALUES
 ('first_explorer', '第一位探索者', 'explorer', 'common',
  '完成第一次探索的记录者。',
  '{"exploreCount": 1}',
- '{"staminaBonus": 5}',
+ '{"maxStamina": 5}',
  1),
 
 ('growth_novice', '初露锋芒', 'growth', 'common',
@@ -41,7 +41,7 @@ VALUES
 ('boss_trace_hunter', 'Boss线索猎人', 'explorer', 'rare',
  '多次发现阶段Boss线索后获得。',
  '{"bossClue": {"station_keeper": 3}}',
- '{"attackBonus": 3}',
+ '{"attack": 3}',
  1),
 
 ('no_throne_king_seed', '无王座之王的种子', 'king', 'epic',

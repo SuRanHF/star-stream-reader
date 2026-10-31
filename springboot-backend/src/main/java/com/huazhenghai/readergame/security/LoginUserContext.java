@@ -3,8 +3,7 @@ package com.huazhenghai.readergame.security;
 /**
  * 当前登录用户上下文 (ThreadLocal).
  * <p>
- * 在 {@link JwtAuthInterceptor} 的 preHandle 中被设置,
- * 在 afterCompletion 中被清除.
+ * 在 JWT 认证过滤器中设置并在请求完成后清除.
  * <br>
  * Controller / Service 层通过 {@code LoginUserContext.get()} 获取当前用户.
  * <br>

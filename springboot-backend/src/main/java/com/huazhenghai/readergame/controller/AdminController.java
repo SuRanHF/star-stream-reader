@@ -18,7 +18,6 @@ import com.huazhenghai.readergame.websocket.WebSocketSessionManager;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -54,8 +53,6 @@ public class AdminController {
     private final PlayerResourceTransactionService resourceTransactionService;
     private final PlayerActionReceiptService actionReceiptService;
 
-    @Value("${admin.key:}")
-    private String adminKey;
 
     public AdminController(PlayerMapper playerMapper,
                            PlayerLogMapper playerLogMapper,
@@ -106,16 +103,12 @@ public class AdminController {
         if (user != null && "admin".equals(user.getRole())) {
             return user.getUsername() != null ? user.getUsername() : "admin";
         }
-        String key = request.getHeader("X-Admin-Key");
-        if (adminKey != null && adminKey.length() >= 8 && adminKey.equals(key)) {
-            return "admin-key";
-        }
         return null;
     }
 
     @SuppressWarnings("unchecked")
     private <T> Result<T> forbidden() {
-        return (Result<T>) Result.fail("FORBIDDEN", "需要管理员权限或有效的 ADMIN_KEY");
+        return (Result<T>) Result.fail("FORBIDDEN", "需要管理员权限");
     }
 
     // ─── 实时推送玩家更新 ───
@@ -548,7 +541,7 @@ public class AdminController {
         Map<String, Object> details = new LinkedHashMap<>();
         details.put("operator", admin);
         details.put("operatorUserId", user != null && "admin".equals(user.getRole()) ? user.getUserId() : null);
-        details.put("authMethod", "admin-key".equals(admin) ? "ADMIN_KEY" : "LOGIN_USER");
+        details.put("authMethod", "LOGIN_USER");
         details.put("playerId", playerId);
         details.put("reason", reason);
         details.put("requestKey", requestKey);
@@ -1001,7 +994,7 @@ public class AdminController {
         Map<String, Object> audit = new LinkedHashMap<>();
         audit.put("operator", admin);
         audit.put("operatorUserId", currentAdminUserId());
-        audit.put("authMethod", "admin-key".equals(admin) ? "ADMIN_KEY" : "LOGIN_USER");
+        audit.put("authMethod", "LOGIN_USER");
         audit.put("requirements", requirements);
         audit.put("statsChanges", diffMaps(statsBefore, stats));
         audit.put("stageProgressChanges", diffMaps(stageProgressBefore, stageProgress));

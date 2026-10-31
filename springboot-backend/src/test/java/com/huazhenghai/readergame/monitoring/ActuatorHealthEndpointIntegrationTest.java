@@ -77,7 +77,7 @@ class ActuatorHealthEndpointIntegrationTest {
         assertEquals(HttpStatus.OK, info.getStatusCode());
         assertNotNull(info.getBody());
         assertEquals("星流读者", info.getBody().path("app").path("name").asText());
-        assertEquals(HttpStatus.NOT_FOUND, env.getStatusCode());
+        assertEquals(HttpStatus.UNAUTHORIZED, env.getStatusCode());
     }
 
     private ResponseEntity<JsonNode> get(String path) {

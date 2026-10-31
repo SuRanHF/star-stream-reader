@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
+import { http } from '@/api/http';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import AdminLoginView from '@/views/AdminLoginView.vue';
 import BroadcastManageView from '@/views/BroadcastManageView.vue';
@@ -36,10 +37,25 @@ const router = createRouter({
   ],
 });
 
-router.beforeEach((to) => {
+let verifiedToken = '';
+
+router.beforeEach(async (to) => {
   const auth = useAuthStore();
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
     return '/login';
+  }
+  if (to.meta.requiresAuth && verifiedToken !== auth.token) {
+    try {
+      const me = await http.get('/auth/me') as unknown as { user: { role: string } };
+      if (me.user.role !== 'admin') {
+        auth.clearAuth();
+        return '/login';
+      }
+      verifiedToken = auth.token;
+    } catch {
+      auth.clearAuth();
+      return '/login';
+    }
   }
   if (to.path === '/login' && auth.isAuthenticated) {
     return '/dashboard';

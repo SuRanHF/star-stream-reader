@@ -27,12 +27,11 @@ public class JwtUtil {
 
     public JwtUtil(@Value("${app.jwt.secret}") String secret,
                    @Value("${app.jwt.expire-hours}") long expireHours) {
-        // 确保密钥长度 >= 256 bits (jjwt 0.12.x 要求)
-        String keyStr = secret;
-        if (keyStr.length() < 32) {
-            keyStr = String.format("%-32s", keyStr).replace(' ', '0');
+        byte[] secretBytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (secretBytes.length < 32) {
+            throw new IllegalArgumentException("JWT_SECRET must contain at least 32 UTF-8 bytes");
         }
-        this.secretKey = Keys.hmacShaKeyFor(keyStr.getBytes(StandardCharsets.UTF_8));
+        this.secretKey = Keys.hmacShaKeyFor(secretBytes);
         this.expireMs = expireHours * 3600_000L;
     }
 

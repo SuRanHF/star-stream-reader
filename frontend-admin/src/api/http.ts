@@ -27,7 +27,7 @@ http.interceptors.response.use(
     return response.data;
   },
   (error: AxiosError<{ error?: { message?: string } }>) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !error.config?.url?.endsWith('/auth/login')) {
       useAuthStore().clearAuth();
       window.location.assign((import.meta.env.BASE_URL || '/') + 'login');
     }

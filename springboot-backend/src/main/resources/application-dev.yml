@@ -21,10 +21,6 @@ spring:
     init:
       mode: never
 
-# 管理员配置
-admin:
-  key: ${ADMIN_KEY}
-
 app:
   cache:
     key-prefix: ${CACHE_KEY_PREFIX:star-reader:dev}

@@ -12,7 +12,6 @@ import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -28,8 +27,6 @@ public class AdminCrudController {
 
     private static final Logger log = LoggerFactory.getLogger(AdminCrudController.class);
 
-    @Value("${admin.key:}")
-    private String adminKey;
 
     private final ObjectMapper objectMapper;
     private final Map<String, CrudConfig> registry = new LinkedHashMap<>();
@@ -101,16 +98,12 @@ public class AdminCrudController {
         if (user != null && "admin".equals(user.getRole())) {
             return user.getUsername() != null ? user.getUsername() : "admin";
         }
-        String key = request.getHeader("X-Admin-Key");
-        if (adminKey != null && adminKey.length() >= 8 && adminKey.equals(key)) {
-            return "admin-key";
-        }
         return null;
     }
 
     @SuppressWarnings("unchecked")
     private <T> Result<T> forbidden() {
-        return (Result<T>) Result.fail("FORBIDDEN", "需要管理员权限或有效的 ADMIN_KEY");
+        return (Result<T>) Result.fail("FORBIDDEN", "需要管理员权限");
     }
 
     private CrudConfig requireConfig(String entity) {

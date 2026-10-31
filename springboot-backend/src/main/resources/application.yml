@@ -67,6 +67,8 @@ mybatis-plus:
 
 # ==================== 应用自定义配置 ====================
 app:
+  security:
+    allowed-origins: ${APP_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174,http://localhost:3173,http://localhost:3175}
   scheduler:
     # 调度引擎开关（默认开启）
     enabled: true

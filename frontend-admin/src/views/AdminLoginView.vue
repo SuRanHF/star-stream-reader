@@ -1,16 +1,42 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { http } from '@/api/http';
 import { useAuthStore } from '@/stores/authStore';
 
 const router = useRouter();
 const authStore = useAuthStore();
-const token = ref('');
-const adminName = ref('管理员');
+const usernameOrEmail = ref('');
+const password = ref('');
+const pending = ref(false);
+const errorMessage = ref('');
+
+type LoginResult = {
+  username: string;
+  role: string;
+  token: string;
+};
 
 async function submit() {
-  authStore.setToken(token.value.trim() || 'dev-admin-placeholder', adminName.value.trim() || '管理员');
-  await router.push('/dashboard');
+  if (pending.value) return;
+  errorMessage.value = '';
+  pending.value = true;
+  try {
+    const result = await http.post('/auth/login', {
+      usernameOrEmail: usernameOrEmail.value.trim(),
+      password: password.value,
+    }) as unknown as LoginResult;
+    if (result.role !== 'admin') {
+      errorMessage.value = '此账号没有管理员权限';
+      return;
+    }
+    authStore.setToken(result.token, result.username);
+    await router.push('/dashboard');
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '登录失败';
+  } finally {
+    pending.value = false;
+  }
 }
 </script>
 
@@ -21,13 +47,14 @@ async function submit() {
         <div class="login-title">灵界后台</div>
       </template>
       <el-form label-position="top" @submit.prevent="submit">
-        <el-form-item label="管理员名称">
-          <el-input v-model="adminName" placeholder="管理员" />
+        <el-form-item label="用户名或邮箱">
+          <el-input v-model="usernameOrEmail" autocomplete="username" placeholder="请输入管理员账号" />
         </el-form-item>
-        <el-form-item label="Token / 管理密钥占位">
-          <el-input v-model="token" type="password" show-password placeholder="本轮仅保留入口" />
+        <el-form-item label="密码">
+          <el-input v-model="password" type="password" show-password autocomplete="current-password" placeholder="请输入密码" />
         </el-form-item>
-        <el-button type="primary" class="w-full" @click="submit">进入后台</el-button>
+        <el-alert v-if="errorMessage" :title="errorMessage" type="error" :closable="false" class="mb-4" />
+        <el-button type="primary" class="w-full" native-type="submit" :loading="pending" :disabled="!usernameOrEmail.trim() || !password">登录后台</el-button>
       </el-form>
     </el-card>
   </main>

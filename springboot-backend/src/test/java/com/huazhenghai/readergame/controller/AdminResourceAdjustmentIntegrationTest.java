@@ -3,6 +3,9 @@ package com.huazhenghai.readergame.controller;
 import com.huazhenghai.readergame.common.BusinessException;
 import com.huazhenghai.readergame.entity.Player;
 import com.huazhenghai.readergame.mapper.PlayerMapper;
+import com.huazhenghai.readergame.security.LoginUser;
+import com.huazhenghai.readergame.security.LoginUserContext;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,20 +35,23 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         "spring.datasource.driver-class-name=org.h2.Driver",
         "spring.datasource.username=sa",
         "spring.datasource.password=",
-        "app.scheduler.enabled=false",
-        "admin.key=admin-resource-test-key"
+        "app.scheduler.enabled=false"
 }, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @ActiveProfiles("test")
 @Sql("/db/combat-persistence-test-schema.sql")
 class AdminResourceAdjustmentIntegrationTest {
     private static final long PLAYER_ID = 83001L;
     private static final long USER_ID = 93001L;
-    private static final String ADMIN_KEY = "admin-resource-test-key";
 
     @Autowired private AdminController adminController;
     @Autowired private PlayerMapper playerMapper;
     @Autowired private JdbcTemplate jdbcTemplate;
     @Autowired private DataSource dataSource;
+
+    @AfterEach
+    void clearAuthentication() {
+        LoginUserContext.clear();
+    }
 
     @BeforeEach
     void seedDisposableH2State() throws Exception {
@@ -277,9 +283,8 @@ class AdminResourceAdjustmentIntegrationTest {
     }
 
     private MockHttpServletRequest adminRequest() {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("X-Admin-Key", ADMIN_KEY);
-        return request;
+        LoginUserContext.set(new LoginUser(99001L, "h2-admin-resource-operator", "admin"));
+        return new MockHttpServletRequest();
     }
 
     private Map<String, Object> request(String requestKey, String reason, Map<String, Object> resources) {

@@ -4,52 +4,70 @@ import { useRealtimeStore } from '@/stores/realtimeStore';
 import { queryClient } from '@/query/queryClient';
 import type { ApiRecord } from '@/types/api';
 import type { RealtimeEvent, RealtimeHandler } from '@/types/realtime';
+import { http } from '@/api/http';
 
 class RealtimeClient {
   private socket: WebSocket | null = null;
   private token = '';
   private shouldReconnect = true;
   private reconnectTimer: number | null = null;
+  private connecting = false;
+  private generation = 0;
   private handlers = new Map<string, Set<RealtimeHandler>>();
 
-  connect(token: string) {
+  async connect(token: string) {
     this.token = token;
     this.shouldReconnect = true;
     this.clearReconnectTimer();
 
     if (!token) return;
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) return;
+    if (this.connecting || (this.socket && this.socket.readyState !== WebSocket.CLOSED)) return;
 
     const realtimeStore = useRealtimeStore();
     realtimeStore.setStatus('connecting');
+    this.connecting = true;
+    const generation = ++this.generation;
+    try {
+      const { ticket } = await http.post<unknown, { ticket: string }>('/auth/ws-ticket');
+      if (!this.shouldReconnect || this.token !== token || this.generation !== generation) return;
+      const base = import.meta.env.VITE_WS_BASE_URL || `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws/game`;
+      const url = `${base}?ticket=${encodeURIComponent(ticket)}`;
+      const socket = new WebSocket(url);
+      this.socket = socket;
 
-    const base = import.meta.env.VITE_WS_BASE_URL || `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws/game`;
-    const url = `${base}?token=${encodeURIComponent(token)}`;
-    this.socket = new WebSocket(url);
+      socket.onopen = () => {
+        useRealtimeStore().setStatus('connected');
+        void queryClient.invalidateQueries();
+      };
 
-    this.socket.onopen = () => {
-      useRealtimeStore().setStatus('connected');
-    };
+      socket.onmessage = (event) => {
+        this.handleMessage(event.data);
+      };
 
-    this.socket.onmessage = (event) => {
-      this.handleMessage(event.data);
-    };
+      socket.onerror = () => {
+        useRealtimeStore().setError('WebSocket 连接异常');
+      };
 
-    this.socket.onerror = () => {
-      useRealtimeStore().setError('WebSocket 连接异常');
-    };
-
-    this.socket.onclose = () => {
-      const store = useRealtimeStore();
-      store.setStatus(this.shouldReconnect ? 'reconnecting' : 'closed');
-      if (this.shouldReconnect) {
+      socket.onclose = () => {
+        if (this.socket !== socket) return;
+        this.socket = null;
+        const store = useRealtimeStore();
+        store.setStatus(this.shouldReconnect ? 'reconnecting' : 'closed');
+        if (this.shouldReconnect) this.scheduleReconnect();
+      };
+    } catch {
+      if (this.shouldReconnect && this.generation === generation) {
+        realtimeStore.setStatus('reconnecting');
         this.scheduleReconnect();
       }
-    };
+    } finally {
+      this.connecting = false;
+    }
   }
 
   disconnect() {
     this.shouldReconnect = false;
+    this.generation++;
     this.clearReconnectTimer();
     this.socket?.close();
     this.socket = null;

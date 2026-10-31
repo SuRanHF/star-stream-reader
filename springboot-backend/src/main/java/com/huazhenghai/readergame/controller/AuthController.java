@@ -10,6 +10,7 @@ import com.huazhenghai.readergame.security.LoginUserContext;
 import com.huazhenghai.readergame.service.AuthService;
 import com.huazhenghai.readergame.service.PlayerService;
 import com.huazhenghai.readergame.vo.PlayerVO;
+import com.huazhenghai.readergame.websocket.WebSocketTicketService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -28,10 +29,13 @@ public class AuthController {
 
     private final AuthService authService;
     private final PlayerService playerService;
+    private final WebSocketTicketService webSocketTicketService;
 
-    public AuthController(AuthService authService, PlayerService playerService) {
+    public AuthController(AuthService authService, PlayerService playerService,
+                          WebSocketTicketService webSocketTicketService) {
         this.authService = authService;
         this.playerService = playerService;
+        this.webSocketTicketService = webSocketTicketService;
     }
 
     /**
@@ -66,6 +70,14 @@ public class AuthController {
         Long userId = LoginUserContext.get().getUserId();
         MeResult result = authService.getMe(userId);
         return Result.ok(result);
+    }
+
+    @PostMapping("/ws-ticket")
+    @Operation(summary = "申请一次性 WebSocket 连接凭证")
+    public Result<java.util.Map<String, Object>> issueWebSocketTicket() {
+        String ticket = webSocketTicketService.issue(LoginUserContext.get());
+        return Result.ok(java.util.Map.of("ticket", ticket,
+                "expiresInSeconds", WebSocketTicketService.VALID_SECONDS));
     }
 
     /**

@@ -11,6 +11,9 @@ data/admin-actions.json
 # Local-only AI coding instructions and development plans
 /.claude/
 /CLAUDE.md
+/AGENTS.md
+/.mcp.json
+/.ai-collab/
 /PLAN-*.md
 /docs/*计划*.md
 

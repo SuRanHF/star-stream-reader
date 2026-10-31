@@ -7,7 +7,6 @@
     "unlock_conditions": {},
     "event_rates": {
       "story": 15,
-      "side_story": 5,
       "resource": 30,
       "opportunity": 15,
       "boss_clue": 10,
@@ -33,7 +32,6 @@
       "side_story": 10,
       "resource": 25,
       "opportunity": 15,
-      "boss_clue": 10,
       "battle_placeholder": 12,
           "empty": 25
     },
@@ -55,7 +53,6 @@
       "side_story": 10,
       "resource": 30,
       "opportunity": 20,
-      "boss_clue": 8,
       "battle_placeholder": 12,
           "empty": 20
     },
@@ -101,7 +98,6 @@
       "story": 15,
       "side_story": 10,
       "resource": 20,
-      "opportunity": 10,
       "boss_clue": 20,
       "hidden": 5,
       "battle_placeholder": 12,
@@ -125,7 +121,6 @@
       "side_story": 15,
       "resource": 20,
       "opportunity": 15,
-      "boss_clue": 8,
       "hidden": 10,
       "battle_placeholder": 12,
           "empty": 20
@@ -148,7 +143,6 @@
       "side_story": 5,
       "resource": 20,
       "opportunity": 10,
-      "boss_clue": 18,
       "hidden": 5,
       "battle_placeholder": 12,
           "empty": 27
@@ -171,9 +165,7 @@
       "story": 15,
       "side_story": 8,
       "resource": 25,
-      "opportunity": 10,
       "boss_clue": 17,
-      "hidden": 5,
       "battle_placeholder": 12,
           "empty": 20
     },
@@ -195,7 +187,6 @@
       "side_story": 10,
       "resource": 25,
       "opportunity": 10,
-      "boss_clue": 10,
       "hidden": 20,
       "battle_placeholder": 12,
           "empty": 20
@@ -219,10 +210,8 @@
       "side_story": 10,
       "resource": 20,
       "opportunity": 10,
-      "boss_clue": 20,
       "hidden": 5,
-      "battle_placeholder": 12,
-          "empty": 20
+      "battle_placeholder": 12
     },
     "min_level": 18,
     "danger_level": 8,
@@ -306,6 +295,9 @@
             }
           ]
         },
+        "unlock_events": [
+          "geumho_underground_story"
+        ],
         "title_bias": {
           "title_starstream_observed": 2
         }
@@ -328,7 +320,7 @@
     "event_key": "geumho_underground_story",
     "required_conditions": {
       "choice_unlockers": [
-        {"event_key": "geumho_shelter_story", "choice_indices": [1]}
+        {"event_key": "geumho_shelter_story", "choice_indices": [0, 1]}
       ]
     },
     "event_type": "story",
@@ -364,6 +356,9 @@
         },
         "unlock_locations": [
           "dongmyo"
+        ],
+        "unlock_events": [
+          "chungmuro_iron_king_story"
         ],
         "title_bias": {
           "title_information_broker": 1
@@ -504,7 +499,7 @@
     "event_key": "chungmuro_iron_king_story",
     "required_conditions": {
       "choice_unlockers": [
-        {"event_key": "geumho_underground_story", "choice_indices": [1]}
+        {"event_key": "geumho_underground_story", "choice_indices": [0, 1]}
       ]
     },
     "event_type": "story",

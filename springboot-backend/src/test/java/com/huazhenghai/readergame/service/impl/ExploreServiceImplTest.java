@@ -665,8 +665,8 @@ class ExploreServiceImplTest {
         JsonNode conditions = new ObjectMapper().readTree(gatedStory.getRequiredConditionsJson());
         assertEquals("geumho_shelter_story",
                 conditions.path("choice_unlockers").get(0).path("event_key").asText());
-        assertEquals(1,
-                conditions.path("choice_unlockers").get(0).path("choice_indices").get(0).asInt());
+        assertEquals(List.of(0, 1), new ObjectMapper().convertValue(
+                conditions.path("choice_unlockers").get(0).path("choice_indices"), List.class));
     }
 
     @Test

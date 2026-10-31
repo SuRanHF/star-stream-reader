@@ -15,19 +15,19 @@ VALUES
 ('ruined_station', '废弃车站',
  '地铁三号线的废墟。倒塌的天花板下散落着使用过的票根与干涸的血迹。故事开始的地方——也是无数条世界线的起点。',
  '{}',
- '{"story":15,"side_story":5,"resource":30,"opportunity":15,"boss_clue":10,"empty":25}',
+ '{"story":15,"resource":30,"opportunity":15,"boss_clue":10,"empty":25}',
  1, 2, 'F', 1),
 
 ('geumho_station', '金湖站',
  '第一个相对安全的避难所。幸存者们在这里建立了临时据点，微弱但持久的烛光照亮了黑暗的地下通道。',
  '{"required_level":3,"prerequisite_events":["station_first_trace"]}',
- '{"story":15,"side_story":10,"resource":25,"opportunity":15,"boss_clue":10,"empty":25}',
+ '{"story":15,"side_story":10,"resource":25,"opportunity":15,"empty":25}',
  3, 2, 'F', 0),
 
 ('dongmyo', '东庙',
  '幸存者自发形成的交易市场。用蜡烛照明的摊位上摆满了各种奇怪的商品——从食物到情报，从武器到旧世界的回忆。',
  '{"required_level":2}',
- '{"story":12,"side_story":10,"resource":30,"opportunity":20,"boss_clue":8,"empty":20}',
+ '{"story":12,"side_story":10,"resource":30,"opportunity":20,"empty":20}',
  2, 1, 'F', 0),
 
 ('chungmuro', '忠武路',
@@ -39,38 +39,38 @@ VALUES
 ('dongdaemun', '东大门',
  '站外盘踞着强大的恶灵"火焰巨人"。这里曾是首尔最繁华的商业区，现在是最危险的战场之一。',
  '{"required_level":8,"prerequisite_events_any":["chungmuro_tenkings_arrival","chungmuro_revelation_story"]}',
- '{"story":15,"side_story":10,"resource":20,"opportunity":10,"boss_clue":20,"hidden":5,"empty":20}',
+ '{"story":15,"side_story":10,"resource":20,"boss_clue":20,"hidden":5,"empty":20}',
  8, 6, 'E', 0),
 
 ('myeongdong', '明洞',
  '地下商业街隐藏着"星流图书馆"的入口。知识的回响在这里格外清晰——只要你愿意静静地听。',
  '{"required_level":6}',
- '{"story":12,"side_story":15,"resource":20,"opportunity":15,"boss_clue":8,"hidden":10,"empty":20}',
+ '{"story":12,"side_story":15,"resource":20,"opportunity":15,"hidden":10,"empty":20}',
  6, 3, 'E', 0),
 
 ('gwangjin_bridge', '广津大桥',
  '通往江南的必经之路。大桥上布满了陷阱和怪物，每一个裂缝中都可能藏着致命的剧本——或是救赎的契机。',
  '{"required_level":10}',
- '{"story":15,"side_story":5,"resource":20,"opportunity":10,"boss_clue":18,"hidden":5,"empty":27}',
+ '{"story":15,"side_story":5,"resource":20,"opportunity":10,"hidden":5,"empty":27}',
  10, 7, 'D', 0),
 
 ('gangnam_station', '江南站',
  '首尔最大的地下城入口。高等级的怪物和丰厚的奖励等待着勇敢的读者。但越深入黑暗，越容易迷失。',
  '{"required_level":12,"prerequisite_events_any":["gwangjin_bridge_crossing","gwangjin_bridge_trap_story"]}',
- '{"story":15,"side_story":8,"resource":25,"opportunity":10,"boss_clue":17,"hidden":5,"empty":20}',
+ '{"story":15,"side_story":8,"resource":25,"boss_clue":17,"empty":20}',
  12, 8, 'D', 0),
 
 ('seoul_forest', '首尔森林',
  '曾经的城市公园变成了魔物森林。传说有"世界树苗"隐藏其中——但到目前为止，所有寻找它的人都有去无回。',
  '{"required_level":15}',
- '{"story":5,"side_story":10,"resource":25,"opportunity":10,"boss_clue":10,"hidden":20,"empty":20}',
+ '{"story":5,"side_story":10,"resource":25,"opportunity":10,"hidden":20,"empty":20}',
  15, 9, 'C', 0),
 
 -- 第二卷·恶魔世界 ---
 ('demon_gate', '恶魔之门',
  '通往恶魔世界的次元裂缝。穿过这道门，将进入完全不同的异世界。72柱恶魔中的强者统治着这片土地。',
  '{"required_level":18,"prerequisite_events_any":["gangnam_entrance_discovery","gangnam_dungeon_gate_story"]}',
- '{"story":15,"side_story":10,"resource":20,"opportunity":10,"boss_clue":20,"hidden":5,"empty":20}',
+ '{"story":15,"side_story":10,"resource":20,"opportunity":10,"hidden":5}',
  18, 8, 'C', 0);
 
 
@@ -122,6 +122,7 @@ VALUES
      "label": ""星座？你是在说星流频道吗？"",
      "consequence_text": "李智慧的眼睛亮了起来。\"你知道星流？\"她压低声音。\"那就好办了。这里有很多人还不知道发生了什么。我需要帮手——有人得告诉他们真相。\"她递给你一张纸，上面画着星座的连接图。",
      "rewards_override": {"storyFragments":5,"channelHeat":25,"coins":30,"items":[{"itemKey":"constellation_chart","quantity":1,"dropRate":1.0}]},
+     "unlock_events": ["geumho_underground_story"],
      "title_bias": {"title_starstream_observed": 2}
    },
    {
@@ -145,6 +146,7 @@ VALUES
      "consequence_text": "男人接过碎片，在蜡烛下仔细端详。\"好东西。\"他递给你一张地铁路线图，上面标注了忠武路和东庙的位置。\"忠武路——那边有'十王'，不好惹。东庙——我哥们在那里开了个市场，报我的名字有折扣。\"",
      "rewards_override": {"storyFragments":-1,"coins":20,"items":[{"itemKey":"subway_map_fragment","quantity":1,"dropRate":1.0}]},
      "unlock_locations": ["dongmyo"],
+     "unlock_events": ["chungmuro_iron_king_story"],
      "title_bias": {"title_information_broker": 1}
    },
    {
@@ -1093,7 +1095,7 @@ UPDATE `exploration_events`
 SET `required_conditions_json` = JSON_SET(
     COALESCE(`required_conditions_json`, JSON_OBJECT()),
     '$.choice_unlockers', JSON_ARRAY(JSON_OBJECT(
-        'event_key', 'geumho_shelter_story', 'choice_indices', JSON_ARRAY(1)
+        'event_key', 'geumho_shelter_story', 'choice_indices', JSON_ARRAY(0, 1)
     ))
 )
 WHERE `event_key` = 'geumho_underground_story';
@@ -1102,7 +1104,7 @@ UPDATE `exploration_events`
 SET `required_conditions_json` = JSON_SET(
     COALESCE(`required_conditions_json`, JSON_OBJECT()),
     '$.choice_unlockers', JSON_ARRAY(JSON_OBJECT(
-        'event_key', 'geumho_underground_story', 'choice_indices', JSON_ARRAY(1)
+        'event_key', 'geumho_underground_story', 'choice_indices', JSON_ARRAY(0, 1)
     ))
 )
 WHERE `event_key` = 'chungmuro_iron_king_story';

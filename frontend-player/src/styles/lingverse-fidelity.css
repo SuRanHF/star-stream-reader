@@ -1676,3 +1676,11 @@ body::before {
 .lingverse-replica-shell .action-bar .ling-check.is-muted {
   opacity: 0.6;
 }
+
+/* 宽操作区：控件区按内容宽度、不被压缩（出现「继续剧情 / 继续遭遇」第三颗主按钮时不再与开关重叠）；
+   空间不够时由功能格让出（BottomNav 测宽收进「更多」）。 */
+@container lv-action (min-width: 601px) {
+  .lingverse-replica-shell .action-bar-controls {
+    flex: 0 0 auto;
+  }
+}

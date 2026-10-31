@@ -40,6 +40,12 @@
             <artifactId>spring-boot-starter-websocket</artifactId>
         </dependency>
 
+        <!-- Health, readiness/liveness probes, and application metadata -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!-- Redis cache with Boot-managed Lettuce client -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

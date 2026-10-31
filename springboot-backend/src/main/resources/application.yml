@@ -7,6 +7,31 @@ server:
       enabled: true
       force: true
 
+# 仅开放精简健康状态和非敏感应用信息；不暴露 env、beans、配置属性等管理端点。
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  info:
+    env:
+      enabled: true
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
+      probes:
+        enabled: true
+      group:
+        # Redis 只承载可降级缓存，不应阻止实例接收游戏请求。
+        readiness:
+          include: readinessState,db
+
+info:
+  app:
+    name: 星流读者
+    version: ${APP_VERSION:0.1.0}
+
 spring:
   # 默认激活 dev 环境, 生产环境通过 --spring.profiles.active=prod 覆盖
   profiles:

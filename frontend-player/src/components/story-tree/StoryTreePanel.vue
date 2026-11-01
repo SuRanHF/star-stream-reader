@@ -24,6 +24,47 @@ const treeQuery = useQuery({
 const tree = computed(() => treeQuery.data.value);
 // 页签：流程图 / 图鉴（图鉴只在切过去时才请求）。
 const activeTab = ref<'tree' | 'codex'>('tree');
+
+// 分享这条路：生成 7 天有效的快照链接并复制；可以撤销。
+const share = ref<{ url: string; expiresAt: string } | null>(null);
+const shareBusy = ref(false);
+const shareMessage = ref('');
+
+async function createShare() {
+  if (shareBusy.value || !playerId.value) return;
+  shareBusy.value = true;
+  shareMessage.value = '';
+  try {
+    const result = await exploreApi.createRouteShare(playerId.value);
+    const url = `${window.location.origin}/share/${encodeURIComponent(result.code)}`;
+    const expiresAt = new Date(result.expires_at).toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' });
+    share.value = { url, expiresAt };
+    try {
+      await navigator.clipboard.writeText(url);
+      shareMessage.value = `链接已复制，${expiresAt}前有效。`;
+    } catch {
+      shareMessage.value = `${expiresAt}前有效，请手动复制下面的链接。`;
+    }
+  } catch (error) {
+    shareMessage.value = error instanceof Error ? error.message : '生成分享失败';
+  } finally {
+    shareBusy.value = false;
+  }
+}
+
+async function revokeShare() {
+  if (shareBusy.value || !playerId.value) return;
+  shareBusy.value = true;
+  try {
+    await exploreApi.revokeRouteShare(playerId.value);
+    share.value = null;
+    shareMessage.value = '分享已撤销，原链接不再能打开。';
+  } catch (error) {
+    shareMessage.value = error instanceof Error ? error.message : '撤销失败';
+  } finally {
+    shareBusy.value = false;
+  }
+}
 const layout = computed(() => (tree.value ? layoutStoryTree(tree.value.nodes, tree.value.edges, tree.value.chapters) : null));
 
 const reachedStates = new Set(['done', 'pending_choice', 'tip']);
@@ -108,7 +149,14 @@ const routeStatsText = computed(() => {
     <div class="stp-tabs" role="tablist" aria-label="流程图与图鉴">
       <button type="button" role="tab" :aria-selected="activeTab === 'tree'" :class="['stp-tab', { active: activeTab === 'tree' }]" @click="activeTab = 'tree'">流程图</button>
       <button type="button" role="tab" :aria-selected="activeTab === 'codex'" :class="['stp-tab', { active: activeTab === 'codex' }]" @click="activeTab = 'codex'">图鉴</button>
+      <span class="stp-tabs-spacer"></span>
+      <button type="button" class="stp-share" :disabled="shareBusy" @click="createShare">分享这条路</button>
+      <button v-if="share" type="button" class="stp-share stp-share--revoke" :disabled="shareBusy" @click="revokeShare">撤销分享</button>
     </div>
+    <p v-if="shareMessage" class="stp-banner" role="status">
+      {{ shareMessage }}
+      <input v-if="share" class="stp-share-link" :value="share.url" readonly aria-label="分享链接" @focus="($event.target as HTMLInputElement).select()" />
+    </p>
 
     <RouteCodexView v-if="activeTab === 'codex'" :player-id="playerId" />
     <template v-else>
@@ -224,6 +272,42 @@ const routeStatsText = computed(() => {
   color: var(--color-muted);
   font-size: 13px;
   cursor: pointer;
+}
+
+.stp-tabs-spacer {
+  flex: 1 1 auto;
+}
+
+.stp-share {
+  align-self: center;
+  padding: 3px 10px;
+  border: 1px solid var(--color-star);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-star);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.stp-share--revoke {
+  border-color: var(--color-border);
+  color: var(--color-muted);
+}
+
+.stp-share:disabled {
+  opacity: 0.5;
+}
+
+.stp-share-link {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 3px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-text-dim);
+  font-size: 11px;
 }
 
 .stp-tab.active {

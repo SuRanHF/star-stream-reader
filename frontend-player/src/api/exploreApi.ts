@@ -189,6 +189,18 @@ export interface RouteCodex {
   total_tips: number;
 }
 
+// 分享路线：生成时的快照，7 天有效；公开页不含任何玩家身份信息。
+export interface RouteShareCode {
+  code: string;
+  expires_at: string;
+}
+
+export interface RouteShareSnapshot {
+  nodes: { node_id: string; title: string; chapter_label?: string | null }[];
+  choices: { node_id: string; choice_text: string; stats?: ChoiceStats | null }[];
+  current_tip: string | null;
+}
+
 export interface ExploreCostPreview {
   minStaminaCost: number;
   maxStaminaCost: number;
@@ -203,6 +215,15 @@ export const exploreApi = {
   },
   getStoryTree(playerId: number) {
     return http.get<unknown, StoryTree>(`/explore/story-tree/${playerId}`);
+  },
+  createRouteShare(playerId: number) {
+    return http.post<unknown, RouteShareCode>(`/explore/route-share/${playerId}`);
+  },
+  revokeRouteShare(playerId: number) {
+    return http.delete<unknown, unknown>(`/explore/route-share/${playerId}`);
+  },
+  getPublicRouteShare(code: string) {
+    return http.get<unknown, RouteShareSnapshot>(`/public/route-share/${encodeURIComponent(code)}`);
   },
   getRouteCodex(playerId: number) {
     return http.get<unknown, RouteCodex>(`/explore/route-codex/${playerId}`);

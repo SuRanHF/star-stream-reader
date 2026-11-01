@@ -9,6 +9,8 @@ const router = createRouter({
     { path: '/register', component: () => import('@/views/RegisterView.vue') },
     { path: '/create-player', component: () => import('@/views/CreatePlayerView.vue') },
     { path: '/game', component: () => import('@/views/GameView.vue'), meta: { requiresAuth: true } },
+    // 公开的分享路线卡：免登录
+    { path: '/share/:code', component: () => import('@/views/RouteShareView.vue') },
   ],
 });
 

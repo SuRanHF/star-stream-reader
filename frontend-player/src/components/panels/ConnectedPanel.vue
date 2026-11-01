@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router';
 import { bountyApi } from '@/api/bountyApi';
 import { chatApi } from '@/api/chatApi';
 import EndingArchivePanel from '@/components/panels/EndingArchivePanel.vue';
+import TitleSacrificePicker from '@/components/player/TitleSacrificePicker.vue';
 import { dataPanelFor, loadConnectedPanelData } from '@/components/panels/connectedPanelData';
 import { equipmentApi } from '@/api/equipmentApi';
 import { factionApi } from '@/api/factionApi';
@@ -53,7 +54,7 @@ import { filterQuestItems } from '@/utils/questFilter';
 import { questDependencyHint } from '@/utils/questDependencyHint';
 import { buildStoryRecapEntries, hasStoryRecapLoadError } from '@/utils/storyRecap';
 import { buildEndingArchiveEntries } from '@/utils/endingArchive';
-import { summarizeTitleEffects } from '@/utils/titleEffects';
+import { reacquireText, sacrificableTitles, summarizeTitleEffects } from '@/utils/titleEffects';
 import { WORLDLINE_HISTORY_DESCRIPTION, worldlineCauseDisplay } from '@/utils/worldlineDisplay';
 import {
   asArray,
@@ -1624,6 +1625,7 @@ async function submitGift() {
 
 function titleActions(entry: ApiRecord): PanelAction[] {
   const titleKey = pickText(entry, ['titleKey', 'title_key', 'key'], '');
+  if (entry.owned === false) return [];
   return [{ label: '装备', disabled: !titleKey, onClick: () => runAction('装备称号', `装备称号 ${pickText(entry, ['titleName', 'name', 'titleKey'], titleKey)}？`, () => titleApi.equip(playerId.value, titleKey)) }];
 }
 
@@ -1690,18 +1692,39 @@ function worldBossParticipationActions(entry: ApiRecord): PanelAction[] {
   return [{ label: '领奖', disabled: !bossNo, onClick: () => runAction('领取奖励', `领取 ${pickText(entry, ['bossName', 'bossNo'], bossNo)} 奖励？`, () => worldBossApi.claim(playerId.value, bossNo)) }];
 }
 
+// 援救他人时可献祭自己的一个称号：先在选择弹窗里选称号，再由确认框写明会失去什么（第二次确认）。
+const sacrificeRescue = ref<{ id: number; name: string } | null>(null);
+
+function onRescueTitlePicked(titleKey: string, titleName: string, lossText: string) {
+  const target = sacrificeRescue.value;
+  sacrificeRescue.value = null;
+  if (!target) return;
+  void runAction('援救化身', `献祭「${titleName}」援救 ${target.name}？称号会永久失去。${lossText}`, () =>
+    playerApi.peerRevive(playerId.value, target.id, 'title', titleKey));
+}
+
 function underworldActions(entry: ApiRecord): PanelAction[] {
   const targetId = Number(pick(entry, ['id', 'playerId', 'player_id']));
   const isSelf = targetId === playerId.value;
-  return [
+  const targetName = pickText(entry, ['player_name', 'playerName', 'name'], '该化身');
+  const actions: PanelAction[] = [
     {
       label: isSelf ? '自我复活' : '援救',
       disabled: !targetId,
-      onClick: () => runAction(isSelf ? '自我复活' : '援救化身', isSelf ? '消耗资源从冥界归来？' : `援救 ${pickText(entry, ['player_name', 'playerName', 'name'], '该化身')}？`, () =>
+      onClick: () => runAction(isSelf ? '自我复活' : '援救化身', isSelf ? '消耗资源从冥界归来？' : `援救 ${targetName}？`, () =>
         isSelf ? playerApi.revive(playerId.value) : playerApi.peerRevive(playerId.value, targetId),
       ),
     },
   ];
+  if (!isSelf) {
+    actions.push({
+      label: '献祭称号援救',
+      danger: true,
+      disabled: !targetId || !sacrificableTitles(gameStore.titles).length,
+      onClick: () => { sacrificeRescue.value = { id: targetId, name: targetName }; },
+    });
+  }
+  return actions;
 }
 
 
@@ -2600,6 +2623,7 @@ onBeforeUnmount(() => {
             <span v-for="text in summarizeTitleEffects(entry)!.inactive" :key="text" class="is-inactive">{{ text }}（未生效）</span>
             <small v-if="summarizeTitleEffects(entry)!.scope === 'equipped'">佩戴后生效</small>
           </p>
+          <p v-if="reacquireText(entry)" class="ling-title-reacquire">{{ reacquireText(entry) }}</p>
           <div class="ling-encyclopedia-meta"><span v-if="pick(entry, ['source'])">来源 {{ pickText(entry, ['source'], '未知') }}</span><span v-if="pick(entry, ['rarity', 'tier'])">品质 {{ pickText(entry, ['rarity', 'tier'], '—') }}</span><span v-if="pick(entry, ['status'])">{{ pickText(entry, ['status'], '已记录') }}</span></div>
           <div class="ling-encyclopedia-actions"><button v-for="action in titleActions(entry)" :key="action.label" type="button" :disabled="action.disabled || Boolean(actionBusy)" @click="action.onClick">{{ actionBusy === action.label ? '处理中' : action.label }}</button></div>
         </article>
@@ -3124,5 +3148,12 @@ onBeforeUnmount(() => {
       </div>
     </div>
     </div>
+    <TitleSacrificePicker
+      :visible="Boolean(sacrificeRescue)"
+      :titles="gameStore.titles"
+      :target-name="sacrificeRescue?.name || ''"
+      @pick="onRescueTitlePicked"
+      @close="sacrificeRescue = null"
+    />
   </section>
 </template>

@@ -4822,6 +4822,7 @@ a:focus-visible {
 .ling-title-effects .is-inactive { color: var(--color-muted); }
 .ling-title-effects .is-inactive { text-decoration: line-through; }
 .ling-title-effects small { color: var(--color-muted); }
+.ling-title-reacquire { margin: 0; color: var(--color-danger); font-size: 12px; }
 .ling-encyclopedia-meta span { max-width: 100%; overflow: hidden; padding: 2px 6px; border: 1px solid var(--color-border); border-radius: var(--radius-pill); color: var(--color-text-dim); font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
 .ling-encyclopedia-actions { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
 .ling-encyclopedia-actions button { min-height: 24px; padding: 2px 8px; border: 1px solid var(--color-star-border); border-radius: var(--radius-sm); background: var(--color-star-bg); color: var(--color-star-bright); font-size: 9px; }

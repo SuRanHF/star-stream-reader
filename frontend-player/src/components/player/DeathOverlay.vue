@@ -4,7 +4,7 @@ import { playerApi } from '@/api/playerApi';
 import { gameApi } from '@/api/gameApi';
 import { useGameStore } from '@/stores/gameStore';
 import { useUiStore } from '@/stores/uiStore';
-import { sacrificeLossText, summarizeTitleEffects } from '@/utils/titleEffects';
+import { sacrificableTitles, sacrificeLossText, summarizeTitleEffects } from '@/utils/titleEffects';
 
 const gameStore = useGameStore();
 const uiStore = useUiStore();
@@ -22,7 +22,7 @@ const coins = computed(() => Number(gameStore.player?.coins || 0));
 const canAfford = computed(() => coins.value >= reviveCost.value);
 
 // 献祭称号：从已拥有的称号里选一个，永久失去；需要再点一次确认（遮罩层级高于通用确认框）。
-const ownedTitles = computed(() => (gameStore.titles || [])
+const ownedTitles = computed(() => sacrificableTitles(gameStore.titles)
   .map((entry) => ({
     key: String(entry.titleKey || entry.title_key || ''),
     name: String(entry.name || entry.titleName || entry.titleKey || ''),

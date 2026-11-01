@@ -35,3 +35,27 @@ describe('称号效果展示', () => {
     expect(sacrificeLossText(null)).toBe('');
   });
 });
+
+describe('献祭筛选与重获状态', () => {
+  it('只列仍拥有且可献祭的称号；旧数据没有这些字段时视为可献祭', async () => {
+    const { sacrificableTitles } = await import('@/utils/titleEffects');
+    const keys = sacrificableTitles([
+      { titleKey: 'a' },
+      { titleKey: 'b', owned: false, sacrificed: true, canSacrifice: false },
+      { titleKey: 'c', owned: true, reacquired: true, canSacrifice: false },
+      { titleKey: 'd', owned: true, canSacrifice: true },
+    ]).map((entry) => entry.titleKey);
+    expect(keys).toEqual(['a', 'd']);
+  });
+
+  it('重获文案：冷却中、进行中、不可重获、已重获', async () => {
+    const { reacquireText } = await import('@/utils/titleEffects');
+    expect(reacquireText({ sacrificed: true, reacquireTarget: 30, reacquireDaysRemaining: 3 }))
+      .toBe('已献祭 · 3 天后开始重获（需新探索 30 次）');
+    expect(reacquireText({ sacrificed: true, reacquireTarget: 30, reacquireProgress: 12, reacquireDaysRemaining: 0 }))
+      .toBe('已献祭 · 重获进度 12 / 30');
+    expect(reacquireText({ sacrificed: true, reacquireTarget: 0 })).toBe('已献祭 · 不可重获');
+    expect(reacquireText({ owned: true, reacquired: true })).toBe('已重获 · 不可再献祭');
+    expect(reacquireText({ owned: true })).toBe('');
+  });
+});

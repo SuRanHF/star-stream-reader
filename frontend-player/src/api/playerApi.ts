@@ -30,9 +30,10 @@ export const playerApi = {
     return withStableActionRequest(`player:revive:${playerId}:${method}:${titleKey || ''}`, (requestKey) =>
       http.post<unknown, ApiRecord>('/player/revive', { playerId, method, titleKey, requestKey }));
   },
-  peerRevive(reviverId: number, targetId: number, method = 'coins') {
-    return withStableActionRequest(`player:peer-revive:${reviverId}:${targetId}:${method}`, (requestKey) =>
-      http.post<unknown, ApiRecord>('/player/peer-revive', { reviverId, targetId, method, requestKey }));
+  // 援救时献祭的是援救者自己的称号。
+  peerRevive(reviverId: number, targetId: number, method = 'coins', titleKey?: string) {
+    return withStableActionRequest(`player:peer-revive:${reviverId}:${targetId}:${method}:${titleKey || ''}`, (requestKey) =>
+      http.post<unknown, ApiRecord>('/player/peer-revive', { reviverId, targetId, method, titleKey, requestKey }));
   },
   getConstellations() {
     return http.get<unknown, ApiRecord>('/player/constellations');

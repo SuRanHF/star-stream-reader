@@ -72,3 +72,22 @@ export function sacrificeLossText(summary: TitleEffectSummary | null): string {
   if (!summary.active.length) return '它没有正在生效的效果。';
   return `将失去：${summary.active.join(' · ')}`;
 }
+
+// 可献祭的称号：服务端给了 canSacrifice / owned 就按它们（已献祭、已重获的不能献祭）；旧数据视为可献祭。
+export function sacrificableTitles(titles: ApiRecord[] | null | undefined): ApiRecord[] {
+  return (titles || []).filter((entry) => entry.owned !== false && entry.canSacrifice !== false
+    && Boolean(entry.titleKey || entry.title_key));
+}
+
+// 已献祭称号的重获状态（白天第 1 轮结论 B）：只有计数型称号可重获一次，冷却 7 天后按新增探索计数。
+export function reacquireText(entry: ApiRecord | null | undefined): string {
+  if (!entry) return '';
+  if (entry.reacquired === true) return '已重获 · 不可再献祭';
+  if (entry.sacrificed !== true) return '';
+  const target = Number(entry.reacquireTarget || 0);
+  if (!target) return '已献祭 · 不可重获';
+  const days = Number(entry.reacquireDaysRemaining || 0);
+  if (days > 0) return `已献祭 · ${days} 天后开始重获（需新探索 ${target} 次）`;
+  const progress = Math.min(target, Number(entry.reacquireProgress || 0));
+  return `已献祭 · 重获进度 ${progress} / ${target}`;
+}

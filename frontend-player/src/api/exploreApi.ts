@@ -172,6 +172,23 @@ export interface TracePreview {
   extra_max: number;
 }
 
+// 路线图鉴（契约「路线图鉴与分享路线」v1）：未到达的枝尖只有不透明 tip_id 与占比，不含标题、枝、章节。
+export interface RouteCodexTip {
+  tip_id: string;
+  reached: boolean;
+  branch?: string | null;
+  title?: string | null;
+  chapter_label?: string | null;
+  stats?: ChoiceStats | null;
+}
+
+export interface RouteCodex {
+  growth: number;
+  tips: RouteCodexTip[];
+  my_tip_id: string | null;
+  total_tips: number;
+}
+
 export interface ExploreCostPreview {
   minStaminaCost: number;
   maxStaminaCost: number;
@@ -186,6 +203,9 @@ export const exploreApi = {
   },
   getStoryTree(playerId: number) {
     return http.get<unknown, StoryTree>(`/explore/story-tree/${playerId}`);
+  },
+  getRouteCodex(playerId: number) {
+    return http.get<unknown, RouteCodex>(`/explore/route-codex/${playerId}`);
   },
   getLocations(playerId: number) {
     return http.get<unknown, ApiRecord>(`/explore/locations/${playerId}`);

@@ -3,6 +3,7 @@ import { computed, nextTick, ref, watch } from 'vue';
 import { useQuery } from '@tanstack/vue-query';
 import { exploreApi, type ChoiceStats, type StoryTreeEdge, type StoryTreeNode } from '@/api/exploreApi';
 import { useGameStore } from '@/stores/gameStore';
+import RouteCodexView from '@/components/story-tree/RouteCodexView.vue';
 import { JUNCTION_OFFSET, LABEL_LINE_HEIGHT, layoutStoryTree, NODE_HEIGHT, NODE_WIDTH } from '@/utils/storyTreeLayout';
 
 // 剧情流程图：数据与节点状态全部来自服务端（不剧透：未到达的节点没有标题），这里只负责画。
@@ -21,6 +22,8 @@ const treeQuery = useQuery({
 });
 
 const tree = computed(() => treeQuery.data.value);
+// 页签：流程图 / 图鉴（图鉴只在切过去时才请求）。
+const activeTab = ref<'tree' | 'codex'>('tree');
 const layout = computed(() => (tree.value ? layoutStoryTree(tree.value.nodes, tree.value.edges, tree.value.chapters) : null));
 
 const reachedStates = new Set(['done', 'pending_choice', 'tip']);
@@ -102,6 +105,14 @@ const routeStatsText = computed(() => {
       <button class="stp-close gc-panel-close" aria-label="关闭流程图" @click="emit('close-panel')">×</button>
     </header>
 
+    <div class="stp-tabs" role="tablist" aria-label="流程图与图鉴">
+      <button type="button" role="tab" :aria-selected="activeTab === 'tree'" :class="['stp-tab', { active: activeTab === 'tree' }]" @click="activeTab = 'tree'">流程图</button>
+      <button type="button" role="tab" :aria-selected="activeTab === 'codex'" :class="['stp-tab', { active: activeTab === 'codex' }]" @click="activeTab = 'codex'">图鉴</button>
+    </div>
+
+    <RouteCodexView v-if="activeTab === 'codex'" :player-id="playerId" />
+    <template v-else>
+
     <p v-if="isPending" class="stp-banner stp-banner--pending" role="status">◇ 你的主线停在「待续」。这棵树会在之后的更新里继续生长。</p>
     <p v-if="routeStatsText" class="stp-banner">{{ routeStatsText }}</p>
 
@@ -172,6 +183,7 @@ const routeStatsText = computed(() => {
       </svg>
     </div>
     <div v-else class="stp-empty">还没有可以显示的剧情。</div>
+    </template>
   </div>
 </template>
 
@@ -196,6 +208,28 @@ const routeStatsText = computed(() => {
   position: absolute;
   top: 0;
   right: 0;
+}
+
+.stp-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.stp-tab {
+  padding: 6px 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.stp-tab.active {
+  border-bottom-color: var(--color-star);
+  color: var(--color-star);
+  font-weight: 600;
 }
 
 .stp-banner {

@@ -654,6 +654,8 @@ class ExploreServiceImplTest {
         assertEquals("to_be_continued", ((Map<?, ?>) choice.get("route_continuation")).get("status"));
         assertEquals("route_finale", ((Map<?, ?>) choice.get("route_continuation")).get("event_key"));
         assertTrue(new ObjectMapper().readTree(player.getStageProgressJson()).path("routePending").asBoolean());
+        assertEquals("route_finale", new ObjectMapper().readTree(player.getStageProgressJson())
+                .path("routeReachedTipKeys").get(0).asText());
 
         Location location = new Location();
         location.setLocationKey("test_station");
@@ -757,6 +759,7 @@ class ExploreServiceImplTest {
         JsonNode progress = new ObjectMapper().readTree(player.getStageProgressJson());
         assertFalse(progress.has("routePending"));
         assertFalse(progress.has("routePendingEventKey"));
+        assertEquals("my_tip", progress.path("routeReachedTipKeys").get(0).asText());
 
         Map<String, Object> nextProgress = new ObjectMapper().readValue(
                 player.getStageProgressJson(), new com.fasterxml.jackson.core.type.TypeReference<>() {});
@@ -771,6 +774,7 @@ class ExploreServiceImplTest {
         JsonNode nextSaved = new ObjectMapper().readTree(player.getStageProgressJson());
         assertTrue(nextSaved.path("routePending").asBoolean());
         assertEquals("next_tip", nextSaved.path("routePendingEventKey").asText());
+        assertEquals("next_tip", nextSaved.path("routeReachedTipKeys").get(2).asText());
     }
 
     private ExplorationEvent storyContinuation(String key, String predecessor, boolean pending) {

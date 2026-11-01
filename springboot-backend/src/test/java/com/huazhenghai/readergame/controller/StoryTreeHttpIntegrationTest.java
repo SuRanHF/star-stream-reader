@@ -134,6 +134,93 @@ class StoryTreeHttpIntegrationTest {
     }
 
     @Test
+    void routeCodexHidesUnreachedTipsAndRequiresOwner() throws Exception {
+        mvc.perform(get("/api/explore/route-codex/1"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/explore/route-codex/1").header("Authorization", token(2)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("FORBIDDEN"));
+        JsonNode codex = fetchCodex(1);
+        assertEquals(2, codex.path("growth").asInt());
+        assertEquals(8, codex.path("total_tips").asInt());
+        assertTrue(codex.path("my_tip_id").isNull());
+        List<String> treeIds = new java.util.ArrayList<>();
+        for (JsonNode node : fetch(1).path("nodes")) treeIds.add(node.path("node_id").asText());
+        for (JsonNode tip : codex.path("tips")) {
+            assertTrue(treeIds.contains(tip.path("tip_id").asText()));
+            assertFalse(tip.path("reached").asBoolean());
+            for (String hidden : List.of("title", "branch", "chapter_label", "event_key", "location_name"))
+                assertFalse(tip.has(hidden), hidden);
+            assertTrue(tip.path("stats").isNull());
+        }
+    }
+
+    @Test
+    void formerTipStillCountsAfterTreeGrowthAndNewTipKeepsCurrentMarker() throws Exception {
+        String oldTip = "chungmuro_conspiracy_story";
+        String newTip = "chungmuro_power_fork";
+        jdbc.update("UPDATE players SET decision_history_json=?,stage_progress_json=? WHERE id=1",
+                encoded(List.of(choice("station_first_trace", 0), legacyChoice(oldTip, 0),
+                        choice("chungmuro_council_audit", 0), choice(newTip, 1))),
+                encoded(Map.of("routePending", true, "routePendingEventKey", newTip)));
+        JsonNode codex = fetchCodex(1);
+        JsonNode tree = fetch(1);
+        String oldId = findByEvent(tree, oldTip).path("node_id").asText();
+        String newId = findByEvent(tree, newTip).path("node_id").asText();
+        assertTrue(tipById(codex, oldId).path("reached").asBoolean());
+        assertTrue(tipById(codex, newId).path("reached").asBoolean());
+        assertTrue(tipById(codex, oldId).hasNonNull("title"));
+        assertEquals("companion", tipById(codex, oldId).path("branch").asText());
+        assertEquals("第四章", tipById(codex, newId).path("chapter_label").asText());
+        assertEquals(newId, codex.path("my_tip_id").asText());
+        jdbc.update("UPDATE players SET stage_progress_json=? WHERE id=1",
+                "{\"routeReachedTipKeys\":[\"chungmuro_power_fork\"]}");
+        JsonNode continued = fetchCodex(1);
+        assertTrue(tipById(continued, oldId).path("reached").asBoolean());
+        assertTrue(tipById(continued, newId).path("reached").asBoolean());
+        assertTrue(continued.path("my_tip_id").isNull());
+    }
+
+    @Test
+    void passingFormerTipAfterGrowthDoesNotCountAsStoppingThere() throws Exception {
+        jdbc.update("UPDATE players SET decision_history_json=?,stage_progress_json=? WHERE id=1",
+                encoded(List.of(choice("station_first_trace", 0), Map.of(
+                        "event_key", "chungmuro_conspiracy_story", "choice_index", 0,
+                        "timestamp", "2026-11-01T05:00:00"))), "{}");
+        JsonNode codex = fetchCodex(1);
+        for (JsonNode tip : codex.path("tips")) assertFalse(tip.path("reached").asBoolean());
+    }
+
+    @Test
+    void codexRateUsesCumulativeReachAndTwentyEligiblePlayerThreshold() throws Exception {
+        String oldTip = "chungmuro_conspiracy_story";
+        jdbc.update("UPDATE players SET decision_history_json=?,stage_progress_json=? WHERE id=1",
+                encoded(List.of(choice("station_first_trace", 0), legacyChoice(oldTip, 0))), "{}");
+        for (int i = 2; i <= 19; i++) {
+            insertUser(i, "player");
+            insertPlayer(i, i, encoded(i <= 10
+                    ? List.of(choice("station_first_trace", 0), legacyChoice(oldTip, 0))
+                    : List.of(choice("station_first_trace", 1))), "{}", 1);
+        }
+        insertUser(30, "admin");
+        insertPlayer(30, 30, encoded(List.of(choice("station_first_trace", 0), legacyChoice(oldTip, 0))), "{}", 1);
+        JsonNode below = fetchCodex(1);
+        for (JsonNode tip : below.path("tips")) assertTrue(tip.path("stats").isNull());
+        insertUser(20, "player");
+        insertPlayer(20, 20, encoded(List.of(choice("station_first_trace", 1))), "{}", 1);
+        JsonNode atThreshold = fetchCodex(1);
+        JsonNode old = null;
+        for (JsonNode tip : atThreshold.path("tips"))
+            if ("companion".equals(tip.path("branch").asText())
+                    && "第三章".equals(tip.path("chapter_label").asText())
+                    && tip.path("reached").asBoolean()) { old = tip; break; }
+        assertNotNull(old);
+        assertEquals(50, old.path("stats").path("percent").asInt());
+        assertEquals("20+", old.path("stats").path("sample_band").asText());
+        assertFalse(old.path("stats").has("sample"));
+    }
+
+    @Test
     void advertisedRootCanBeDrawnByTheRealExplorationService() throws Exception {
         JsonNode tree = fetch(1);
         assertEquals("available", node(tree, "root", "vol1_ch1").path("state").asText());
@@ -299,6 +386,8 @@ class StoryTreeHttpIntegrationTest {
         assertTrue(data.path("edges").findValues("stats").stream()
                 .anyMatch(s -> "20+".equals(s.path("sample_band").asText())));
         fetch(1);
+        assertEquals("20+", fetchCodex(1).path("tips").get(0)
+                .path("stats").path("sample_band").asText());
         verify(values, times(1)).get(anyString());
     }
 
@@ -504,12 +593,31 @@ class StoryTreeHttpIntegrationTest {
         return wrapper.path("data");
     }
 
+    private JsonNode fetchCodex(long userId) throws Exception {
+        String body = mvc.perform(get("/api/explore/route-codex/1")
+                        .header("Authorization", token(userId)))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        JsonNode wrapper = json.readTree(body);
+        assertTrue(wrapper.path("success").asBoolean());
+        return wrapper.path("data");
+    }
+
+    private JsonNode tipById(JsonNode codex, String id) {
+        for (JsonNode tip : codex.path("tips")) if (id.equals(tip.path("tip_id").asText())) return tip;
+        fail("Tip not found: " + id); return null;
+    }
+
     private String token(long userId) {
         return "Bearer " + jwt.generateToken(userId, "tree-" + userId, "player");
     }
 
     private Map<String, Object> choice(String event, int index) {
         return Map.of("event_key", event, "choice_index", index);
+    }
+
+    private Map<String, Object> legacyChoice(String event, int index) {
+        return Map.of("event_key", event, "choice_index", index,
+                "timestamp", "2026-10-31T23:00:00");
     }
 
     private String encoded(Object value) throws Exception { return value == null ? null : json.writeValueAsString(value); }

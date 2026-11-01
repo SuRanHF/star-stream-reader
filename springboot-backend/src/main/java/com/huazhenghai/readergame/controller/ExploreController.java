@@ -59,6 +59,12 @@ public class ExploreController {
         return Result.ok(storyTreeService.getStoryTree(requireOwnedPlayer(playerId)));
     }
 
+    @GetMapping("/route-codex/{playerId}")
+    @Operation(summary = "获取本人路线图鉴与累计到过率")
+    public Result<Map<String, Object>> getRouteCodex(@PathVariable Long playerId) {
+        return Result.ok(storyTreeService.getRouteCodex(requireOwnedPlayer(playerId)));
+    }
+
     @GetMapping("/locations/{playerId}")
     @Operation(summary = "获取玩家可探索地点列表 (含故事耗尽状态)")
     public Result<Map<String, Object>> getLocations(@PathVariable Long playerId) {

@@ -10,6 +10,7 @@ import com.huazhenghai.readergame.entity.Player;
 import com.huazhenghai.readergame.mapper.ExplorationEventMapper;
 import com.huazhenghai.readergame.mapper.LocationMapper;
 import com.huazhenghai.readergame.mapper.PlayerMapper;
+import com.huazhenghai.readergame.mapper.PlayerMapper.PlayerRouteSnapshot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -160,6 +161,51 @@ public class StoryTreeService {
         return result;
     }
 
+    public Map<String, Object> getRouteCodex(Player player) {
+        List<ExplorationEvent> all = eventMapper.selectList(new QueryWrapper<ExplorationEvent>()
+                .eq("event_type", "story").eq("enabled", 1));
+        Map<String, ExplorationEvent> byKey = new LinkedHashMap<>();
+        Map<String, Map<String, Object>> conditions = new HashMap<>();
+        for (ExplorationEvent event : all) {
+            Map<String, Object> condition = map(event.getRequiredConditionsJson());
+            if (!temporarilyPaused(condition)) {
+                byKey.put(event.getEventKey(), event);
+                conditions.put(event.getEventKey(), condition);
+            }
+        }
+        Map<String, Set<Integer>> candidates = RouteCodexPolicy.tips(byKey, json);
+        Map<String, Object> progress = map(player.getStageProgressJson());
+        List<?> decisions = list(player.getDecisionHistoryJson());
+        Set<String> reached = RouteCodexPolicy.reached(progress, decisions, candidates);
+        Aggregate aggregate = aggregate(all, byKey);
+        String current = RouteContinuationPolicy.isPending(progress)
+                && progress.get("routePendingEventKey") instanceof String key && candidates.containsKey(key)
+                ? nodeId(key) : null;
+        List<Map<String, Object>> tips = new ArrayList<>();
+        int sample = aggregate.codexEligible();
+        for (String key : candidates.keySet()) {
+            ExplorationEvent event = byKey.get(key);
+            boolean seen = reached.contains(key);
+            Map<String, Object> tip = new LinkedHashMap<>();
+            tip.put("tip_id", nodeId(key));
+            tip.put("reached", seen);
+            if (seen) {
+                tip.put("branch", branch(key, conditions, new HashSet<>()));
+                tip.put("title", event.getName());
+                tip.put("chapter_label", chapterLabel(event.getStageKey()));
+            }
+            Map<String, Object> tipStats = stat(sample, aggregate.codexTipCounts().getOrDefault(key, 0));
+            tip.put("stats", tipStats == null ? NullNode.getInstance() : tipStats);
+            tips.add(tip);
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("growth", RouteCodexPolicy.growth());
+        result.put("tips", tips);
+        result.put("my_tip_id", current == null ? NullNode.getInstance() : current);
+        result.put("total_tips", tips.size());
+        return result;
+    }
+
     private boolean lowerStoriesBlock(Location location, List<ExplorationEvent> all,
             Map<String, Location> locations, Map<String, Map<String, Object>> conditions,
             List<String> triggered, List<?> decisions, Map<String, Object> progress,
@@ -251,7 +297,7 @@ public class StoryTreeService {
     }
 
     private Aggregate aggregate(List<ExplorationEvent> all, Map<String, ExplorationEvent> events) {
-        String cacheKey = cachePrefix + ":cache:v2:story-tree-stats:" + contentVersion(all);
+        String cacheKey = cachePrefix + ":cache:v3:story-tree-stats:" + contentVersion(all);
         int redisAccess = redisAccessMode();
         boolean readFailed = false;
         try {
@@ -270,11 +316,14 @@ public class StoryTreeService {
             Map<String, Integer> choices = new HashMap<>();
             Map<Integer, Integer> routeDenominators = new HashMap<>();
             Map<String, Integer> routes = new HashMap<>();
+            Map<String, Integer> codexTipCounts = new HashMap<>();
+            int codexEligible = 0;
             Map<String, Map<String, Object>> conditions = conditionsFor(events);
             Set<String> forks = criticalSources(events, conditions);
-            List<String> histories = playerMapper.selectPlayerDecisionHistoriesForStoryTree();
-            if (histories != null) for (String history : histories) {
-                List<?> decisions = list(history);
+            Map<String, Set<Integer>> tipCandidates = RouteCodexPolicy.tips(events, json);
+            List<PlayerRouteSnapshot> histories = playerMapper.selectPlayerRoutesForStoryTree();
+            if (histories != null) for (PlayerRouteSnapshot history : histories) {
+                List<?> decisions = list(history.getDecisionHistoryJson());
                 Set<String> counted = new HashSet<>();
                 for (Object value : decisions) {
                     if (!(value instanceof Map<?, ?> decision)) continue;
@@ -289,8 +338,16 @@ public class StoryTreeService {
                     routeDenominators.merge(route.size(), 1, Integer::sum);
                     routes.merge(routeKey(route), 1, Integer::sum);
                 }
+                // The first route fork is station_first_trace. Count each eligible character once.
+                if (counted.contains("station_first_trace")) {
+                    codexEligible++;
+                    Set<String> reached = RouteCodexPolicy.reached(
+                            map(history.getStageProgressJson()), decisions, tipCandidates);
+                    for (String key : reached) codexTipCounts.merge(key, 1, Integer::sum);
+                }
             }
-            Aggregate aggregate = new Aggregate(denominators, choices, routeDenominators, routes);
+            Aggregate aggregate = new Aggregate(denominators, choices, routeDenominators, routes,
+                    codexEligible, codexTipCounts);
             if (redisAccess != 0 && !readFailed) try {
                 redis.opsForValue().set(cacheKey, json.writeValueAsString(aggregate), STATS_TTL);
                 if (redisAccess == 2) redisRetryAfterNanos.set(0);
@@ -496,5 +553,6 @@ public class StoryTreeService {
     }
 
     public record Aggregate(Map<String, Integer> denominators, Map<String, Integer> choices,
-                            Map<Integer, Integer> routeDenominators, Map<String, Integer> routes) { }
+                            Map<Integer, Integer> routeDenominators, Map<String, Integer> routes,
+                            int codexEligible, Map<String, Integer> codexTipCounts) { }
 }

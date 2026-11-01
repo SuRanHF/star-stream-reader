@@ -5,6 +5,7 @@ import com.huazhenghai.readergame.entity.Location;
 
 import java.util.List;
 import java.util.LinkedHashMap;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -18,8 +19,19 @@ public final class RouteContinuationPolicy {
     }
 
     static void markPending(Map<String, Object> progress, String eventKey) {
+        rememberTip(progress, eventKey);
         progress.put("routePending", true);
         progress.put("routePendingEventKey", eventKey);
+    }
+
+    /** Keep a durable, deduplicated record before a later growth clears the current marker. */
+    static void rememberTip(Map<String, Object> progress, String eventKey) {
+        if (eventKey == null || eventKey.isBlank()) return;
+        List<String> reached = new ArrayList<>();
+        if (progress.get("routeReachedTipKeys") instanceof List<?> existing)
+            for (Object value : existing) if (value instanceof String key && !reached.contains(key)) reached.add(key);
+        if (!reached.contains(eventKey)) reached.add(eventKey);
+        progress.put("routeReachedTipKeys", reached);
     }
 
     /** Recover the already-completed A0 tip in pre-growth saves without rewriting player rows.
@@ -66,6 +78,7 @@ public final class RouteContinuationPolicy {
 
     static void clearIfContinued(Map<String, Object> progress, Map<String, Object> conditions) {
         if (isPending(progress) && allowsStory(progress, conditions)) {
+            if (progress.get("routePendingEventKey") instanceof String tip) rememberTip(progress, tip);
             progress.remove("routePending");
             progress.remove("routePendingEventKey");
         }

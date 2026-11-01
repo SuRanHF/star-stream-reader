@@ -53,6 +53,8 @@ public class GlobalExceptionHandler {
             response.setStatus(HttpStatus.FORBIDDEN.value());
         } else if (NOT_FOUND_CODES.contains(e.getCode())) {
             response.setStatus(HttpStatus.NOT_FOUND.value());
+        } else if (ErrorCode.RATE_LIMITED.equals(e.getCode())) {
+            response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
         } else {
             response.setStatus(HttpStatus.BAD_REQUEST.value());
         }

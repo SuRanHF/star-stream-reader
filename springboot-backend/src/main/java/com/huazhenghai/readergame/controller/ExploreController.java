@@ -18,6 +18,7 @@ import com.huazhenghai.readergame.service.ExploreService;
 import com.huazhenghai.readergame.service.LocationUnlockPolicy;
 import com.huazhenghai.readergame.service.impl.ExploreStoryEligibility;
 import com.huazhenghai.readergame.service.impl.RouteContinuationPolicy;
+import com.huazhenghai.readergame.service.impl.RouteShareService;
 import com.huazhenghai.readergame.service.impl.StoryTreeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,19 +39,21 @@ public class ExploreController {
     private final PlayerMapper playerMapper;
     private final ObjectMapper objectMapper;
     private final StoryTreeService storyTreeService;
+    private final RouteShareService routeShareService;
 
     public ExploreController(ExploreService exploreService,
                              LocationMapper locationMapper,
                              ExplorationEventMapper eventMapper,
                              PlayerMapper playerMapper,
                              ObjectMapper objectMapper,
-                             StoryTreeService storyTreeService) {
+                             StoryTreeService storyTreeService, RouteShareService routeShareService) {
         this.exploreService = exploreService;
         this.locationMapper = locationMapper;
         this.eventMapper = eventMapper;
         this.playerMapper = playerMapper;
         this.objectMapper = objectMapper;
         this.storyTreeService = storyTreeService;
+        this.routeShareService = routeShareService;
     }
 
     @GetMapping("/story-tree/{playerId}")
@@ -63,6 +66,21 @@ public class ExploreController {
     @Operation(summary = "获取本人路线图鉴与累计到过率")
     public Result<Map<String, Object>> getRouteCodex(@PathVariable Long playerId) {
         return Result.ok(storyTreeService.getRouteCodex(requireOwnedPlayer(playerId)));
+    }
+
+    @PostMapping("/route-share/{playerId}")
+    @Operation(summary = "生成或复用本人七天路线分享")
+    public Result<Map<String, Object>> createRouteShare(@PathVariable Long playerId) {
+        requireOwnedPlayer(playerId);
+        return Result.ok(routeShareService.create(playerId));
+    }
+
+    @DeleteMapping("/route-share/{playerId}")
+    @Operation(summary = "撤销本人路线分享")
+    public Result<Map<String, Object>> revokeRouteShare(@PathVariable Long playerId) {
+        requireOwnedPlayer(playerId);
+        routeShareService.revoke(playerId);
+        return Result.ok(Collections.emptyMap());
     }
 
     @GetMapping("/locations/{playerId}")

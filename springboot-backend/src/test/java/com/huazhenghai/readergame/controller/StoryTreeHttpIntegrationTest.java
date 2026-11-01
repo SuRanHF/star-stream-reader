@@ -48,6 +48,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -153,6 +155,117 @@ class StoryTreeHttpIntegrationTest {
                 assertFalse(tip.has(hidden), hidden);
             assertTrue(tip.path("stats").isNull());
         }
+    }
+
+    @Test
+    void routeShareRequiresOwnerAndOnlyPublicReadIsAnonymous() throws Exception {
+        mvc.perform(post("/api/explore/route-share/1"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/explore/route-share/1").header("Authorization", token(2)))
+                .andExpect(status().isForbidden());
+        mvc.perform(delete("/api/explore/route-share/1").header("Authorization", token(2)))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/public/route-share/invalid"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("NOT_FOUND"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Cache-Control", "no-store"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("X-Robots-Tag", "noindex"));
+        mvc.perform(get("/api/public/private"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void routeShareFreezesChoicesAndStatsAndStoresOnlyHash() throws Exception {
+        jdbc.update("UPDATE players SET decision_history_json=?,stage_progress_json=? WHERE id=1",
+                encoded(List.of(choice("station_first_trace", 0))), "{}");
+        for (int i = 2; i <= 20; i++) {
+            insertUser(i, "player");
+            insertPlayer(i, i, encoded(List.of(choice("station_first_trace", i % 2))), "{}", 1);
+        }
+        JsonNode first = createShare();
+        String code = first.path("code").asText();
+        assertEquals(43, code.length());
+        assertTrue(first.path("expires_at").asText().endsWith("Z"));
+        assertEquals(first, createShare());
+        Map<String, Object> stored = jdbc.queryForMap(
+                "SELECT code_hash,nonce,snapshot_json FROM route_shares WHERE player_id=1");
+        assertEquals(64, stored.get("code_hash").toString().length());
+        assertFalse(stored.values().toString().contains(code));
+        JsonNode before = readShare(code);
+        assertTrue(before.path("nodes").size() >= 1);
+        assertEquals("20+", before.path("choices").get(0).path("stats").path("sample_band").asText());
+        assertTrue(before.path("choices").get(0).path("stats").has("percent"));
+        assertFalse(before.path("choices").get(0).path("stats").has("sample"));
+        assertFalse(before.toString().matches("(?s).*(player_id|playerId|nickname|player_name|level|resources).*"));
+        insertUser(21, "player");
+        insertPlayer(21, 21, encoded(List.of(choice("station_first_trace", 1))), "{}", 1);
+        jdbc.update("UPDATE players SET decision_history_json=?,stage_progress_json=? WHERE id=1",
+                encoded(List.of(choice("station_first_trace", 0), choice("dongmyo_market_story", 1))),
+                "{\"routePending\":true,\"routePendingEventKey\":\"dongmyo_market_story\"}");
+        assertEquals(before, readShare(code));
+        assertEquals(first, createShare());
+    }
+
+    @Test
+    void routeShareIncludesCurrentTipFromServerProgress() throws Exception {
+        jdbc.update("UPDATE players SET decision_history_json=?,stage_progress_json=? WHERE id=1",
+                encoded(List.of(choice("station_first_trace", 0), choice("chungmuro_conspiracy_story", 0))),
+                "{\"routePending\":true,\"routePendingEventKey\":\"chungmuro_conspiracy_story\"}");
+        JsonNode snapshot = readShare(createShare().path("code").asText());
+        assertTrue(snapshot.path("current_tip").hasNonNull("title"));
+        assertEquals(findByEvent(fetch(1), "chungmuro_conspiracy_story").path("node_id"),
+                snapshot.path("current_tip").path("node_id"));
+    }
+
+    @Test
+    void routeShareSmallSampleOmitsStatsAndExpiredOrRevokedCodesReturn404() throws Exception {
+        jdbc.update("UPDATE players SET decision_history_json=? WHERE id=1",
+                encoded(List.of(choice("station_first_trace", 0))));
+        String first = createShare().path("code").asText();
+        JsonNode snapshot = readShare(first);
+        assertTrue(snapshot.path("choices").size() > 0, snapshot.toString());
+        assertTrue(snapshot.path("choices").get(0).path("stats").isNull());
+        assertTrue(snapshot.path("current_tip").isNull());
+        jdbc.update("UPDATE route_shares SET expires_at=DATEADD('DAY',-1,CURRENT_TIMESTAMP) WHERE player_id=1");
+        mvc.perform(get("/api/public/route-share/" + first)).andExpect(status().isNotFound());
+        String second = createShare().path("code").asText();
+        assertNotEquals(first, second);
+        mvc.perform(delete("/api/explore/route-share/1").header("Authorization", token(1)))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/public/route-share/" + second)).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void routeSharePublicReadIsRateLimited() throws Exception {
+        String code = createShare().path("code").asText();
+        for (int i = 0; i < 30; i++)
+            mvc.perform(get("/api/public/route-share/" + code).with(req -> {
+                req.setRemoteAddr("198.51.100.42"); return req;
+            })).andExpect(status().isOk());
+        mvc.perform(get("/api/public/route-share/" + code).with(req -> {
+                    req.setRemoteAddr("198.51.100.42"); return req;
+                })).andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.error.code").value("RATE_LIMITED"));
+    }
+
+    private JsonNode createShare() throws Exception {
+        String body = mvc.perform(post("/api/explore/route-share/1")
+                        .header("Authorization", token(1)))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        return json.readTree(body).path("data");
+    }
+
+    private JsonNode readShare(String code) throws Exception {
+        var response = mvc.perform(get("/api/public/route-share/" + code))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Cache-Control", "no-store"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("X-Robots-Tag", "noindex"))
+                .andReturn().getResponse();
+        return json.readTree(response.getContentAsString()).path("data");
     }
 
     @Test

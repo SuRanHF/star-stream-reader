@@ -51,6 +51,7 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
                         .requestMatchers("/actuator/**").denyAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/public/route-share/*").permitAll()
                         .requestMatchers(HttpMethod.GET,
                                 "/api/quests/definitions", "/api/chapters/all",
                                 "/api/worldline/**", "/api/online/**",

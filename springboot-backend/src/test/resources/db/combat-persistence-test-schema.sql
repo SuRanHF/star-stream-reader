@@ -49,6 +49,16 @@ CREATE TABLE IF NOT EXISTS players (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS route_shares (
+    player_id BIGINT PRIMARY KEY,
+    code_hash CHAR(64) NOT NULL UNIQUE,
+    nonce VARCHAR(32) NOT NULL,
+    snapshot_json CLOB NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS player_skills (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     player_id BIGINT NOT NULL,

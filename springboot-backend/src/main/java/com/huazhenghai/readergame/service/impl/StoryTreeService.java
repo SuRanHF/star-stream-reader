@@ -206,6 +206,69 @@ public class StoryTreeService {
         return result;
     }
 
+    /** Freeze only the player's visible route and the current aggregate bands. */
+    public Map<String, Object> getRouteShareSnapshot(Player player) {
+        List<ExplorationEvent> all = eventMapper.selectList(new QueryWrapper<ExplorationEvent>()
+                .eq("event_type", "story").eq("enabled", 1));
+        Map<String, ExplorationEvent> events = new LinkedHashMap<>();
+        for (ExplorationEvent event : all)
+            if (!temporarilyPaused(map(event.getRequiredConditionsJson())))
+                events.put(event.getEventKey(), event);
+        Map<String, Map<String, Object>> conditions = conditionsFor(events);
+        Set<String> forks = criticalSources(events, conditions);
+        Aggregate counts = aggregate(all, events);
+        Map<String, Object> progress = map(player.getStageProgressJson());
+        List<?> decisions = list(player.getDecisionHistoryJson());
+        List<Map<String, Object>> nodes = new ArrayList<>();
+        List<Map<String, Object>> choices = new ArrayList<>();
+        Set<String> visited = new LinkedHashSet<>();
+        for (Object entry : decisions) {
+            if (!(entry instanceof Map<?, ?> decision)) continue;
+            String key = decisionKey(decision);
+            ExplorationEvent event = events.get(key);
+            if (event == null || !visited.add(key)) continue;
+            nodes.add(shareNode(event));
+            Integer index = decisionIndex(decision);
+            if (forks.contains(key) && index != null) {
+                String label = choiceLabel(event, index);
+                if (label != null) {
+                    Map<String, Object> choice = new LinkedHashMap<>();
+                    choice.put("node_id", nodeId(key));
+                    choice.put("choice_text", label);
+                    Map<String, Object> stats = choiceStats(counts, key, index);
+                    choice.put("stats", stats == null ? NullNode.getInstance() : stats);
+                    choices.add(choice);
+                }
+            }
+        }
+        // The last triggered event may still await a choice.
+        for (String key : strings(progress.get("storyEventsTriggered"))) {
+            ExplorationEvent event = events.get(key);
+            if (event != null && visited.add(key)) nodes.add(shareNode(event));
+        }
+        Map<String, Object> currentTip = null;
+        if (RouteContinuationPolicy.isPending(progress)
+                && progress.get("routePendingEventKey") instanceof String key
+                && events.containsKey(key)) {
+            ExplorationEvent event = events.get(key);
+            currentTip = shareNode(event);
+            if (visited.add(key)) nodes.add(currentTip);
+        }
+        Map<String, Object> snapshot = new LinkedHashMap<>();
+        snapshot.put("nodes", nodes);
+        snapshot.put("choices", choices);
+        snapshot.put("current_tip", currentTip == null ? NullNode.getInstance() : currentTip);
+        return snapshot;
+    }
+
+    private Map<String, Object> shareNode(ExplorationEvent event) {
+        Map<String, Object> node = new LinkedHashMap<>();
+        node.put("node_id", nodeId(event.getEventKey()));
+        node.put("title", event.getName());
+        node.put("chapter_label", chapterLabel(event.getStageKey()));
+        return node;
+    }
+
     private boolean lowerStoriesBlock(Location location, List<ExplorationEvent> all,
             Map<String, Location> locations, Map<String, Map<String, Object>> conditions,
             List<String> triggered, List<?> decisions, Map<String, Object> progress,

@@ -91,6 +91,24 @@ CREATE TABLE IF NOT EXISTS `players` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='玩家角色表';
 
 -- ============================================================
+-- 分享路线快照
+-- 分享路线快照：只保存码哈希；随机 nonce 与服务端密钥用于重复生成时复原分享码。
+CREATE TABLE IF NOT EXISTS `route_shares` (
+    `player_id` BIGINT NOT NULL,
+    `code_hash` CHAR(64) NOT NULL,
+    `nonce` VARCHAR(32) NOT NULL,
+    `snapshot_json` JSON NOT NULL,
+    `created_at` DATETIME NOT NULL,
+    `expires_at` DATETIME NOT NULL,
+    PRIMARY KEY (`player_id`),
+    UNIQUE KEY `uk_route_shares_code_hash` (`code_hash`),
+    KEY `idx_route_shares_expires` (`expires_at`),
+    CONSTRAINT `fk_route_shares_player` FOREIGN KEY (`player_id`)
+        REFERENCES `players` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  COMMENT='七天只读路线快照';
+
+-- ============================================================
 -- 3. 玩家日志表 (player_logs)
 -- 记录玩家在游戏中的各类事件日志
 -- ============================================================

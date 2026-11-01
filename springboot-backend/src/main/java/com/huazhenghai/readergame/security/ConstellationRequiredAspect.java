@@ -97,7 +97,8 @@ public class ConstellationRequiredAspect {
         // Read-only story projection requires JWT and ownership, even for a new save
         // that has not selected a constellation yet.
         if ("ExploreController".equals(controllerName)
-                && ("getStoryTree".equals(methodName) || "getRouteCodex".equals(methodName))) return true;
+                && ("getStoryTree".equals(methodName) || "getRouteCodex".equals(methodName)
+                    || "createRouteShare".equals(methodName) || "revokeRouteShare".equals(methodName))) return true;
         if ("AuthController".equals(controllerName)
                 || "AdminController".equals(controllerName)
                 || "SystemController".equals(controllerName)

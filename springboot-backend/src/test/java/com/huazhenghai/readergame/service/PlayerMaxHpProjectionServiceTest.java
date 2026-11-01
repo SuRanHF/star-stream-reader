@@ -3,6 +3,10 @@ package com.huazhenghai.readergame.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huazhenghai.readergame.entity.AvatarRankConfig;
 import com.huazhenghai.readergame.mapper.AvatarRankConfigMapper;
+import com.huazhenghai.readergame.mapper.PlayerTitleMapper;
+import com.huazhenghai.readergame.mapper.TitleMapper;
+import com.huazhenghai.readergame.entity.PlayerTitle;
+import com.huazhenghai.readergame.entity.Title;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 class PlayerMaxHpProjectionServiceTest {
@@ -68,6 +73,29 @@ class PlayerMaxHpProjectionServiceTest {
                 "constellation", "master_of_steel"));
 
         assertThrows(RuntimeException.class, () -> projectionService.projectForRead(stats));
+    }
+
+    @Test
+    void equippedTitleChangesRealMaximumWithoutHealingAndUnequipClampsHp() {
+        PlayerTitleMapper ownership = mock(PlayerTitleMapper.class);
+        TitleMapper titles = mock(TitleMapper.class);
+        PlayerTitle equipped = new PlayerTitle();
+        equipped.setTitleKey("heavy_soul");
+        Title definition = new Title();
+        definition.setEffectsJson("{\"maxHp\":40}");
+        when(ownership.selectOne(any())).thenReturn(equipped, equipped, null, null);
+        when(titles.selectOne(any())).thenReturn(definition);
+        PlayerMaxHpProjectionService service = new PlayerMaxHpProjectionService(
+                rankConfigMapper, new ObjectMapper(), ownership, titles);
+        Map<String, Object> stats = new LinkedHashMap<>(Map.of(
+                "maxHp", 100, "maxHpConstellationBonus", 0, "hp", 90));
+
+        assertEquals(140, service.normalizeForPersistence(stats, 1L));
+        assertEquals(90, stats.get("hp"));
+        stats.put("hp", 130);
+        assertEquals(100, service.normalizeForPersistence(stats, 1L));
+        assertEquals(100, stats.get("hp"));
+        assertEquals(0, stats.get("maxHpTitleBonus"));
     }
 
     private AvatarRankConfig rank(String key, int order, String rewards) {

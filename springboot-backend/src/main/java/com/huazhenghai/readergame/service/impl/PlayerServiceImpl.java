@@ -280,7 +280,7 @@ public class PlayerServiceImpl implements PlayerService {
         stats.put("attack", 10 + allocAtk + constAtk);
         stats.put("defense", 5 + allocDef + constDef);
         stats.put("speed", 3 + allocSpd + constSpd);
-        stats.put("maxHp", maxHpProjectionService.projectForRead(stats));
+        stats.put("maxHp", maxHpProjectionService.projectForRead(stats, player.getId()));
         stats.put("critRate", allocCrit * 0.02 + constCrit);
 
         // 上限校验: 当前 HP 不能超过 maxHp

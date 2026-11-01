@@ -13,12 +13,10 @@ import java.util.Set;
 final class TitleEffectAudit {
     private static final Set<String> ACTIVE = Set.of(
             "attack", "defense", "speed", "critRate", "critDamage", "channelHeatGainRate",
-            "maxStamina");
+            "maxStamina", "maxHp", "storyEventBonus");
     private static final Set<String> INACTIVE = Set.of(
             "channelHeat", "channelHeatBonus", "insight", "insightBonus",
             "narrativePressureBonus", "willpower");
-    // maxHp reaches CombatStatsVO but combat HP is still read from the saved snapshot.
-    // Keep it uncertain until the actual health behavior is specified and verified.
 
     private TitleEffectAudit() {}
 

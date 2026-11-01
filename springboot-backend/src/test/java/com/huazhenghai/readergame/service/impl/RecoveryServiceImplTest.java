@@ -4,7 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huazhenghai.readergame.entity.AvatarRankConfig;
 import com.huazhenghai.readergame.mapper.AvatarRankConfigMapper;
 import com.huazhenghai.readergame.entity.Player;
+import com.huazhenghai.readergame.entity.PlayerTitle;
+import com.huazhenghai.readergame.entity.Title;
 import com.huazhenghai.readergame.mapper.PlayerMapper;
+import com.huazhenghai.readergame.mapper.PlayerTitleMapper;
+import com.huazhenghai.readergame.mapper.TitleMapper;
 import com.huazhenghai.readergame.service.PlayerLogService;
 import com.huazhenghai.readergame.service.PlayerMaxHpProjectionService;
 import com.huazhenghai.readergame.service.PlayerStaminaProjectionService;
@@ -25,6 +29,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
 import static org.mockito.ArgumentMatchers.any;
 
 @ExtendWith(MockitoExtension.class)
@@ -46,6 +51,35 @@ class RecoveryServiceImplTest {
         recoveryService = new RecoveryServiceImpl(playerMapper, playerLogService,
                 maxHpProjectionService, staminaProjectionService,
                 resourceTransactionService, objectMapper);
+    }
+
+    @Test
+    void recoveryProjectsEquippedTitleHealthWithoutInstantHealing() {
+        ObjectMapper mapper = new ObjectMapper();
+        PlayerTitleMapper ownership = mock(PlayerTitleMapper.class);
+        TitleMapper titles = mock(TitleMapper.class);
+        PlayerTitle equipped = new PlayerTitle();
+        equipped.setTitleKey("heavy_soul");
+        Title definition = new Title();
+        definition.setEffectsJson("{\"maxHp\":40}");
+        when(ownership.selectOne(any())).thenReturn(equipped);
+        when(titles.selectOne(any())).thenReturn(definition);
+        PlayerMaxHpProjectionService projection = new PlayerMaxHpProjectionService(
+                rankConfigMapper, mapper, ownership, titles);
+        recoveryService = new RecoveryServiceImpl(playerMapper, playerLogService, projection,
+                staminaProjectionService, resourceTransactionService, mapper);
+        Player player = new Player();
+        player.setId(71L);
+        player.setStatsJson("{\"hp\":90,\"maxHp\":100,\"maxHpConstellationBonus\":0,"
+                + "\"lastRecoveryAt\":9223372036854775807}");
+        when(playerMapper.selectByIdForUpdate(71L)).thenReturn(player);
+        when(playerMapper.updateById(player)).thenReturn(1);
+
+        Map<String, Object> stats = recoveryService.applyRecovery(player);
+
+        assertEquals(140, stats.get("maxHp"));
+        assertEquals(90, stats.get("hp"));
+        assertEquals(40, stats.get("maxHpTitleBonus"));
     }
 
     @Test

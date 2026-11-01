@@ -62,7 +62,19 @@ public class RecoveryServiceImpl implements RecoveryService {
         Map<String, Object> stats = parseStats(currentPlayer.getStatsJson());
 
         int curHp = toInt(stats.get("hp"), 100);
-        if (curHp <= 0) return stats;
+        // Equipment changes must take effect even when no recovery interval has elapsed.
+        int savedMaxHp = toInt(stats.get("maxHp"), 100);
+        int currentMaxHp = maxHpProjectionService.projectForRead(stats, player.getId());
+        boolean maximumChanged = currentMaxHp != savedMaxHp || curHp > currentMaxHp;
+        if (maximumChanged) {
+            maxHpProjectionService.normalizeForPersistence(stats, player.getId());
+            curHp = Math.min(curHp, currentMaxHp);
+        }
+        if (curHp <= 0) {
+            if (maximumChanged) persistStats(currentPlayer, stats, "最大生命状态保存失败");
+            player.setStatsJson(currentPlayer.getStatsJson());
+            return stats;
+        }
 
         long now = System.currentTimeMillis();
         Number lastRecoveryAtNum = (Number) stats.get("lastRecoveryAt");
@@ -71,7 +83,11 @@ public class RecoveryServiceImpl implements RecoveryService {
         long recoveryCursorBefore = lastRecoveryAt;
 
         long elapsedMs = now - lastRecoveryAt;
-        if (elapsedMs < 1000) return stats;
+        if (elapsedMs < 1000) {
+            if (maximumChanged) persistStats(currentPlayer, stats, "最大生命状态保存失败");
+            player.setStatsJson(currentPlayer.getStatsJson());
+            return stats;
+        }
 
         int hpBefore = curHp;
         int staminaBefore = toInt(stats.get("stamina"), 50);
@@ -86,7 +102,7 @@ public class RecoveryServiceImpl implements RecoveryService {
         int curStamina = toInt(stats.get("stamina"), 50);
 
         // Preserve saved growth; replace only the constellation portion previously included in maxHp.
-        int maxHp = maxHpProjectionService.normalizeForPersistence(stats);
+        int maxHp = maxHpProjectionService.normalizeForPersistence(stats, player.getId());
 
         // 上限校验
         if (curHp > maxHp) {

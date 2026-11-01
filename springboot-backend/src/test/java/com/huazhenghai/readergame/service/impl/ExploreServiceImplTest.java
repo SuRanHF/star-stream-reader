@@ -178,8 +178,8 @@ class ExploreServiceImplTest {
         prepareTraceFixture();
         Map<String, Object> traced = exploreService.startExplore(1L, "trace_station", "trace-on", true, 9L);
         assertEquals(true, traced.get("trace_applied"));
-        assertEquals(3, traced.get("trace_extra_cost"));
-        assertEquals(9, traced.get("stamina_cost_paid"));
+        assertEquals(5, traced.get("trace_extra_cost"));
+        assertEquals(11, traced.get("stamina_cost_paid"));
 
         tracePlayer.setDecisionHistoryJson("[]");
         tracePlayer.setStageProgressJson("{}");
@@ -206,7 +206,7 @@ class ExploreServiceImplTest {
     void tracePreviewMatchesActualCharge() {
         prepareTraceFixture();
         Map<String, Object> preview = exploreService.getCostPreview(1L);
-        assertEquals(Map.of("available", true, "extra_min", 3, "extra_max", 3),
+        assertEquals(Map.of("available", true, "extra_min", 5, "extra_max", 5),
                 preview.get("trace_preview"));
         Map<String, Object> result = exploreService.startExplore(1L, "trace_station", "trace-preview", true, 9L);
         assertEquals(preview.get("minStaminaCost"),

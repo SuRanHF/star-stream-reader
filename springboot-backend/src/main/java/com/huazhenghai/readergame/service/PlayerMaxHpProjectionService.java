@@ -8,6 +8,11 @@ import com.huazhenghai.readergame.common.ErrorCode;
 import com.huazhenghai.readergame.common.ResourceBalance;
 import com.huazhenghai.readergame.entity.AvatarRankConfig;
 import com.huazhenghai.readergame.mapper.AvatarRankConfigMapper;
+import com.huazhenghai.readergame.mapper.PlayerTitleMapper;
+import com.huazhenghai.readergame.mapper.TitleMapper;
+import com.huazhenghai.readergame.entity.PlayerTitle;
+import com.huazhenghai.readergame.entity.Title;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -22,6 +27,7 @@ import java.util.Map;
 public class PlayerMaxHpProjectionService {
 
     public static final String APPLIED_CONSTELLATION_BONUS_KEY = "maxHpConstellationBonus";
+    public static final String APPLIED_TITLE_BONUS_KEY = "maxHpTitleBonus";
 
     private static final Map<String, Integer> CONSTELLATION_MAX_HP = Map.of(
             "demon_judge_of_fire", 10,
@@ -32,38 +38,74 @@ public class PlayerMaxHpProjectionService {
 
     private final AvatarRankConfigMapper rankConfigMapper;
     private final ObjectMapper objectMapper;
+    private final PlayerTitleMapper playerTitleMapper;
+    private final TitleMapper titleMapper;
 
-    public PlayerMaxHpProjectionService(AvatarRankConfigMapper rankConfigMapper, ObjectMapper objectMapper) {
+    @Autowired
+    public PlayerMaxHpProjectionService(AvatarRankConfigMapper rankConfigMapper, ObjectMapper objectMapper,
+                                        PlayerTitleMapper playerTitleMapper, TitleMapper titleMapper) {
         this.rankConfigMapper = rankConfigMapper;
         this.objectMapper = objectMapper;
+        this.playerTitleMapper = playerTitleMapper;
+        this.titleMapper = titleMapper;
+    }
+
+    // Small unit tests without title repositories use the same projection with no equipped title.
+    public PlayerMaxHpProjectionService(AvatarRankConfigMapper rankConfigMapper, ObjectMapper objectMapper) {
+        this(rankConfigMapper, objectMapper, null, null);
     }
 
     /** Returns the effective maximum HP without modifying the supplied snapshot. */
     public int projectForRead(Map<String, Object> stats) {
+        return projectForRead(stats, null);
+    }
+
+    public int projectForRead(Map<String, Object> stats, Long playerId) {
         int savedMaxHp = Math.max(100, toInt(stats.get("maxHp"), 100));
         int constellationBonus = constellationBonus(stats);
+        int titleBonus = titleBonus(playerId);
         Object appliedValue = stats.get(APPLIED_CONSTELLATION_BONUS_KEY);
+        int appliedTitleBonus = Math.max(0, toInt(stats.get(APPLIED_TITLE_BONUS_KEY), 0));
 
         long persistentBase;
         if (appliedValue instanceof Number appliedNumber) {
-            persistentBase = Math.max(100L, (long) savedMaxHp - appliedNumber.longValue());
+            persistentBase = Math.max(100L, (long) savedMaxHp - appliedNumber.longValue() - appliedTitleBonus);
         } else {
             persistentBase = inferLegacyPersistentBase(stats, savedMaxHp, constellationBonus);
         }
-        return calculateTotal(persistentBase, constellationBonus);
+        return total(persistentBase, constellationBonus + titleBonus);
     }
 
     /** Normalizes maxHp and records which constellation HP bonus is included in the saved total. */
     public int normalizeForPersistence(Map<String, Object> stats) {
-        int effectiveMaxHp = projectForRead(stats);
+        return normalizeForPersistence(stats, null);
+    }
+
+    public int normalizeForPersistence(Map<String, Object> stats, Long playerId) {
+        int effectiveMaxHp = projectForRead(stats, playerId);
         stats.put("maxHp", effectiveMaxHp);
         stats.put(APPLIED_CONSTELLATION_BONUS_KEY, constellationBonus(stats));
+        stats.put(APPLIED_TITLE_BONUS_KEY, titleBonus(playerId));
+        int hp = toInt(stats.get("hp"), effectiveMaxHp);
+        if (hp > effectiveMaxHp) stats.put("hp", effectiveMaxHp);
         return effectiveMaxHp;
     }
 
     /** Marks an explicitly assigned maxHp value as already including the current constellation effect. */
     public static void markCurrentBonusAsApplied(Map<String, Object> stats) {
         stats.put(APPLIED_CONSTELLATION_BONUS_KEY, constellationBonus(stats));
+    }
+
+    private int titleBonus(Long playerId) {
+        if (playerId == null || playerTitleMapper == null || titleMapper == null) return 0;
+        PlayerTitle equipped = playerTitleMapper.selectOne(new QueryWrapper<PlayerTitle>()
+                .eq("player_id", playerId).eq("equipped", 1));
+        if (equipped == null) return 0;
+        Title title = titleMapper.selectOne(new QueryWrapper<Title>()
+                .eq("title_key", equipped.getTitleKey()).eq("enabled", 1));
+        if (title == null) return 0;
+        Object value = parseObject(title.getEffectsJson()).get("maxHp");
+        return value instanceof Number number ? Math.max(0, Math.min(50, number.intValue())) : 0;
     }
 
     /** Current maximum-HP contribution from the selected constellation. */

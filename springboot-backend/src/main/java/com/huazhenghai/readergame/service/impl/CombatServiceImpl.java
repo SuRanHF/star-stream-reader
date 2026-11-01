@@ -585,9 +585,10 @@ public class CombatServiceImpl implements CombatService {
 
         int level = toInt(stats.get("level"), 1);
         // Legacy snapshots without the applied-bonus marker need rank/prestige-aware reconstruction.
-        int maxHp = maxHpProjectionService.projectForRead(stats);
+        int maxHp = maxHpProjectionService.projectForRead(stats, playerId);
         int constellationMaxHp = PlayerMaxHpProjectionService.constellationBonus(stats);
-        int baseMaxHp = Math.max(100, maxHp - constellationMaxHp);
+        int titleMaxHp = Math.max(0, Math.min(50, toInt(titleService.calculateTitleEffects(playerId).get("maxHp"), 0)));
+        int baseMaxHp = Math.max(100, maxHp - constellationMaxHp - titleMaxHp);
         int hp = toInt(stats.get("hp"), maxHp);
         int attack = toInt(stats.get("attack"), 10);
         int defense = toInt(stats.get("defense"), 5);
@@ -627,7 +628,6 @@ public class CombatServiceImpl implements CombatService {
             speed += toInt(titleEffects.get("speed"), 0);
             critRate += toDouble(titleEffects.get("critRate"), 0);
             critDamage += toDouble(titleEffects.get("critDamage"), 0);
-            maxHp += toInt(titleEffects.get("maxHp"), 0);
             bonuses.put("title", titleEffects);
         }
 

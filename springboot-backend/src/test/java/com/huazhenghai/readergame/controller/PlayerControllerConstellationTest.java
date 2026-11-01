@@ -3,11 +3,16 @@ package com.huazhenghai.readergame.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.huazhenghai.readergame.common.BusinessException;
 import com.huazhenghai.readergame.entity.Player;
+import com.huazhenghai.readergame.entity.PlayerTitle;
+import com.huazhenghai.readergame.entity.Title;
+import com.huazhenghai.readergame.dto.ReviveRequest;
 import com.huazhenghai.readergame.mapper.ConstellationFactionMapper;
 import com.huazhenghai.readergame.mapper.AvatarRankConfigMapper;
 import com.huazhenghai.readergame.mapper.LocationMapper;
 import com.huazhenghai.readergame.mapper.PlayerFactionMapper;
 import com.huazhenghai.readergame.mapper.PlayerMapper;
+import com.huazhenghai.readergame.mapper.PlayerTitleMapper;
+import com.huazhenghai.readergame.mapper.TitleMapper;
 import com.huazhenghai.readergame.security.LoginUser;
 import com.huazhenghai.readergame.security.LoginUserContext;
 import com.huazhenghai.readergame.service.PkService;
@@ -41,6 +46,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 class PlayerControllerConstellationTest {
@@ -77,6 +83,43 @@ class PlayerControllerConstellationTest {
     @AfterEach
     void clearLoginUser() {
         LoginUserContext.clear();
+    }
+
+    @Test
+    void reviveUsesEquippedTitleMaximumHpForHalfHealth() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        PlayerTitleMapper ownership = mock(PlayerTitleMapper.class);
+        TitleMapper titles = mock(TitleMapper.class);
+        PlayerTitle equipped = new PlayerTitle();
+        equipped.setTitleKey("heavy_soul");
+        Title definition = new Title();
+        definition.setEffectsJson("{\"maxHp\":40}");
+        when(ownership.selectOne(any())).thenReturn(equipped);
+        when(titles.selectOne(any())).thenReturn(definition);
+        PlayerMaxHpProjectionService projection = new PlayerMaxHpProjectionService(
+                rankConfigMapper, mapper, ownership, titles);
+        controller = new PlayerController(playerService, recoveryService, projection, playerMapper,
+                playerFactionMapper, constellationFactionMapper, locationMapper,
+                mapper, pkService, playerLogService, actionReceiptService,
+                resourceTransactionService, staminaProjectionService, null);
+        Player player = new Player();
+        player.setId(PLAYER_ID);
+        player.setUserId(USER_ID);
+        player.setCoins(1000);
+        player.setStatsJson("{\"isDead\":true,\"hp\":0,\"maxHp\":100,"
+                + "\"maxHpConstellationBonus\":0,\"level\":1}");
+        when(playerMapper.selectByIdForUpdate(PLAYER_ID)).thenReturn(player);
+        when(playerMapper.updateById(player)).thenReturn(1);
+        ReviveRequest request = new ReviveRequest();
+        request.setPlayerId(PLAYER_ID);
+        request.setMethod("coins");
+        request.setRequestKey("title-hp-revive");
+
+        controller.revivePlayer(request);
+
+        Map<?, ?> after = mapper.readValue(player.getStatsJson(), Map.class);
+        assertEquals(140, after.get("maxHp"));
+        assertEquals(70, after.get("hp"));
     }
 
     @Test

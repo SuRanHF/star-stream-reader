@@ -77,7 +77,7 @@ class PlayerServiceImplTest {
 
         when(playerMapper.selectById(PLAYER_ID)).thenReturn(player);
         when(playerLogService.getRecentLogs(PLAYER_ID, 50)).thenReturn(List.of());
-        when(maxHpProjectionService.projectForRead(any())).thenReturn(185);
+        when(maxHpProjectionService.projectForRead(any(), org.mockito.ArgumentMatchers.eq(PLAYER_ID))).thenReturn(185);
         when(combatService.calculateCombatPower(PLAYER_ID)).thenReturn(combatStats);
 
         PlayerVO result = playerService.getPlayer(PLAYER_ID);

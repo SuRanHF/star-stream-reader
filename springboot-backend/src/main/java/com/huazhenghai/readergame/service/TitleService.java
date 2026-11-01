@@ -52,4 +52,10 @@ public interface TitleService {
 
     /** Removes an owned title from both title stores and records a permanent sacrifice. Caller locks and saves player. */
     Map<String, Object> sacrificeTitle(Player player, String titleKey);
+
+    /** Establishes the post-cooldown baseline before a successful exploration increments its count. */
+    default void prepareReacquisitionProgress(Player player) { }
+
+    /** Records one successful exploration after the cooldown gate. */
+    default void recordQualifiedExploration(Player player) { }
 }

@@ -43,6 +43,7 @@ import java.util.Map;
 import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import com.huazhenghai.readergame.service.TitleSacrificeHistory;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -64,7 +65,8 @@ class TitleServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        titleService = new TitleServiceImpl(titleMapper, playerTitleMapper, playerMapper, new ObjectMapper());
+        titleService = new TitleServiceImpl(titleMapper, playerTitleMapper, playerMapper,
+                new ObjectMapper(), mock(PlayerMaxHpProjectionService.class));
     }
 
     @Test
@@ -133,8 +135,7 @@ class TitleServiceImplTest {
         assertEquals(List.of("channelHeat", "channelHeatBonus", "insight",
                 "insightBonus", "narrativePressureBonus", "willpower"),
                 vo.getInactiveEffects());
-        // CombatStatsVO receives maxHp, but combat HP still comes from the saved player snapshot.
-        assertEquals(List.of("maxHp"), vo.getUncertainEffects());
+        assertEquals(List.of(), vo.getUncertainEffects());
         assertEquals(14, vo.getEffects().size());
     }
 
@@ -162,6 +163,33 @@ class TitleServiceImplTest {
 
         assertEquals(3, ((Number) titleService.calculateTitleEffects(1L).get("attack")).intValue());
         assertEquals(13, combat.calculateCombatPower(1L).getAttack());
+    }
+
+    @Test
+    void titleMaximumHealthAppearsOnceInCombatStats() throws Exception {
+        equipSeededTitle("heavy_soul");
+        Player player = new Player();
+        player.setId(1L);
+        player.setStatsJson("{\"level\":1,\"maxHp\":100,\"maxHpConstellationBonus\":0,\"hp\":80}");
+        when(playerMapper.selectById(1L)).thenReturn(player);
+        EquipmentService equipment = mock(EquipmentService.class);
+        SkillService skills = mock(SkillService.class);
+        FactionService faction = mock(FactionService.class);
+        when(equipment.calculateEquipmentBonus(1L)).thenReturn(Map.of());
+        when(skills.calculateSkillBonus(1L)).thenReturn(Map.of());
+        when(faction.getFactionBuff(1L)).thenReturn(Map.of());
+        CombatServiceImpl combat = new CombatServiceImpl(
+                mock(MonsterService.class), playerMapper,
+                new PlayerMaxHpProjectionService(mock(AvatarRankConfigMapper.class),
+                        new ObjectMapper(), playerTitleMapper, titleMapper),
+                mock(BattleLogMapper.class), mock(LocationMapper.class), mock(RecoveryService.class),
+                mock(PlayerLogService.class), titleService, equipment, skills,
+                mock(InventoryService.class), mock(BroadcastService.class), faction,
+                mock(QuestService.class), new ObjectMapper(), mock(PlayerEffectService.class),
+                mock(PlayerResourceTransactionService.class));
+
+        assertEquals(130, combat.calculateCombatPower(1L).getMaxHp());
+        assertEquals(80, combat.calculateCombatPower(1L).getHp());
     }
 
     @Test
@@ -213,12 +241,119 @@ class TitleServiceImplTest {
         assertEquals(20, ((Number) first.getEffects().get("attack")).intValue());
         assertEquals("manual", first.getEffects().get("note"));
         assertEquals(List.of("insight"), first.getInactiveEffects());
-        assertEquals(List.of("maxHp", "note"), first.getUncertainEffects());
+        assertEquals(List.of("note"), first.getUncertainEffects());
         assertEquals("equipped", first.getEffectScope());
         TitleVO second = titles.get(1);
         assertTrue(second.getEffects().isEmpty());
         assertEquals(List.of(), second.getInactiveEffects());
         assertEquals(List.of(), second.getUncertainEffects());
         assertEquals("equipped", second.getEffectScope());
+    }
+
+    @Test
+    void titleRatesAndHealthAreCappedAtTheTitleSource() {
+        PlayerTitle equipped = new PlayerTitle();
+        equipped.setTitleKey("capped");
+        equipped.setEquipped(1);
+        Title definition = new Title();
+        definition.setTitleKey("capped");
+        definition.setEffectsJson("{\"channelHeatGainRate\":0.8,\"storyEventBonus\":0.4,\"maxHp\":80}");
+        when(playerTitleMapper.selectOne(any(QueryWrapper.class))).thenReturn(equipped);
+        when(titleMapper.selectOne(any(QueryWrapper.class))).thenReturn(definition);
+
+        Map<String, Object> effects = titleService.calculateTitleEffects(1L);
+        assertEquals(0.25, effects.get("channelHeatGainRate"));
+        assertEquals(0.15, effects.get("storyEventBonus"));
+        assertEquals(50, effects.get("maxHp"));
+        PlayerTitleVO vo = new PlayerTitleVO();
+        TitleEffectAudit.populate(vo, effects);
+        assertEquals(List.of(), vo.getInactiveEffects());
+        assertEquals(List.of(), vo.getUncertainEffects());
+    }
+
+    @Test
+    void sacrificedCountTitleReacquiresOnceAfterCooldownAndThirtyNewExplorations() {
+        Player player = new Player();
+        player.setId(1L);
+        player.setUserId(9L);
+        player.setStatsJson("{}");
+        player.setStageProgressJson("{\"explorationsByLocation\":{\"ruined_station\":40}}");
+        player.setTitleProgressJson("{\"sacrificedTitleKeys\":[\"first_explorer\"],"
+                + "\"titleSacrifices\":{\"first_explorer\":{\"sacrificedAt\":1,"
+                + "\"explorationSnapshot\":10,\"progressStartCount\":10,"
+                + "\"reacquireExploreCount\":30,\"reacquired\":false}}}");
+        Title definition = new Title();
+        definition.setTitleKey("first_explorer");
+        definition.setUnlockConditionsJson("{\"exploreCount\":1}");
+        definition.setEffectsJson("{\"maxStamina\":5}");
+        when(playerMapper.selectByIdForUpdate(1L)).thenReturn(player);
+        when(titleMapper.selectList(any(QueryWrapper.class))).thenReturn(List.of(definition));
+        when(playerTitleMapper.selectList(any(QueryWrapper.class))).thenReturn(List.of());
+        when(playerTitleMapper.insert(any(PlayerTitle.class))).thenReturn(1);
+        when(playerMapper.updateById(player)).thenReturn(1);
+
+        List<PlayerTitleVO> unlocked = titleService.evaluateAndUnlockTitles(1L, 9L);
+        assertEquals(1, unlocked.size());
+        assertTrue(unlocked.get(0).isReacquired());
+        assertTrue(!unlocked.get(0).isCanSacrifice());
+        assertTrue(TitleSacrificeHistory.isReacquired(player, "first_explorer", new ObjectMapper()));
+        BusinessException error = assertThrows(BusinessException.class,
+                () -> titleService.sacrificeTitle(player, "first_explorer"));
+        assertEquals("已重获的称号不能再次献祭", error.getMessage());
+    }
+
+    @Test
+    void sacrificedOneTimeTitleIsShownButNeverReacquired() {
+        Player player = new Player();
+        player.setId(1L);
+        player.setStageProgressJson("{\"explorationsByLocation\":{\"ruined_station\":100}}");
+        player.setTitleProgressJson("{\"sacrificedTitleKeys\":[\"omniscient_reader\"],"
+                + "\"titleSacrifices\":{\"omniscient_reader\":{\"sacrificedAt\":1,"
+                + "\"explorationSnapshot\":0,\"progressStartCount\":0,\"reacquired\":false}}}");
+        Title definition = new Title();
+        definition.setTitleKey("omniscient_reader");
+        definition.setUnlockConditionsJson("{\"hasTitleFlag\":\"title_omniscient_reader\"}");
+        definition.setEffectsJson("{\"attack\":20}");
+        when(playerMapper.selectByIdForUpdate(1L)).thenReturn(player);
+        when(titleMapper.selectList(any(QueryWrapper.class))).thenReturn(List.of(definition));
+        when(playerTitleMapper.selectList(any(QueryWrapper.class))).thenReturn(List.of());
+
+        PlayerTitleVO ghost = titleService.getPlayerTitles(1L).get(0);
+        assertTrue(ghost.isSacrificed());
+        assertTrue(!ghost.isOwned());
+        assertTrue(!ghost.isCanReacquire());
+        assertEquals(0, ghost.getReacquireTarget());
+    }
+
+    @Test
+    void cooldownStartsCountingOnlyAfterSevenDaysAndRequiresTripleOriginalThreshold() {
+        ObjectMapper mapper = new ObjectMapper();
+        long day = 86_400_000L;
+        Player player = new Player();
+        player.setId(1L);
+        player.setStatsJson("{}");
+        player.setStageProgressJson("{\"explorationsByLocation\":{\"ruined_station\":150}}");
+        TitleSacrificeHistory.record(player, "fourth_wall_touched", 50, day, mapper);
+        TitleSacrificeHistory.prepare(player, 100, day * 7, mapper);
+        TitleSacrificeHistory.countQualifiedExploration(player, day * 7, mapper);
+        assertEquals(0, TitleSacrificeHistory.details(player, "fourth_wall_touched", mapper)
+                .get("reacquireExploreCount"));
+        TitleSacrificeHistory.prepare(player, 100, day * 8, mapper);
+        for (int i = 0; i < 149; i++)
+            TitleSacrificeHistory.countQualifiedExploration(player, day * 8, mapper);
+        Title definition = new Title();
+        definition.setTitleKey("fourth_wall_touched");
+        definition.setUnlockConditionsJson("{\"exploreCount\":50}");
+        definition.setEffectsJson("{\"storyEventBonus\":0.03}");
+        when(playerMapper.selectByIdForUpdate(1L)).thenReturn(player);
+        when(titleMapper.selectList(any(QueryWrapper.class))).thenReturn(List.of(definition));
+        when(playerTitleMapper.selectList(any(QueryWrapper.class))).thenReturn(List.of());
+
+        PlayerTitleVO status = titleService.getPlayerTitles(1L).get(0);
+        assertEquals(150, status.getReacquireTarget());
+        assertEquals(149, status.getReacquireProgress());
+        assertTrue(!status.isCanReacquire());
+        TitleSacrificeHistory.countQualifiedExploration(player, day * 8, mapper);
+        assertTrue(titleService.getPlayerTitles(1L).get(0).isCanReacquire());
     }
 }

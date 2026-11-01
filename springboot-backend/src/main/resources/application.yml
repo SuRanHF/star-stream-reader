@@ -86,7 +86,7 @@ app:
 
 trace:
   weightMultiplier: ${TRACE_WEIGHT_MULTIPLIER:3}
-  extraCostRatio: ${TRACE_EXTRA_COST_RATIO:0.5}
+  extraCostRatio: ${TRACE_EXTRA_COST_RATIO:0.75}
 
 # ==================== Knife4j 接口文档 ====================
 knife4j:

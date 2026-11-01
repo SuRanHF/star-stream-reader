@@ -13,9 +13,11 @@ import com.huazhenghai.readergame.mapper.PlayerTitleMapper;
 import com.huazhenghai.readergame.mapper.TitleMapper;
 import com.huazhenghai.readergame.service.TitleService;
 import com.huazhenghai.readergame.service.TitleSacrificeHistory;
+import com.huazhenghai.readergame.service.PlayerMaxHpProjectionService;
 import com.huazhenghai.readergame.vo.PlayerTitleVO;
 import com.huazhenghai.readergame.vo.TitleVO;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -27,15 +29,18 @@ public class TitleServiceImpl implements TitleService {
     private final PlayerTitleMapper playerTitleMapper;
     private final PlayerMapper playerMapper;
     private final ObjectMapper objectMapper;
+    private final PlayerMaxHpProjectionService maxHpProjectionService;
 
     public TitleServiceImpl(TitleMapper titleMapper,
                             PlayerTitleMapper playerTitleMapper,
                             PlayerMapper playerMapper,
-                            ObjectMapper objectMapper) {
+                            ObjectMapper objectMapper,
+                            PlayerMaxHpProjectionService maxHpProjectionService) {
         this.titleMapper = titleMapper;
         this.playerTitleMapper = playerTitleMapper;
         this.playerMapper = playerMapper;
         this.objectMapper = objectMapper;
+        this.maxHpProjectionService = maxHpProjectionService;
     }
 
     @Override
@@ -58,7 +63,14 @@ public class TitleServiceImpl implements TitleService {
     }
 
     @Override
+    @Transactional
     public List<PlayerTitleVO> getPlayerTitles(Long playerId) {
+        Player player = playerMapper.selectByIdForUpdate(playerId);
+        Map<String, Object> stageProgress = player == null ? Map.of() : parseJsonMap(player.getStageProgressJson());
+        int totalExplorations = countTotalExplorations(stageProgress);
+        if (player != null && TitleSacrificeHistory.prepare(player, totalExplorations,
+                System.currentTimeMillis(), objectMapper) && playerMapper.updateById(player) <= 0)
+            throw new IllegalStateException("保存旧称号献祭记录失败");
         QueryWrapper<PlayerTitle> query = new QueryWrapper<>();
         query.eq("player_id", playerId).orderByDesc("unlocked_at");
         List<PlayerTitle> pts = playerTitleMapper.selectList(query);
@@ -85,7 +97,24 @@ public class TitleServiceImpl implements TitleService {
             vo.setSource(pt.getSource());
             vo.setUnlockedAt(pt.getUnlockedAt());
             TitleEffectAudit.populate(vo, parseJsonMap(def.getEffectsJson()));
+            if (player != null && TitleSacrificeHistory.isReacquired(player, pt.getTitleKey(), objectMapper)) {
+                vo.setReacquired(true);
+                vo.setCanSacrifice(false);
+            }
             result.add(vo);
+        }
+        if (player != null) {
+            Set<String> owned = getOwnedTitleKeys(playerId);
+            for (Title def : allTitles) {
+                if (owned.contains(def.getTitleKey())
+                        || !TitleSacrificeHistory.contains(player, def.getTitleKey(), objectMapper)) continue;
+                PlayerTitleVO vo = titleVo(def, null);
+                vo.setOwned(false);
+                vo.setSacrificed(true);
+                vo.setCanSacrifice(false);
+                fillReacquisition(vo, player, def, stageProgress, totalExplorations);
+                result.add(vo);
+            }
         }
         return result;
     }
@@ -111,18 +140,28 @@ public class TitleServiceImpl implements TitleService {
         vo.setSource(pt.getSource());
         vo.setUnlockedAt(pt.getUnlockedAt());
         TitleEffectAudit.populate(vo, parseJsonMap(def.getEffectsJson()));
+        Player player = playerMapper.selectById(playerId);
+        if (player != null && TitleSacrificeHistory.isReacquired(player, pt.getTitleKey(), objectMapper)) {
+            vo.setReacquired(true);
+            vo.setCanSacrifice(false);
+        }
         return vo;
     }
 
     @Override
+    @Transactional
     public List<PlayerTitleVO> evaluateAndUnlockTitles(Long playerId, Long userId) {
-        Player player = playerMapper.selectById(playerId);
+        Player player = playerMapper.selectByIdForUpdate(playerId);
         if (player == null) return Collections.emptyList();
         if (userId != null && !player.getUserId().equals(userId))
             throw new BusinessException(ErrorCode.FORBIDDEN, "无权操作此玩家");
 
         Map<String, Object> stats = parseJsonMap(player.getStatsJson());
         Map<String, Object> stageProgress = parseJsonMap(player.getStageProgressJson());
+        int totalExplorations = countTotalExplorations(stageProgress);
+        if (TitleSacrificeHistory.prepare(player, totalExplorations,
+                System.currentTimeMillis(), objectMapper) && playerMapper.updateById(player) <= 0)
+            throw new IllegalStateException("保存称号重获起点失败");
 
         Set<String> alreadyOwned = getOwnedTitleKeys(playerId);
 
@@ -134,10 +173,33 @@ public class TitleServiceImpl implements TitleService {
 
         for (Title def : allTitles) {
             if (alreadyOwned.contains(def.getTitleKey())) continue;
-            if (TitleSacrificeHistory.contains(player, def.getTitleKey(), objectMapper)) continue;
+            boolean sacrificed = TitleSacrificeHistory.contains(player, def.getTitleKey(), objectMapper);
 
             Map<String, Object> conditions = parseJsonMap(def.getUnlockConditionsJson());
             if (conditions.isEmpty()) continue;
+
+            if (sacrificed) {
+                if (!isRepeatableCountTitle(conditions)
+                        || TitleSacrificeHistory.isReacquired(player, def.getTitleKey(), objectMapper)
+                        || !evaluateConditions(conditions, player, stats, stageProgress)) continue;
+                Map<String, Object> record = TitleSacrificeHistory.details(player, def.getTitleKey(), objectMapper);
+                if (!(record.get("progressStartCount") instanceof Number)
+                        || toInt(record.get("reacquireExploreCount"), 0) < reacquireTarget(conditions)) continue;
+                PlayerTitle pt = new PlayerTitle();
+                pt.setPlayerId(playerId);
+                pt.setTitleKey(def.getTitleKey());
+                pt.setEquipped(0);
+                pt.setSource("献祭重获");
+                pt.setUnlockedAt(LocalDateTime.now());
+                if (playerTitleMapper.insert(pt) <= 0) throw new IllegalStateException("重获称号保存失败");
+                TitleSacrificeHistory.markReacquired(player, def.getTitleKey(), objectMapper);
+                if (playerMapper.updateById(player) <= 0) throw new IllegalStateException("重获进度保存失败");
+                PlayerTitleVO vo = titleVo(def, pt);
+                vo.setReacquired(true);
+                vo.setCanSacrifice(false);
+                newlyUnlocked.add(vo);
+                continue;
+            }
 
             if (evaluateConditions(conditions, player, stats, stageProgress)) {
                 PlayerTitle pt = new PlayerTitle();
@@ -192,6 +254,8 @@ public class TitleServiceImpl implements TitleService {
     public Map<String, Object> sacrificeTitle(Player player, String titleKey) {
         if (titleKey == null || titleKey.isBlank())
             throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "请选择要献祭的称号");
+        if (TitleSacrificeHistory.isReacquired(player, titleKey, objectMapper))
+            throw new BusinessException(ErrorCode.INVALID_FIELD_VALUE, "已重获的称号不能再次献祭");
         QueryWrapper<PlayerTitle> ownedQuery = new QueryWrapper<>();
         ownedQuery.eq("player_id", player.getId()).eq("title_key", titleKey);
         PlayerTitle owned = playerTitleMapper.selectOne(ownedQuery);
@@ -213,7 +277,9 @@ public class TitleServiceImpl implements TitleService {
                 throw new BusinessException(ErrorCode.SERVER_ERROR, "保存称号列表失败");
             }
         }
-        TitleSacrificeHistory.add(player, titleKey, objectMapper);
+        int explorations = countTotalExplorations(parseJsonMap(player.getStageProgressJson()));
+        TitleSacrificeHistory.record(player, titleKey, explorations, System.currentTimeMillis(), objectMapper);
+        normalizeTitleHp(player);
         Title definition = titleMapper.selectOne(new QueryWrapper<Title>().eq("title_key", titleKey));
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("title_key", titleKey);
@@ -222,8 +288,9 @@ public class TitleServiceImpl implements TitleService {
     }
 
     @Override
+    @Transactional
     public PlayerTitleVO equipTitle(Long playerId, String titleKey, Long userId) {
-        Player player = playerMapper.selectById(playerId);
+        Player player = playerMapper.selectByIdForUpdate(playerId);
         if (player == null)
             throw new BusinessException(ErrorCode.PLAYER_NOT_FOUND, "玩家不存在");
         if (!player.getUserId().equals(userId))
@@ -247,6 +314,8 @@ public class TitleServiceImpl implements TitleService {
         // 装备新称号
         target.setEquipped(1);
         playerTitleMapper.updateById(target);
+        if (normalizeTitleHp(player) && playerMapper.updateById(player) <= 0)
+            throw new IllegalStateException("保存佩戴后的生命上限失败");
 
         Title def = titleMapper.selectOne(
                 new QueryWrapper<Title>().eq("title_key", titleKey));
@@ -261,6 +330,10 @@ public class TitleServiceImpl implements TitleService {
         vo.setSource(target.getSource());
         vo.setUnlockedAt(target.getUnlockedAt());
         TitleEffectAudit.populate(vo, def == null ? Collections.emptyMap() : parseJsonMap(def.getEffectsJson()));
+        if (TitleSacrificeHistory.isReacquired(player, titleKey, objectMapper)) {
+            vo.setReacquired(true);
+            vo.setCanSacrifice(false);
+        }
         return vo;
     }
 
@@ -276,7 +349,97 @@ public class TitleServiceImpl implements TitleService {
         Title def = titleMapper.selectOne(query);
         if (def == null) return Collections.emptyMap();
 
-        return parseJsonMap(def.getEffectsJson());
+        Map<String, Object> effects = parseJsonMap(def.getEffectsJson());
+        capTitleEffect(effects, "channelHeatGainRate", 0.25);
+        capTitleEffect(effects, "storyEventBonus", 0.15);
+        if (effects.get("maxHp") instanceof Number value)
+            effects.put("maxHp", Math.max(0, Math.min(50, value.intValue())));
+        return effects;
+    }
+
+    @Override
+    public void prepareReacquisitionProgress(Player player) {
+        int total = countTotalExplorations(parseJsonMap(player.getStageProgressJson()));
+        TitleSacrificeHistory.prepare(player, total, System.currentTimeMillis(), objectMapper);
+    }
+
+    @Override
+    public void recordQualifiedExploration(Player player) {
+        TitleSacrificeHistory.countQualifiedExploration(player, System.currentTimeMillis(), objectMapper);
+    }
+
+    private boolean normalizeTitleHp(Player player) {
+        Map<String, Object> stats = parseJsonMap(player.getStatsJson());
+        maxHpProjectionService.normalizeForPersistence(stats, player.getId());
+        try {
+            String updated = objectMapper.writeValueAsString(stats);
+            if (Objects.equals(player.getStatsJson(), updated)) return false;
+            player.setStatsJson(updated);
+            return true;
+        } catch (Exception exception) {
+            throw new BusinessException(ErrorCode.SERVER_ERROR, "保存称号生命上限失败");
+        }
+    }
+
+    private void capTitleEffect(Map<String, Object> effects, String key, double cap) {
+        if (effects.get(key) instanceof Number value && Double.isFinite(value.doubleValue()))
+            effects.put(key, Math.min(cap, value.doubleValue()));
+    }
+
+    private PlayerTitleVO titleVo(Title def, PlayerTitle owned) {
+        PlayerTitleVO vo = new PlayerTitleVO();
+        vo.setTitleKey(def.getTitleKey());
+        vo.setName(def.getName());
+        vo.setCategory(def.getCategory());
+        vo.setRarity(def.getRarity());
+        vo.setDescription(def.getDescription());
+        vo.setEquipped(owned != null && Integer.valueOf(1).equals(owned.getEquipped()));
+        if (owned != null) {
+            vo.setSource(owned.getSource());
+            vo.setUnlockedAt(owned.getUnlockedAt());
+        }
+        TitleEffectAudit.populate(vo, parseJsonMap(def.getEffectsJson()));
+        return vo;
+    }
+
+    private void fillReacquisition(PlayerTitleVO vo, Player player, Title def,
+                                   Map<String, Object> stageProgress, int totalExplorations) {
+        Map<String, Object> conditions = parseJsonMap(def.getUnlockConditionsJson());
+        if (!isRepeatableCountTitle(conditions)) return;
+        Map<String, Object> record = TitleSacrificeHistory.details(player, def.getTitleKey(), objectMapper);
+        if (Boolean.TRUE.equals(record.get("reacquired"))) return;
+        int target = reacquireTarget(conditions);
+        vo.setReacquireTarget(target);
+        long now = System.currentTimeMillis();
+        long sacrificedAt = record.get("sacrificedAt") instanceof Number value ? value.longValue() : now;
+        long remaining = Math.max(0, TitleSacrificeHistory.COOLDOWN_MILLIS - (now - sacrificedAt));
+        vo.setReacquireDaysRemaining((remaining + 86_399_999L) / 86_400_000L);
+        if (record.get("progressStartCount") instanceof Number && remaining == 0) {
+            int progress = Math.max(0, toInt(record.get("reacquireExploreCount"), 0));
+            vo.setReacquireProgress(Math.min(target, progress));
+            vo.setCanReacquire(progress >= target
+                    && evaluateConditions(conditions, player, parseJsonMap(player.getStatsJson()), stageProgress));
+        }
+    }
+
+    private boolean isRepeatableCountTitle(Map<String, Object> conditions) {
+        return conditions.size() == 1 && (conditions.get("exploreCount") instanceof Number
+                || conditions.get("locationExploreCount") instanceof Map<?, ?> locations && !locations.isEmpty()
+                && locations.values().stream().allMatch(value -> value instanceof Number)
+                || conditions.get("bossClue") instanceof Map<?, ?> clues && !clues.isEmpty()
+                && clues.values().stream().allMatch(value -> value instanceof Number));
+    }
+
+    private int reacquireTarget(Map<String, Object> conditions) {
+        long original = 0;
+        if (conditions.get("exploreCount") instanceof Number count) {
+            original = count.longValue();
+        } else if (conditions.get("locationExploreCount") instanceof Map<?, ?> locations) {
+            for (Object value : locations.values()) original += ((Number) value).longValue();
+        } else if (conditions.get("bossClue") instanceof Map<?, ?> clues) {
+            for (Object value : clues.values()) original += ((Number) value).longValue();
+        }
+        return (int) Math.min(Integer.MAX_VALUE, Math.max(30L, original * 3L));
     }
 
     // ─── 条件评估 ───

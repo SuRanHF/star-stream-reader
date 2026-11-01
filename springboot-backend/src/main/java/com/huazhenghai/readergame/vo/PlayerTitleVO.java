@@ -17,6 +17,14 @@ public class PlayerTitleVO {
     private List<String> inactiveEffects;
     private List<String> uncertainEffects;
     private String effectScope;
+    private boolean owned = true;
+    private boolean sacrificed;
+    private boolean reacquired;
+    private boolean canReacquire;
+    private boolean canSacrifice = true;
+    private int reacquireProgress;
+    private int reacquireTarget;
+    private long reacquireDaysRemaining;
 
     public String getTitleKey() { return titleKey; }
     public void setTitleKey(String titleKey) { this.titleKey = titleKey; }
@@ -42,4 +50,20 @@ public class PlayerTitleVO {
     public void setUncertainEffects(List<String> uncertainEffects) { this.uncertainEffects = uncertainEffects; }
     public String getEffectScope() { return effectScope; }
     public void setEffectScope(String effectScope) { this.effectScope = effectScope; }
+    public boolean isOwned() { return owned; }
+    public void setOwned(boolean owned) { this.owned = owned; }
+    public boolean isSacrificed() { return sacrificed; }
+    public void setSacrificed(boolean sacrificed) { this.sacrificed = sacrificed; }
+    public boolean isReacquired() { return reacquired; }
+    public void setReacquired(boolean reacquired) { this.reacquired = reacquired; }
+    public boolean isCanReacquire() { return canReacquire; }
+    public void setCanReacquire(boolean canReacquire) { this.canReacquire = canReacquire; }
+    public boolean isCanSacrifice() { return canSacrifice; }
+    public void setCanSacrifice(boolean canSacrifice) { this.canSacrifice = canSacrifice; }
+    public int getReacquireProgress() { return reacquireProgress; }
+    public void setReacquireProgress(int reacquireProgress) { this.reacquireProgress = reacquireProgress; }
+    public int getReacquireTarget() { return reacquireTarget; }
+    public void setReacquireTarget(int reacquireTarget) { this.reacquireTarget = reacquireTarget; }
+    public long getReacquireDaysRemaining() { return reacquireDaysRemaining; }
+    public void setReacquireDaysRemaining(long reacquireDaysRemaining) { this.reacquireDaysRemaining = reacquireDaysRemaining; }
 }

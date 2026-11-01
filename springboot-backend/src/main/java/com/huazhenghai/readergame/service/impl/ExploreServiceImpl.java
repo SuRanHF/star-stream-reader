@@ -72,8 +72,8 @@ public class ExploreServiceImpl implements ExploreService {
     @Value("${trace.weightMultiplier:3}")
     private double traceWeightMultiplier = 3.0;
 
-    @Value("${trace.extraCostRatio:0.5}")
-    private double traceExtraCostRatio = 0.5;
+    @Value("${trace.extraCostRatio:0.75}")
+    private double traceExtraCostRatio = 0.75;
 
     public ExploreServiceImpl(PlayerMapper playerMapper,
                               LocationMapper locationMapper,
@@ -478,8 +478,10 @@ public class ExploreServiceImpl implements ExploreService {
             RouteContinuationPolicy.clearIfContinued(stageProgress,
                     parseJsonMap(selected.getRequiredConditionsJson()));
         }
+        titleService.prepareReacquisitionProgress(player);
         Map<String, Object> appliedProgress = ExploreProgressEffects.apply(
                 stageProgress, selected, progressEffects);
+        titleService.recordQualifiedExploration(player);
         if ("story".equals(selected.getEventType()) && !hasStoryChoices
                 && Boolean.TRUE.equals(progressEffects.get("route_pending"))) {
             RouteContinuationPolicy.markPending(stageProgress, selected.getEventKey());

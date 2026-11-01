@@ -377,7 +377,7 @@ public class PlayerController {
         }
         stats.put("constellation", constellationKey);
         stats.put("constellationFavor", 100);
-        maxHpProjectionService.normalizeForPersistence(stats);
+        maxHpProjectionService.normalizeForPersistence(stats, playerId);
         try {
             player.setStatsJson(objectMapper.writeValueAsString(stats));
         } catch (Exception e) {
@@ -443,10 +443,10 @@ public class PlayerController {
         logMetadata.put("favorAfter", newFavor);
         int storyFragmentsAfter = ResourceBalance.applyDelta("故事碎片", storyFragments, -cost);
         player.setStoryFragments(storyFragmentsAfter);
-        maxHpProjectionService.normalizeForPersistence(stats);
+        maxHpProjectionService.normalizeForPersistence(stats, playerId);
         stats.put("constellation", newConstellationKey);
         stats.put("constellationFavor", newFavor);
-        maxHpProjectionService.normalizeForPersistence(stats);
+        maxHpProjectionService.normalizeForPersistence(stats, playerId);
         try {
             player.setStatsJson(objectMapper.writeValueAsString(stats));
         } catch (Exception e) {
@@ -681,7 +681,7 @@ public class PlayerController {
             sacrificedTitle = titleService.sacrificeTitle(player, request.getTitleKey());
 
         stats.put("isDead", false);
-        int maxHp = toInt(stats.get("maxHp"), 100);
+        int maxHp = maxHpProjectionService.normalizeForPersistence(stats, playerId);
         stats.put("hp", maxHp / 2); // revive with half HP
         try {
             player.setStatsJson(objectMapper.writeValueAsString(stats));
@@ -785,7 +785,7 @@ public class PlayerController {
             sacrificedTitle = titleService.sacrificeTitle(reviver, request.getTitleKey());
 
         targetStats.put("isDead", false);
-        int maxHp = toInt(targetStats.get("maxHp"), 100);
+        int maxHp = maxHpProjectionService.normalizeForPersistence(targetStats, targetId);
         int hpAfter = maxHp / 2;
         targetStats.put("hp", hpAfter);
         try {

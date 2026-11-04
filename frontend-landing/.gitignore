@@ -1,0 +1,4 @@
+node_modules/
+dist/
+# 背景音乐只放本机，不入库
+public/audio/*
